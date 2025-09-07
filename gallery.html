@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Gallery of Baluch Martyrs - Browse our memorial database">
+    <title>Martyrs Gallery - Baluch Martyrs Memorial</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Header Section -->
+    <header class="site-header">
+        <nav class="navbar">
+            <div class="container">
+                <div class="nav-brand">
+                    <h1>Baluch Martyrs Memorial</h1>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="add-martyr.html">Add Martyr</a></li>
+                    <li><a href="gallery.html" class="active">Gallery</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <section class="gallery-section">
+            <div class="container">
+                <div class="page-header">
+                    <h2>Martyrs Gallery</h2>
+                    <p>Browse through our memorial database to honor and remember our heroes</p>
+                </div>
+
+                <!-- Search/Filter Bar -->
+                <div class="filter-bar">
+                    <input type="text" id="searchMartyrs" placeholder="Search by name, location, or organization...">
+                </div>
+
+                <!-- Gallery Grid -->
+                <div class="gallery-grid" id="galleryGrid">
+                    <!-- Martyrs will be loaded here dynamically -->
+                    <div class="martyr-card placeholder">
+                        <div class="martyr-image"></div>
+                        <div class="martyr-info">
+                            <h3>No martyrs in gallery yet</h3>
+                            <p>Be the first to add a martyr to our memorial</p>
+                            <a href="add-martyr.html" class="btn-small">Add Martyr</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Baluch Martyrs Memorial</h3>
+                    <p>Preserving the memory of our heroes who gave their lives for freedom.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="add-martyr.html">Add Martyr</a></li>
+                        <li><a href="gallery.html">Gallery</a></li>
+                        <li><a href="about.html">About</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Contact</h3>
+                    <p>Email: info@baluchmemorial.org</p>
+                    <p>Phone: +92-XXX-XXXXXXX</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Baluch Martyrs Memorial. All rights reserved.</p>
+                <p>Powered by Benjamin Baluch</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script src="js/gallery.js"></script>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Add a Baluch martyr to the memorial - Upload photos and details">
+    <title>Add Martyr - Baluch Martyrs Memorial</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Header Section -->
+    <header class="site-header">
+        <nav class="navbar">
+            <div class="container">
+                <div class="nav-brand">
+                    <h1>Baluch Martyrs Memorial</h1>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="add-martyr.html" class="active">Add Martyr</a></li>
+                    <li><a href="gallery.html">Gallery</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <section class="add-martyr-section">
+            <div class="container">
+                <div class="page-header">
+                    <h2>Add a Martyr to the Memorial</h2>
+                    <p>Honor a hero by adding their information to our memorial database</p>
+                </div>
+
+                <form id="addMartyrForm" class="martyr-form">
+                    <!-- Personal Information Section -->
+                    <div class="form-section">
+                        <h3>Personal Information</h3>
+                        
+                        <div class="form-group">
+                            <label for="fullName">Full Name *</label>
+                            <input type="text" id="fullName" name="fullName" required>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="birthDate">Date of Birth</label>
+                                <input type="date" id="birthDate" name="birthDate">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="martyrdomDate">Date of Martyrdom *</label>
+                                <input type="date" id="martyrdomDate" name="martyrdomDate" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="birthPlace">Place of Birth</label>
+                                <input type="text" id="birthPlace" name="birthPlace" placeholder="City, Province">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="martyrdomPlace">Place of Martyrdom *</label>
+                                <input type="text" id="martyrdomPlace" name="martyrdomPlace" placeholder="City, Province" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Photo Upload Section -->
+                    <div class="form-section">
+                        <h3>Photo Upload</h3>
+                        
+                        <div class="form-group">
+                            <label for="martyrPhoto">Martyr's Photo *</label>
+                            <div class="file-upload-wrapper">
+                                <input type="file" id="martyrPhoto" name="martyrPhoto" accept="image/*" required>
+                                <div class="file-upload-display">
+                                    <span class="file-upload-text">Choose a photo...</span>
+                                    <button type="button" class="btn-secondary">Browse</button>
+                                </div>
+                            </div>
+                            <div id="photoPreview" class="photo-preview"></div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="additionalPhotos">Additional Photos (Optional)</label>
+                            <div class="file-upload-wrapper">
+                                <input type="file" id="additionalPhotos" name="additionalPhotos" accept="image/*" multiple>
+                                <div class="file-upload-display">
+                                    <span class="file-upload-text">Choose photos...</span>
+                                    <button type="button" class="btn-secondary">Browse</button>
+                                </div>
+                            </div>
+                            <div id="additionalPhotosPreview" class="photos-preview-grid"></div>
+                        </div>
+                    </div>
+
+                    <!-- Biography Section -->
+                    <div class="form-section">
+                        <h3>Biography & Details</h3>
+                        
+                        <div class="form-group">
+                            <label for="biography">Biography</label>
+                            <textarea id="biography" name="biography" rows="6" 
+                                placeholder="Share the martyr's life story, their contributions, and the circumstances of their martyrdom..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="organization">Organization/Movement</label>
+                            <input type="text" id="organization" name="organization" 
+                                placeholder="Name of organization or movement they were associated with">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="rank">Rank/Title</label>
+                            <input type="text" id="rank" name="rank" 
+                                placeholder="Military rank or title held">
+                        </div>
+                    </div>
+
+                    <!-- Family Information Section -->
+                    <div class="form-section">
+                        <h3>Family Information (Optional)</h3>
+                        
+                        <div class="form-group">
+                            <label for="fatherName">Father's Name</label>
+                            <input type="text" id="fatherName" name="fatherName">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="familyDetails">Family Details</label>
+                            <textarea id="familyDetails" name="familyDetails" rows="3" 
+                                placeholder="Information about spouse, children, or other family members..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Submitter Information -->
+                    <div class="form-section">
+                        <h3>Submitted By</h3>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="submitterName">Your Name *</label>
+                                <input type="text" id="submitterName" name="submitterName" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="submitterEmail">Your Email *</label>
+                                <input type="email" id="submitterEmail" name="submitterEmail" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="submitterRelation">Relationship to Martyr</label>
+                            <input type="text" id="submitterRelation" name="submitterRelation" 
+                                placeholder="Family member, friend, colleague, etc.">
+                        </div>
+                    </div>
+
+                    <!-- Submit Section -->
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="resetForm()">Clear Form</button>
+                        <button type="submit" class="btn btn-primary">Submit Memorial</button>
+                    </div>
+                </form>
+
+                <!-- Success Message (Initially Hidden) -->
+                <div id="successMessage" class="success-message" style="display: none;">
+                    <h3>Thank You!</h3>
+                    <p>The martyr's information has been successfully submitted to our memorial.</p>
+                    <button onclick="window.location.href='gallery.html'" class="btn btn-primary">View Gallery</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Baluch Martyrs Memorial</h3>
+                    <p>Preserving the memory of our heroes who gave their lives for freedom.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="add-martyr.html">Add Martyr</a></li>
+                        <li><a href="gallery.html">Gallery</a></li>
+                        <li><a href="about.html">About</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Contact</h3>
+                    <p>Email: info@baluchmemorial.org</p>
+                    <p>Phone: +92-XXX-XXXXXXX</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Baluch Martyrs Memorial. All rights reserved.</p>
+                <p>Powered by Benjamin Baluch</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+    <script src="js/add-martyr.js"></script>
+</body>
+</html>

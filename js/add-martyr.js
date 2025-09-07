@@ -1,0 +1,291 @@
+// Add Martyr Form JavaScript
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeFormHandlers();
+});
+
+function initializeFormHandlers() {
+    const form = document.getElementById('addMartyrForm');
+    
+    if (form) {
+        // Handle form submission
+        form.addEventListener('submit', handleFormSubmit);
+        
+        // Initialize file upload handlers
+        initFileUploads();
+    }
+}
+
+// Initialize file upload handlers
+function initFileUploads() {
+    // Main photo upload
+    const martyrPhoto = document.getElementById('martyrPhoto');
+    const photoPreview = document.getElementById('photoPreview');
+    
+    if (martyrPhoto) {
+        martyrPhoto.addEventListener('change', function(e) {
+            handlePhotoUpload(e, photoPreview, false);
+        });
+        
+        // Update file upload display text
+        const fileDisplay = martyrPhoto.parentElement.querySelector('.file-upload-text');
+        martyrPhoto.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                fileDisplay.textContent = this.files[0].name;
+            } else {
+                fileDisplay.textContent = 'Choose a photo...';
+            }
+        });
+    }
+    
+    // Additional photos upload
+    const additionalPhotos = document.getElementById('additionalPhotos');
+    const additionalPreview = document.getElementById('additionalPhotosPreview');
+    
+    if (additionalPhotos) {
+        additionalPhotos.addEventListener('change', function(e) {
+            handlePhotoUpload(e, additionalPreview, true);
+        });
+        
+        // Update file upload display text
+        const fileDisplay = additionalPhotos.parentElement.querySelector('.file-upload-text');
+        additionalPhotos.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                fileDisplay.textContent = `${this.files.length} photo(s) selected`;
+            } else {
+                fileDisplay.textContent = 'Choose photos...';
+            }
+        });
+    }
+    
+    // Style file upload buttons
+    const fileUploadButtons = document.querySelectorAll('.file-upload-display button');
+    fileUploadButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const input = this.closest('.file-upload-wrapper').querySelector('input[type="file"]');
+            input.click();
+        });
+    });
+}
+
+// Handle photo upload and preview
+function handlePhotoUpload(event, previewContainer, multiple) {
+    const files = event.target.files;
+    
+    if (files.length === 0) {
+        previewContainer.innerHTML = '';
+        return;
+    }
+    
+    previewContainer.innerHTML = '';
+    
+    if (multiple) {
+        // Handle multiple photos
+        Array.from(files).forEach(file => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.alt = 'Preview';
+                    previewContainer.appendChild(img);
+                };
+                
+                reader.readAsDataURL(file);
+            }
+        });
+    } else {
+        // Handle single photo
+        const file = files[0];
+        
+        if (file && file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.alt = 'Martyr Photo Preview';
+                previewContainer.appendChild(img);
+            };
+            
+            reader.readAsDataURL(file);
+        }
+    }
+}
+
+// Handle form submission
+function handleFormSubmit(event) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    
+    // Create martyr object
+    const martyrData = {
+        fullName: formData.get('fullName'),
+        birthDate: formData.get('birthDate'),
+        martyrdomDate: formData.get('martyrdomDate'),
+        birthPlace: formData.get('birthPlace'),
+        martyrdomPlace: formData.get('martyrdomPlace'),
+        biography: formData.get('biography'),
+        organization: formData.get('organization'),
+        rank: formData.get('rank'),
+        fatherName: formData.get('fatherName'),
+        familyDetails: formData.get('familyDetails'),
+        submitterName: formData.get('submitterName'),
+        submitterEmail: formData.get('submitterEmail'),
+        submitterRelation: formData.get('submitterRelation'),
+        submittedAt: new Date().toISOString()
+    };
+    
+    // Handle photo data (convert to base64 for localStorage)
+    const photoFile = formData.get('martyrPhoto');
+    if (photoFile && photoFile.size > 0) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            martyrData.photo = e.target.result;
+            saveMartyrData(martyrData);
+        };
+        reader.readAsDataURL(photoFile);
+    } else {
+        saveMartyrData(martyrData);
+    }
+}
+
+// Save martyr data to localStorage
+function saveMartyrData(martyrData) {
+    try {
+        // Get existing martyrs data
+        let martyrsData = localStorage.getItem('martyrsData');
+        martyrsData = martyrsData ? JSON.parse(martyrsData) : [];
+        
+        // Add new martyr
+        martyrsData.push(martyrData);
+        
+        // Save back to localStorage
+        localStorage.setItem('martyrsData', JSON.stringify(martyrsData));
+        
+        // Show success message
+        showSuccessMessage();
+        
+        // Reset form after a delay
+        setTimeout(() => {
+            document.getElementById('addMartyrForm').reset();
+            clearPreviews();
+        }, 2000);
+        
+    } catch (error) {
+        console.error('Error saving martyr data:', error);
+        alert('There was an error saving the martyr information. Please try again.');
+    }
+}
+
+// Show success message
+function showSuccessMessage() {
+    const form = document.getElementById('addMartyrForm');
+    const successMessage = document.getElementById('successMessage');
+    
+    if (form && successMessage) {
+        form.style.display = 'none';
+        successMessage.style.display = 'block';
+        
+        // Scroll to success message
+        successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
+        // Hide success message and show form again after 5 seconds
+        setTimeout(() => {
+            successMessage.style.display = 'none';
+            form.style.display = 'block';
+        }, 5000);
+    }
+}
+
+// Clear photo previews
+function clearPreviews() {
+    const photoPreview = document.getElementById('photoPreview');
+    const additionalPreview = document.getElementById('additionalPhotosPreview');
+    
+    if (photoPreview) photoPreview.innerHTML = '';
+    if (additionalPreview) additionalPreview.innerHTML = '';
+    
+    // Reset file upload text
+    const fileTexts = document.querySelectorAll('.file-upload-text');
+    fileTexts.forEach((text, index) => {
+        text.textContent = index === 0 ? 'Choose a photo...' : 'Choose photos...';
+    });
+}
+
+// Reset form function (called from HTML)
+function resetForm() {
+    const form = document.getElementById('addMartyrForm');
+    if (form) {
+        form.reset();
+        clearPreviews();
+    }
+}
+
+// Form validation enhancements
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('addMartyrForm');
+    
+    if (form) {
+        // Add real-time validation
+        const requiredFields = form.querySelectorAll('[required]');
+        
+        requiredFields.forEach(field => {
+            field.addEventListener('blur', function() {
+                validateField(this);
+            });
+        });
+    }
+});
+
+// Validate individual field
+function validateField(field) {
+    if (field.value.trim() === '') {
+        field.classList.add('error');
+        showFieldError(field, 'This field is required');
+    } else {
+        field.classList.remove('error');
+        clearFieldError(field);
+        
+        // Additional validation for email
+        if (field.type === 'email' && !isValidEmail(field.value)) {
+            field.classList.add('error');
+            showFieldError(field, 'Please enter a valid email address');
+        }
+    }
+}
+
+// Show field error message
+function showFieldError(field, message) {
+    let errorElement = field.parentElement.querySelector('.field-error');
+    
+    if (!errorElement) {
+        errorElement = document.createElement('span');
+        errorElement.className = 'field-error';
+        errorElement.style.color = 'red';
+        errorElement.style.fontSize = '0.875rem';
+        errorElement.style.marginTop = '0.25rem';
+        errorElement.style.display = 'block';
+        field.parentElement.appendChild(errorElement);
+    }
+    
+    errorElement.textContent = message;
+}
+
+// Clear field error message
+function clearFieldError(field) {
+    const errorElement = field.parentElement.querySelector('.field-error');
+    if (errorElement) {
+        errorElement.remove();
+    }
+}
+
+// Email validation helper
+function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
