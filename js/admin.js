@@ -3,17 +3,49 @@
 import { firebaseDB, storageHelper } from './firebase-config.js';
 
 document.addEventListener('DOMContentLoaded', function() {
-    loadPendingSubmissions();
-    updateStats();
+    console.log('Admin panel loading...');
+    
+    try {
+        loadPendingSubmissions();
+        updateStats();
+        initializeAdminControls();
+        console.log('Admin panel initialized successfully');
+    } catch (error) {
+        console.error('Error initializing admin panel:', error);
+        alert('Error loading admin panel. Please check the console for details.');
+    }
 });
 
-// Make functions globally available for onclick handlers
-window.approveMartyr = approveMartyr;
-window.rejectMartyr = rejectMartyr;
-window.refreshData = refreshData;
-window.clearAllPending = clearAllPending;
-window.exportData = exportData;
-window.importData = importData;
+// Initialize admin control buttons
+function initializeAdminControls() {
+    // Refresh Data button
+    const refreshBtn = document.querySelector('button[onclick="refreshData()"]');
+    if (refreshBtn) {
+        refreshBtn.removeAttribute('onclick');
+        refreshBtn.addEventListener('click', refreshData);
+    }
+    
+    // Export Data button
+    const exportBtn = document.querySelector('button[onclick="exportData()"]');
+    if (exportBtn) {
+        exportBtn.removeAttribute('onclick');
+        exportBtn.addEventListener('click', exportData);
+    }
+    
+    // Import Data button
+    const importBtn = document.querySelector('button[onclick="importData()"]');
+    if (importBtn) {
+        importBtn.removeAttribute('onclick');
+        importBtn.addEventListener('click', importData);
+    }
+    
+    // Clear All Pending button
+    const clearBtn = document.querySelector('button[onclick="clearAllPending()"]');
+    if (clearBtn) {
+        clearBtn.removeAttribute('onclick');
+        clearBtn.addEventListener('click', clearAllPending);
+    }
+}
 
 // Load and display pending submissions
 async function loadPendingSubmissions() {
@@ -123,20 +155,34 @@ function createPendingItem(martyr) {
             </div>
         </div>
         <div class="pending-actions">
-            <button onclick="approveMartyr('${martyr.id}')" class="btn btn-approve">
+            <button data-action="approve" data-martyr-id="${martyr.id}" class="btn btn-approve">
                 ✓ Approve & Publish
             </button>
-            <button onclick="rejectMartyr('${martyr.id}')" class="btn btn-reject">
+            <button data-action="reject" data-martyr-id="${martyr.id}" class="btn btn-reject">
                 ✗ Reject & Delete
             </button>
         </div>
     `;
+
+    // Add event listeners to buttons
+    const approveBtn = item.querySelector('.btn-approve');
+    const rejectBtn = item.querySelector('.btn-reject');
+    
+    if (approveBtn) {
+        approveBtn.addEventListener('click', () => approveMartyr(martyr.id));
+    }
+    
+    if (rejectBtn) {
+        rejectBtn.addEventListener('click', () => rejectMartyr(martyr.id));
+    }
 
     return item;
 }
 
 // Approve a martyr submission
 async function approveMartyr(martyrId) {
+    console.log('approveMartyr called with ID:', martyrId);
+    
     if (!confirm('Are you sure you want to approve this submission? It will be published on the website.')) {
         return;
     }
@@ -215,6 +261,8 @@ async function approveMartyr(martyrId) {
 
 // Reject a martyr submission
 async function rejectMartyr(martyrId) {
+    console.log('rejectMartyr called with ID:', martyrId);
+    
     if (!confirm('Are you sure you want to reject this submission? This action cannot be undone.')) {
         return;
     }
@@ -316,13 +364,13 @@ function formatDate(dateString) {
 }
 
 // Refresh all data
-function refreshData() {
-    loadPendingSubmissions();
-    updateStats();
+async function refreshData() {
+    await loadPendingSubmissions();
+    await updateStats();
 }
 
 // Clear all pending submissions (admin function)
-function clearAllPending() {
+async function clearAllPending() {
     if (!confirm('Are you sure you want to delete ALL pending submissions? This action cannot be undone!')) {
         return;
     }
@@ -332,8 +380,8 @@ function clearAllPending() {
     }
 
     localStorage.setItem('pendingMartyrs', '[]');
-    loadPendingSubmissions();
-    updateStats();
+    await loadPendingSubmissions();
+    await updateStats();
     alert('All pending submissions have been cleared.');
 }
 
