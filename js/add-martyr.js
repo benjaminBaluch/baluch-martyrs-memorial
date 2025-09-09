@@ -92,7 +92,44 @@ function initFileUploads() {
     });
 }
 
-// Handle photo upload and preview
+// Compress image to reduce upload size and improve Gulf region connectivity
+function compressImage(file, maxWidth = 800, maxHeight = 600, quality = 0.8) {
+    return new Promise((resolve) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = function() {
+            // Calculate new dimensions
+            let { width, height } = img;
+            
+            if (width > height) {
+                if (width > maxWidth) {
+                    height = (height * maxWidth) / width;
+                    width = maxWidth;
+                }
+            } else {
+                if (height > maxHeight) {
+                    width = (width * maxHeight) / height;
+                    height = maxHeight;
+                }
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Draw and compress
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Convert to blob with compression
+            canvas.toBlob(resolve, 'image/jpeg', quality);
+        };
+        
+        img.src = URL.createObjectURL(file);
+    });
+}
+
+// Handle photo upload and preview with compression
 function handlePhotoUpload(event, previewContainer, multiple) {
     const files = event.target.files;
     
@@ -105,35 +142,63 @@ function handlePhotoUpload(event, previewContainer, multiple) {
     
     if (multiple) {
         // Handle multiple photos
-        Array.from(files).forEach(file => {
+        Array.from(files).forEach(async file => {
             if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
+                console.log(`📷 Original file size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
                 
+                // Compress image
+                const compressedFile = await compressImage(file);
+                console.log(`🗜️ Compressed file size: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+                
+                const reader = new FileReader();
                 reader.onload = function(e) {
                     const img = document.createElement('img');
                     img.src = e.target.result;
                     img.alt = 'Preview';
                     previewContainer.appendChild(img);
                 };
-                
-                reader.readAsDataURL(file);
+                reader.readAsDataURL(compressedFile);
             }
         });
     } else {
-        // Handle single photo
+        // Handle single photo with compression
         const file = files[0];
         
         if (file && file.type.startsWith('image/')) {
-            const reader = new FileReader();
+            console.log(`📷 Original file size: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
             
-            reader.onload = function(e) {
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                img.alt = 'Martyr Photo Preview';
-                previewContainer.appendChild(img);
-            };
+            // Show compression progress
+            previewContainer.innerHTML = '<p style="text-align: center; color: #666;">🗜️ Compressing image for better upload...</p>';
             
-            reader.readAsDataURL(file);
+            // Compress image for better Gulf region upload
+            compressImage(file).then(compressedFile => {
+                const originalSize = (file.size / 1024 / 1024).toFixed(2);
+                const compressedSize = (compressedFile.size / 1024 / 1024).toFixed(2);
+                const reduction = (((file.size - compressedFile.size) / file.size) * 100).toFixed(0);
+                
+                console.log(`🗜️ Compressed: ${originalSize}MB → ${compressedSize}MB (${reduction}% smaller)`);
+                
+                // Store compressed file for form submission
+                event.target.compressedFile = compressedFile;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Clear compression message and show image
+                    previewContainer.innerHTML = '';
+                    
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.alt = 'Martyr Photo Preview';
+                    previewContainer.appendChild(img);
+                    
+                    // Add compression info
+                    const compressionInfo = document.createElement('p');
+                    compressionInfo.style.cssText = 'font-size: 12px; color: #28a745; margin: 5px 0; text-align: center;';
+                    compressionInfo.innerHTML = `✅ Compressed: ${originalSize}MB → ${compressedSize}MB (${reduction}% smaller)`;
+                    previewContainer.appendChild(compressionInfo);
+                };
+                reader.readAsDataURL(compressedFile);
+            });
         }
     }
 }
@@ -163,12 +228,17 @@ function handleFormSubmit(event) {
         submittedAt: new Date().toISOString()
     };
     
-    // Handle photo data (convert to base64 for localStorage)
-    const photoFile = formData.get('martyrPhoto');
+    // Handle photo data with compression (convert to base64 for localStorage)
+    const photoInput = document.getElementById('martyrPhoto');
+    const compressedFile = photoInput && photoInput.compressedFile;
+    const photoFile = compressedFile || formData.get('martyrPhoto');
+    
     if (photoFile && photoFile.size > 0) {
+        console.log('📷 Processing photo for submission...');
         const reader = new FileReader();
         reader.onload = function(e) {
             martyrData.photo = e.target.result;
+            console.log(`🗜️ Photo data size: ${(e.target.result.length / 1024 / 1024 * 0.75).toFixed(2)}MB (base64)`);
             saveMartyrData(martyrData);
         };
         reader.readAsDataURL(photoFile);

@@ -509,6 +509,28 @@ section {
     box-shadow: var(--shadow);
 }
 
+/* Image compression feedback */
+.compression-info {
+    font-size: 12px;
+    color: #28a745;
+    margin: 5px 0;
+    text-align: center;
+    padding: 5px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    border-left: 3px solid #28a745;
+}
+
+.compression-progress {
+    font-size: 14px;
+    color: #6c757d;
+    text-align: center;
+    padding: 10px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
 .photos-preview-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
