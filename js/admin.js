@@ -32,6 +32,10 @@ function initializeAdminPanel() {
         updateStats();
         initializeAdminControls();
         console.log('✅ Admin panel initialized successfully');
+        
+        // Initialize approved martyrs management buttons
+        initializeApprovedManagement();
+        console.log('✅ Approved martyrs management initialized');
     } catch (error) {
         console.error('Error initializing admin panel:', error);
         alert('Error loading admin panel. Please check the console for details.');
@@ -67,17 +71,42 @@ function initializeAdminControls() {
         clearBtn.removeAttribute('onclick');
         clearBtn.addEventListener('click', clearAllPending);
     }
+}
+
+// Initialize approved martyrs management buttons
+function initializeApprovedManagement() {
+    console.log('🔧 Initializing approved martyrs management buttons...');
     
     // Load Approved Martyrs button
     const loadApprovedBtn = document.getElementById('loadApprovedBtn');
+    console.log('Load approved button found:', !!loadApprovedBtn);
     if (loadApprovedBtn) {
-        loadApprovedBtn.addEventListener('click', loadApprovedMartyrs);
+        // Remove any existing listeners
+        loadApprovedBtn.replaceWith(loadApprovedBtn.cloneNode(true));
+        const newLoadBtn = document.getElementById('loadApprovedBtn');
+        newLoadBtn.addEventListener('click', function() {
+            console.log('💼 Load approved martyrs button clicked');
+            loadApprovedMartyrs();
+        });
+        console.log('✅ Load approved button event listener added');
+    } else {
+        console.error('❌ Load approved button not found!');
     }
     
     // Clear All Approved button
     const clearAllApprovedBtn = document.getElementById('clearAllApprovedBtn');
+    console.log('Clear all approved button found:', !!clearAllApprovedBtn);
     if (clearAllApprovedBtn) {
-        clearAllApprovedBtn.addEventListener('click', clearAllApproved);
+        // Remove any existing listeners
+        clearAllApprovedBtn.replaceWith(clearAllApprovedBtn.cloneNode(true));
+        const newClearBtn = document.getElementById('clearAllApprovedBtn');
+        newClearBtn.addEventListener('click', function() {
+            console.log('🧹 Clear all approved martyrs button clicked');
+            clearAllApproved();
+        });
+        console.log('✅ Clear all approved button event listener added');
+    } else {
+        console.error('❌ Clear all approved button not found!');
     }
 }
 
@@ -591,8 +620,21 @@ function importData() {
 
 // Load and display approved martyrs
 async function loadApprovedMartyrs() {
+    console.log('💼 Starting loadApprovedMartyrs function...');
+    
     const approvedList = document.getElementById('approvedList');
     const loadBtn = document.getElementById('loadApprovedBtn');
+    
+    console.log('Elements found:', {
+        approvedList: !!approvedList,
+        loadBtn: !!loadBtn
+    });
+    
+    if (!approvedList || !loadBtn) {
+        console.error('❌ Required DOM elements not found!');
+        alert('Error: Required elements not found. Please refresh the page.');
+        return;
+    }
     
     // Show loading state
     loadBtn.disabled = true;
@@ -600,30 +642,45 @@ async function loadApprovedMartyrs() {
     approvedList.innerHTML = '<p style="text-align: center; padding: 2rem;">Loading approved martyrs...</p>';
     
     try {
-        console.log('Loading approved martyrs from Firebase...');
-        const result = await window.firebaseDB.getApprovedMartyrs();
+        console.log('🔥 Firebase DB available:', !!window.firebaseDB);
+        if (!window.firebaseDB) {
+            throw new Error('Firebase DB not available');
+        }
         
-        if (result.success && result.data.length > 0) {
-            const martyrs = result.data;
-            console.log(`Found ${martyrs.length} approved martyrs`);
+        console.log('📋 Calling getApprovedMartyrs...');
+        const result = await window.firebaseDB.getApprovedMartyrs();
+        console.log('📊 Firebase result:', result);
+        
+        if (result.success) {
+            const martyrs = result.data || [];
+            console.log(`✅ Found ${martyrs.length} approved martyrs`);
             
-            approvedList.innerHTML = '';
-            
-            martyrs.forEach(martyr => {
-                const martyrItem = createApprovedMartyrItem(martyr);
-                approvedList.appendChild(martyrItem);
-            });
+            if (martyrs.length > 0) {
+                approvedList.innerHTML = '';
+                
+                martyrs.forEach((martyr, index) => {
+                    console.log(`Creating item ${index + 1}/${martyrs.length}:`, martyr.fullName);
+                    const martyrItem = createApprovedMartyrItem(martyr);
+                    approvedList.appendChild(martyrItem);
+                });
+                
+                console.log('✅ All approved martyrs rendered successfully');
+            } else {
+                approvedList.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">No approved martyrs found in Firebase</p>';
+                console.log('💭 No approved martyrs found');
+            }
         } else {
-            approvedList.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">No approved martyrs found</p>';
+            throw new Error(result.error || 'Unknown Firebase error');
         }
     } catch (error) {
-        console.error('Error loading approved martyrs:', error);
-        approvedList.innerHTML = '<p style="text-align: center; color: #dc3545; padding: 2rem;">Error loading approved martyrs. Check console for details.</p>';
+        console.error('❌ Error loading approved martyrs:', error);
+        approvedList.innerHTML = `<p style="text-align: center; color: #dc3545; padding: 2rem;">Error: ${error.message}<br>Check console for details.</p>`;
     }
     
     // Reset button
     loadBtn.disabled = false;
     loadBtn.textContent = 'Refresh Approved Martyrs';
+    console.log('🔄 loadApprovedMartyrs function completed');
 }
 
 // Create approved martyr item
@@ -727,9 +784,14 @@ async function deleteApprovedMartyr(martyrId, martyrName) {
 
 // Clear all approved martyrs (DANGER!)
 async function clearAllApproved() {
+    console.log('🧹 clearAllApproved function called');
+    
     if (!confirm('⚠️ DANGER: This will DELETE ALL approved martyrs from Firebase!\n\nThis will remove ALL martyrs from the website permanently. Are you absolutely sure?')) {
+        console.log('❌ User cancelled deletion at first confirmation');
         return;
     }
+    
+    console.log('✅ User confirmed first deletion prompt');
     
     if (!confirm('This is your FINAL warning. ALL martyrs will be deleted from the website. This cannot be undone!\n\nType "DELETE ALL" to confirm (case sensitive).')) {
         return;
