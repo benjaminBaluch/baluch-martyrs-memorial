@@ -259,7 +259,21 @@
         }
         
         // Test Firebase and dispatch ready event
-        const firebaseWorking = await testFirebaseConnection();
+        let firebaseWorking = await testFirebaseConnection();
+        
+        // If Firebase failed, try to reinitialize
+        if (!firebaseWorking) {
+            console.log('♾️ Attempting Firebase reinitialization...');
+            try {
+                // Try to reimport Firebase
+                const { firebaseDB: newFirebaseDB } = await import('./js/firebase-config.js');
+                window.firebaseDB = newFirebaseDB;
+                console.log('🔄 Firebase reinitialized, testing again...');
+                firebaseWorking = await testFirebaseConnection();
+            } catch (error) {
+                console.error('❌ Firebase reinitialization failed:', error);
+            }
+        }
         
         if (firebaseWorking) {
             console.log('✅ Firebase is ready for admin operations');
@@ -274,21 +288,20 @@
             console.log('- Navigator online:', navigator.onLine);
             console.log('- Current URL:', window.location.href);
             console.log('- User agent:', navigator.userAgent.substring(0, 100));
+            console.log('- Time since page load:', Date.now() - performance.timing.navigationStart + 'ms');
             
-            // Show user-friendly error with more details
-            setTimeout(() => {
-                const errorMsg = `Firebase database connection failed.
-
-This could be due to:
-- Internet connection issues
-- Firebase project configuration
-- Browser blocking Firebase requests
-
-Please check the browser console (F12) for detailed error messages and try refreshing the page.
-
-You can also try accessing the website from a different browser or device.`;
-                alert(errorMsg);
-            }, 1000);
+            // Try a manual Firebase availability check
+            setTimeout(async () => {
+                console.log('🔍 Manual Firebase check after delay...');
+                if (window.firebaseDB && typeof window.firebaseDB.testConnection === 'function') {
+                    const lateTest = await window.firebaseDB.testConnection();
+                    console.log('🕰️ Late Firebase test result:', lateTest.success);
+                    if (lateTest.success) {
+                        console.log('✅ Firebase became available after delay!');
+                        // Firebase is now working, could show success message
+                    }
+                }
+            }, 3000);
         }
         
         window.dispatchEvent(new Event('firebaseReady'));

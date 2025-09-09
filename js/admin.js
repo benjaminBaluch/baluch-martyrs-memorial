@@ -61,6 +61,33 @@ document.addEventListener('DOMContentLoaded', function() {
     checkFirebaseAvailability();
 });
 
+// Attempt to reconnect Firebase
+async function attemptFirebaseReconnection() {
+    console.log('🔄 Attempting Firebase reconnection...');
+    try {
+        // Try to reimport Firebase module
+        const firebaseModule = await import('./firebase-config.js');
+        window.firebaseDB = firebaseModule.firebaseDB;
+        
+        // Test the connection
+        if (window.firebaseDB && typeof window.firebaseDB.testConnection === 'function') {
+            const testResult = await window.firebaseDB.testConnection();
+            if (testResult.success) {
+                console.log('✅ Firebase reconnection successful!');
+                return true;
+            }
+        }
+        console.error('❌ Firebase reconnection failed - connection test failed');
+        return false;
+    } catch (error) {
+        console.error('❌ Firebase reconnection failed:', error);
+        return false;
+    }
+}
+
+// Make Firebase reconnection globally available
+window.attemptFirebaseReconnection = attemptFirebaseReconnection;
+
 // Initialize admin panel once Firebase is ready
 function initializeAdminPanel() {
     try {
@@ -720,8 +747,26 @@ async function loadApprovedMartyrs() {
     // Check Firebase availability before proceeding
     if (!window.firebaseDB) {
         console.error('❌ Firebase not available for loadApprovedMartyrs');
-        approvedList.innerHTML = '<p style="text-align: center; color: #dc3545; padding: 2rem;">Firebase database not available. Please refresh the page.</p>';
-        return;
+        
+        // Try to reconnect Firebase
+        loadBtn.disabled = true;
+        loadBtn.textContent = 'Reconnecting Firebase...';
+        approvedList.innerHTML = '<p style="text-align: center; color: #orange; padding: 2rem;">Firebase not available. Attempting to reconnect...</p>';
+        
+        const reconnected = await attemptFirebaseReconnection();
+        if (!reconnected) {
+            approvedList.innerHTML = `<div style="text-align: center; color: #dc3545; padding: 2rem; background: #f8d7da; border-radius: 8px; margin: 1rem;">
+                <h3>❌ Firebase Connection Failed</h3>
+                <p>Unable to connect to Firebase database.</p>
+                <p style="font-size: 0.9rem; color: #666; margin-top: 1rem;">This could be due to network issues or Firebase configuration problems.</p>
+                <button onclick="loadApprovedMartyrs()" class="btn btn-primary" style="margin-top: 1rem;">Try Again</button>
+            </div>`;
+            loadBtn.disabled = false;
+            loadBtn.textContent = 'Load Approved Martyrs';
+            return;
+        }
+        
+        console.log('✅ Firebase reconnection successful, continuing with load...');
     }
     
     console.log('Elements found:', {
