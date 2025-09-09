@@ -16,17 +16,33 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load gallery after Firebase is ready
     if (window.firebaseDB) {
+        console.log('🔥 Firebase already available, loading gallery...');
         loadGallery();
     } else {
+        console.log('⏳ Waiting for Firebase to be ready...');
         // Wait for Firebase to be ready
-        window.addEventListener('firebaseReady', loadGallery);
+        window.addEventListener('firebaseReady', () => {
+            console.log('🔥 Firebase ready event received, loading gallery...');
+            loadGallery();
+        });
         
-        // Also try loading after a short delay in case Firebase is still loading
+        // Also try loading after delays in case Firebase is still loading
         setTimeout(() => {
             if (window.firebaseDB) {
+                console.log('🔥 Firebase available after 1s timeout, loading gallery...');
                 loadGallery();
             }
         }, 1000);
+        
+        setTimeout(() => {
+            if (window.firebaseDB) {
+                console.log('🔥 Firebase available after 3s timeout, loading gallery...');
+                loadGallery();
+            } else {
+                console.warn('⚠️ Firebase still not available after 3s, using localStorage fallback');
+                loadGallery(); // Try anyway, will fall back to localStorage
+            }
+        }, 3000);
     }
 });
 
@@ -52,10 +68,13 @@ async function loadGallery() {
             
             // Use global Firebase instance
             if (!window.firebaseDB || typeof window.firebaseDB.getApprovedMartyrs !== 'function') {
-                throw new Error('Firebase not available - please refresh the page');
+                console.warn('⚠️ Firebase not available, will use localStorage fallback');
+                throw new Error('Firebase not available');
             }
             
+            console.log('🔥 Firebase instance found, calling getApprovedMartyrs...');
             const result = await window.firebaseDB.getApprovedMartyrs();
+            console.log('📊 Firebase query result:', result);
             
             if (result.success) {
                 allMartyrs = result.data || [];
@@ -66,7 +85,11 @@ async function loadGallery() {
                     localStorage.setItem('martyrsData', JSON.stringify(allMartyrs));
                     console.log('💾 Cached martyrs to localStorage');
                 }
+                
+                // Hide any previous offline warnings
+                hideOfflineWarning();
             } else {
+                console.error('❌ Firebase query failed:', result.error);
                 throw new Error('Firebase query failed: ' + result.error);
             }
             
@@ -116,9 +139,13 @@ function showEmptyGalleryMessage() {
 
 // Show offline warning
 function showOfflineWarning() {
+    // Remove any existing warning first
+    hideOfflineWarning();
+    
     const galleryGrid = document.getElementById('galleryGrid');
     const warningDiv = document.createElement('div');
     warningDiv.className = 'offline-warning';
+    warningDiv.id = 'offline-warning';
     warningDiv.style.cssText = `
         background: #fff3cd;
         border: 1px solid #ffeaa7;
@@ -135,6 +162,14 @@ function showOfflineWarning() {
     `;
     
     galleryGrid.parentNode.insertBefore(warningDiv, galleryGrid);
+}
+
+// Hide offline warning
+function hideOfflineWarning() {
+    const existingWarning = document.getElementById('offline-warning');
+    if (existingWarning) {
+        existingWarning.remove();
+    }
 }
 
 // Render martyrs in gallery
