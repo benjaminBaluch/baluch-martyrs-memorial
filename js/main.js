@@ -58,7 +58,7 @@ function loadRecentMartyrs() {
     const recentMartyrsContainer = document.getElementById('recentMartyrs');
     
     if (recentMartyrsContainer) {
-        // Only load approved martyrs
+        // Only load approved martyrs from localStorage
         const savedMartyrs = localStorage.getItem('martyrsData');
         
         if (savedMartyrs) {
@@ -76,7 +76,13 @@ function loadRecentMartyrs() {
                     const martyrCard = createMartyrCard(martyr);
                     recentMartyrsContainer.appendChild(martyrCard);
                 });
+                
+                console.log(`Displayed ${recentMartyrs.length} recent martyrs on homepage`);
+            } else {
+                console.log('No approved martyrs found in localStorage');
             }
+        } else {
+            console.log('No martyrs data found in localStorage');
         }
     }
 }

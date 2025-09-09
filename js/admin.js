@@ -195,18 +195,38 @@ async function approveMartyr(martyrId) {
             approveBtn.innerHTML = '⏳ Approving...';
         }
 
-        // First, get the martyr data from localStorage (our working copy)
+        // First, try to get the martyr data from current UI data (loaded from Firebase or localStorage)
+        let martyrToApprove = null;
+        let martyrIndex = -1;
+        
+        // Get current pending data from localStorage
         const pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
-        const martyrIndex = pendingData.findIndex(m => m.id === martyrId);
-
-        if (martyrIndex === -1) {
-            alert('Submission not found!');
-            return;
+        martyrIndex = pendingData.findIndex(m => m.id === martyrId);
+        
+        if (martyrIndex !== -1) {
+            martyrToApprove = pendingData[martyrIndex];
+            console.log('Found martyr in localStorage:', martyrToApprove);
+        } else {
+            // If not found in localStorage, check if we have it from Firebase data
+            const pendingElement = document.querySelector(`[data-martyr-id="${martyrId}"]`);
+            if (pendingElement) {
+                console.log('Martyr found in UI, but not in localStorage. This might be Firebase-only data.');
+                alert('This submission appears to be Firebase-only. Please refresh the page and try again.');
+                await refreshData();
+                return;
+            } else {
+                console.error('Martyr not found anywhere:', martyrId);
+                alert('Submission not found! Please refresh the page and try again.');
+                await refreshData();
+                return;
+            }
         }
 
-        const martyrToApprove = pendingData[martyrIndex];
+        // Update the martyr status
         martyrToApprove.status = 'approved';
         martyrToApprove.approvedAt = new Date().toISOString();
+        
+        console.log('Approving martyr:', martyrToApprove);
 
         // Try to approve in Firebase first
         let firebaseSuccess = false;
@@ -220,15 +240,19 @@ async function approveMartyr(martyrId) {
             console.warn('Firebase approval failed, using localStorage only:', firebaseError);
         }
 
-        // Always update localStorage (as backup and for compatibility)
-        // Remove from pending
-        pendingData.splice(martyrIndex, 1);
-        localStorage.setItem('pendingMartyrs', JSON.stringify(pendingData));
+        // Update localStorage only if the martyr was found there
+        if (martyrIndex !== -1) {
+            // Remove from pending
+            pendingData.splice(martyrIndex, 1);
+            localStorage.setItem('pendingMartyrs', JSON.stringify(pendingData));
+            console.log('Removed from localStorage pending');
+        }
 
-        // Add to approved martyrs
+        // Always add to approved martyrs in localStorage (for compatibility)
         const approvedData = JSON.parse(localStorage.getItem('martyrsData') || '[]');
         approvedData.push(martyrToApprove);
         localStorage.setItem('martyrsData', JSON.stringify(approvedData));
+        console.log('Added to localStorage approved:', approvedData.length);
 
         // Remove the item from UI
         const pendingItem = document.querySelector(`[data-martyr-id="${martyrId}"]`);
