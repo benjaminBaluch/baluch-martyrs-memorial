@@ -42,7 +42,47 @@
 
                 <!-- Search/Filter Bar -->
                 <div class="filter-bar">
-                    <input type="text" id="searchMartyrs" placeholder="Search by name, location, or organization...">
+                    <div class="search-controls">
+                        <div class="search-input-group">
+                            <input type="text" id="searchMartyrs" placeholder="Search by name, location, or organization...">
+                            <button type="button" id="clearSearch" title="Clear search">×</button>
+                        </div>
+                        <button type="button" id="toggleAdvancedSearch" class="btn-small">Advanced Search</button>
+                    </div>
+                    
+                    <!-- Advanced Search Panel -->
+                    <div id="advancedSearchPanel" class="advanced-search-panel" style="display: none;">
+                        <div class="search-row">
+                            <div class="search-field">
+                                <label for="searchByName">Name:</label>
+                                <input type="text" id="searchByName" placeholder="Search by martyr name...">
+                            </div>
+                            <div class="search-field">
+                                <label for="searchByLocation">Location:</label>
+                                <input type="text" id="searchByLocation" placeholder="Birth or martyrdom place...">
+                            </div>
+                        </div>
+                        <div class="search-row">
+                            <div class="search-field">
+                                <label for="searchByOrganization">Organization:</label>
+                                <input type="text" id="searchByOrganization" placeholder="Organization or group...">
+                            </div>
+                            <div class="search-field">
+                                <label for="searchByYear">Year:</label>
+                                <input type="number" id="searchByYear" placeholder="Martyrdom year" min="1900" max="2030">
+                            </div>
+                        </div>
+                        <div class="search-actions">
+                            <button type="button" id="applyAdvancedSearch" class="btn-small">Apply Filters</button>
+                            <button type="button" id="clearAdvancedSearch" class="btn-small btn-outline">Clear All</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Search Results Info -->
+                    <div id="searchResultsInfo" class="search-results-info" style="display: none;">
+                        <span id="resultsCount">0</span> <span id="resultsLabel">martyrs found</span>
+                        <button type="button" id="clearAllFilters" class="clear-filters-btn">Clear filters</button>
+                    </div>
                 </div>
 
                 <!-- Gallery Grid -->

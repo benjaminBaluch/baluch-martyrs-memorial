@@ -1,9 +1,32 @@
 // Gallery Page JavaScript
 
+let allMartyrs = [];
+let currentFilters = {
+    general: '',
+    name: '',
+    location: '',
+    organization: '',
+    year: ''
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     loadGallery();
     initSearchFilter();
+    initAdvancedSearch();
+    initializeInterface();
 });
+
+// Initialize interface elements
+function initializeInterface() {
+    // Hide clear button initially
+    toggleClearButton();
+    
+    // Hide results info initially
+    const resultsInfo = document.getElementById('searchResultsInfo');
+    if (resultsInfo) {
+        resultsInfo.style.display = 'none';
+    }
+}
 
 // Load all martyrs in gallery
 function loadGallery() {
@@ -14,28 +37,42 @@ function loadGallery() {
         const savedMartyrs = localStorage.getItem('martyrsData');
         
         if (savedMartyrs) {
-            const allMartyrs = JSON.parse(savedMartyrs);
-            const martyrsData = allMartyrs.filter(m => !m.status || m.status === 'approved');
+            const allMartyrsData = JSON.parse(savedMartyrs);
+            allMartyrs = allMartyrsData.filter(m => !m.status || m.status === 'approved');
             
             // Clear placeholder if data exists
-            if (martyrsData.length > 0) {
-                galleryGrid.innerHTML = '';
-                
-                // Render all approved martyrs
-                martyrsData.forEach(martyr => {
-                    const card = createGalleryCard(martyr);
-                    galleryGrid.appendChild(card);
-                });
+            if (allMartyrs.length > 0) {
+                renderGallery(allMartyrs);
             }
         }
     }
+}
+
+// Render martyrs in gallery
+function renderGallery(martyrsData) {
+    const galleryGrid = document.getElementById('galleryGrid');
+    galleryGrid.innerHTML = '';
+    
+    martyrsData.forEach(martyr => {
+        const card = createGalleryCard(martyr);
+        galleryGrid.appendChild(card);
+    });
+    
+    updateSearchResultsInfo(martyrsData.length);
 }
 
 // Create gallery card
 function createGalleryCard(martyr) {
     const card = document.createElement('div');
     card.className = 'martyr-card';
-    card.dataset.searchText = `${martyr.fullName} ${martyr.martyrdomPlace} ${martyr.organization || ''}`.toLowerCase();
+    
+    // Enhanced search data attributes
+    card.dataset.searchText = `${martyr.fullName} ${martyr.birthPlace || ''} ${martyr.martyrdomPlace || ''} ${martyr.organization || ''} ${martyr.fatherName || ''}`.toLowerCase();
+    card.dataset.name = martyr.fullName.toLowerCase();
+    card.dataset.birthPlace = (martyr.birthPlace || '').toLowerCase();
+    card.dataset.martyrdomPlace = (martyr.martyrdomPlace || '').toLowerCase();
+    card.dataset.organization = (martyr.organization || '').toLowerCase();
+    card.dataset.year = martyr.martyrdomDate ? new Date(martyr.martyrdomDate).getFullYear().toString() : '';
     
     // Image section
     const imageDiv = document.createElement('div');
@@ -103,37 +140,211 @@ function createGalleryCard(martyr) {
 // Initialize search/filter functionality
 function initSearchFilter() {
     const searchInput = document.getElementById('searchMartyrs');
+    const clearSearch = document.getElementById('clearSearch');
     
     if (searchInput) {
         searchInput.addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            filterGallery(searchTerm);
+            currentFilters.general = e.target.value.toLowerCase().trim();
+            applyFilters();
+            toggleClearButton();
+        });
+    }
+    
+    if (clearSearch) {
+        clearSearch.addEventListener('click', function() {
+            searchInput.value = '';
+            currentFilters.general = '';
+            applyFilters();
+            toggleClearButton();
         });
     }
 }
 
-// Filter gallery based on search term
-function filterGallery(searchTerm) {
-    const cards = document.querySelectorAll('#galleryGrid .martyr-card');
-    let visibleCount = 0;
+// Initialize advanced search functionality
+function initAdvancedSearch() {
+    const toggleBtn = document.getElementById('toggleAdvancedSearch');
+    const panel = document.getElementById('advancedSearchPanel');
+    const applyBtn = document.getElementById('applyAdvancedSearch');
+    const clearBtn = document.getElementById('clearAdvancedSearch');
+    const clearAllBtn = document.getElementById('clearAllFilters');
     
-    cards.forEach(card => {
-        const searchText = card.dataset.searchText || '';
-        
-        if (searchText.includes(searchTerm)) {
-            card.style.display = 'block';
-            visibleCount++;
-        } else {
-            card.style.display = 'none';
+    // Toggle advanced search panel
+    if (toggleBtn && panel) {
+        toggleBtn.addEventListener('click', function() {
+            const isVisible = panel.style.display !== 'none';
+            panel.style.display = isVisible ? 'none' : 'block';
+            toggleBtn.textContent = isVisible ? 'Advanced Search' : 'Hide Advanced';
+        });
+    }
+    
+    // Advanced search inputs
+    const nameInput = document.getElementById('searchByName');
+    const locationInput = document.getElementById('searchByLocation');
+    const organizationInput = document.getElementById('searchByOrganization');
+    const yearInput = document.getElementById('searchByYear');
+    
+    // Real-time filtering for advanced search
+    [nameInput, locationInput, organizationInput, yearInput].forEach(input => {
+        if (input) {
+            input.addEventListener('input', function() {
+                updateAdvancedFilters();
+                applyFilters();
+            });
         }
     });
     
-    // Show message if no results
-    if (visibleCount === 0 && cards.length > 0) {
+    // Apply filters button
+    if (applyBtn) {
+        applyBtn.addEventListener('click', function() {
+            updateAdvancedFilters();
+            applyFilters();
+        });
+    }
+    
+    // Clear advanced search
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            clearAdvancedSearch();
+        });
+    }
+    
+    // Clear all filters
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', function() {
+            clearAllFilters();
+        });
+    }
+}
+
+// Update advanced search filters from inputs
+function updateAdvancedFilters() {
+    currentFilters.name = (document.getElementById('searchByName')?.value || '').toLowerCase().trim();
+    currentFilters.location = (document.getElementById('searchByLocation')?.value || '').toLowerCase().trim();
+    currentFilters.organization = (document.getElementById('searchByOrganization')?.value || '').toLowerCase().trim();
+    currentFilters.year = (document.getElementById('searchByYear')?.value || '').toString().trim();
+}
+
+// Apply all filters to the gallery
+function applyFilters() {
+    if (!allMartyrs.length) return;
+    
+    const filteredMartyrs = allMartyrs.filter(martyr => {
+        // General search (searches across all fields)
+        if (currentFilters.general) {
+            const searchText = `${martyr.fullName} ${martyr.birthPlace || ''} ${martyr.martyrdomPlace || ''} ${martyr.organization || ''} ${martyr.fatherName || ''}`.toLowerCase();
+            if (!searchText.includes(currentFilters.general)) {
+                return false;
+            }
+        }
+        
+        // Name filter
+        if (currentFilters.name && !martyr.fullName.toLowerCase().includes(currentFilters.name)) {
+            return false;
+        }
+        
+        // Location filter (searches both birth and martyrdom places)
+        if (currentFilters.location) {
+            const birthPlace = (martyr.birthPlace || '').toLowerCase();
+            const martyrdomPlace = (martyr.martyrdomPlace || '').toLowerCase();
+            if (!birthPlace.includes(currentFilters.location) && !martyrdomPlace.includes(currentFilters.location)) {
+                return false;
+            }
+        }
+        
+        // Organization filter
+        if (currentFilters.organization) {
+            const organization = (martyr.organization || '').toLowerCase();
+            if (!organization.includes(currentFilters.organization)) {
+                return false;
+            }
+        }
+        
+        // Year filter
+        if (currentFilters.year) {
+            const martyrdomYear = martyr.martyrdomDate ? new Date(martyr.martyrdomDate).getFullYear().toString() : '';
+            if (martyrdomYear !== currentFilters.year) {
+                return false;
+            }
+        }
+        
+        return true;
+    });
+    
+    renderGallery(filteredMartyrs);
+    
+    // Show/hide results info
+    const hasActiveFilters = Object.values(currentFilters).some(filter => filter !== '');
+    const resultsInfo = document.getElementById('searchResultsInfo');
+    if (resultsInfo) {
+        resultsInfo.style.display = hasActiveFilters ? 'flex' : 'none';
+    }
+    
+    // Show no results message if needed
+    if (filteredMartyrs.length === 0 && allMartyrs.length > 0 && hasActiveFilters) {
         showNoResultsMessage();
     } else {
         hideNoResultsMessage();
     }
+}
+
+// Toggle clear button visibility
+function toggleClearButton() {
+    const clearBtn = document.getElementById('clearSearch');
+    const searchInput = document.getElementById('searchMartyrs');
+    if (clearBtn && searchInput) {
+        clearBtn.style.display = searchInput.value.trim() ? 'flex' : 'none';
+    }
+}
+
+// Clear advanced search filters
+function clearAdvancedSearch() {
+    const nameInput = document.getElementById('searchByName');
+    const locationInput = document.getElementById('searchByLocation');
+    const organizationInput = document.getElementById('searchByOrganization');
+    const yearInput = document.getElementById('searchByYear');
+    
+    if (nameInput) nameInput.value = '';
+    if (locationInput) locationInput.value = '';
+    if (organizationInput) organizationInput.value = '';
+    if (yearInput) yearInput.value = '';
+    
+    currentFilters.name = '';
+    currentFilters.location = '';
+    currentFilters.organization = '';
+    currentFilters.year = '';
+    
+    applyFilters();
+}
+
+// Clear all filters
+function clearAllFilters() {
+    // Clear general search
+    const searchInput = document.getElementById('searchMartyrs');
+    if (searchInput) searchInput.value = '';
+    
+    // Clear advanced search
+    clearAdvancedSearch();
+    
+    // Reset all filters
+    currentFilters = {
+        general: '',
+        name: '',
+        location: '',
+        organization: '',
+        year: ''
+    };
+    
+    applyFilters();
+    toggleClearButton();
+}
+
+// Update search results info
+function updateSearchResultsInfo(count) {
+    const resultsCount = document.getElementById('resultsCount');
+    const resultsLabel = document.getElementById('resultsLabel');
+    
+    if (resultsCount) resultsCount.textContent = count;
+    if (resultsLabel) resultsLabel.textContent = count === 1 ? 'martyr found' : 'martyrs found';
 }
 
 // Show no results message
@@ -147,9 +358,18 @@ function showNoResultsMessage() {
         noResultsMsg.style.textAlign = 'center';
         noResultsMsg.style.padding = '3rem';
         noResultsMsg.style.color = '#666';
+        noResultsMsg.style.background = '#f8f9fa';
+        noResultsMsg.style.borderRadius = '8px';
+        noResultsMsg.style.border = '1px solid #dee2e6';
+        noResultsMsg.style.marginTop = '2rem';
+        
+        const hasActiveFilters = Object.values(currentFilters).some(filter => filter !== '');
+        const activeFiltersText = getActiveFiltersText();
+        
         noResultsMsg.innerHTML = `
             <h3>No martyrs found</h3>
-            <p>Try searching with different keywords</p>
+            ${hasActiveFilters ? `<p>No martyrs match your search criteria:</p><p style="font-style: italic; color: #007bff;">${activeFiltersText}</p>` : '<p>Try searching with different keywords</p>'}
+            <button onclick="clearAllFilters()" class="btn-small" style="margin-top: 1rem;">Clear All Filters</button>
         `;
         
         const galleryGrid = document.getElementById('galleryGrid');
@@ -165,6 +385,19 @@ function hideNoResultsMessage() {
     if (noResultsMsg) {
         noResultsMsg.style.display = 'none';
     }
+}
+
+// Get active filters text for display
+function getActiveFiltersText() {
+    const activeFilters = [];
+    
+    if (currentFilters.general) activeFilters.push(`General: "${currentFilters.general}"`);
+    if (currentFilters.name) activeFilters.push(`Name: "${currentFilters.name}"`);
+    if (currentFilters.location) activeFilters.push(`Location: "${currentFilters.location}"`);
+    if (currentFilters.organization) activeFilters.push(`Organization: "${currentFilters.organization}"`);
+    if (currentFilters.year) activeFilters.push(`Year: ${currentFilters.year}`);
+    
+    return activeFilters.join(', ');
 }
 
 // Show martyr details in modal

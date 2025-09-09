@@ -1,80 +1,58 @@
-const { MongoClient } = require('mongodb');
+// Submit new martyr for Firebase Firestore
+import admin from 'firebase-admin';
+import { getFirestore, handleError, successResponse, handleCORS } from './lib/database.js';
 
-// For now, we'll use a simple JSON file storage approach
-// In production, you should replace this with a proper database like MongoDB Atlas
-let martyrsData = [];
-
-exports.handler = async (event, context) => {
-  // Enable CORS
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
-  };
-
+export const handler = async (event, context) => {
+  // Handle CORS preflight requests
   if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers };
+    return handleCORS();
+  }
+
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ error: 'Method not allowed' }),
+    };
   }
 
   try {
-    if (event.httpMethod === 'POST') {
-      const martyrData = JSON.parse(event.body);
-      
-      // Validate required fields
-      if (!martyrData.firstName || !martyrData.lastName) {
-        return {
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({ 
-            error: 'First name and last name are required' 
-          })
-        };
-      }
+    const db = getFirestore();
+    const data = JSON.parse(event.body);
 
-      // Add timestamp and pending status
-      const newMartyr = {
-        ...martyrData,
-        id: Date.now().toString(),
-        submittedAt: new Date().toISOString(),
-        status: 'pending_verification'
-      };
+    // Generate unique ID
+    const id = `martyr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      // In a real application, save to database here
-      // For now, we'll just return success
-      martyrsData.push(newMartyr);
-
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ 
-          message: 'Martyr information submitted successfully',
-          id: newMartyr.id
-        })
-      };
-    }
-
-    if (event.httpMethod === 'GET') {
-      // Return approved martyrs only
-      const approvedMartyrs = martyrsData.filter(m => m.status === 'approved');
-      
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify(approvedMartyrs)
-      };
-    }
-
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method not allowed' })
+    // Prepare data for Firestore
+    const martyrData = {
+      id,
+      fullName: data.fullName,
+      fatherName: data.fatherName || null,
+      birthDate: data.birthDate || null,
+      birthPlace: data.birthPlace || null,
+      martyrdomDate: data.martyrdomDate,
+      martyrdomPlace: data.martyrdomPlace,
+      biography: data.biography || null,
+      organization: data.organization || null,
+      rank: data.rank || null,
+      familyDetails: data.familyDetails || null,
+      photo: data.photo || null, // base64 image data
+      submitterName: data.submitterName,
+      submitterEmail: data.submitterEmail,
+      submitterRelation: data.submitterRelation || null,
+      status: 'pending',
+      submittedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
+
+    // Add to Firestore
+    await db.collection('martyrs').doc(id).set(martyrData);
+
+    return successResponse({
+      success: true,
+      message: 'Submission received and pending review',
+      id: martyrData.id,
+    });
 
   } catch (error) {
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: 'Internal server error' })
-    };
+    return handleError(error);
   }
 };

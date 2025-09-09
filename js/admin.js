@@ -223,6 +223,68 @@ function clearAllPending() {
     alert('All pending submissions have been cleared.');
 }
 
+// Export all data to JSON file
+function exportData() {
+    const pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
+    const approvedData = JSON.parse(localStorage.getItem('martyrsData') || '[]');
+    
+    const exportData = {
+        pendingMartyrs: pendingData,
+        martyrsData: approvedData,
+        exportDate: new Date().toISOString(),
+        totalPending: pendingData.length,
+        totalApproved: approvedData.length
+    };
+    
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = `martyrs-data-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    
+    alert('Data exported successfully!');
+}
+
+// Import data from JSON file
+function importData() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    
+    input.onchange = function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                
+                if (importedData.pendingMartyrs && importedData.martyrsData) {
+                    if (confirm('This will replace all existing data. Are you sure?')) {
+                        localStorage.setItem('pendingMartyrs', JSON.stringify(importedData.pendingMartyrs));
+                        localStorage.setItem('martyrsData', JSON.stringify(importedData.martyrsData));
+                        
+                        loadPendingSubmissions();
+                        updateStats();
+                        
+                        alert(`Data imported successfully!\nPending: ${importedData.totalPending}\nApproved: ${importedData.totalApproved}`);
+                    }
+                } else {
+                    alert('Invalid file format!');
+                }
+            } catch (error) {
+                alert('Error reading file: ' + error.message);
+            }
+        };
+        reader.readAsText(file);
+    };
+    
+    input.click();
+}
+
 // Format date helper
 function formatDate(dateString) {
     if (!dateString) return 'Unknown';
