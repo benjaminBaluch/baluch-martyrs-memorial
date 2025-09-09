@@ -717,6 +717,13 @@ async function loadApprovedMartyrs() {
     const approvedList = document.getElementById('approvedList');
     const loadBtn = document.getElementById('loadApprovedBtn');
     
+    // Check Firebase availability before proceeding
+    if (!window.firebaseDB) {
+        console.error('❌ Firebase not available for loadApprovedMartyrs');
+        approvedList.innerHTML = '<p style="text-align: center; color: #dc3545; padding: 2rem;">Firebase database not available. Please refresh the page.</p>';
+        return;
+    }
+    
     console.log('Elements found:', {
         approvedList: !!approvedList,
         loadBtn: !!loadBtn
@@ -735,8 +742,14 @@ async function loadApprovedMartyrs() {
     
     try {
         console.log('🔥 Firebase DB available:', !!window.firebaseDB);
+        console.log('🔥 Firebase DB methods available:', window.firebaseDB ? Object.keys(window.firebaseDB).includes('getApprovedMartyrs') : false);
+        
         if (!window.firebaseDB) {
             throw new Error('Firebase DB not available');
+        }
+        
+        if (typeof window.firebaseDB.getApprovedMartyrs !== 'function') {
+            throw new Error('Firebase getApprovedMartyrs method not available');
         }
         
         console.log('📋 Calling getApprovedMartyrs...');
@@ -766,7 +779,22 @@ async function loadApprovedMartyrs() {
         }
     } catch (error) {
         console.error('❌ Error loading approved martyrs:', error);
-        approvedList.innerHTML = `<p style="text-align: center; color: #dc3545; padding: 2rem;">Error: ${error.message}<br>Check console for details.</p>`;
+        console.error('🔍 Error details:', {
+            message: error.message,
+            stack: error.stack,
+            firebaseAvailable: !!window.firebaseDB,
+            timestamp: new Date().toISOString()
+        });
+        
+        // Show user-friendly error without causing logout
+        const errorMsg = `Failed to load approved martyrs: ${error.message}\n\nThis might be due to:\n- Firebase connection issues\n- Network connectivity problems\n- Database access restrictions\n\nTry refreshing the page or check your internet connection.`;
+        
+        approvedList.innerHTML = `<div style="text-align: center; color: #dc3545; padding: 2rem; background: #f8d7da; border-radius: 8px; margin: 1rem;">
+            <h3>❌ Error Loading Data</h3>
+            <p><strong>Error:</strong> ${error.message}</p>
+            <p style="font-size: 0.9rem; color: #666; margin-top: 1rem;">Check browser console for detailed error information.</p>
+            <button onclick="loadApprovedMartyrs()" class="btn btn-primary" style="margin-top: 1rem;">Try Again</button>
+        </div>`;
     }
     
     // Reset button
