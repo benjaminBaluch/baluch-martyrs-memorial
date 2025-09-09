@@ -195,31 +195,42 @@ async function approveMartyr(martyrId) {
             approveBtn.innerHTML = '⏳ Approving...';
         }
 
-        // First, try to get the martyr data from current UI data (loaded from Firebase or localStorage)
+        // Get martyr data - try from currently loaded data first
         let martyrToApprove = null;
-        let martyrIndex = -1;
+        let foundInLocalStorage = false;
         
-        // Get current pending data from localStorage
+        // First check localStorage
         const pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
-        martyrIndex = pendingData.findIndex(m => m.id === martyrId);
+        const martyrIndex = pendingData.findIndex(m => m.id === martyrId);
         
         if (martyrIndex !== -1) {
             martyrToApprove = pendingData[martyrIndex];
-            console.log('Found martyr in localStorage:', martyrToApprove);
+            foundInLocalStorage = true;
+            console.log('✅ Found martyr in localStorage:', martyrToApprove);
         } else {
-            // If not found in localStorage, check if we have it from Firebase data
-            const pendingElement = document.querySelector(`[data-martyr-id="${martyrId}"]`);
-            if (pendingElement) {
-                console.log('Martyr found in UI, but not in localStorage. This might be Firebase-only data.');
-                alert('This submission appears to be Firebase-only. Please refresh the page and try again.');
-                await refreshData();
-                return;
-            } else {
-                console.error('Martyr not found anywhere:', martyrId);
-                alert('Submission not found! Please refresh the page and try again.');
-                await refreshData();
-                return;
+            // If not in localStorage, try to get from Firebase directly
+            console.log('🔍 Martyr not in localStorage, fetching from Firebase...');
+            
+            try {
+                const firebaseResult = await firebaseDB.getPendingMartyrs();
+                if (firebaseResult.success) {
+                    const firebaseMartyr = firebaseResult.data.find(m => m.id === martyrId);
+                    if (firebaseMartyr) {
+                        martyrToApprove = firebaseMartyr;
+                        console.log('✅ Found martyr in Firebase:', martyrToApprove);
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error fetching from Firebase:', error);
             }
+        }
+        
+        // If still not found, show error
+        if (!martyrToApprove) {
+            console.error('❌ Martyr not found anywhere:', martyrId);
+            alert('Submission not found in database. Please refresh and try again.');
+            await refreshData();
+            return;
         }
 
         // Update the martyr status
@@ -241,11 +252,13 @@ async function approveMartyr(martyrId) {
         }
 
         // Update localStorage only if the martyr was found there
-        if (martyrIndex !== -1) {
-            // Remove from pending
+        if (foundInLocalStorage && martyrIndex !== -1) {
+            // Remove from pending localStorage
             pendingData.splice(martyrIndex, 1);
             localStorage.setItem('pendingMartyrs', JSON.stringify(pendingData));
-            console.log('Removed from localStorage pending');
+            console.log('💾 Removed from localStorage pending');
+        } else {
+            console.log('🔄 Martyr was Firebase-only, no localStorage removal needed');
         }
 
         // Always add to approved martyrs in localStorage (for compatibility)
@@ -299,25 +312,34 @@ async function rejectMartyr(martyrId) {
             rejectBtn.innerHTML = '⏳ Rejecting...';
         }
 
+        // Check if martyr exists in localStorage first
+        const pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
+        const martyrIndex = pendingData.findIndex(m => m.id === martyrId);
+        const foundInLocalStorage = martyrIndex !== -1;
+        
+        if (foundInLocalStorage) {
+            console.log('✅ Found martyr in localStorage for rejection');
+        } else {
+            console.log('🔄 Martyr is Firebase-only, will reject from Firebase');
+        }
+
         // Try to reject in Firebase first
         let firebaseSuccess = false;
         try {
             const result = await firebaseDB.rejectMartyr(martyrId);
             if (result.success) {
-                console.log('Martyr rejected in Firebase:', martyrId);
+                console.log('✅ Martyr rejected in Firebase:', martyrId);
                 firebaseSuccess = true;
             }
         } catch (firebaseError) {
-            console.warn('Firebase rejection failed, using localStorage only:', firebaseError);
+            console.warn('⚠️ Firebase rejection failed:', firebaseError);
         }
 
-        // Always update localStorage (as backup)
-        const pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
-        const martyrIndex = pendingData.findIndex(m => m.id === martyrId);
-
-        if (martyrIndex !== -1) {
+        // Update localStorage only if the martyr was found there
+        if (foundInLocalStorage) {
             pendingData.splice(martyrIndex, 1);
             localStorage.setItem('pendingMartyrs', JSON.stringify(pendingData));
+            console.log('💾 Removed from localStorage pending');
         }
 
         // Remove the item from UI
