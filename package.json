@@ -1,0 +1,14 @@
+{
+  "name": "baluch-martyrs-memorial",
+  "version": "1.0.0",
+  "description": "A digital memorial website for Baluch martyrs",
+  "main": "index.html",
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "build": "echo 'No build step needed for vanilla HTML/CSS/JS'",
+    "start": "python3 -m http.server 8000"
+  },
+  "keywords": ["memorial", "baluch", "martyrs", "website"],
+  "author": "Benjamin Baluch",
+  "license": "MIT"
+}

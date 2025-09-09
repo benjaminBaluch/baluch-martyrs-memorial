@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submission Confirmed - Baluch Martyrs Memorial</title>
+    <meta name="description" content="Thank you for your submission to the Baluch Martyrs Memorial">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Header Section -->
+    <header class="site-header">
+        <nav class="navbar">
+            <div class="container">
+                <div class="nav-brand">
+                    <h1><a href="index.html">Baluch Martyrs Memorial</a></h1>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="add-martyr.html">Add Martyr</a></li>
+                    <li><a href="gallery.html">Gallery</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                </ul>
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="main-content confirmation-page">
+        <div class="container">
+            <div class="confirmation-card">
+                <div class="confirmation-icon">
+                    <div class="checkmark">
+                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20,6 9,17 4,12"></polyline>
+                        </svg>
+                    </div>
+                </div>
+                
+                <div class="confirmation-content">
+                    <h1>Submitted Successfully</h1>
+                    <h2>Waiting for Verification</h2>
+                    
+                    <div class="confirmation-message">
+                        <p>Thank you for honoring a martyr by adding their information to our memorial. Your submission has been received and is currently under review.</p>
+                        
+                        <div class="verification-info">
+                            <h3>What happens next?</h3>
+                            <ul>
+                                <li><span class="step-number">1</span> Our team will review the submitted information for accuracy and appropriateness</li>
+                                <li><span class="step-number">2</span> We may contact you if additional verification or information is needed</li>
+                                <li><span class="step-number">3</span> Once verified, the martyr's information will be published in our gallery</li>
+                                <li><span class="step-number">4</span> You will receive an email notification when the profile is live</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="timeline-info">
+                            <p><strong>Verification Timeline:</strong> Please allow 3-7 business days for the review process. We take great care to ensure the accuracy and dignity of each memorial entry.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="submission-details" id="submissionDetails">
+                        <!-- Submission details will be populated by JavaScript -->
+                    </div>
+                    
+                    <div class="confirmation-actions">
+                        <a href="add-martyr.html" class="btn btn-secondary">Add Another Martyr</a>
+                        <a href="gallery.html" class="btn btn-primary">View Gallery</a>
+                        <a href="index.html" class="btn btn-outline">Return Home</a>
+                    </div>
+                    
+                    <div class="contact-info">
+                        <h3>Questions about your submission?</h3>
+                        <p>If you have any questions or need to update information, please <a href="contact.html">contact us</a> with your submission reference number.</p>
+                        <p class="submission-id" id="submissionId">
+                            Reference #: <span class="reference-number"></span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Additional Information Card -->
+            <div class="info-card">
+                <h3>Important Information</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-icon">🛡️</div>
+                        <div>
+                            <h4>Privacy & Security</h4>
+                            <p>Your personal contact information is kept confidential and used only for verification purposes.</p>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-icon">✋</div>
+                        <div>
+                            <h4>Content Guidelines</h4>
+                            <p>All submissions are reviewed to ensure they meet our guidelines for respectful and accurate memorialization.</p>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-icon">📧</div>
+                        <div>
+                            <h4>Stay Updated</h4>
+                            <p>We'll notify you by email when your submission is approved and published in the memorial gallery.</p>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-icon">🤝</div>
+                        <div>
+                            <h4>Community Effort</h4>
+                            <p>Thank you for helping preserve the memory of our heroes for future generations.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Baluch Martyrs Memorial</h3>
+                    <p>Preserving the memory of our heroes who gave their lives for freedom.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="add-martyr.html">Add Martyr</a></li>
+                        <li><a href="gallery.html">Gallery</a></li>
+                        <li><a href="about.html">About</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Contact</h3>
+                    <p>Email: info@baluchmemorial.org</p>
+                    <p>Phone: +92-XXX-XXXXXXX</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 Baluch Martyrs Memorial. All rights reserved.</p>
+                <p>Powered by <strong>Benjamin Baluch</strong></p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Generate a reference number and display submission details
+        document.addEventListener('DOMContentLoaded', function() {
+            // Generate reference number
+            const refNumber = 'BMM-' + Date.now().toString().slice(-8);
+            const refElement = document.querySelector('.reference-number');
+            if (refElement) {
+                refElement.textContent = refNumber;
+            }
+            
+            // Get submission data from URL parameters or localStorage
+            const urlParams = new URLSearchParams(window.location.search);
+            const martyrName = urlParams.get('name') || localStorage.getItem('lastSubmittedMartyr');
+            
+            if (martyrName) {
+                const detailsDiv = document.getElementById('submissionDetails');
+                detailsDiv.innerHTML = `
+                    <div class="submitted-martyr-info">
+                        <h3>Submitted Information:</h3>
+                        <p><strong>Martyr Name:</strong> ${martyrName}</p>
+                        <p><strong>Submission Date:</strong> ${new Date().toLocaleDateString()}</p>
+                        <p><strong>Status:</strong> <span class="status-pending">Pending Verification</span></p>
+                    </div>
+                `;
+                // Clear from localStorage after displaying
+                localStorage.removeItem('lastSubmittedMartyr');
+            }
+        });
+    </script>
+</body>
+</html>
