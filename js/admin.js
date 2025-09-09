@@ -181,11 +181,23 @@ function createPendingItem(martyr) {
 
 // Approve a martyr submission
 async function approveMartyr(martyrId) {
-    console.log('approveMartyr called with ID:', martyrId);
+    console.log('🚀 Starting approval process for ID:', martyrId);
     
     if (!confirm('Are you sure you want to approve this submission? It will be published on the website.')) {
+        console.log('❌ Approval cancelled by user');
         return;
     }
+    
+    console.log('✅ User confirmed approval, proceeding...');
+    
+    // Check if Firebase is available
+    if (!firebaseDB) {
+        console.error('❌ Firebase not available!');
+        alert('Firebase database not available. Please check your internet connection and refresh the page.');
+        return;
+    }
+    
+    console.log('✅ Firebase available, continuing with approval...');
 
     try {
         // Show loading state
@@ -212,16 +224,26 @@ async function approveMartyr(martyrId) {
             console.log('🔍 Martyr not in localStorage, fetching from Firebase...');
             
             try {
+                console.log('🔄 Fetching pending martyrs from Firebase...');
                 const firebaseResult = await firebaseDB.getPendingMartyrs();
+                console.log('📊 Firebase getPendingMartyrs result:', firebaseResult);
+                
                 if (firebaseResult.success) {
+                    console.log(`📁 Found ${firebaseResult.data.length} pending martyrs in Firebase`);
                     const firebaseMartyr = firebaseResult.data.find(m => m.id === martyrId);
                     if (firebaseMartyr) {
                         martyrToApprove = firebaseMartyr;
                         console.log('✅ Found martyr in Firebase:', martyrToApprove);
+                    } else {
+                        console.log('❌ Martyr ID not found in Firebase pending list');
+                        console.log('📁 Available IDs in Firebase:', firebaseResult.data.map(m => m.id));
                     }
+                } else {
+                    console.error('❌ Firebase getPendingMartyrs failed:', firebaseResult.error);
                 }
             } catch (error) {
                 console.error('❌ Error fetching from Firebase:', error);
+                console.error('❌ Error details:', error.stack);
             }
         }
         

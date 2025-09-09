@@ -1,24 +1,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Public read access to approved martyrs
-    match /martyrs/{documentId} {
-      // Anyone can read approved martyrs (for gallery display)
-      allow read: if true;
-      // Allow writes for testing (will add proper auth later)
-      allow write: if true;
-    }
-    
-    // Allow access to pending martyrs for testing
-    match /pendingMartyrs/{documentId} {
-      // Allow public to create and read pending submissions for testing
-      allow read, create: if true;
-      // Allow admin operations for testing
-      allow update, delete: if true;
-    }
-    
-    // Allow all operations for testing
+    // Allow all operations during development and testing
+    // TODO: Add proper authentication and security in production
     match /{document=**} {
       allow read, write: if true;
     }
