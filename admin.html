@@ -146,7 +146,7 @@
                     <div style="font-size: 0.8rem; opacity: 0.8; margin-bottom: 0.5rem;">
                         Session expires in <span id="sessionTimer">--</span> minutes
                     </div>
-                    <button onclick="adminAuth.logout()" class="btn btn-secondary" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); padding: 0.25rem 0.75rem; font-size: 0.8rem;">
+                    <button id="logoutBtn" class="btn btn-secondary" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); padding: 0.25rem 0.75rem; font-size: 0.8rem;">
                         🚪 Logout
                     </button>
                 </div>
@@ -208,9 +208,25 @@
             return;
         }
         
-        // Make Firebase globally available for admin panel
+        // Make Firebase and adminAuth globally available for admin panel
         window.firebaseDB = firebaseDB;
+        window.adminAuth = adminAuth;
         console.log('🔥 Firebase loaded globally for admin panel');
+        console.log('🔐 Admin auth loaded globally for admin panel');
+        
+        // Test Firebase connectivity
+        try {
+            console.log('🧪 Testing Firebase connection...');
+            const testResult = await firebaseDB.testConnection();
+            if (testResult.success) {
+                console.log('✅ Firebase connectivity test passed');
+            } else {
+                console.warn('⚠️ Firebase connectivity test failed:', testResult.error);
+            }
+        } catch (error) {
+            console.error('❌ Firebase connectivity test error:', error);
+        }
+        
         window.dispatchEvent(new Event('firebaseReady'));
         
         // Update admin info in header
@@ -234,6 +250,12 @@
         
         updateSessionTimer();
         setInterval(updateSessionTimer, 60000); // Update every minute
+        
+        // Add logout button event listener
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            console.log('🚪 Logout button clicked');
+            adminAuth.logout();
+        });
     </script>
     <script src="js/mobile-menu.js"></script>
     <script type="module" src="js/admin.js"></script>
