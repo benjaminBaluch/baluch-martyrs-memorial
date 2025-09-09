@@ -1,5 +1,7 @@
 // Add Martyr Form JavaScript
 
+import { firebaseDB, storageHelper } from './firebase-config.js';
+
 document.addEventListener('DOMContentLoaded', function() {
     initializeFormHandlers();
 });
@@ -155,32 +157,71 @@ function handleFormSubmit(event) {
 }
 
 // Save martyr data to pending queue for moderation
-function saveMartyrData(martyrData) {
+async function saveMartyrData(martyrData) {
     try {
+        // Show loading indicator
+        showLoadingState();
+        
         // Add unique ID and status for tracking
         martyrData.id = 'martyr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         martyrData.status = 'pending';
         martyrData.submittedAt = new Date().toISOString();
         
-        // Get existing pending submissions
+        let saveSuccess = false;
+        
+        // Try to save to Firebase first
+        try {
+            const result = await firebaseDB.addPendingMartyr(martyrData);
+            if (result.success) {
+                console.log('Martyr saved to Firebase:', result.id);
+                saveSuccess = true;
+            }
+        } catch (firebaseError) {
+            console.warn('Firebase save failed, using localStorage fallback:', firebaseError);
+        }
+        
+        // Always save to localStorage as backup/fallback
         let pendingData = localStorage.getItem('pendingMartyrs');
         pendingData = pendingData ? JSON.parse(pendingData) : [];
-        
-        // Add new submission to pending queue
         pendingData.push(martyrData);
-        
-        // Save to pending queue (not live data)
         localStorage.setItem('pendingMartyrs', JSON.stringify(pendingData));
+        
+        if (!saveSuccess) {
+            console.log('Using localStorage fallback for submission');
+            saveSuccess = true; // localStorage save succeeded
+        }
         
         // Store last submission for confirmation page
         localStorage.setItem('lastSubmittedMartyr', martyrData.fullName);
+        
+        // Hide loading state
+        hideLoadingState();
         
         // Redirect to confirmation page
         window.location.href = 'confirmation.html?name=' + encodeURIComponent(martyrData.fullName);
         
     } catch (error) {
         console.error('Error saving martyr data:', error);
+        hideLoadingState();
         alert('There was an error saving the martyr information. Please try again.');
+    }
+}
+
+// Show loading state during submission
+function showLoadingState() {
+    const submitBtn = document.querySelector('button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving...';
+    }
+}
+
+// Hide loading state after submission
+function hideLoadingState() {
+    const submitBtn = document.querySelector('button[type="submit"]');
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit for Review';
     }
 }
 

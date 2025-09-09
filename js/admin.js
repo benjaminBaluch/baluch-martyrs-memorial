@@ -1,14 +1,35 @@
 // Admin panel JavaScript for moderating submissions
 
+import { firebaseDB, storageHelper } from './firebase-config.js';
+
 document.addEventListener('DOMContentLoaded', function() {
     loadPendingSubmissions();
     updateStats();
 });
 
 // Load and display pending submissions
-function loadPendingSubmissions() {
+async function loadPendingSubmissions() {
     const pendingList = document.getElementById('pendingList');
-    const pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
+    let pendingData = [];
+    
+    try {
+        // Try to load from Firebase first
+        const result = await firebaseDB.getPendingMartyrs();
+        
+        if (result.success && result.data.length > 0) {
+            pendingData = result.data;
+            console.log(`Loaded ${pendingData.length} pending submissions from Firebase`);
+        } else {
+            // Fallback to localStorage
+            console.log('Loading pending submissions from localStorage');
+            pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
+        }
+        
+    } catch (error) {
+        console.error('Error loading pending submissions:', error);
+        // Fallback to localStorage on error
+        pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
+    }
 
     if (pendingData.length === 0) {
         pendingList.innerHTML = `

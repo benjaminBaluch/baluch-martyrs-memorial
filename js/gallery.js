@@ -1,5 +1,7 @@
 // Gallery Page JavaScript
 
+import { firebaseDB, storageHelper } from './firebase-config.js';
+
 let allMartyrs = [];
 let currentFilters = {
     general: '',
@@ -29,23 +31,61 @@ function initializeInterface() {
 }
 
 // Load all martyrs in gallery
-function loadGallery() {
+async function loadGallery() {
     const galleryGrid = document.getElementById('galleryGrid');
     
     if (galleryGrid) {
-        // Get approved martyrs from localStorage
-        const savedMartyrs = localStorage.getItem('martyrsData');
-        
-        if (savedMartyrs) {
-            const allMartyrsData = JSON.parse(savedMartyrs);
-            allMartyrs = allMartyrsData.filter(m => !m.status || m.status === 'approved');
+        try {
+            // Try to load from Firebase first
+            const result = await firebaseDB.getApprovedMartyrs();
             
-            // Clear placeholder if data exists
+            if (result.success && result.data.length > 0) {
+                allMartyrs = result.data;
+                console.log(`Loaded ${allMartyrs.length} martyrs from Firebase`);
+            } else {
+                // Fallback to localStorage if Firebase fails or is empty
+                console.log('Loading from localStorage fallback');
+                const savedMartyrs = localStorage.getItem('martyrsData');
+                
+                if (savedMartyrs) {
+                    const allMartyrsData = JSON.parse(savedMartyrs);
+                    allMartyrs = allMartyrsData.filter(m => !m.status || m.status === 'approved');
+                    console.log(`Loaded ${allMartyrs.length} martyrs from localStorage`);
+                }
+            }
+            
+            // Render the gallery
             if (allMartyrs.length > 0) {
+                renderGallery(allMartyrs);
+            } else {
+                showEmptyGalleryMessage();
+            }
+            
+        } catch (error) {
+            console.error('Error loading martyrs:', error);
+            // Fallback to localStorage on error
+            const savedMartyrs = localStorage.getItem('martyrsData');
+            if (savedMartyrs) {
+                const allMartyrsData = JSON.parse(savedMartyrs);
+                allMartyrs = allMartyrsData.filter(m => !m.status || m.status === 'approved');
                 renderGallery(allMartyrs);
             }
         }
     }
+}
+
+// Show empty gallery message
+function showEmptyGalleryMessage() {
+    const galleryGrid = document.getElementById('galleryGrid');
+    galleryGrid.innerHTML = `
+        <div class="martyr-card placeholder" style="grid-column: 1/-1; text-align: center; padding: 3rem;">
+            <div class="martyr-info">
+                <h3>No martyrs in gallery yet</h3>
+                <p>Be the first to add a martyr to our memorial</p>
+                <a href="add-martyr.html" class="btn-small">Add Martyr</a>
+            </div>
+        </div>
+    `;
 }
 
 // Render martyrs in gallery

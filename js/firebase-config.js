@@ -14,18 +14,18 @@ import {
     query,
     where,
     orderBy,
-    serverTimestamp
+    serverTimestamp,
+    Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 // Your web app's Firebase configuration
-// TODO: Replace with your actual Firebase config
 const firebaseConfig = {
-    apiKey: "your-api-key-here",
-    authDomain: "your-project-id.firebaseapp.com",
-    projectId: "your-project-id",
-    storageBucket: "your-project-id.appspot.com",
-    messagingSenderId: "123456789",
-    appId: "your-app-id"
+    apiKey: "AIzaSyBW2JKt68kGKE-CMvKQUUj33ToZ8M-kGII",
+    authDomain: "baluch-martyrs-memorial.firebaseapp.com",
+    projectId: "baluch-martyrs-memorial",
+    storageBucket: "baluch-martyrs-memorial.firebasestorage.app",
+    messagingSenderId: "420195314966",
+    appId: "1:420195314966:web:0e3546e6e0e0c09cf3f437"
 };
 
 // Initialize Firebase
@@ -37,8 +37,18 @@ export const firebaseDB = {
     // Add new pending martyr
     async addPendingMartyr(martyrData) {
         try {
+            // Convert date strings to Timestamp objects for Firestore
+            const processedData = { ...martyrData };
+            
+            if (processedData.birthDate) {
+                processedData.birthDate = Timestamp.fromDate(new Date(processedData.birthDate));
+            }
+            if (processedData.martyrdomDate) {
+                processedData.martyrdomDate = Timestamp.fromDate(new Date(processedData.martyrdomDate));
+            }
+            
             const docRef = await addDoc(collection(db, 'pendingMartyrs'), {
-                ...martyrData,
+                ...processedData,
                 status: 'pending',
                 submittedAt: serverTimestamp(),
                 id: Date.now().toString() // Temporary ID for backward compatibility
