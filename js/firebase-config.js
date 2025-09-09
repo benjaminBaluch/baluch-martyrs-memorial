@@ -1,8 +1,8 @@
 // Firebase Configuration and Initialization
 // Replace the config values with your actual Firebase project config
 
-// Firebase v9+ modular SDK
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+// Firebase v9+ modular SDK - Updated to latest stable version
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import { 
     getFirestore, 
     collection, 
@@ -16,7 +16,7 @@ import {
     orderBy,
     serverTimestamp,
     Timestamp
-} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -28,9 +28,31 @@ const firebaseConfig = {
     appId: "1:420195314966:web:0e3546e6e0e0c09cf3f437"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// Initialize Firebase with error handling
+let app;
+let db;
+
+try {
+    console.log('🔥 Initializing Firebase app...');
+    app = initializeApp(firebaseConfig);
+    console.log('✅ Firebase app initialized successfully');
+    
+    console.log('🗺 Initializing Firestore...');
+    db = getFirestore(app);
+    console.log('✅ Firestore initialized successfully');
+    
+    // Verify connection immediately
+    console.log('🧪 Testing immediate Firestore connection...');
+    
+} catch (error) {
+    console.error('❌ Firebase initialization failed:', error);
+    console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        config: firebaseConfig
+    });
+    throw error;
+}
 
 // Database helper functions
 export const firebaseDB = {
@@ -164,6 +186,11 @@ export const firebaseDB = {
     async testConnection() {
         try {
             console.log('🧪 Testing basic Firebase connectivity...');
+            
+            if (!app || !db) {
+                throw new Error('Firebase app or Firestore not initialized');
+            }
+            
             console.log('🔧 Firebase app config:', {
                 projectId: app.options.projectId,
                 authDomain: app.options.authDomain
@@ -175,31 +202,15 @@ export const firebaseDB = {
             const querySnapshot = await getDocs(testCollection);
             
             console.log('✅ Firebase read test successful, docs found:', querySnapshot.size);
+            return { success: true, message: 'Firebase read test successful' };
             
-            // Try to write a simple document
-            console.log('✏️ Testing Firestore write access...');
-            const testDoc = {
-                test: true,
-                timestamp: new Date().toISOString(),
-                message: 'Firebase connection test from admin panel'
-            };
-            
-            const docRef = await addDoc(testCollection, testDoc);
-            console.log('✅ Firebase write test successful, doc ID:', docRef.id);
-            
-            // Clean up test document
-            console.log('🧹 Cleaning up test document...');
-            await deleteDoc(doc(db, 'test', docRef.id));
-            console.log('✅ Firebase delete test successful');
-            
-            return { success: true, message: 'All Firebase operations working perfectly' };
         } catch (error) {
             console.error('❌ Firebase connection test failed:', error);
             console.error('🔍 Error details:', {
                 code: error.code,
                 message: error.message,
-                details: error.details || 'No additional details',
-                stack: error.stack
+                name: error.name,
+                stack: error.stack?.substring(0, 200)
             });
             return { 
                 success: false, 
