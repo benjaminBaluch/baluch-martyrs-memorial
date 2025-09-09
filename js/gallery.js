@@ -10,18 +10,19 @@ function loadGallery() {
     const galleryGrid = document.getElementById('galleryGrid');
     
     if (galleryGrid) {
-        // Get martyrs data from localStorage
-        const martyrsData = localStorage.getItem('martyrsData');
+        // Get approved martyrs from localStorage
+        const savedMartyrs = localStorage.getItem('martyrsData');
         
-        if (martyrsData) {
-            const martyrs = JSON.parse(martyrsData);
+        if (savedMartyrs) {
+            const allMartyrs = JSON.parse(savedMartyrs);
+            const martyrsData = allMartyrs.filter(m => !m.status || m.status === 'approved');
             
-            if (martyrs.length > 0) {
-                // Clear placeholder
+            // Clear placeholder if data exists
+            if (martyrsData.length > 0) {
                 galleryGrid.innerHTML = '';
                 
-                // Display all martyrs
-                martyrs.forEach(martyr => {
+                // Render all approved martyrs
+                martyrsData.forEach(martyr => {
                     const card = createGalleryCard(martyr);
                     galleryGrid.appendChild(card);
                 });

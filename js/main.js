@@ -52,16 +52,17 @@ function initSmoothScroll() {
     });
 }
 
-// Load Recent Martyrs (Mock function - would connect to backend in production)
+// Load Recent Martyrs (approved only)
 function loadRecentMartyrs() {
     const recentMartyrsContainer = document.getElementById('recentMartyrs');
     
     if (recentMartyrsContainer) {
-        // Check localStorage for saved martyrs
+        // Only load approved martyrs
         const savedMartyrs = localStorage.getItem('martyrsData');
         
         if (savedMartyrs) {
-            const martyrsData = JSON.parse(savedMartyrs);
+            const allMartyrs = JSON.parse(savedMartyrs);
+            const martyrsData = allMartyrs.filter(m => !m.status || m.status === 'approved');
             
             // Clear placeholder if martyrs exist
             if (martyrsData.length > 0) {

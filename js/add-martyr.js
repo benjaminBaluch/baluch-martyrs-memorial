@@ -154,27 +154,29 @@ function handleFormSubmit(event) {
     }
 }
 
-// Save martyr data to localStorage
+// Save martyr data to pending queue for moderation
 function saveMartyrData(martyrData) {
     try {
-        // Get existing martyrs data
-        let martyrsData = localStorage.getItem('martyrsData');
-        martyrsData = martyrsData ? JSON.parse(martyrsData) : [];
+        // Add unique ID and status for tracking
+        martyrData.id = 'martyr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        martyrData.status = 'pending';
+        martyrData.submittedAt = new Date().toISOString();
         
-        // Add new martyr
-        martyrsData.push(martyrData);
+        // Get existing pending submissions
+        let pendingData = localStorage.getItem('pendingMartyrs');
+        pendingData = pendingData ? JSON.parse(pendingData) : [];
         
-        // Save back to localStorage
-        localStorage.setItem('martyrsData', JSON.stringify(martyrsData));
+        // Add new submission to pending queue
+        pendingData.push(martyrData);
         
-        // Show success message
-        showSuccessMessage();
+        // Save to pending queue (not live data)
+        localStorage.setItem('pendingMartyrs', JSON.stringify(pendingData));
         
-        // Reset form after a delay
-        setTimeout(() => {
-            document.getElementById('addMartyrForm').reset();
-            clearPreviews();
-        }, 2000);
+        // Store last submission for confirmation page
+        localStorage.setItem('lastSubmittedMartyr', martyrData.fullName);
+        
+        // Redirect to confirmation page
+        window.location.href = 'confirmation.html?name=' + encodeURIComponent(martyrData.fullName);
         
     } catch (error) {
         console.error('Error saving martyr data:', error);

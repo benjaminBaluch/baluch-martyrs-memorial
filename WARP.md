@@ -50,21 +50,24 @@ There is no test or linter configuration in this repo. Use the browser DevTools 
 ## Architecture Overview
 
 ### Storage Architecture
-The application uses browser localStorage as a temporary database with the following:
-- Key: `martyrsData`
-- Value: JSON array of martyr objects
-- Fields commonly used: fullName, birthDate, martyrdomDate, birthPlace, martyrdomPlace, biography, organization, rank, family details, submitter info, photo (base64)
+The application uses browser localStorage with a moderation system:
+- Key: `pendingMartyrs` - New submissions awaiting approval
+- Key: `martyrsData` - Approved martyrs displayed on website
+- Fields: fullName, birthDate, martyrdomDate, birthPlace, martyrdomPlace, biography, organization, rank, family details, submitter info, photo (base64), id, status
 
 ### Pages and Responsibilities
-- index.html: Homepage with hero and recent martyrs (reads localStorage)
-- add-martyr.html: Submission form with photo upload (writes to localStorage)
-- gallery.html: Grid display with client-side search and modal details
+- index.html: Homepage with hero and recent martyrs (reads approved martyrsData)
+- add-martyr.html: Submission form with photo upload (writes to pendingMartyrs)
+- gallery.html: Grid display with client-side search and modal details (approved only)
+- confirmation.html: Post-submission page indicating pending review status
+- admin.html: Moderation interface for approving/rejecting submissions
 - about.html, contact.html: Static content
 
 ### JavaScript Modules
-- js/main.js: Mobile menu, smooth scrolling, recent martyrs, localStorage helpers
-- js/add-martyr.js: Form handling, FileReader base64 conversion, persistence to `martyrsData`
-- js/gallery.js: Render gallery, search/filter, modal detail view
+- js/main.js: Mobile menu, smooth scrolling, recent martyrs (approved only), localStorage helpers
+- js/add-martyr.js: Form handling, FileReader base64 conversion, persistence to `pendingMartyrs`
+- js/gallery.js: Render gallery (approved only), search/filter, modal detail view
+- js/admin.js: Admin panel for moderation - approve/reject pending submissions
 
 ### CSS
 - css/styles.css: Single stylesheet using CSS custom properties (primary: #2c5530, secondary: #d4af37), mobile-first responsive layout with Grid/Flexbox
@@ -76,12 +79,21 @@ Photos are converted to base64 strings for storage in localStorage (size-limited
 
 ### Data Flow
 1. User submits form → Data validated → Photo converted to base64
-2. Martyr object timestamped and appended to `martyrsData` in localStorage
-3. Homepage and gallery read from localStorage on load
-4. Search filters DOM elements using a precomputed `data-search-text` (gallery.js)
+2. Martyr object with ID/status saved to `pendingMartyrs` → Redirected to confirmation
+3. Admin reviews submissions in admin.html → Approves/rejects via admin.js
+4. Approved items moved from `pendingMartyrs` to `martyrsData`
+5. Homepage and gallery only display approved items from `martyrsData`
+6. Search filters DOM elements using precomputed `data-search-text` (gallery.js)
 
 ### Cross-Page Communication
 All pages share data through localStorage. A reload reflects changes made elsewhere.
+
+### Admin Access
+Access the moderation panel at `/admin.html` to:
+- Review pending submissions with photos and details
+- Approve submissions (moves to public gallery)
+- Reject submissions (permanently deletes)
+- View statistics of pending vs approved items
 
 ## Production Considerations
 LocalStorage is for demonstration only. For production, migrate to a backend with:
