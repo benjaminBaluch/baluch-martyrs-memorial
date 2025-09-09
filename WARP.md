@@ -8,89 +8,97 @@ A digital memorial website for Baluch martyrs. This is a frontend-only applicati
 
 ## Development Commands
 
-### Running the Application
+### Run locally
 ```bash
 # Open directly in browser (no server required)
 open index.html
 
-# Or use a simple HTTP server for better development experience
-python3 -m http.server 8000
+# Or serve with Python (hot-reload not included)
+npm run dev
+# (equivalent to) python3 -m http.server 8000
 # Then navigate to http://localhost:8000
 
-# Alternative with Node.js
+# Alternative Node-based static server
 npx http-server -p 8000
 ```
 
-### Testing
+### NPM scripts
 ```bash
-# Open browser console for JavaScript debugging
-# Check localStorage data:
-# - In browser DevTools: Application > Storage > Local Storage
-# - Key data is stored as 'martyrsData' in JSON format
+# Start local server on :8000
+npm start
+
+# Dev server (identical to start)
+npm run dev
+
+# Build (no-op for vanilla HTML/CSS/JS)
+npm run build
 ```
+
+### Testing and linting
+There is no test or linter configuration in this repo. Use the browser DevTools for debugging and storage inspection.
+```bash
+# Inspect localStorage in browser DevTools:
+# Application > Storage > Local Storage
+# Key: martyrsData (JSON array)
+```
+
+### Deployment (Netlify)
+- Static publish directory: project root (.)
+- Functions directory configured at netlify/functions (none checked in)
+- Redirects: /api/* → /.netlify/functions/:splat (status 200)
 
 ## Architecture Overview
 
 ### Storage Architecture
-The application uses browser localStorage as a temporary database with the following data structure:
-- **Key**: `martyrsData` 
-- **Value**: JSON array of martyr objects
-- Each martyr object contains: fullName, birthDate, martyrdomDate, birthPlace, martyrdomPlace, biography, organization, rank, family details, submitter info, and photo (base64 encoded)
+The application uses browser localStorage as a temporary database with the following:
+- Key: `martyrsData`
+- Value: JSON array of martyr objects
+- Fields commonly used: fullName, birthDate, martyrdomDate, birthPlace, martyrdomPlace, biography, organization, rank, family details, submitter info, photo (base64)
 
-### Page Structure
-```
-index.html          → Homepage with hero section and recent martyrs display
-add-martyr.html     → Form submission page with photo upload
-gallery.html        → Searchable grid display of all martyrs
-about.html          → Memorial mission and purpose
-contact.html        → Contact form
-```
+### Pages and Responsibilities
+- index.html: Homepage with hero and recent martyrs (reads localStorage)
+- add-martyr.html: Submission form with photo upload (writes to localStorage)
+- gallery.html: Grid display with client-side search and modal details
+- about.html, contact.html: Static content
 
-### JavaScript Module Pattern
-Three main JavaScript files with specific responsibilities:
-- **js/main.js**: Core functionality, mobile menu, smooth scrolling, localStorage utilities, recent martyrs loading
-- **js/add-martyr.js**: Form validation, photo upload handling with base64 conversion, data submission to localStorage
-- **js/gallery.js**: Gallery rendering, search/filter functionality, modal display for martyr details
+### JavaScript Modules
+- js/main.js: Mobile menu, smooth scrolling, recent martyrs, localStorage helpers
+- js/add-martyr.js: Form handling, FileReader base64 conversion, persistence to `martyrsData`
+- js/gallery.js: Render gallery, search/filter, modal detail view
 
-### CSS Architecture
-Single stylesheet (`css/styles.css`) using:
-- CSS custom properties for theming (primary: #2c5530, secondary: #d4af37)
-- Mobile-first responsive design with hamburger menu
-- Grid/Flexbox layouts for card displays
+### CSS
+- css/styles.css: Single stylesheet using CSS custom properties (primary: #2c5530, secondary: #d4af37), mobile-first responsive layout with Grid/Flexbox
 
 ## Critical Implementation Details
 
 ### Photo Handling
-Photos are converted to base64 strings for localStorage storage. This approach has size limitations (~5-10MB total localStorage capacity). The conversion happens in `add-martyr.js` using FileReader API.
+Photos are converted to base64 strings for storage in localStorage (size-limited ~5–10MB total). Conversion uses FileReader in js/add-martyr.js.
 
 ### Data Flow
 1. User submits form → Data validated → Photo converted to base64
-2. Martyr object created with timestamp → Pushed to localStorage array
-3. Gallery and homepage automatically read from localStorage on page load
-4. Search functionality filters DOM elements using data attributes
+2. Martyr object timestamped and appended to `martyrsData` in localStorage
+3. Homepage and gallery read from localStorage on load
+4. Search filters DOM elements using a precomputed `data-search-text` (gallery.js)
 
 ### Cross-Page Communication
-All pages share data through localStorage. Changes made on one page (like adding a martyr) are immediately visible on other pages upon reload.
+All pages share data through localStorage. A reload reflects changes made elsewhere.
 
 ## Production Considerations
-
-The current localStorage implementation is suitable for demonstration but needs backend integration for production:
-- Replace localStorage with proper database (suggested in README)
-- Implement server-side photo storage instead of base64
-- Add data validation and sanitization on backend
-- Implement user authentication for submissions
-- Add content moderation system
+LocalStorage is for demonstration only. For production, migrate to a backend with:
+- Database and server-side photo storage
+- Validation/sanitization and authentication
+- Content moderation
 
 ## Common Modifications
 
-### Adding a New Field to Martyr Data
-1. Update form in `add-martyr.html`
-2. Modify `martyrData` object creation in `add-martyr.js` (around line 126)
-3. Update display in `createMartyrCard()` in `main.js` and `createGalleryCard()` in `gallery.js`
-4. Update modal display in `showMartyrModal()` in `gallery.js`
+### Add a new field to martyr data
+1. Update form in add-martyr.html
+2. Modify martyrData creation in js/add-martyr.js (around line 126)
+3. Update display in createMartyrCard() in js/main.js and createGalleryCard() in js/gallery.js
+4. Update modal display in showMartyrModal() in js/gallery.js
 
-### Changing Theme Colors
-Edit CSS custom properties in `css/styles.css` (lines 2-10)
+### Change theme colors
+Edit CSS custom properties in css/styles.css (lines 2–10)
 
-### Modifying Search Behavior
-Search logic is in `gallery.js` `filterGallery()` function (line 115). Current implementation searches through name, location, and organization fields.
+### Modify search behavior
+Search logic is in js/gallery.js filterGallery() (around line 115). Current search covers name, location, and organization fields.
