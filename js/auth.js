@@ -53,14 +53,21 @@ export class AdminAuth {
 
     // Extend session expiration
     extendSession(session) {
-        const extendedSession = {
-            ...session,
-            expires: Date.now() + SESSION_DURATION
-        };
-        
-        localStorage.setItem(SESSION_KEY, JSON.stringify(extendedSession));
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify(extendedSession));
-        this.sessionData = extendedSession;
+        try {
+            const extendedSession = {
+                ...session,
+                expires: Date.now() + SESSION_DURATION,
+                lastExtended: Date.now()
+            };
+            
+            localStorage.setItem(SESSION_KEY, JSON.stringify(extendedSession));
+            sessionStorage.setItem(SESSION_KEY, JSON.stringify(extendedSession));
+            this.sessionData = extendedSession;
+            
+            console.log(`🔄 Session extended for ${extendedSession.username} until ${new Date(extendedSession.expires).toLocaleTimeString()}`);
+        } catch (error) {
+            console.error('Error extending session:', error);
+        }
     }
 
     // Check if user is authenticated
@@ -208,10 +215,17 @@ export class AdminAuth {
         }
 
         const remaining = this.getSessionTimeRemaining();
-        if (remaining < 5) {
-            console.error(`🚫 Attempted ${actionName} with expiring session (${remaining}m remaining)`);
+        
+        // Only logout if session has completely expired (0 minutes)
+        // For low time remaining, just extend the session automatically
+        if (remaining === 0) {
+            console.error(`🚫 Session expired during ${actionName}`);
             this.logout();
             return false;
+        } else if (remaining <= 15 && this.sessionData) {
+            // Auto-extend session if running low during admin actions
+            console.log(`⏰ Auto-extending session during ${actionName} (${remaining}m remaining)`);
+            this.extendSession(this.sessionData);
         }
 
         console.log(`✅ Admin action authorized: ${actionName} by ${this.getCurrentAdmin().username}`);
