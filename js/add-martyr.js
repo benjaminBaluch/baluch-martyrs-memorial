@@ -168,16 +168,40 @@ async function saveMartyrData(martyrData) {
         martyrData.submittedAt = new Date().toISOString();
         
         let saveSuccess = false;
+        let firebaseError = null;
         
-        // Try to save to Firebase first
+        // Try to save to Firebase first with timeout for regional issues
         try {
-            const result = await firebaseDB.addPendingMartyr(martyrData);
+            console.log('🌍 Attempting Firebase save (may take longer from Gulf region)...');
+            
+            // Add timeout for regional connectivity issues
+            const firebasePromise = firebaseDB.addPendingMartyr(martyrData);
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Firebase timeout - possible regional connectivity issue')), 15000)
+            );
+            
+            const result = await Promise.race([firebasePromise, timeoutPromise]);
+            
             if (result.success) {
-                console.log('Martyr saved to Firebase:', result.id);
+                console.log('✅ Martyr saved to Firebase successfully:', result.id);
                 saveSuccess = true;
+            } else {
+                firebaseError = result.error;
+                console.warn('🔥 Firebase save failed:', result.error);
             }
-        } catch (firebaseError) {
-            console.warn('Firebase save failed, using localStorage fallback:', firebaseError);
+        } catch (error) {
+            firebaseError = error.message;
+            console.warn('🌍 Firebase connectivity issue (common in Gulf region):', error.message);
+            
+            // Check if it's a regional connectivity issue
+            const isRegionalIssue = error.message.includes('timeout') || 
+                                  error.message.includes('unavailable') ||
+                                  error.message.includes('network') ||
+                                  error.code === 'unavailable';
+            
+            if (isRegionalIssue) {
+                console.log('🌐 Detected regional connectivity issue - using localStorage as primary storage');
+            }
         }
         
         // Always save to localStorage as backup/fallback
@@ -193,6 +217,15 @@ async function saveMartyrData(martyrData) {
         
         // Store last submission for confirmation page
         localStorage.setItem('lastSubmittedMartyr', martyrData.fullName);
+        
+        // Store submission method info for confirmation page
+        const submissionInfo = {
+            savedToFirebase: saveSuccess && !firebaseError,
+            savedToLocalStorage: true,
+            isRegionalFallback: !!firebaseError,
+            firebaseError: firebaseError
+        };
+        localStorage.setItem('lastSubmissionInfo', JSON.stringify(submissionInfo));
         
         // Hide loading state
         hideLoadingState();

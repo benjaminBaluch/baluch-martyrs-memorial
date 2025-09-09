@@ -217,13 +217,15 @@ async function loadPendingSubmissions() {
     } catch (error) {
         console.error('Error loading pending submissions from Firebase:', error);
         // Fallback to localStorage on error
-        console.log('💾 Falling back to localStorage');
+        console.log('💾 Falling back to localStorage (may include Gulf region submissions)');
         pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
         usingLocalStorage = true;
         
         // Show a notice that we're using localStorage
         if (usingLocalStorage && pendingData.length === 0) {
             console.log('ℹ️ No data in localStorage either');
+        } else if (usingLocalStorage && pendingData.length > 0) {
+            console.log(`💾 Found ${pendingData.length} submissions in localStorage (likely from regional connectivity issues)`);
         }
     }
 
@@ -232,12 +234,33 @@ async function loadPendingSubmissions() {
             <div class="no-pending">
                 <h3>No pending submissions</h3>
                 <p>All submissions have been reviewed.</p>
+                ${usingLocalStorage ? '<p><small>⚠️ Using local storage due to Firebase connectivity issues</small></p>' : ''}
             </div>
         `;
         return;
     }
 
-    pendingList.innerHTML = '';
+    // Add notice if using localStorage due to regional issues
+    if (usingLocalStorage) {
+        const regionalNotice = document.createElement('div');
+        regionalNotice.className = 'regional-notice';
+        regionalNotice.style.cssText = `
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        `;
+        regionalNotice.innerHTML = `
+            <strong>🌍 Regional Connectivity Notice:</strong> 
+            Firebase database connection failed, showing submissions from local storage. 
+            This may include submissions from Gulf region users who experienced connectivity issues.
+            These submissions are still valid and can be approved normally.
+        `;
+        pendingList.appendChild(regionalNotice);
+    }
 
     pendingData.forEach(martyr => {
         const pendingItem = createPendingItem(martyr);
