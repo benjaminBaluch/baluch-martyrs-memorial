@@ -208,23 +208,67 @@
             return;
         }
         
+        console.log('🔐 Admin authentication passed');
+        
         // Make Firebase and adminAuth globally available for admin panel
         window.firebaseDB = firebaseDB;
         window.adminAuth = adminAuth;
-        console.log('🔥 Firebase loaded globally for admin panel');
-        console.log('🔐 Admin auth loaded globally for admin panel');
+        console.log('🔥 Firebase module loaded globally for admin panel');
+        console.log('🔐 Admin auth module loaded globally');
         
-        // Test Firebase connectivity
-        try {
-            console.log('🧪 Testing Firebase connection...');
-            const testResult = await firebaseDB.testConnection();
-            if (testResult.success) {
-                console.log('✅ Firebase connectivity test passed');
-            } else {
-                console.warn('⚠️ Firebase connectivity test failed:', testResult.error);
+        // Test Firebase connectivity with detailed error handling
+        async function testFirebaseConnection() {
+            try {
+                console.log('🧪 Testing Firebase connection...');
+                
+                if (!window.firebaseDB) {
+                    throw new Error('Firebase DB not available in window object');
+                }
+                
+                if (typeof window.firebaseDB.testConnection !== 'function') {
+                    console.warn('⚠️ Firebase testConnection method not available, trying basic operations...');
+                    
+                    // Try basic Firebase operations
+                    if (typeof window.firebaseDB.getPendingMartyrs === 'function') {
+                        const result = await window.firebaseDB.getPendingMartyrs();
+                        console.log('✅ Firebase basic connectivity test passed:', result.success);
+                        return result.success;
+                    } else {
+                        throw new Error('Firebase methods not available');
+                    }
+                } else {
+                    const testResult = await window.firebaseDB.testConnection();
+                    if (testResult.success) {
+                        console.log('✅ Firebase connectivity test passed');
+                        return true;
+                    } else {
+                        console.warn('⚠️ Firebase connectivity test failed:', testResult.error);
+                        return false;
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Firebase connectivity test error:', error);
+                console.error('Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    firebaseDB: !!window.firebaseDB,
+                    firebaseDBMethods: window.firebaseDB ? Object.keys(window.firebaseDB) : 'N/A'
+                });
+                return false;
             }
-        } catch (error) {
-            console.error('❌ Firebase connectivity test error:', error);
+        }
+        
+        // Test Firebase and dispatch ready event
+        const firebaseWorking = await testFirebaseConnection();
+        
+        if (firebaseWorking) {
+            console.log('✅ Firebase is ready for admin operations');
+        } else {
+            console.error('❌ Firebase connection failed - admin panel may not work properly');
+            // Show user-friendly error
+            setTimeout(() => {
+                alert('Firebase database connection failed. Some admin functions may not work. Please check your internet connection and refresh the page.');
+            }, 1000);
         }
         
         window.dispatchEvent(new Event('firebaseReady'));

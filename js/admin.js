@@ -31,6 +31,13 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeAdminPanel() {
     try {
         console.log('🔥 Firebase available, initializing admin panel...');
+        
+        // Debug Firebase availability
+        console.log('Firebase DB available:', !!window.firebaseDB);
+        if (window.firebaseDB) {
+            console.log('Firebase DB methods:', Object.keys(window.firebaseDB));
+        }
+        
         loadPendingSubmissions();
         updateStats();
         initializeAdminControls();
@@ -41,7 +48,16 @@ function initializeAdminPanel() {
         console.log('✅ Approved martyrs management initialized');
     } catch (error) {
         console.error('Error initializing admin panel:', error);
-        alert('Error loading admin panel. Please check the console for details.');
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            firebaseAvailable: !!window.firebaseDB
+        });
+        
+        // Don't show alert immediately, let user see what's happening
+        setTimeout(() => {
+            alert('Error loading admin panel. Check browser console (F12) for details. Try refreshing the page.');
+        }, 2000);
     }
 }
 
