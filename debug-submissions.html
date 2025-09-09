@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Submissions - Baluch Martyrs Memorial</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .debug-section {
+            margin-bottom: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .debug-section h2 {
+            margin-top: 0;
+            color: #2c5530;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .status.warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+        button {
+            background-color: #2c5530;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #1e3a21;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐛 Debug Submissions</h1>
+        <p>This page helps debug submission synchronization between Firebase and localStorage.</p>
+        
+        <button onclick="runFullDebug()">🔍 Run Full Debug</button>
+        <button onclick="clearConsole()">🧹 Clear Console</button>
+        <button onclick="window.location.href='admin.html'">🔙 Back to Admin</button>
+        
+        <div class="debug-section">
+            <h2>🔥 Firebase Status</h2>
+            <div id="firebaseStatus">Click "Run Full Debug" to check Firebase connection</div>
+        </div>
+        
+        <div class="debug-section">
+            <h2>📊 Firebase Pending Submissions</h2>
+            <div id="firebasePending">Not checked yet</div>
+        </div>
+        
+        <div class="debug-section">
+            <h2>💾 localStorage Pending Submissions</h2>
+            <div id="localStoragePending">Not checked yet</div>
+        </div>
+        
+        <div class="debug-section">
+            <h2>🔍 Firebase Approved Submissions</h2>
+            <div id="firebaseApproved">Not checked yet</div>
+        </div>
+        
+        <div class="debug-section">
+            <h2>💾 localStorage Approved Submissions</h2>
+            <div id="localStorageApproved">Not checked yet</div>
+        </div>
+        
+        <div class="debug-section">
+            <h2>📋 Console Log</h2>
+            <pre id="consoleLog">Debug log will appear here...</pre>
+        </div>
+    </div>
+
+    <script type="module">
+        import { firebaseDB } from './js/firebase-config.js';
+        
+        let logContent = '';
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logLine = `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            logContent += logLine;
+            document.getElementById('consoleLog').textContent = logContent;
+            console.log(message);
+        }
+        
+        window.clearConsole = function() {
+            logContent = '';
+            document.getElementById('consoleLog').textContent = 'Debug log cleared...';
+        }
+        
+        window.runFullDebug = async function() {
+            log('🚀 Starting full debug process...');
+            
+            // 1. Test Firebase Connection
+            log('🔥 Testing Firebase connection...');
+            const firebaseStatusDiv = document.getElementById('firebaseStatus');
+            
+            try {
+                const connectionTest = await firebaseDB.testConnection();
+                if (connectionTest.success) {
+                    firebaseStatusDiv.innerHTML = '<span class="status success">✅ Firebase Connected</span>';
+                    log('✅ Firebase connection successful');
+                } else {
+                    firebaseStatusDiv.innerHTML = `<span class="status error">❌ Firebase Error: ${connectionTest.error}</span>`;
+                    log(`❌ Firebase connection failed: ${connectionTest.error}`, 'error');
+                }
+            } catch (error) {
+                firebaseStatusDiv.innerHTML = `<span class="status error">❌ Firebase Exception: ${error.message}</span>`;
+                log(`❌ Firebase connection exception: ${error.message}`, 'error');
+            }
+            
+            // 2. Check Firebase Pending Submissions
+            log('🔍 Checking Firebase pending submissions...');
+            const firebasePendingDiv = document.getElementById('firebasePending');
+            
+            try {
+                const firebasePendingResult = await firebaseDB.getPendingMartyrs();
+                if (firebasePendingResult.success) {
+                    const count = firebasePendingResult.data.length;
+                    log(`📊 Found ${count} pending submissions in Firebase`);
+                    firebasePendingDiv.innerHTML = `
+                        <span class="status success">✅ ${count} pending submissions</span>
+                        <pre>${JSON.stringify(firebasePendingResult.data.map(m => ({
+                            id: m.id,
+                            fullName: m.fullName,
+                            submittedAt: m.submittedAt
+                        })), null, 2)}</pre>
+                    `;
+                } else {
+                    log(`❌ Failed to get Firebase pending: ${firebasePendingResult.error}`, 'error');
+                    firebasePendingDiv.innerHTML = `<span class="status error">❌ Error: ${firebasePendingResult.error}</span>`;
+                }
+            } catch (error) {
+                log(`❌ Firebase pending exception: ${error.message}`, 'error');
+                firebasePendingDiv.innerHTML = `<span class="status error">❌ Exception: ${error.message}</span>`;
+            }
+            
+            // 3. Check localStorage Pending
+            log('💾 Checking localStorage pending submissions...');
+            const localPendingDiv = document.getElementById('localStoragePending');
+            
+            try {
+                const localPending = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
+                const count = localPending.length;
+                log(`📊 Found ${count} pending submissions in localStorage`);
+                localPendingDiv.innerHTML = `
+                    <span class="status ${count > 0 ? 'success' : 'warning'}">📁 ${count} pending submissions</span>
+                    <pre>${JSON.stringify(localPending.map(m => ({
+                        id: m.id,
+                        fullName: m.fullName,
+                        submittedAt: m.submittedAt
+                    })), null, 2)}</pre>
+                `;
+            } catch (error) {
+                log(`❌ localStorage pending error: ${error.message}`, 'error');
+                localPendingDiv.innerHTML = `<span class="status error">❌ Error reading localStorage</span>`;
+            }
+            
+            // 4. Check Firebase Approved
+            log('🔍 Checking Firebase approved submissions...');
+            const firebaseApprovedDiv = document.getElementById('firebaseApproved');
+            
+            try {
+                const firebaseApprovedResult = await firebaseDB.getApprovedMartyrs();
+                if (firebaseApprovedResult.success) {
+                    const count = firebaseApprovedResult.data.length;
+                    log(`📊 Found ${count} approved submissions in Firebase`);
+                    firebaseApprovedDiv.innerHTML = `
+                        <span class="status success">✅ ${count} approved submissions</span>
+                        <pre>${JSON.stringify(firebaseApprovedResult.data.map(m => ({
+                            id: m.id,
+                            fullName: m.fullName,
+                            status: m.status
+                        })), null, 2)}</pre>
+                    `;
+                } else {
+                    log(`❌ Failed to get Firebase approved: ${firebaseApprovedResult.error}`, 'error');
+                    firebaseApprovedDiv.innerHTML = `<span class="status error">❌ Error: ${firebaseApprovedResult.error}</span>`;
+                }
+            } catch (error) {
+                log(`❌ Firebase approved exception: ${error.message}`, 'error');
+                firebaseApprovedDiv.innerHTML = `<span class="status error">❌ Exception: ${error.message}</span>`;
+            }
+            
+            // 5. Check localStorage Approved
+            log('💾 Checking localStorage approved submissions...');
+            const localApprovedDiv = document.getElementById('localStorageApproved');
+            
+            try {
+                const localApproved = JSON.parse(localStorage.getItem('martyrsData') || '[]');
+                const count = localApproved.length;
+                log(`📊 Found ${count} approved submissions in localStorage`);
+                localApprovedDiv.innerHTML = `
+                    <span class="status ${count > 0 ? 'success' : 'warning'}">📁 ${count} approved submissions</span>
+                    <pre>${JSON.stringify(localApproved.map(m => ({
+                        id: m.id,
+                        fullName: m.fullName,
+                        status: m.status
+                    })), null, 2)}</pre>
+                `;
+            } catch (error) {
+                log(`❌ localStorage approved error: ${error.message}`, 'error');
+                localApprovedDiv.innerHTML = `<span class="status error">❌ Error reading localStorage</span>`;
+            }
+            
+            log('🎉 Debug process completed!');
+        }
+        
+        // Auto-run debug on page load
+        setTimeout(() => {
+            runFullDebug();
+        }, 1000);
+    </script>
+</body>
+</html>
