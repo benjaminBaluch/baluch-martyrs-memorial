@@ -2,9 +2,20 @@
 
 // Initialize Firebase if not already available
 if (!window.firebaseDB) {
-    import('./firebase-config.js').then((module) => {
+    import('./firebase-config.js').then(async (module) => {
         window.firebaseDB = module.firebaseDB;
         console.log('🔥 Firebase loaded globally from main.js');
+        
+        // Load debugging utilities
+        try {
+            const debugModule = await import('./firebase-test.js');
+            window.testFirebase = debugModule.testFirebaseConnection;
+            window.debugFirebaseRules = debugModule.debugFirebaseRules;
+            window.addTestMartyr = debugModule.addTestMartyr;
+            console.log('🔧 Firebase debug utilities loaded');
+        } catch (error) {
+            console.warn('Debug utilities not available:', error);
+        }
         
         // Trigger any pending operations that need Firebase
         window.dispatchEvent(new Event('firebaseReady'));
@@ -24,23 +35,57 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Mobile Menu Toggle
 function initMobileMenu() {
+    console.log('📱 Initializing mobile menu...');
+    
     const hamburger = document.querySelector('.hamburger');
     const navMenu = document.querySelector('.nav-menu');
     
+    console.log('Hamburger element:', hamburger);
+    console.log('Nav menu element:', navMenu);
+    
     if (hamburger && navMenu) {
-        hamburger.addEventListener('click', function() {
+        // Add click event with debugging
+        hamburger.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('🍔 Hamburger clicked!');
+            
+            const isActive = navMenu.classList.contains('active');
+            console.log('Menu currently active:', isActive);
+            
             navMenu.classList.toggle('active');
             hamburger.classList.toggle('active');
+            
+            console.log('Menu now active:', navMenu.classList.contains('active'));
+            console.log('Hamburger now active:', hamburger.classList.contains('active'));
+        });
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!hamburger.contains(e.target) && !navMenu.contains(e.target)) {
+                navMenu.classList.remove('active');
+                hamburger.classList.remove('active');
+            }
         });
         
         // Close menu when clicking on a link
         const navLinks = document.querySelectorAll('.nav-menu a');
+        console.log('Found nav links:', navLinks.length);
+        
         navLinks.forEach(link => {
             link.addEventListener('click', function() {
+                console.log('🔗 Nav link clicked, closing menu');
                 navMenu.classList.remove('active');
                 hamburger.classList.remove('active');
             });
         });
+        
+        console.log('✅ Mobile menu initialized successfully');
+    } else {
+        console.error('❌ Mobile menu elements not found!');
+        console.error('Hamburger:', hamburger);
+        console.error('Nav menu:', navMenu);
     }
 }
 

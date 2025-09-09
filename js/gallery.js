@@ -1,5 +1,7 @@
 // Gallery Page JavaScript
 
+import { testFirebaseConnection, debugFirebaseRules } from './firebase-test.js';
+
 let allMartyrs = [];
 let currentFilters = {
     general: '',
@@ -13,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initSearchFilter();
     initAdvancedSearch();
     initializeInterface();
+    addDebugButton();
     
     // Load gallery after Firebase is ready
     if (window.firebaseDB) {
@@ -66,19 +69,12 @@ async function loadGallery() {
         try {
             console.log('🌍 Loading martyrs from Firebase (global database)...');
             
-            // Use global Firebase instance
-            if (!window.firebaseDB || typeof window.firebaseDB.getApprovedMartyrs !== 'function') {
-                console.warn('⚠️ Firebase not available, will use localStorage fallback');
-                throw new Error('Firebase not available');
-            }
+            // Test Firebase connection first
+            const connectionTest = await testFirebaseConnection();
             
-            console.log('🔥 Firebase instance found, calling getApprovedMartyrs...');
-            const result = await window.firebaseDB.getApprovedMartyrs();
-            console.log('📊 Firebase query result:', result);
-            
-            if (result.success) {
-                allMartyrs = result.data || [];
-                console.log(`✅ Loaded ${allMartyrs.length} martyrs from Firebase (global database)`);
+            if (connectionTest.success) {
+                console.log('✅ Firebase connection test passed');
+                allMartyrs = connectionTest.martyrs || [];
                 
                 // Cache to localStorage for faster loading next time
                 if (allMartyrs.length > 0) {
@@ -89,9 +85,10 @@ async function loadGallery() {
                 // Hide any previous offline warnings
                 hideOfflineWarning();
             } else {
-                console.error('❌ Firebase query failed:', result.error);
-                throw new Error('Firebase query failed: ' + result.error);
+                console.error('❌ Firebase connection test failed:', connectionTest.error);
+                throw new Error('Firebase connection test failed: ' + connectionTest.error);
             }
+            
             
             // Render the gallery
             if (allMartyrs.length > 0) {
@@ -170,6 +167,47 @@ function hideOfflineWarning() {
     if (existingWarning) {
         existingWarning.remove();
     }
+}
+
+// Add debug button for Firebase testing (only in development)
+function addDebugButton() {
+    const debugBtn = document.createElement('button');
+    debugBtn.textContent = 'Debug Firebase';
+    debugBtn.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        background: #ff6b6b;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        z-index: 9999;
+        font-size: 12px;
+    `;
+    
+    debugBtn.addEventListener('click', async function() {
+        console.log('=== FIREBASE DEBUG START ===');
+        
+        // Test Firebase connection
+        await testFirebaseConnection();
+        
+        // Debug Firebase rules
+        await debugFirebaseRules();
+        
+        // Test mobile menu
+        const hamburger = document.querySelector('.hamburger');
+        const navMenu = document.querySelector('.nav-menu');
+        console.log('Mobile menu elements:');
+        console.log('Hamburger:', hamburger);
+        console.log('Nav menu:', navMenu);
+        
+        console.log('=== FIREBASE DEBUG END ===');
+        alert('Debug info logged to console. Check DevTools.');
+    });
+    
+    document.body.appendChild(debugBtn);
 }
 
 // Render martyrs in gallery
