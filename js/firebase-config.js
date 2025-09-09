@@ -18,14 +18,16 @@ import {
     Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
-// Your web app's Firebase configuration
+// Your web app's Firebase configuration with CORS fix
 const firebaseConfig = {
     apiKey: "AIzaSyBW2JKt68kGKE-CMvKQUUj33ToZ8M-kGII",
     authDomain: "baluch-martyrs-memorial.firebaseapp.com",
     projectId: "baluch-martyrs-memorial",
     storageBucket: "baluch-martyrs-memorial.firebasestorage.app",
     messagingSenderId: "420195314966",
-    appId: "1:420195314966:web:0e3546e6e0e0c09cf3f437"
+    appId: "1:420195314966:web:0e3546e6e0e0c09cf3f437",
+    // Add additional configuration for CORS
+    databaseURL: "https://baluch-martyrs-memorial-default-rtdb.firebaseio.com/"
 };
 
 // Initialize Firebase with error handling
@@ -206,16 +208,34 @@ export const firebaseDB = {
             
         } catch (error) {
             console.error('❌ Firebase connection test failed:', error);
+            
+            // Check if it's a CORS error
+            const isCorsError = error.message.includes('CORS') || 
+                               error.message.includes('cross-origin') ||
+                               error.message.includes('access control') ||
+                               error.code === 'unavailable';
+            
+            if (isCorsError) {
+                console.error('🚨 CORS Error Detected: Firebase is being blocked by browser security policies');
+                console.error('This usually happens when:');
+                console.error('1. Domain not authorized in Firebase Console');
+                console.error('2. Browser blocking cross-origin requests');
+                console.error('3. Firebase project configuration issues');
+            }
+            
             console.error('🔍 Error details:', {
                 code: error.code,
                 message: error.message,
                 name: error.name,
+                isCorsError: isCorsError,
                 stack: error.stack?.substring(0, 200)
             });
+            
             return { 
                 success: false, 
-                error: error.message, 
+                error: isCorsError ? 'CORS/Domain authorization error' : error.message, 
                 code: error.code,
+                isCorsError: isCorsError,
                 details: error 
             };
         }
