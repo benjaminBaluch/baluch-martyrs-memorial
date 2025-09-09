@@ -1,20 +1,42 @@
 // Admin panel JavaScript for moderating submissions
 
-import { firebaseDB, storageHelper } from './firebase-config.js';
+// Use global Firebase instance instead of direct import
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Admin panel loading...');
     
+    // Wait for Firebase to be available
+    if (window.firebaseDB) {
+        initializeAdminPanel();
+    } else {
+        // Wait for Firebase to be ready
+        window.addEventListener('firebaseReady', initializeAdminPanel);
+        
+        // Also try after a delay in case Firebase is still loading
+        setTimeout(() => {
+            if (window.firebaseDB) {
+                initializeAdminPanel();
+            } else {
+                console.error('❌ Firebase not available after timeout');
+                alert('Firebase database not available. Please refresh the page.');
+            }
+        }, 2000);
+    }
+});
+
+// Initialize admin panel once Firebase is ready
+function initializeAdminPanel() {
     try {
+        console.log('🔥 Firebase available, initializing admin panel...');
         loadPendingSubmissions();
         updateStats();
         initializeAdminControls();
-        console.log('Admin panel initialized successfully');
+        console.log('✅ Admin panel initialized successfully');
     } catch (error) {
         console.error('Error initializing admin panel:', error);
         alert('Error loading admin panel. Please check the console for details.');
     }
-});
+}
 
 // Initialize admin control buttons
 function initializeAdminControls() {
@@ -53,21 +75,26 @@ async function loadPendingSubmissions() {
     let pendingData = [];
     
     try {
-        // Try to load from Firebase first
-        const result = await firebaseDB.getPendingMartyrs();
-        
-        if (result.success && result.data.length > 0) {
-            pendingData = result.data;
-            console.log(`Loaded ${pendingData.length} pending submissions from Firebase`);
+        // Try to load from Firebase first using global instance
+        if (window.firebaseDB && typeof window.firebaseDB.getPendingMartyrs === 'function') {
+            const result = await window.firebaseDB.getPendingMartyrs();
+            
+            if (result.success) {
+                pendingData = result.data || [];
+                console.log(`✅ Loaded ${pendingData.length} pending submissions from Firebase`);
+            } else {
+                console.warn('Firebase getPendingMartyrs failed:', result.error);
+                throw new Error(result.error);
+            }
         } else {
-            // Fallback to localStorage
-            console.log('Loading pending submissions from localStorage');
-            pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
+            console.warn('⚠️ Firebase not available, using localStorage');
+            throw new Error('Firebase not available');
         }
         
     } catch (error) {
-        console.error('Error loading pending submissions:', error);
+        console.error('Error loading pending submissions from Firebase:', error);
         // Fallback to localStorage on error
+        console.log('💾 Falling back to localStorage');
         pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
     }
 
@@ -191,7 +218,7 @@ async function approveMartyr(martyrId) {
     console.log('✅ User confirmed approval, proceeding...');
     
     // Check if Firebase is available
-    if (!firebaseDB) {
+    if (!window.firebaseDB) {
         console.error('❌ Firebase not available!');
         alert('Firebase database not available. Please check your internet connection and refresh the page.');
         return;
@@ -225,7 +252,7 @@ async function approveMartyr(martyrId) {
             
             try {
                 console.log('🔄 Fetching pending martyrs from Firebase...');
-                const firebaseResult = await firebaseDB.getPendingMartyrs();
+                const firebaseResult = await window.firebaseDB.getPendingMartyrs();
                 console.log('📊 Firebase getPendingMartyrs result:', firebaseResult);
                 
                 if (firebaseResult.success) {
@@ -264,13 +291,13 @@ async function approveMartyr(martyrId) {
         // Try to approve in Firebase first
         let firebaseSuccess = false;
         try {
-            const result = await firebaseDB.approveMartyr(martyrId, martyrToApprove);
+            const result = await window.firebaseDB.approveMartyr(martyrId, martyrToApprove);
             if (result.success) {
-                console.log('Martyr approved in Firebase:', result.id);
+                console.log('✅ Martyr approved in Firebase:', result.id);
                 firebaseSuccess = true;
             }
         } catch (firebaseError) {
-            console.warn('Firebase approval failed, using localStorage only:', firebaseError);
+            console.warn('⚠️ Firebase approval failed, using localStorage only:', firebaseError);
         }
 
         // Update localStorage only if the martyr was found there
@@ -348,7 +375,7 @@ async function rejectMartyr(martyrId) {
         // Try to reject in Firebase first
         let firebaseSuccess = false;
         try {
-            const result = await firebaseDB.rejectMartyr(martyrId);
+            const result = await window.firebaseDB.rejectMartyr(martyrId);
             if (result.success) {
                 console.log('✅ Martyr rejected in Firebase:', martyrId);
                 firebaseSuccess = true;
@@ -401,18 +428,25 @@ async function updateStats() {
         let approvedCount = 0;
         
         try {
-            const pendingResult = await firebaseDB.getPendingMartyrs();
-            const approvedResult = await firebaseDB.getApprovedMartyrs();
-            
-            if (pendingResult.success) pendingCount = pendingResult.data.length;
-            if (approvedResult.success) approvedCount = approvedResult.data.length;
+            if (window.firebaseDB) {
+                const pendingResult = await window.firebaseDB.getPendingMartyrs();
+                const approvedResult = await window.firebaseDB.getApprovedMartyrs();
+                
+                if (pendingResult.success) pendingCount = pendingResult.data.length;
+                if (approvedResult.success) approvedCount = approvedResult.data.length;
+                
+                console.log(`📊 Firebase stats - Pending: ${pendingCount}, Approved: ${approvedCount}`);
+            } else {
+                throw new Error('Firebase not available');
+            }
         } catch (firebaseError) {
-            console.warn('Firebase stats failed, using localStorage:', firebaseError);
+            console.warn('⚠️ Firebase stats failed, using localStorage:', firebaseError);
             // Fallback to localStorage
             const pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
             const approvedData = JSON.parse(localStorage.getItem('martyrsData') || '[]');
             pendingCount = pendingData.length;
             approvedCount = approvedData.length;
+            console.log(`💾 localStorage stats - Pending: ${pendingCount}, Approved: ${approvedCount}`);
         }
         
         document.getElementById('pendingCount').textContent = pendingCount;
@@ -443,14 +477,42 @@ async function clearAllPending() {
         return;
     }
 
-    if (!confirm('This will permanently delete all pending submissions. Are you absolutely sure?')) {
+    if (!confirm('This will permanently delete all pending submissions from both Firebase and local storage. Are you absolutely sure?')) {
         return;
     }
 
-    localStorage.setItem('pendingMartyrs', '[]');
-    await loadPendingSubmissions();
-    await updateStats();
-    alert('All pending submissions have been cleared.');
+    try {
+        console.log('🧼 Clearing all pending submissions...');
+        
+        // Clear from Firebase first
+        if (window.firebaseDB && typeof window.firebaseDB.clearAllPendingMartyrs === 'function') {
+            console.log('🔥 Clearing Firebase pending submissions...');
+            const clearResult = await window.firebaseDB.clearAllPendingMartyrs();
+            
+            if (clearResult.success) {
+                console.log(`✅ Cleared ${clearResult.deletedCount} pending submissions from Firebase`);
+            } else {
+                console.warn('⚠️ Firebase clear failed:', clearResult.error);
+            }
+        } else {
+            console.warn('⚠️ Firebase clearAllPendingMartyrs function not available');
+        }
+        
+        // Clear from localStorage
+        console.log('💾 Clearing localStorage pending submissions...');
+        localStorage.setItem('pendingMartyrs', '[]');
+        
+        // Refresh data and UI
+        await loadPendingSubmissions();
+        await updateStats();
+        
+        console.log('✅ All pending submissions cleared successfully');
+        alert('All pending submissions have been cleared from Firebase and local storage.');
+        
+    } catch (error) {
+        console.error('❌ Error clearing pending submissions:', error);
+        alert('Error clearing some submissions. Please check the console and try again.');
+    }
 }
 
 // Export all data to JSON file

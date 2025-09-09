@@ -147,6 +147,26 @@ export const firebaseDB = {
             console.error('Error rejecting martyr: ', error);
             return { success: false, error: error.message };
         }
+    },
+
+    // Clear all pending martyrs (admin function)
+    async clearAllPendingMartyrs() {
+        try {
+            const pendingQuery = query(collection(db, 'pendingMartyrs'));
+            const querySnapshot = await getDocs(pendingQuery);
+            
+            const deletePromises = [];
+            querySnapshot.forEach((docSnapshot) => {
+                deletePromises.push(deleteDoc(docSnapshot.ref));
+            });
+            
+            await Promise.all(deletePromises);
+            console.log(`Cleared ${deletePromises.length} pending martyrs from Firebase`);
+            return { success: true, deletedCount: deletePromises.length };
+        } catch (error) {
+            console.error('Error clearing all pending martyrs: ', error);
+            return { success: false, error: error.message };
+        }
     }
 };
 

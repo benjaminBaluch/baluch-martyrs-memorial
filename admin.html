@@ -169,6 +169,12 @@
         </div>
     </main>
 
+    <script type="module">
+        // Import and make Firebase globally available for admin panel
+        import { firebaseDB } from './js/firebase-config.js';
+        window.firebaseDB = firebaseDB;
+        console.log('🔥 Firebase loaded globally for admin panel');
+    </script>
     <script type="module" src="js/admin.js"></script>
 </body>
 </html>
