@@ -164,31 +164,49 @@ export const firebaseDB = {
     async testConnection() {
         try {
             console.log('🧪 Testing basic Firebase connectivity...');
+            console.log('🔧 Firebase app config:', {
+                projectId: app.options.projectId,
+                authDomain: app.options.authDomain
+            });
             
-            // Try to read from a simple collection
+            // Try simple read first - just check if Firestore is accessible
+            console.log('🔍 Testing Firestore read access...');
             const testCollection = collection(db, 'test');
             const querySnapshot = await getDocs(testCollection);
             
-            console.log('✅ Firebase read test successful');
+            console.log('✅ Firebase read test successful, docs found:', querySnapshot.size);
             
             // Try to write a simple document
+            console.log('✏️ Testing Firestore write access...');
             const testDoc = {
                 test: true,
                 timestamp: new Date().toISOString(),
-                message: 'Firebase connection test'
+                message: 'Firebase connection test from admin panel'
             };
             
             const docRef = await addDoc(testCollection, testDoc);
             console.log('✅ Firebase write test successful, doc ID:', docRef.id);
             
             // Clean up test document
+            console.log('🧹 Cleaning up test document...');
             await deleteDoc(doc(db, 'test', docRef.id));
             console.log('✅ Firebase delete test successful');
             
-            return { success: true, message: 'All Firebase operations working' };
+            return { success: true, message: 'All Firebase operations working perfectly' };
         } catch (error) {
             console.error('❌ Firebase connection test failed:', error);
-            return { success: false, error: error.message, details: error };
+            console.error('🔍 Error details:', {
+                code: error.code,
+                message: error.message,
+                details: error.details || 'No additional details',
+                stack: error.stack
+            });
+            return { 
+                success: false, 
+                error: error.message, 
+                code: error.code,
+                details: error 
+            };
         }
     },
     
