@@ -8,23 +8,57 @@ import { adminAuth } from './auth.js';
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Admin panel loading...');
     
-    // Wait for Firebase to be available
+    // Check if Firebase is already available
     if (window.firebaseDB) {
+        console.log('✅ Firebase immediately available');
         initializeAdminPanel();
-    } else {
-        // Wait for Firebase to be ready
-        window.addEventListener('firebaseReady', initializeAdminPanel);
-        
-        // Also try after a delay in case Firebase is still loading
-        setTimeout(() => {
-            if (window.firebaseDB) {
-                initializeAdminPanel();
-            } else {
-                console.error('❌ Firebase not available after timeout');
-                alert('Firebase database not available. Please refresh the page.');
-            }
-        }, 2000);
+        return;
     }
+    
+    console.log('⏳ Waiting for Firebase to load...');
+    
+    // Wait for Firebase to be ready with multiple fallback strategies
+    let firebaseCheckAttempts = 0;
+    const maxAttempts = 20; // 10 seconds total
+    
+    function checkFirebaseAvailability() {
+        firebaseCheckAttempts++;
+        console.log(`🔍 Firebase check attempt ${firebaseCheckAttempts}/${maxAttempts}`);
+        
+        if (window.firebaseDB) {
+            console.log('✅ Firebase now available!');
+            initializeAdminPanel();
+            return;
+        }
+        
+        if (firebaseCheckAttempts >= maxAttempts) {
+            console.error('❌ Firebase not available after multiple attempts');
+            console.log('🔍 Final diagnostic check:');
+            console.log('- window.firebaseDB:', !!window.firebaseDB);
+            console.log('- document.readyState:', document.readyState);
+            console.log('- Scripts loaded:', document.querySelectorAll('script[src*="firebase"]').length);
+            
+            // Try to show admin panel with localStorage fallback
+            console.log('⚠️ Initializing admin panel with localStorage fallback');
+            initializeAdminPanel();
+        } else {
+            // Try again after 500ms
+            setTimeout(checkFirebaseAvailability, 500);
+        }
+    }
+    
+    // Listen for firebaseReady event
+    window.addEventListener('firebaseReady', function() {
+        console.log('✅ Firebase ready event received');
+        if (!window.firebaseDB) {
+            console.warn('⚠️ Firebase ready event fired but firebaseDB not available');
+        } else {
+            initializeAdminPanel();
+        }
+    });
+    
+    // Start checking for Firebase availability
+    checkFirebaseAvailability();
 });
 
 // Initialize admin panel once Firebase is ready
@@ -133,10 +167,12 @@ function initializeApprovedManagement() {
 async function loadPendingSubmissions() {
     const pendingList = document.getElementById('pendingList');
     let pendingData = [];
+    let usingLocalStorage = false;
     
     try {
         // Try to load from Firebase first using global instance
         if (window.firebaseDB && typeof window.firebaseDB.getPendingMartyrs === 'function') {
+            console.log('🔥 Attempting to load from Firebase...');
             const result = await window.firebaseDB.getPendingMartyrs();
             
             if (result.success) {
@@ -156,6 +192,12 @@ async function loadPendingSubmissions() {
         // Fallback to localStorage on error
         console.log('💾 Falling back to localStorage');
         pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
+        usingLocalStorage = true;
+        
+        // Show a notice that we're using localStorage
+        if (usingLocalStorage && pendingData.length === 0) {
+            console.log('ℹ️ No data in localStorage either');
+        }
     }
 
     if (pendingData.length === 0) {
