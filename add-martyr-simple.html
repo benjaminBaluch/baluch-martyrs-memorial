@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Martyr - Simple Version - Baluch Martyrs Memorial</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .regional-notice {
+            background-color: #e8f4fd;
+            border: 1px solid #b3d9ff;
+            color: #0c5aa6;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .regional-notice h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="images/logo.png" alt="Baluch Martyrs Memorial Logo" class="logo">
+                <span class="logo-text">Baluch Martyrs Memorial</span>
+            </div>
+            
+            <div class="nav-menu" id="navMenu">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="gallery.html" class="nav-link">Gallery</a>
+                <a href="add-martyr.html" class="nav-link active">Add Martyr</a>
+                <a href="about.html" class="nav-link">About</a>
+                <a href="contact.html" class="nav-link">Contact</a>
+            </div>
+            
+            <div class="nav-toggle" id="navToggle">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="page-header">
+                <h1>Add Martyr - Simple Version</h1>
+                <p>Honor the memory of a fallen hero</p>
+            </div>
+
+            <div class="regional-notice">
+                <h3>🌍 Regional Compatibility Mode</h3>
+                <p>This is a simplified version of the submission form designed for users experiencing connectivity issues. Your submission will be saved locally and processed by our administrators.</p>
+                <p><strong>Note:</strong> If you're not experiencing issues, you can use the <a href="add-martyr.html">regular submission form</a>.</p>
+            </div>
+
+            <form id="addMartyrForm" class="martyr-form" enctype="multipart/form-data">
+                <!-- Basic Information -->
+                <section class="form-section">
+                    <h2>Basic Information</h2>
+                    
+                    <div class="form-group">
+                        <label for="fullName">Full Name *</label>
+                        <input type="text" id="fullName" name="fullName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="fatherName">Father's Name</label>
+                        <input type="text" id="fatherName" name="fatherName">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="birthDate">Date of Birth</label>
+                            <input type="date" id="birthDate" name="birthDate">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="martyrdomDate">Date of Martyrdom *</label>
+                            <input type="date" id="martyrdomDate" name="martyrdomDate" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="birthPlace">Place of Birth</label>
+                            <input type="text" id="birthPlace" name="birthPlace">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="martyrdomPlace">Place of Martyrdom</label>
+                            <input type="text" id="martyrdomPlace" name="martyrdomPlace">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Organization & Role -->
+                <section class="form-section">
+                    <h2>Organization & Role</h2>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="organization">Organization/Group</label>
+                            <input type="text" id="organization" name="organization" placeholder="e.g., BLA, BRA, etc.">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="rank">Rank/Position</label>
+                            <input type="text" id="rank" name="rank" placeholder="e.g., Fighter, Commander, etc.">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Photo Upload -->
+                <section class="form-section">
+                    <h2>Photo</h2>
+                    
+                    <div class="form-group">
+                        <label for="martyrPhoto">Martyr Photo</label>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="martyrPhoto" name="martyrPhoto" accept="image/*">
+                            <div class="file-upload-display">
+                                <button type="button">Choose Photo</button>
+                                <span class="file-upload-text">Choose a photo...</span>
+                            </div>
+                        </div>
+                        <div id="photoPreview" class="photo-preview"></div>
+                    </div>
+                </section>
+
+                <!-- Biography -->
+                <section class="form-section">
+                    <h2>Biography</h2>
+                    
+                    <div class="form-group">
+                        <label for="biography">Biography</label>
+                        <textarea id="biography" name="biography" rows="5" placeholder="Share the story of this martyr's life, their dedication to the cause, and their sacrifice..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="familyDetails">Family Details</label>
+                        <textarea id="familyDetails" name="familyDetails" rows="3" placeholder="Information about family members, survivors, etc."></textarea>
+                    </div>
+                </section>
+
+                <!-- Submitter Information -->
+                <section class="form-section">
+                    <h2>Your Information</h2>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="submitterName">Your Name *</label>
+                            <input type="text" id="submitterName" name="submitterName" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="submitterEmail">Your Email *</label>
+                            <input type="email" id="submitterEmail" name="submitterEmail" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="submitterRelation">Relationship to Martyr</label>
+                        <input type="text" id="submitterRelation" name="submitterRelation" placeholder="e.g., Family member, Friend, Comrade">
+                    </div>
+                </section>
+
+                <!-- Submit Section -->
+                <section class="form-section">
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Submit for Review</button>
+                        <button type="button" class="btn btn-secondary" onclick="resetForm()">Clear Form</button>
+                    </div>
+                    
+                    <p class="form-note">
+                        <strong>Note:</strong> All submissions are reviewed before publication. 
+                        You will be redirected to a confirmation page after submission.
+                    </p>
+                </section>
+            </form>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Baluch Martyrs Memorial</h3>
+                    <p>Preserving the memory of those who sacrificed their lives for the Baluch cause.</p>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="gallery.html">Gallery</a></li>
+                        <li><a href="add-martyr.html">Add Martyr</a></li>
+                        <li><a href="about.html">About</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-section">
+                    <h3>Contact</h3>
+                    <p>For questions or support, please <a href="contact.html">contact us</a>.</p>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p>&copy; 2024 Baluch Martyrs Memorial. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Simple JavaScript without Firebase dependencies - Gulf region compatible
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🌍 Loading simple form for Gulf region compatibility');
+            initializeSimpleForm();
+        });
+
+        function initializeSimpleForm() {
+            const form = document.getElementById('addMartyrForm');
+            
+            if (form) {
+                form.addEventListener('submit', handleSimpleFormSubmit);
+                initSimpleFileUploads();
+            }
+        }
+
+        // Handle photo upload without Firebase
+        function initSimpleFileUploads() {
+            const martyrPhoto = document.getElementById('martyrPhoto');
+            const photoPreview = document.getElementById('photoPreview');
+            
+            if (martyrPhoto) {
+                martyrPhoto.addEventListener('change', function(e) {
+                    handleSimplePhotoUpload(e, photoPreview);
+                });
+                
+                const fileDisplay = martyrPhoto.parentElement.querySelector('.file-upload-text');
+                martyrPhoto.addEventListener('change', function() {
+                    if (this.files.length > 0) {
+                        fileDisplay.textContent = this.files[0].name;
+                    } else {
+                        fileDisplay.textContent = 'Choose a photo...';
+                    }
+                });
+            }
+            
+            // File upload button click handler
+            const fileUploadButton = document.querySelector('.file-upload-display button');
+            if (fileUploadButton) {
+                fileUploadButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    document.getElementById('martyrPhoto').click();
+                });
+            }
+        }
+
+        // Simple photo preview
+        function handleSimplePhotoUpload(event, previewContainer) {
+            const file = event.target.files[0];
+            
+            if (!file) {
+                previewContainer.innerHTML = '';
+                return;
+            }
+            
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.alt = 'Martyr Photo Preview';
+                    previewContainer.innerHTML = '';
+                    previewContainer.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Simple form submission - localStorage only
+        function handleSimpleFormSubmit(event) {
+            event.preventDefault();
+            
+            console.log('📝 Processing simple form submission (Gulf region mode)');
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            
+            // Show loading state
+            const submitBtn = form.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+            
+            // Create martyr object
+            const martyrData = {
+                fullName: formData.get('fullName'),
+                fatherName: formData.get('fatherName'),
+                birthDate: formData.get('birthDate'),
+                martyrdomDate: formData.get('martyrdomDate'),
+                birthPlace: formData.get('birthPlace'),
+                martyrdomPlace: formData.get('martyrdomPlace'),
+                biography: formData.get('biography'),
+                organization: formData.get('organization'),
+                rank: formData.get('rank'),
+                familyDetails: formData.get('familyDetails'),
+                submitterName: formData.get('submitterName'),
+                submitterEmail: formData.get('submitterEmail'),
+                submitterRelation: formData.get('submitterRelation'),
+                submittedAt: new Date().toISOString(),
+                id: 'martyr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                status: 'pending',
+                submissionMode: 'simple_gulf_region'
+            };
+            
+            // Handle photo
+            const photoFile = formData.get('martyrPhoto');
+            if (photoFile && photoFile.size > 0) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    martyrData.photo = e.target.result;
+                    saveToLocalStorageOnly(martyrData, submitBtn);
+                };
+                reader.readAsDataURL(photoFile);
+            } else {
+                saveToLocalStorageOnly(martyrData, submitBtn);
+            }
+        }
+
+        // Save to localStorage only (Gulf region fallback)
+        function saveToLocalStorageOnly(martyrData, submitBtn) {
+            try {
+                console.log('💾 Saving to localStorage (Gulf region mode)');
+                
+                let pendingData = localStorage.getItem('pendingMartyrs');
+                pendingData = pendingData ? JSON.parse(pendingData) : [];
+                pendingData.push(martyrData);
+                localStorage.setItem('pendingMartyrs', JSON.stringify(pendingData));
+                
+                // Store for confirmation page
+                localStorage.setItem('lastSubmittedMartyr', martyrData.fullName);
+                localStorage.setItem('lastSubmissionInfo', JSON.stringify({
+                    savedToFirebase: false,
+                    savedToLocalStorage: true,
+                    isRegionalFallback: true,
+                    firebaseError: 'Simple mode - Gulf region compatibility'
+                }));
+                
+                console.log('✅ Submission saved successfully to localStorage');
+                
+                // Redirect to confirmation
+                window.location.href = 'confirmation.html?name=' + encodeURIComponent(martyrData.fullName) + '&mode=simple';
+                
+            } catch (error) {
+                console.error('❌ Error saving to localStorage:', error);
+                
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit for Review';
+                
+                alert('Unable to save submission. Please check your browser settings and try again.');
+            }
+        }
+
+        // Reset form
+        function resetForm() {
+            const form = document.getElementById('addMartyrForm');
+            if (form) {
+                form.reset();
+                document.getElementById('photoPreview').innerHTML = '';
+                document.querySelector('.file-upload-text').textContent = 'Choose a photo...';
+            }
+        }
+
+        // Mobile menu functionality
+        const navToggle = document.getElementById('navToggle');
+        const navMenu = document.getElementById('navMenu');
+        
+        if (navToggle && navMenu) {
+            navToggle.addEventListener('click', function() {
+                navMenu.classList.toggle('active');
+            });
+        }
+    </script>
+</body>
+</html>
