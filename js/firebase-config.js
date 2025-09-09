@@ -192,6 +192,19 @@ export const firebaseDB = {
         }
     },
     
+    // Delete an approved martyr (admin function)
+    async deleteApprovedMartyr(martyrId) {
+        try {
+            console.log(`🗑️ Deleting approved martyr: ${martyrId}`);
+            await deleteDoc(doc(db, 'martyrs', martyrId));
+            console.log(`✅ Approved martyr deleted: ${martyrId}`);
+            return { success: true };
+        } catch (error) {
+            console.error('❌ Error deleting approved martyr: ', error);
+            return { success: false, error: error.message };
+        }
+    },
+    
     // Clear all pending martyrs (admin function)
     async clearAllPendingMartyrs() {
         try {
@@ -208,6 +221,27 @@ export const firebaseDB = {
             return { success: true, deletedCount: deletePromises.length };
         } catch (error) {
             console.error('Error clearing all pending martyrs: ', error);
+            return { success: false, error: error.message };
+        }
+    },
+    
+    // Clear all approved martyrs (admin function - use with caution!)
+    async clearAllApprovedMartyrs() {
+        try {
+            console.log('🧹 Clearing all approved martyrs...');
+            const martyrsCollection = collection(db, 'martyrs');
+            const querySnapshot = await getDocs(martyrsCollection);
+            
+            const deletePromises = [];
+            querySnapshot.forEach((docSnapshot) => {
+                deletePromises.push(deleteDoc(docSnapshot.ref));
+            });
+            
+            await Promise.all(deletePromises);
+            console.log(`✅ Cleared ${deletePromises.length} approved martyrs from Firebase`);
+            return { success: true, deletedCount: deletePromises.length };
+        } catch (error) {
+            console.error('❌ Error clearing all approved martyrs: ', error);
             return { success: false, error: error.message };
         }
     }

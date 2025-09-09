@@ -67,6 +67,18 @@ function initializeAdminControls() {
         clearBtn.removeAttribute('onclick');
         clearBtn.addEventListener('click', clearAllPending);
     }
+    
+    // Load Approved Martyrs button
+    const loadApprovedBtn = document.getElementById('loadApprovedBtn');
+    if (loadApprovedBtn) {
+        loadApprovedBtn.addEventListener('click', loadApprovedMartyrs);
+    }
+    
+    // Clear All Approved button
+    const clearAllApprovedBtn = document.getElementById('clearAllApprovedBtn');
+    if (clearAllApprovedBtn) {
+        clearAllApprovedBtn.addEventListener('click', clearAllApproved);
+    }
 }
 
 // Load and display pending submissions
@@ -575,5 +587,179 @@ function importData() {
     };
     
     input.click();
+}
+
+// Load and display approved martyrs
+async function loadApprovedMartyrs() {
+    const approvedList = document.getElementById('approvedList');
+    const loadBtn = document.getElementById('loadApprovedBtn');
+    
+    // Show loading state
+    loadBtn.disabled = true;
+    loadBtn.textContent = 'Loading...';
+    approvedList.innerHTML = '<p style="text-align: center; padding: 2rem;">Loading approved martyrs...</p>';
+    
+    try {
+        console.log('Loading approved martyrs from Firebase...');
+        const result = await window.firebaseDB.getApprovedMartyrs();
+        
+        if (result.success && result.data.length > 0) {
+            const martyrs = result.data;
+            console.log(`Found ${martyrs.length} approved martyrs`);
+            
+            approvedList.innerHTML = '';
+            
+            martyrs.forEach(martyr => {
+                const martyrItem = createApprovedMartyrItem(martyr);
+                approvedList.appendChild(martyrItem);
+            });
+        } else {
+            approvedList.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">No approved martyrs found</p>';
+        }
+    } catch (error) {
+        console.error('Error loading approved martyrs:', error);
+        approvedList.innerHTML = '<p style="text-align: center; color: #dc3545; padding: 2rem;">Error loading approved martyrs. Check console for details.</p>';
+    }
+    
+    // Reset button
+    loadBtn.disabled = false;
+    loadBtn.textContent = 'Refresh Approved Martyrs';
+}
+
+// Create approved martyr item
+function createApprovedMartyrItem(martyr) {
+    const item = document.createElement('div');
+    item.className = 'pending-item'; // Reuse pending item styling
+    item.dataset.martyrId = martyr.id;
+    
+    const approvedDate = martyr.approvedAt ? new Date(martyr.approvedAt.toDate ? martyr.approvedAt.toDate() : martyr.approvedAt).toLocaleDateString() : 'Unknown';
+    
+    item.innerHTML = `
+        <div class="pending-header" style="background: #d4edda; border-color: #c3e6cb;">
+            <strong>✅ PUBLISHED Martyr ID:</strong> ${martyr.id}
+            <span style="float: right; color: #155724;">Approved: ${approvedDate}</span>
+        </div>
+        <div class="pending-content">
+            <div class="pending-image">
+                ${martyr.photo ? 
+                    `<img src="${martyr.photo}" alt="${martyr.fullName}">` :
+                    '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #999;">No Photo</div>'
+                }
+            </div>
+            <div class="pending-details">
+                <h3>${martyr.fullName}</h3>
+                <div class="detail-row">
+                    <span class="detail-label">Birth:</span> ${formatDate(martyr.birthDate)} in ${martyr.birthPlace || 'Unknown'}
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Martyrdom:</span> ${formatDate(martyr.martyrdomDate)} in ${martyr.martyrdomPlace || 'Unknown'}
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Organization:</span> ${martyr.organization || 'Not specified'}
+                </div>
+                ${martyr.submitterName ? `
+                    <div class="detail-row">
+                        <span class="detail-label">Submitted by:</span> ${martyr.submitterName}
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+        <div class="pending-actions" style="background: #f8d7da;">
+            <button data-action="delete" data-martyr-id="${martyr.id}" class="btn btn-outline" style="color: #dc3545; border-color: #dc3545;">
+                🗑️ Delete from Firebase
+            </button>
+            <span style="color: #666; font-size: 0.9rem; align-self: center;">⚠️ This will permanently remove the martyr from the website</span>
+        </div>
+    `;
+    
+    // Add event listener to delete button
+    const deleteBtn = item.querySelector('[data-action="delete"]');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', () => deleteApprovedMartyr(martyr.id, martyr.fullName));
+    }
+    
+    return item;
+}
+
+// Delete an approved martyr
+async function deleteApprovedMartyr(martyrId, martyrName) {
+    if (!confirm(`Are you sure you want to DELETE "${martyrName}" from the website?\n\nThis will permanently remove the martyr from Firebase and the website. This action cannot be undone!`)) {
+        return;
+    }
+    
+    if (!confirm('This is your FINAL warning. The martyr will be completely deleted. Continue?')) {
+        return;
+    }
+    
+    try {
+        console.log(`Deleting approved martyr: ${martyrId}`);
+        
+        // Show loading state
+        const deleteBtn = document.querySelector(`[data-martyr-id="${martyrId}"] [data-action="delete"]`);
+        if (deleteBtn) {
+            deleteBtn.disabled = true;
+            deleteBtn.innerHTML = '⏳ Deleting...';
+        }
+        
+        const result = await window.firebaseDB.deleteApprovedMartyr(martyrId);
+        
+        if (result.success) {
+            // Remove from UI
+            const martyrItem = document.querySelector(`[data-martyr-id="${martyrId}"]`);
+            if (martyrItem) {
+                martyrItem.remove();
+            }
+            
+            // Update stats
+            await updateStats();
+            
+            alert(`"${martyrName}" has been successfully deleted from Firebase.`);
+            console.log(`Successfully deleted martyr: ${martyrName}`);
+        } else {
+            alert(`Failed to delete martyr: ${result.error}`);
+            console.error('Delete failed:', result.error);
+        }
+    } catch (error) {
+        console.error('Error deleting approved martyr:', error);
+        alert('Error deleting martyr. Please try again.');
+    }
+}
+
+// Clear all approved martyrs (DANGER!)
+async function clearAllApproved() {
+    if (!confirm('⚠️ DANGER: This will DELETE ALL approved martyrs from Firebase!\n\nThis will remove ALL martyrs from the website permanently. Are you absolutely sure?')) {
+        return;
+    }
+    
+    if (!confirm('This is your FINAL warning. ALL martyrs will be deleted from the website. This cannot be undone!\n\nType "DELETE ALL" to confirm (case sensitive).')) {
+        return;
+    }
+    
+    const confirmation = prompt('Type "DELETE ALL" to confirm deletion of all martyrs:');
+    if (confirmation !== 'DELETE ALL') {
+        alert('Cancelled. Confirmation text did not match.');
+        return;
+    }
+    
+    try {
+        console.log('Clearing all approved martyrs...');
+        const result = await window.firebaseDB.clearAllApprovedMartyrs();
+        
+        if (result.success) {
+            alert(`Successfully deleted ${result.deletedCount} approved martyrs from Firebase.`);
+            
+            // Reload the approved list
+            const approvedList = document.getElementById('approvedList');
+            approvedList.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">All approved martyrs have been deleted</p>';
+            
+            // Update stats
+            await updateStats();
+        } else {
+            alert('Failed to clear approved martyrs: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Error clearing approved martyrs:', error);
+        alert('Error clearing approved martyrs. Check console for details.');
+    }
 }
 

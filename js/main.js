@@ -14,7 +14,9 @@ if (!window.firebaseDB) {
             window.addTestMartyr = debugModule.addTestMartyr;
             window.migrateToFirebase = debugModule.migrateLocalStorageToFirebase;
             window.testFirebaseConnection = window.firebaseDB.testConnection;
-            console.log('🔧 Firebase debug utilities loaded (including migration and connection test)');
+            window.deleteApprovedMartyr = window.firebaseDB.deleteApprovedMartyr;
+            window.clearAllApprovedMartyrs = window.firebaseDB.clearAllApprovedMartyrs;
+            console.log('🔧 Firebase debug utilities loaded (including deletion functions)');
         } catch (error) {
             console.warn('Debug utilities not available:', error);
         }
