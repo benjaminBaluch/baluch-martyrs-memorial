@@ -187,6 +187,7 @@
         import { firebaseDB } from './js/firebase-config.js';
         window.firebaseDB = firebaseDB;
         console.log('🔥 Firebase loaded globally for admin panel');
+        window.dispatchEvent(new Event('firebaseReady'));
     </script>
     <script src="js/mobile-menu.js"></script>
     <script type="module" src="js/admin.js"></script>
