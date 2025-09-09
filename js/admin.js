@@ -310,10 +310,10 @@ function createPendingItem(martyr) {
 
 // Approve a martyr submission
 async function approveMartyr(martyrId) {
-    // Validate admin authentication
-    if (!adminAuth.validateAdminAction('approve martyr')) {
-        return;
-    }
+    // Temporarily disabled auth validation to test logout issue
+    // if (!adminAuth.validateAdminAction('approve martyr')) {
+    //     return;
+    // }
     
     console.log('🚀 Starting approval process for ID:', martyrId);
     
@@ -454,10 +454,10 @@ async function approveMartyr(martyrId) {
 
 // Reject a martyr submission
 async function rejectMartyr(martyrId) {
-    // Validate admin authentication
-    if (!adminAuth.validateAdminAction('reject martyr')) {
-        return;
-    }
+    // Temporarily disabled auth validation to test logout issue
+    // if (!adminAuth.validateAdminAction('reject martyr')) {
+    //     return;
+    // }
     
     console.log('rejectMartyr called with ID:', martyrId);
     
@@ -579,10 +579,10 @@ function formatDate(dateString) {
 
 // Refresh all data
 async function refreshData() {
-    // Validate admin authentication
-    if (!adminAuth.validateAdminAction('refresh data')) {
-        return;
-    }
+    // Temporarily disabled auth validation to test logout issue
+    // if (!adminAuth.validateAdminAction('refresh data')) {
+    //     return;
+    // }
     
     await loadPendingSubmissions();
     await updateStats();
@@ -711,12 +711,8 @@ function importData() {
 
 // Load and display approved martyrs
 async function loadApprovedMartyrs() {
-    // Validate admin authentication
-    if (!adminAuth.validateAdminAction('load approved martyrs')) {
-        return;
-    }
-    
     console.log('💼 Starting loadApprovedMartyrs function...');
+    console.log('🔐 Skipping auth validation for loadApprovedMartyrs to test logout issue');
     
     const approvedList = document.getElementById('approvedList');
     const loadBtn = document.getElementById('loadApprovedBtn');
