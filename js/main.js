@@ -13,7 +13,8 @@ if (!window.firebaseDB) {
             window.debugFirebaseRules = debugModule.debugFirebaseRules;
             window.addTestMartyr = debugModule.addTestMartyr;
             window.migrateToFirebase = debugModule.migrateLocalStorageToFirebase;
-            console.log('🔧 Firebase debug utilities loaded (including migration)');
+            window.testFirebaseConnection = window.firebaseDB.testConnection;
+            console.log('🔧 Firebase debug utilities loaded (including migration and connection test)');
         } catch (error) {
             console.warn('Debug utilities not available:', error);
         }

@@ -62,41 +62,47 @@ export const firebaseDB = {
         }
     },
 
-    // Get all approved martyrs
+    // Get all approved martyrs (simplified - no complex queries)
     async getApprovedMartyrs() {
         try {
-            const martyrsQuery = query(
-                collection(db, 'martyrs'), 
-                where('status', '==', 'approved'),
-                orderBy('submittedAt', 'desc')
-            );
+            console.log('🔍 Fetching approved martyrs from Firebase...');
             
-            const querySnapshot = await getDocs(martyrsQuery);
+            // Try simple query first without orderBy to avoid index issues
+            const martyrsCollection = collection(db, 'martyrs');
+            const querySnapshot = await getDocs(martyrsCollection);
             const martyrs = [];
             
             querySnapshot.forEach((doc) => {
-                martyrs.push({
-                    id: doc.id,
-                    ...doc.data()
-                });
+                const data = doc.data();
+                if (data.status === 'approved') {
+                    martyrs.push({
+                        id: doc.id,
+                        ...data
+                    });
+                }
             });
             
+            console.log(`✅ Found ${martyrs.length} approved martyrs in Firebase`);
             return { success: true, data: martyrs };
         } catch (error) {
-            console.error('Error getting approved martyrs: ', error);
-            return { success: false, error: error.message };
+            console.error('❌ Error getting approved martyrs: ', error);
+            console.error('Error details:', {
+                code: error.code,
+                message: error.message,
+                stack: error.stack
+            });
+            return { success: false, error: error.message, details: error };
         }
     },
 
-    // Get all pending martyrs (admin only)
+    // Get all pending martyrs (admin only) - simplified
     async getPendingMartyrs() {
         try {
-            const pendingQuery = query(
-                collection(db, 'pendingMartyrs'),
-                orderBy('submittedAt', 'desc')
-            );
+            console.log('🔍 Fetching pending martyrs from Firebase...');
             
-            const querySnapshot = await getDocs(pendingQuery);
+            // Simple query without orderBy to avoid index issues
+            const pendingCollection = collection(db, 'pendingMartyrs');
+            const querySnapshot = await getDocs(pendingCollection);
             const pendingMartyrs = [];
             
             querySnapshot.forEach((doc) => {
@@ -106,10 +112,15 @@ export const firebaseDB = {
                 });
             });
             
+            console.log(`✅ Found ${pendingMartyrs.length} pending martyrs in Firebase`);
             return { success: true, data: pendingMartyrs };
         } catch (error) {
-            console.error('Error getting pending martyrs: ', error);
-            return { success: false, error: error.message };
+            console.error('❌ Error getting pending martyrs: ', error);
+            console.error('Error details:', {
+                code: error.code,
+                message: error.message
+            });
+            return { success: false, error: error.message, details: error };
         }
     },
 
@@ -149,11 +160,43 @@ export const firebaseDB = {
         }
     },
 
+    // Simple Firebase connectivity test
+    async testConnection() {
+        try {
+            console.log('🧪 Testing basic Firebase connectivity...');
+            
+            // Try to read from a simple collection
+            const testCollection = collection(db, 'test');
+            const querySnapshot = await getDocs(testCollection);
+            
+            console.log('✅ Firebase read test successful');
+            
+            // Try to write a simple document
+            const testDoc = {
+                test: true,
+                timestamp: new Date().toISOString(),
+                message: 'Firebase connection test'
+            };
+            
+            const docRef = await addDoc(testCollection, testDoc);
+            console.log('✅ Firebase write test successful, doc ID:', docRef.id);
+            
+            // Clean up test document
+            await deleteDoc(doc(db, 'test', docRef.id));
+            console.log('✅ Firebase delete test successful');
+            
+            return { success: true, message: 'All Firebase operations working' };
+        } catch (error) {
+            console.error('❌ Firebase connection test failed:', error);
+            return { success: false, error: error.message, details: error };
+        }
+    },
+    
     // Clear all pending martyrs (admin function)
     async clearAllPendingMartyrs() {
         try {
-            const pendingQuery = query(collection(db, 'pendingMartyrs'));
-            const querySnapshot = await getDocs(pendingQuery);
+            const pendingCollection = collection(db, 'pendingMartyrs');
+            const querySnapshot = await getDocs(pendingCollection);
             
             const deletePromises = [];
             querySnapshot.forEach((docSnapshot) => {
