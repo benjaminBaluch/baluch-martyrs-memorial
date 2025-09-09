@@ -264,9 +264,9 @@ async function saveMartyrData(martyrData) {
         // Try to save to Firebase only if available
         if (firebaseAvailable && firebaseDB) {
             try {
-                console.log('🌍 Attempting Firebase save (may take longer from Gulf region)...');
+                console.log('🌍 Attempting Firebase save (optimized for Pakistan, Gulf region, and international users)...');
                 
-                // Add timeout for regional connectivity issues
+                // Add timeout for regional connectivity issues (Pakistan, Gulf, etc.)
                 const firebasePromise = firebaseDB.addPendingMartyr(martyrData);
                 const timeoutPromise = new Promise((_, reject) => 
                     setTimeout(() => reject(new Error('Firebase timeout - possible regional connectivity issue')), 15000)
@@ -275,15 +275,15 @@ async function saveMartyrData(martyrData) {
                 const result = await Promise.race([firebasePromise, timeoutPromise]);
                 
                 if (result.success) {
-                    console.log('✅ Martyr saved to Firebase successfully:', result.id);
+                    console.log('✅ Martyr saved to Firebase successfully (international submission):', result.id);
                     saveSuccess = true;
                 } else {
                     firebaseError = result.error;
-                    console.warn('🔥 Firebase save failed:', result.error);
+                    console.warn('🔥 Firebase save failed (will use localStorage):', result.error);
                 }
             } catch (error) {
                 firebaseError = error.message;
-                console.warn('🌍 Firebase connectivity issue (common in Gulf region):', error.message);
+                console.warn('🌍 Firebase connectivity issue (common for Pakistan/Gulf region users):', error.message);
                 
                 // Check if it's a regional connectivity issue
                 const isRegionalIssue = error.message.includes('timeout') || 
@@ -292,11 +292,11 @@ async function saveMartyrData(martyrData) {
                                       error.code === 'unavailable';
                 
                 if (isRegionalIssue) {
-                    console.log('🌐 Detected regional connectivity issue - using localStorage as primary storage');
+                    console.log('🌐 Detected regional connectivity issue (Pakistan/Gulf region) - using localStorage as primary storage');
                 }
             }
         } else {
-            console.log('💾 Firebase not available - using localStorage-only mode (Gulf region compatibility)');
+            console.log('💾 Firebase not available - using localStorage-only mode (Pakistan/Gulf region compatibility)');
             firebaseError = 'Firebase modules not loaded (regional compatibility mode)';
         }
         
@@ -352,7 +352,7 @@ async function saveMartyrData(martyrData) {
                 2. Try refreshing the page and submitting again
                 3. If the problem persists, your submission will be processed from local storage
                 
-                Note: Users in Gulf countries may experience connectivity delays with our database.
+                Note: Users in Pakistan, Gulf countries, and some international locations may experience connectivity delays with our database.
             `.trim();
         }
         
