@@ -53,36 +53,62 @@ function initSmoothScroll() {
     });
 }
 
-// Load Recent Martyrs (approved only)
-function loadRecentMartyrs() {
+// Load Recent Martyrs (approved only) - Global data from Firebase
+async function loadRecentMartyrs() {
     const recentMartyrsContainer = document.getElementById('recentMartyrs');
     
     if (recentMartyrsContainer) {
-        // Only load approved martyrs from localStorage
-        const savedMartyrs = localStorage.getItem('martyrsData');
+        let martyrsData = [];
         
-        if (savedMartyrs) {
-            const allMartyrs = JSON.parse(savedMartyrs);
-            const martyrsData = allMartyrs.filter(m => !m.status || m.status === 'approved');
+        try {
+            console.log('🌍 Loading recent martyrs from Firebase (global database)...');
             
-            // Clear placeholder if martyrs exist
-            if (martyrsData.length > 0) {
-                recentMartyrsContainer.innerHTML = '';
+            // Try Firebase first - this shows global data to all users
+            if (window.firebaseDB) {
+                const result = await window.firebaseDB.getApprovedMartyrs();
                 
-                // Display up to 6 recent martyrs
-                const recentMartyrs = martyrsData.slice(-6).reverse();
-                
-                recentMartyrs.forEach(martyr => {
-                    const martyrCard = createMartyrCard(martyr);
-                    recentMartyrsContainer.appendChild(martyrCard);
-                });
-                
-                console.log(`Displayed ${recentMartyrs.length} recent martyrs on homepage`);
+                if (result.success) {
+                    martyrsData = result.data || [];
+                    console.log(`✅ Loaded ${martyrsData.length} martyrs from Firebase (global)`);
+                    
+                    // Cache for faster loading
+                    if (martyrsData.length > 0) {
+                        localStorage.setItem('martyrsData', JSON.stringify(martyrsData));
+                    }
+                } else {
+                    throw new Error('Firebase failed: ' + result.error);
+                }
             } else {
-                console.log('No approved martyrs found in localStorage');
+                throw new Error('Firebase not available');
             }
+            
+        } catch (error) {
+            console.warn('⚠️  Firebase failed, using localStorage backup:', error.message);
+            
+            // Fallback to localStorage only if Firebase fails
+            const savedMartyrs = localStorage.getItem('martyrsData');
+            if (savedMartyrs) {
+                const allMartyrs = JSON.parse(savedMartyrs);
+                martyrsData = allMartyrs.filter(m => !m.status || m.status === 'approved');
+                console.log(`Using localStorage backup: ${martyrsData.length} martyrs`);
+            }
+        }
+        
+        // Display martyrs if we have any
+        if (martyrsData.length > 0) {
+            recentMartyrsContainer.innerHTML = '';
+            
+            // Display up to 6 recent martyrs
+            const recentMartyrs = martyrsData.slice(-6).reverse();
+            
+            recentMartyrs.forEach(martyr => {
+                const martyrCard = createMartyrCard(martyr);
+                recentMartyrsContainer.appendChild(martyrCard);
+            });
+            
+            console.log(`🏠 Displayed ${recentMartyrs.length} recent martyrs on homepage`);
         } else {
-            console.log('No martyrs data found in localStorage');
+            console.log('😔 No approved martyrs found');
         }
     }
 }
@@ -190,20 +216,40 @@ function initAnniversarySlider() {
 let currentSlide = 0;
 let anniversaryMartyrs = [];
 
-// Load martyrs with upcoming anniversaries
-function loadAnniversaryMartyrs() {
+// Load martyrs with upcoming anniversaries - Global data from Firebase
+async function loadAnniversaryMartyrs() {
     const slider = document.getElementById('anniversary-slider');
     if (!slider) return;
     
-    // Get approved martyrs
-    const savedMartyrs = localStorage.getItem('martyrsData');
-    if (!savedMartyrs) {
-        showEmptyAnniversarySlider();
-        return;
-    }
+    let approvedMartyrs = [];
     
-    const allMartyrs = JSON.parse(savedMartyrs);
-    const approvedMartyrs = allMartyrs.filter(m => !m.status || m.status === 'approved');
+    try {
+        console.log('🎆 Loading anniversary data from Firebase (global database)...');
+        
+        // Try Firebase first for global data
+        if (window.firebaseDB) {
+            const result = await window.firebaseDB.getApprovedMartyrs();
+            
+            if (result.success) {
+                approvedMartyrs = result.data || [];
+                console.log(`✅ Loaded ${approvedMartyrs.length} martyrs for anniversaries from Firebase`);
+            } else {
+                throw new Error('Firebase failed: ' + result.error);
+            }
+        } else {
+            throw new Error('Firebase not available');
+        }
+        
+    } catch (error) {
+        console.warn('⚠️  Firebase failed for anniversaries, using localStorage:', error.message);
+        
+        // Fallback to localStorage
+        const savedMartyrs = localStorage.getItem('martyrsData');
+        if (savedMartyrs) {
+            const allMartyrs = JSON.parse(savedMartyrs);
+            approvedMartyrs = allMartyrs.filter(m => !m.status || m.status === 'approved');
+        }
+    }
     
     if (approvedMartyrs.length === 0) {
         showEmptyAnniversarySlider();
@@ -216,6 +262,9 @@ function loadAnniversaryMartyrs() {
     if (anniversaryMartyrs.length === 0) {
         // If no upcoming anniversaries, show recent martyrs instead
         anniversaryMartyrs = approvedMartyrs.slice(-6);
+        console.log('🎆 No upcoming anniversaries, showing recent martyrs');
+    } else {
+        console.log(`🎆 Found ${anniversaryMartyrs.length} upcoming anniversaries`);
     }
     
     renderAnniversarySlider();

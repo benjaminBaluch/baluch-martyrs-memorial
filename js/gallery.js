@@ -36,22 +36,22 @@ async function loadGallery() {
     
     if (galleryGrid) {
         try {
-            // Try to load from Firebase first
+            console.log('Loading martyrs from Firebase (global database)...');
+            
+            // Always try Firebase first - this is our global database
             const result = await firebaseDB.getApprovedMartyrs();
             
-            if (result.success && result.data.length > 0) {
-                allMartyrs = result.data;
-                console.log(`Loaded ${allMartyrs.length} martyrs from Firebase`);
-            } else {
-                // Fallback to localStorage if Firebase fails or is empty
-                console.log('Loading from localStorage fallback');
-                const savedMartyrs = localStorage.getItem('martyrsData');
+            if (result.success) {
+                allMartyrs = result.data || [];
+                console.log(`✅ Loaded ${allMartyrs.length} martyrs from Firebase (global)`);
                 
-                if (savedMartyrs) {
-                    const allMartyrsData = JSON.parse(savedMartyrs);
-                    allMartyrs = allMartyrsData.filter(m => !m.status || m.status === 'approved');
-                    console.log(`Loaded ${allMartyrs.length} martyrs from localStorage`);
+                // Cache to localStorage for faster loading next time
+                if (allMartyrs.length > 0) {
+                    localStorage.setItem('martyrsData', JSON.stringify(allMartyrs));
+                    console.log('💾 Cached martyrs to localStorage');
                 }
+            } else {
+                throw new Error('Firebase query failed: ' + result.error);
             }
             
             // Render the gallery
@@ -62,13 +62,21 @@ async function loadGallery() {
             }
             
         } catch (error) {
-            console.error('Error loading martyrs:', error);
-            // Fallback to localStorage on error
+            console.error('❌ Firebase failed, trying localStorage backup:', error);
+            
+            // Only use localStorage as emergency backup
             const savedMartyrs = localStorage.getItem('martyrsData');
             if (savedMartyrs) {
                 const allMartyrsData = JSON.parse(savedMartyrs);
                 allMartyrs = allMartyrsData.filter(m => !m.status || m.status === 'approved');
                 renderGallery(allMartyrs);
+                console.log(`⚠️  Using localStorage backup: ${allMartyrs.length} martyrs`);
+                
+                // Show warning that data might be outdated
+                showOfflineWarning();
+            } else {
+                showEmptyGalleryMessage();
+                console.log('❌ No data available anywhere');
             }
         }
     }
@@ -86,6 +94,29 @@ function showEmptyGalleryMessage() {
             </div>
         </div>
     `;
+}
+
+// Show offline warning
+function showOfflineWarning() {
+    const galleryGrid = document.getElementById('galleryGrid');
+    const warningDiv = document.createElement('div');
+    warningDiv.className = 'offline-warning';
+    warningDiv.style.cssText = `
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+        padding: 1rem;
+        margin-bottom: 2rem;
+        border-radius: 8px;
+        text-align: center;
+        font-weight: 500;
+    `;
+    warningDiv.innerHTML = `
+        ⚠️ <strong>Offline Mode:</strong> Showing cached data. Some recent martyrs may not be visible.
+        <button onclick="location.reload()" style="margin-left: 1rem; padding: 0.25rem 0.75rem; border-radius: 4px; border: 1px solid #856404; background: transparent; color: #856404; cursor: pointer;">Retry</button>
+    `;
+    
+    galleryGrid.parentNode.insertBefore(warningDiv, galleryGrid);
 }
 
 // Render martyrs in gallery
