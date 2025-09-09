@@ -28,6 +28,62 @@ export async function testFirebaseConnection() {
     }
 }
 
+// Migrate localStorage martyrs to Firebase for global visibility
+export async function migrateLocalStorageToFirebase() {
+    if (!window.firebaseDB) {
+        console.error('Firebase not available for migration');
+        return { success: false, error: 'Firebase not available' };
+    }
+    
+    console.log('🚚 Starting localStorage to Firebase migration...');
+    
+    try {
+        // Get martyrs from localStorage
+        const localMartyrs = localStorage.getItem('martyrsData');
+        if (!localMartyrs) {
+            console.log('💭 No local martyrs found to migrate');
+            return { success: true, migrated: 0 };
+        }
+        
+        const martyrsData = JSON.parse(localMartyrs);
+        const approvedMartyrs = martyrsData.filter(m => !m.status || m.status === 'approved');
+        
+        console.log(`📁 Found ${approvedMartyrs.length} approved martyrs in localStorage`);
+        
+        let migratedCount = 0;
+        for (const martyr of approvedMartyrs) {
+            try {
+                // Add each martyr to Firebase directly as approved
+                const martyrForFirebase = {
+                    ...martyr,
+                    status: 'approved',
+                    migratedAt: new Date().toISOString()
+                };
+                
+                // Use addPendingMartyr and then approve it
+                const result = await window.firebaseDB.addPendingMartyr(martyrForFirebase);
+                if (result.success) {
+                    // Approve it immediately
+                    await window.firebaseDB.approveMartyr(result.id, martyrForFirebase);
+                    migratedCount++;
+                    console.log(`✅ Migrated: ${martyr.fullName}`);
+                } else {
+                    console.error(`❌ Failed to migrate ${martyr.fullName}:`, result.error);
+                }
+            } catch (error) {
+                console.error(`❌ Error migrating ${martyr.fullName}:`, error);
+            }
+        }
+        
+        console.log(`🎉 Migration completed: ${migratedCount}/${approvedMartyrs.length} martyrs migrated`);
+        return { success: true, migrated: migratedCount, total: approvedMartyrs.length };
+        
+    } catch (error) {
+        console.error('❌ Migration failed:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 // Add test data for debugging (only run once)
 export async function addTestMartyr() {
     if (!window.firebaseDB) {

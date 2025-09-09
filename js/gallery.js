@@ -196,6 +196,30 @@ function addDebugButton() {
         // Debug Firebase rules
         await debugFirebaseRules();
         
+        // Check for localStorage data to migrate
+        const localData = localStorage.getItem('martyrsData');
+        if (localData) {
+            const martyrs = JSON.parse(localData);
+            console.log(`💾 Found ${martyrs.length} martyrs in localStorage`);
+            
+            if (confirm(`Found ${martyrs.length} martyrs in localStorage. Migrate to Firebase for global visibility?`)) {
+                console.log('🚚 Starting migration...');
+                if (window.migrateToFirebase) {
+                    const result = await window.migrateToFirebase();
+                    if (result.success) {
+                        alert(`Migration completed! Migrated ${result.migrated} martyrs to Firebase. Refreshing gallery...`);
+                        location.reload();
+                    } else {
+                        alert('Migration failed: ' + result.error);
+                    }
+                } else {
+                    alert('Migration function not available. Please refresh the page.');
+                }
+            }
+        } else {
+            console.log('💭 No localStorage data found to migrate');
+        }
+        
         // Test mobile menu
         const hamburger = document.querySelector('.hamburger');
         const navMenu = document.querySelector('.nav-menu');
@@ -204,7 +228,7 @@ function addDebugButton() {
         console.log('Nav menu:', navMenu);
         
         console.log('=== FIREBASE DEBUG END ===');
-        alert('Debug info logged to console. Check DevTools.');
+        alert('Debug completed. Check console for details.');
     });
     
     document.body.appendChild(debugBtn);
