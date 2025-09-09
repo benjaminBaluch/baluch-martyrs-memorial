@@ -1,7 +1,5 @@
 // Gallery Page JavaScript
 
-import { firebaseDB, storageHelper } from './firebase-config.js';
-
 let allMartyrs = [];
 let currentFilters = {
     general: '',
@@ -12,10 +10,24 @@ let currentFilters = {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
-    loadGallery();
     initSearchFilter();
     initAdvancedSearch();
     initializeInterface();
+    
+    // Load gallery after Firebase is ready
+    if (window.firebaseDB) {
+        loadGallery();
+    } else {
+        // Wait for Firebase to be ready
+        window.addEventListener('firebaseReady', loadGallery);
+        
+        // Also try loading after a short delay in case Firebase is still loading
+        setTimeout(() => {
+            if (window.firebaseDB) {
+                loadGallery();
+            }
+        }, 1000);
+    }
 });
 
 // Initialize interface elements
@@ -36,14 +48,18 @@ async function loadGallery() {
     
     if (galleryGrid) {
         try {
-            console.log('Loading martyrs from Firebase (global database)...');
+            console.log('🌍 Loading martyrs from Firebase (global database)...');
             
-            // Always try Firebase first - this is our global database
-            const result = await firebaseDB.getApprovedMartyrs();
+            // Use global Firebase instance
+            if (!window.firebaseDB || typeof window.firebaseDB.getApprovedMartyrs !== 'function') {
+                throw new Error('Firebase not available - please refresh the page');
+            }
+            
+            const result = await window.firebaseDB.getApprovedMartyrs();
             
             if (result.success) {
                 allMartyrs = result.data || [];
-                console.log(`✅ Loaded ${allMartyrs.length} martyrs from Firebase (global)`);
+                console.log(`✅ Loaded ${allMartyrs.length} martyrs from Firebase (global database)`);
                 
                 // Cache to localStorage for faster loading next time
                 if (allMartyrs.length > 0) {
@@ -57,8 +73,10 @@ async function loadGallery() {
             // Render the gallery
             if (allMartyrs.length > 0) {
                 renderGallery(allMartyrs);
+                console.log(`🖼️ Rendered ${allMartyrs.length} martyrs in gallery`);
             } else {
                 showEmptyGalleryMessage();
+                console.log('📭 No approved martyrs found in Firebase');
             }
             
         } catch (error) {

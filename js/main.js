@@ -1,5 +1,18 @@
 // Main JavaScript for Baluch Martyrs Memorial
 
+// Initialize Firebase if not already available
+if (!window.firebaseDB) {
+    import('./firebase-config.js').then((module) => {
+        window.firebaseDB = module.firebaseDB;
+        console.log('🔥 Firebase loaded globally from main.js');
+        
+        // Trigger any pending operations that need Firebase
+        window.dispatchEvent(new Event('firebaseReady'));
+    }).catch((error) => {
+        console.warn('⚠️ Firebase could not be loaded in main.js:', error);
+    });
+}
+
 // DOM Content Loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize components
