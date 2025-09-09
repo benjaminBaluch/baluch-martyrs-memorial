@@ -7,6 +7,14 @@ document.addEventListener('DOMContentLoaded', function() {
     updateStats();
 });
 
+// Make functions globally available for onclick handlers
+window.approveMartyr = approveMartyr;
+window.rejectMartyr = rejectMartyr;
+window.refreshData = refreshData;
+window.clearAllPending = clearAllPending;
+window.exportData = exportData;
+window.importData = importData;
+
 // Load and display pending submissions
 async function loadPendingSubmissions() {
     const pendingList = document.getElementById('pendingList');
@@ -128,13 +136,20 @@ function createPendingItem(martyr) {
 }
 
 // Approve a martyr submission
-function approveMartyr(martyrId) {
+async function approveMartyr(martyrId) {
     if (!confirm('Are you sure you want to approve this submission? It will be published on the website.')) {
         return;
     }
 
     try {
-        // Get pending submissions
+        // Show loading state
+        const approveBtn = document.querySelector(`[data-martyr-id="${martyrId}"] .btn-approve`);
+        if (approveBtn) {
+            approveBtn.disabled = true;
+            approveBtn.innerHTML = '⏳ Approving...';
+        }
+
+        // First, get the martyr data from localStorage (our working copy)
         const pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
         const martyrIndex = pendingData.findIndex(m => m.id === martyrId);
 
@@ -143,11 +158,23 @@ function approveMartyr(martyrId) {
             return;
         }
 
-        // Get the martyr to approve
         const martyrToApprove = pendingData[martyrIndex];
         martyrToApprove.status = 'approved';
         martyrToApprove.approvedAt = new Date().toISOString();
 
+        // Try to approve in Firebase first
+        let firebaseSuccess = false;
+        try {
+            const result = await firebaseDB.approveMartyr(martyrId, martyrToApprove);
+            if (result.success) {
+                console.log('Martyr approved in Firebase:', result.id);
+                firebaseSuccess = true;
+            }
+        } catch (firebaseError) {
+            console.warn('Firebase approval failed, using localStorage only:', firebaseError);
+        }
+
+        // Always update localStorage (as backup and for compatibility)
         // Remove from pending
         pendingData.splice(martyrIndex, 1);
         localStorage.setItem('pendingMartyrs', JSON.stringify(pendingData));
@@ -164,36 +191,62 @@ function approveMartyr(martyrId) {
         }
 
         // Refresh data
-        loadPendingSubmissions();
+        await loadPendingSubmissions();
         updateStats();
 
-        alert('Submission approved and published successfully!');
+        const successMessage = firebaseSuccess 
+            ? 'Submission approved and published successfully to Firebase and local storage!' 
+            : 'Submission approved and published to local storage (Firebase sync failed, but martyr is still approved)!';
+        
+        alert(successMessage);
 
     } catch (error) {
         console.error('Error approving martyr:', error);
         alert('Error approving submission. Please try again.');
+        
+        // Reset button state
+        const approveBtn = document.querySelector(`[data-martyr-id="${martyrId}"] .btn-approve`);
+        if (approveBtn) {
+            approveBtn.disabled = false;
+            approveBtn.innerHTML = '✓ Approve & Publish';
+        }
     }
 }
 
 // Reject a martyr submission
-function rejectMartyr(martyrId) {
+async function rejectMartyr(martyrId) {
     if (!confirm('Are you sure you want to reject this submission? This action cannot be undone.')) {
         return;
     }
 
     try {
-        // Get pending submissions
+        // Show loading state
+        const rejectBtn = document.querySelector(`[data-martyr-id="${martyrId}"] .btn-reject`);
+        if (rejectBtn) {
+            rejectBtn.disabled = true;
+            rejectBtn.innerHTML = '⏳ Rejecting...';
+        }
+
+        // Try to reject in Firebase first
+        let firebaseSuccess = false;
+        try {
+            const result = await firebaseDB.rejectMartyr(martyrId);
+            if (result.success) {
+                console.log('Martyr rejected in Firebase:', martyrId);
+                firebaseSuccess = true;
+            }
+        } catch (firebaseError) {
+            console.warn('Firebase rejection failed, using localStorage only:', firebaseError);
+        }
+
+        // Always update localStorage (as backup)
         const pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
         const martyrIndex = pendingData.findIndex(m => m.id === martyrId);
 
-        if (martyrIndex === -1) {
-            alert('Submission not found!');
-            return;
+        if (martyrIndex !== -1) {
+            pendingData.splice(martyrIndex, 1);
+            localStorage.setItem('pendingMartyrs', JSON.stringify(pendingData));
         }
-
-        // Remove from pending (permanently delete)
-        pendingData.splice(martyrIndex, 1);
-        localStorage.setItem('pendingMartyrs', JSON.stringify(pendingData));
 
         // Remove the item from UI
         const pendingItem = document.querySelector(`[data-martyr-id="${martyrId}"]`);
@@ -202,24 +255,64 @@ function rejectMartyr(martyrId) {
         }
 
         // Refresh data
-        loadPendingSubmissions();
+        await loadPendingSubmissions();
         updateStats();
 
-        alert('Submission rejected and deleted.');
+        const successMessage = firebaseSuccess 
+            ? 'Submission rejected and deleted from Firebase and local storage.' 
+            : 'Submission rejected and deleted from local storage (Firebase sync failed, but martyr is still rejected).';
+        
+        alert(successMessage);
 
     } catch (error) {
         console.error('Error rejecting martyr:', error);
         alert('Error rejecting submission. Please try again.');
+        
+        // Reset button state
+        const rejectBtn = document.querySelector(`[data-martyr-id="${martyrId}"] .btn-reject`);
+        if (rejectBtn) {
+            rejectBtn.disabled = false;
+            rejectBtn.innerHTML = '✗ Reject & Delete';
+        }
     }
 }
 
 // Update statistics
-function updateStats() {
-    const pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
-    const approvedData = JSON.parse(localStorage.getItem('martyrsData') || '[]');
+async function updateStats() {
+    try {
+        // Try to get counts from Firebase first
+        let pendingCount = 0;
+        let approvedCount = 0;
+        
+        try {
+            const pendingResult = await firebaseDB.getPendingMartyrs();
+            const approvedResult = await firebaseDB.getApprovedMartyrs();
+            
+            if (pendingResult.success) pendingCount = pendingResult.data.length;
+            if (approvedResult.success) approvedCount = approvedResult.data.length;
+        } catch (firebaseError) {
+            console.warn('Firebase stats failed, using localStorage:', firebaseError);
+            // Fallback to localStorage
+            const pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
+            const approvedData = JSON.parse(localStorage.getItem('martyrsData') || '[]');
+            pendingCount = pendingData.length;
+            approvedCount = approvedData.length;
+        }
+        
+        document.getElementById('pendingCount').textContent = pendingCount;
+        document.getElementById('approvedCount').textContent = approvedCount;
+    } catch (error) {
+        console.error('Error updating stats:', error);
+    }
+}
 
-    document.getElementById('pendingCount').textContent = pendingData.length;
-    document.getElementById('approvedCount').textContent = approvedData.length;
+// Format date helper function
+function formatDate(dateString) {
+    if (!dateString) return 'Unknown';
+    
+    const date = new Date(dateString);
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
 }
 
 // Refresh all data
@@ -306,11 +399,3 @@ function importData() {
     input.click();
 }
 
-// Format date helper
-function formatDate(dateString) {
-    if (!dateString) return 'Unknown';
-    
-    const date = new Date(dateString);
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return date.toLocaleDateString('en-US', options);
-}
