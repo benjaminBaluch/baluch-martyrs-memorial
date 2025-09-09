@@ -265,9 +265,29 @@
             console.log('✅ Firebase is ready for admin operations');
         } else {
             console.error('❌ Firebase connection failed - admin panel may not work properly');
-            // Show user-friendly error
+            
+            // Show detailed diagnostic info
+            console.log('🔍 Firebase Diagnostic Information:');
+            console.log('- Firebase app:', !!window.firebase);
+            console.log('- Firebase DB object:', !!window.firebaseDB);
+            console.log('- Firebase DB methods:', window.firebaseDB ? Object.keys(window.firebaseDB).length : 0);
+            console.log('- Navigator online:', navigator.onLine);
+            console.log('- Current URL:', window.location.href);
+            console.log('- User agent:', navigator.userAgent.substring(0, 100));
+            
+            // Show user-friendly error with more details
             setTimeout(() => {
-                alert('Firebase database connection failed. Some admin functions may not work. Please check your internet connection and refresh the page.');
+                const errorMsg = `Firebase database connection failed.
+
+This could be due to:
+- Internet connection issues
+- Firebase project configuration
+- Browser blocking Firebase requests
+
+Please check the browser console (F12) for detailed error messages and try refreshing the page.
+
+You can also try accessing the website from a different browser or device.`;
+                alert(errorMsg);
             }, 1000);
         }
         
