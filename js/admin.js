@@ -1,5 +1,8 @@
 // Admin panel JavaScript for moderating submissions
 
+// Import authentication module
+import { adminAuth } from './auth.js';
+
 // Use global Firebase instance instead of direct import
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -249,6 +252,11 @@ function createPendingItem(martyr) {
 
 // Approve a martyr submission
 async function approveMartyr(martyrId) {
+    // Validate admin authentication
+    if (!adminAuth.validateAdminAction('approve martyr')) {
+        return;
+    }
+    
     console.log('🚀 Starting approval process for ID:', martyrId);
     
     if (!confirm('Are you sure you want to approve this submission? It will be published on the website.')) {
@@ -388,6 +396,11 @@ async function approveMartyr(martyrId) {
 
 // Reject a martyr submission
 async function rejectMartyr(martyrId) {
+    // Validate admin authentication
+    if (!adminAuth.validateAdminAction('reject martyr')) {
+        return;
+    }
+    
     console.log('rejectMartyr called with ID:', martyrId);
     
     if (!confirm('Are you sure you want to reject this submission? This action cannot be undone.')) {
@@ -508,12 +521,22 @@ function formatDate(dateString) {
 
 // Refresh all data
 async function refreshData() {
+    // Validate admin authentication
+    if (!adminAuth.validateAdminAction('refresh data')) {
+        return;
+    }
+    
     await loadPendingSubmissions();
     await updateStats();
 }
 
 // Clear all pending submissions (admin function)
 async function clearAllPending() {
+    // Validate admin authentication
+    if (!adminAuth.validateAdminAction('clear all pending submissions')) {
+        return;
+    }
+    
     if (!confirm('Are you sure you want to delete ALL pending submissions? This action cannot be undone!')) {
         return;
     }
@@ -558,6 +581,11 @@ async function clearAllPending() {
 
 // Export all data to JSON file
 function exportData() {
+    // Validate admin authentication
+    if (!adminAuth.validateAdminAction('export data')) {
+        return;
+    }
+    
     const pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
     const approvedData = JSON.parse(localStorage.getItem('martyrsData') || '[]');
     
@@ -582,6 +610,11 @@ function exportData() {
 
 // Import data from JSON file
 function importData() {
+    // Validate admin authentication
+    if (!adminAuth.validateAdminAction('import data')) {
+        return;
+    }
+    
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
@@ -620,6 +653,11 @@ function importData() {
 
 // Load and display approved martyrs
 async function loadApprovedMartyrs() {
+    // Validate admin authentication
+    if (!adminAuth.validateAdminAction('load approved martyrs')) {
+        return;
+    }
+    
     console.log('💼 Starting loadApprovedMartyrs function...');
     
     const approvedList = document.getElementById('approvedList');
@@ -740,6 +778,11 @@ function createApprovedMartyrItem(martyr) {
 
 // Delete an approved martyr
 async function deleteApprovedMartyr(martyrId, martyrName) {
+    // Validate admin authentication
+    if (!adminAuth.validateAdminAction('delete approved martyr')) {
+        return;
+    }
+    
     if (!confirm(`Are you sure you want to DELETE "${martyrName}" from the website?\n\nThis will permanently remove the martyr from Firebase and the website. This action cannot be undone!`)) {
         return;
     }
@@ -784,6 +827,11 @@ async function deleteApprovedMartyr(martyrId, martyrName) {
 
 // Clear all approved martyrs (DANGER!)
 async function clearAllApproved() {
+    // Validate admin authentication
+    if (!adminAuth.validateAdminAction('clear all approved martyrs')) {
+        return;
+    }
+    
     console.log('🧹 clearAllApproved function called');
     
     if (!confirm('⚠️ DANGER: This will DELETE ALL approved martyrs from Firebase!\n\nThis will remove ALL martyrs from the website permanently. Are you absolutely sure?')) {

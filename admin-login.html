@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login | Baluch Martyrs Memorial</title>
+    <meta name="description" content="Admin login for Baluch Martyrs Memorial">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0066cc, #dc143c, #228b22);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .login-container {
+            background: white;
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .login-header {
+            margin-bottom: 2rem;
+        }
+        .login-header h1 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+        }
+        .login-header p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        .login-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin-bottom: 1rem;
+        }
+        .login-btn:hover {
+            background: #1a3d20;
+        }
+        .login-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        .back-link {
+            color: #666;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .back-link:hover {
+            color: var(--primary-color);
+        }
+        .security-note {
+            background: #e7f3ff;
+            color: #0066cc;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>🔐 Admin Login</h1>
+            <p>Enter your credentials to access the admin panel</p>
+        </div>
+
+        <div id="errorMessage" class="error-message"></div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required autocomplete="username">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required autocomplete="current-password">
+            </div>
+            
+            <button type="submit" class="login-btn" id="loginBtn">
+                Login to Admin Panel
+            </button>
+        </form>
+
+        <a href="index.html" class="back-link">
+            ← Back to Website
+        </a>
+
+        <div class="security-note">
+            <strong>Security Notice:</strong> This login page uses client-side authentication. For production use, consider implementing server-side authentication with proper security measures.
+        </div>
+    </div>
+
+    <script type="module">
+        // Admin credentials - In production, these should be server-side
+        const ADMIN_CREDENTIALS = {
+            'admin': 'baluch2024!',  // Default credentials
+            'moderator': 'memorial@admin'  // Additional admin user
+        };
+
+        // Session management
+        const SESSION_KEY = 'baluch_admin_session';
+        const SESSION_DURATION = 4 * 60 * 60 * 1000; // 4 hours
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function setAdminSession(username) {
+            const sessionData = {
+                username: username,
+                loginTime: Date.now(),
+                expires: Date.now() + SESSION_DURATION
+            };
+            localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+            sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+        }
+
+        function hashPassword(password) {
+            // Simple hash for client-side (not cryptographically secure)
+            let hash = 0;
+            for (let i = 0; i < password.length; i++) {
+                const char = password.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32bit integer
+            }
+            return Math.abs(hash).toString(16);
+        }
+
+        // Check if already logged in
+        function checkExistingSession() {
+            const sessionData = localStorage.getItem(SESSION_KEY);
+            if (sessionData) {
+                try {
+                    const session = JSON.parse(sessionData);
+                    if (session.expires > Date.now()) {
+                        // Valid session exists
+                        window.location.href = 'admin.html';
+                        return;
+                    } else {
+                        // Session expired
+                        localStorage.removeItem(SESSION_KEY);
+                        sessionStorage.removeItem(SESSION_KEY);
+                    }
+                } catch (e) {
+                    // Invalid session data
+                    localStorage.removeItem(SESSION_KEY);
+                    sessionStorage.removeItem(SESSION_KEY);
+                }
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            
+            if (!username || !password) {
+                showError('Please enter both username and password');
+                return;
+            }
+
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Logging in...';
+
+            // Simulate network delay for better UX
+            setTimeout(() => {
+                if (ADMIN_CREDENTIALS[username] && ADMIN_CREDENTIALS[username] === password) {
+                    // Successful login
+                    setAdminSession(username);
+                    
+                    // Log authentication event
+                    console.log(`🔐 Admin login successful: ${username} at ${new Date().toISOString()}`);
+                    
+                    // Redirect to admin panel
+                    window.location.href = 'admin.html';
+                } else {
+                    // Failed login
+                    showError('Invalid username or password. Please try again.');
+                    console.warn(`🚫 Failed login attempt: ${username} at ${new Date().toISOString()}`);
+                    
+                    // Reset form
+                    document.getElementById('password').value = '';
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Login to Admin Panel';
+                }
+            }, 1000);
+        });
+
+        // Check for existing session on page load
+        checkExistingSession();
+
+        // Auto-focus username field
+        document.getElementById('username').focus();
+    </script>
+</body>
+</html>

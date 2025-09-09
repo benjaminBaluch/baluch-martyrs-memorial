@@ -134,8 +134,23 @@
 <body>
     <header class="admin-header">
         <div class="container">
-            <h1>Admin Panel - Moderate Submissions</h1>
-            <p>Review and approve martyr submissions before they appear on the website</p>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>Admin Panel - Moderate Submissions</h1>
+                    <p>Review and approve martyr submissions before they appear on the website</p>
+                </div>
+                <div style="text-align: right; color: white;">
+                    <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">
+                        Welcome, <strong id="adminUsername">Admin</strong>
+                    </div>
+                    <div style="font-size: 0.8rem; opacity: 0.8; margin-bottom: 0.5rem;">
+                        Session expires in <span id="sessionTimer">--</span> minutes
+                    </div>
+                    <button onclick="adminAuth.logout()" class="btn btn-secondary" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); padding: 0.25rem 0.75rem; font-size: 0.8rem;">
+                        🚪 Logout
+                    </button>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -183,11 +198,42 @@
     </main>
 
     <script type="module">
-        // Import and make Firebase globally available for admin panel
+        // Import authentication and Firebase
+        import { adminAuth } from './js/auth.js';
         import { firebaseDB } from './js/firebase-config.js';
+        
+        // Initialize page protection - this will redirect if not authenticated
+        if (!adminAuth.initializePageProtection()) {
+            // User was redirected to login
+            return;
+        }
+        
+        // Make Firebase globally available for admin panel
         window.firebaseDB = firebaseDB;
         console.log('🔥 Firebase loaded globally for admin panel');
         window.dispatchEvent(new Event('firebaseReady'));
+        
+        // Update admin info in header
+        const currentAdmin = adminAuth.getCurrentAdmin();
+        if (currentAdmin) {
+            document.getElementById('adminUsername').textContent = currentAdmin.username;
+        }
+        
+        // Update session timer every minute
+        function updateSessionTimer() {
+            const remaining = adminAuth.getSessionTimeRemaining();
+            document.getElementById('sessionTimer').textContent = remaining;
+            
+            if (remaining <= 15) {
+                document.getElementById('sessionTimer').style.color = '#ffeb3b';
+            }
+            if (remaining <= 5) {
+                document.getElementById('sessionTimer').style.color = '#f44336';
+            }
+        }
+        
+        updateSessionTimer();
+        setInterval(updateSessionTimer, 60000); // Update every minute
     </script>
     <script src="js/mobile-menu.js"></script>
     <script type="module" src="js/admin.js"></script>
