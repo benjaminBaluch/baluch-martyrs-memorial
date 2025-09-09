@@ -283,7 +283,7 @@ async function saveMartyrData(martyrData) {
                 }
             } catch (error) {
                 firebaseError = error.message;
-                console.warn('🌍 Firebase connectivity issue (common for Pakistan/Gulf region users):', error.message);
+        console.warn('🌍 Firebase connectivity issue (common for Pakistan/Gulf region users):', error.message);
                 
                 // Check if it's a regional connectivity issue
                 const isRegionalIssue = error.message.includes('timeout') || 
@@ -292,30 +292,17 @@ async function saveMartyrData(martyrData) {
                                       error.code === 'unavailable';
                 
                 if (isRegionalIssue) {
-                    console.log('🌐 Detected regional connectivity issue (Pakistan/Gulf region) - using localStorage as primary storage');
+                    console.log('🌐 Detected regional connectivity issue (Pakistan/Gulf region) - submission will fail');
                 }
             }
         } else {
-            console.log('💾 Firebase not available - using localStorage-only mode (Pakistan/Gulf region compatibility)');
-            firebaseError = 'Firebase modules not loaded (regional compatibility mode)';
+            console.error('❌ Firebase modules not loaded - cannot process submission');
+            throw new Error('Firebase database is required for submissions. Please check your internet connection and try again.');
         }
         
-        // Always save to localStorage as backup/fallback
-        try {
-            let pendingData = localStorage.getItem('pendingMartyrs');
-            pendingData = pendingData ? JSON.parse(pendingData) : [];
-            pendingData.push(martyrData);
-            localStorage.setItem('pendingMartyrs', JSON.stringify(pendingData));
-            
-            console.log('💾 Martyr saved to localStorage successfully');
-            
-            if (!saveSuccess) {
-                console.log('💾 Using localStorage as primary storage method');
-                saveSuccess = true; // localStorage save succeeded
-            }
-        } catch (localStorageError) {
-            console.error('❌ localStorage save failed:', localStorageError);
-            throw new Error('Unable to save submission data locally');
+        // Only proceed if Firebase save was successful
+        if (!saveSuccess) {
+            throw new Error('Firebase save failed - submission cannot be processed without database connection');
         }
         
         // Store last submission for confirmation page
@@ -345,14 +332,15 @@ async function saveMartyrData(martyrData) {
         
         if (error.message.includes('Firebase') || error.message.includes('timeout') || !firebaseAvailable) {
             errorMessage = `
-                Submission Error: This appears to be a regional connectivity issue.
+                Database Connection Error: Unable to save submission to our database.
                 
-                Your submission may have been saved locally. Please:
+                Please try the following:
                 1. Check your internet connection
-                2. Try refreshing the page and submitting again
-                3. If the problem persists, your submission will be processed from local storage
+                2. Refresh the page and try again
+                3. Try uploading a smaller image (the form compresses images automatically)
+                4. If you're in Pakistan or Gulf region, please try again in a few minutes
                 
-                Note: Users in Pakistan, Gulf countries, and some international locations may experience connectivity delays with our database.
+                Note: All submissions must be saved to our database to ensure they are not lost.
             `.trim();
         }
         
