@@ -210,105 +210,105 @@
     <script>
         const SESSION_KEY = 'baluch_admin_session';
         
-        function checkSimpleAuth() {
+        function checkAuth() {
             try {
+                console.log('🔍 Checking authentication...');
                 const sessionData = localStorage.getItem(SESSION_KEY);
                 
-                // Just check localStorage for simplicity
                 if (!sessionData) {
-                    console.log('❌ No session found - redirecting to login');
-                    redirectToLogin();
+                    console.log('❌ No session data found');
+                    redirectToLogin('No session found');
                     return false;
                 }
                 
                 const session = JSON.parse(sessionData);
+                console.log('📋 Session data:', {
+                    username: session.username,
+                    loginTime: session.loginTime ? new Date(session.loginTime).toLocaleString() : 'N/A',
+                    expires: session.expires ? new Date(session.expires).toLocaleString() : 'N/A',
+                    currentTime: new Date().toLocaleString(),
+                    timeLeft: session.expires ? Math.round((session.expires - Date.now()) / (1000 * 60)) + ' minutes' : 'N/A'
+                });
                 
-                // Check if session exists and has required fields
+                // Check required fields
                 if (!session.username || !session.expires) {
-                    console.log('❌ Invalid session data - redirecting to login');
+                    console.log('❌ Invalid session structure');
                     clearSession();
-                    redirectToLogin();
+                    redirectToLogin('Invalid session data');
                     return false;
                 }
                 
-                // Check if session is expired (with generous buffer)
-                if (session.expires <= Date.now()) {
-                    console.log('❌ Session expired - redirecting to login');
+                // Check expiration with 5 minute buffer to prevent edge cases
+                const timeLeft = session.expires - Date.now();
+                const bufferTime = 5 * 60 * 1000; // 5 minutes buffer
+                
+                if (timeLeft < -bufferTime) {
+                    console.log(`❌ Session expired ${Math.abs(Math.round(timeLeft / (1000 * 60)))} minutes ago`);
                     clearSession();
-                    redirectToLogin();
+                    redirectToLogin('Session expired');
                     return false;
                 }
                 
-                console.log('✅ Authentication passed for user:', session.username);
-                
-                // Update UI with user info
-                updateAdminUI(session);
-                
+                console.log('✅ Authentication successful for:', session.username);
+                updateUI(session);
                 return true;
+                
             } catch (error) {
-                console.error('❌ Authentication error:', error);
+                console.error('❌ Authentication check failed:', error);
                 clearSession();
-                redirectToLogin();
+                redirectToLogin('Authentication error');
                 return false;
             }
         }
         
         function clearSession() {
+            console.log('🗑️ Clearing session data...');
             localStorage.removeItem(SESSION_KEY);
             sessionStorage.removeItem(SESSION_KEY);
         }
         
-        function updateAdminUI(session) {
-            // Update admin username
+        function updateUI(session) {
+            // Update username display
             const usernameEl = document.getElementById('adminUsername');
             if (usernameEl) {
                 usernameEl.textContent = session.username;
             }
             
-            // Update session timer
-            updateSessionTimer(session);
+            // Update timer display (simple, no auto-refresh)
+            const timerEl = document.getElementById('sessionTimer');
+            if (timerEl) {
+                const remaining = Math.max(0, Math.floor((session.expires - Date.now()) / (1000 * 60)));
+                timerEl.textContent = remaining;
+            }
             
-            // Setup logout button
+            // Setup logout button (only once)
             const logoutBtn = document.getElementById('logoutBtn');
-            if (logoutBtn) {
+            if (logoutBtn && !logoutBtn.hasAttribute('data-setup')) {
+                logoutBtn.setAttribute('data-setup', 'true');
                 logoutBtn.addEventListener('click', () => {
+                    console.log('👤 User initiated logout');
                     clearSession();
                     window.location.href = 'admin-login.html';
                 });
             }
         }
         
-        function updateSessionTimer(session) {
-            const timerEl = document.getElementById('sessionTimer');
-            if (!timerEl) return;
-            
-            function updateTimer() {
-                const remaining = Math.max(0, Math.floor((session.expires - Date.now()) / (1000 * 60)));
-                timerEl.textContent = remaining;
-                
-                if (remaining <= 0) {
-                    clearSession();
-                    alert('Session expired. Redirecting to login...');
-                    window.location.href = 'admin-login.html';
-                }
-            }
-            
-            updateTimer();
-            setInterval(updateTimer, 60000); // Update every minute
+        function redirectToLogin(reason = 'Authentication required') {
+            console.log(`🔒 Redirecting to login: ${reason}`);
+            // Add a small delay to ensure logs are visible
+            setTimeout(() => {
+                window.location.href = 'admin-login.html';
+            }, 100);
         }
         
-        function redirectToLogin() {
-            console.log('🔒 Redirecting to login page...');
-            window.location.href = 'admin-login.html';
+        // Run authentication check
+        console.log('🚀 Starting admin panel authentication...');
+        if (!checkAuth()) {
+            console.log('❌ Authentication failed - stopping execution');
+            // Don't throw error, just stop here
+        } else {
+            console.log('✅ Admin panel authentication passed');
         }
-        
-        // Run simple authentication check
-        if (!checkSimpleAuth()) {
-            // Stop script execution if auth fails
-            throw new Error('Authentication failed - stopping script execution');
-        }
-        
-        console.log('✅ Admin page loaded successfully');
     </script>
     
     <!-- Firebase Config Script -->

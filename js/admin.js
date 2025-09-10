@@ -3,19 +3,17 @@
 // Import authentication module
 import { adminAuth } from './auth.js';
 
-// Simple authentication validation function
+// Simple authentication validation function - matches main auth logic
 function validateAdminAuth(actionName = 'admin action') {
     try {
         const SESSION_KEY = 'baluch_admin_session';
         
-        // Check for session in localStorage only (keep it simple)
+        console.log(`🔍 Validating auth for: ${actionName}`);
         const sessionData = localStorage.getItem(SESSION_KEY);
         
         if (!sessionData) {
-            console.error(`❌ No valid session for ${actionName}`);
-            alert('Session expired. Please login again.');
-            window.location.href = 'admin-login.html';
-            return false;
+            console.error(`❌ No session found for ${actionName}`);
+            return false; // Don't redirect here, let caller handle it
         }
         
         const session = JSON.parse(sessionData);
@@ -23,30 +21,22 @@ function validateAdminAuth(actionName = 'admin action') {
         // Check if session has required fields
         if (!session.username || !session.expires) {
             console.error(`❌ Invalid session data for ${actionName}`);
-            localStorage.removeItem(SESSION_KEY);
-            alert('Invalid session. Please login again.');
-            window.location.href = 'admin-login.html';
             return false;
         }
         
-        // Check if session is expired
-        if (session.expires <= Date.now()) {
-            console.error(`❌ Session expired during ${actionName}`);
-            localStorage.removeItem(SESSION_KEY);
-            sessionStorage.removeItem(SESSION_KEY);
-            alert('Session expired. Please login again.');
-            window.location.href = 'admin-login.html';
+        // Check expiration with 5 minute buffer (same as main auth)
+        const timeLeft = session.expires - Date.now();
+        const bufferTime = 5 * 60 * 1000; // 5 minutes buffer
+        
+        if (timeLeft < -bufferTime) {
+            console.error(`❌ Session expired during ${actionName} (${Math.abs(Math.round(timeLeft / (1000 * 60)))} minutes ago)`);
             return false;
         }
         
-        console.log(`✅ Authentication OK for ${actionName} by ${session.username}`);
+        console.log(`✅ Authentication OK for ${actionName} by ${session.username} (${Math.round(timeLeft / (1000 * 60))} minutes left)`);
         return true;
     } catch (error) {
         console.error(`❌ Authentication error for ${actionName}:`, error);
-        localStorage.removeItem(SESSION_KEY);
-        sessionStorage.removeItem(SESSION_KEY);
-        alert('Authentication error. Please login again.');
-        window.location.href = 'admin-login.html';
         return false;
     }
 }
@@ -143,6 +133,7 @@ function initializeAdminPanel() {
         
         // Validate admin authentication before proceeding
         if (!validateAdminAuth('initialize admin panel')) {
+            console.log('❌ Admin panel initialization blocked - authentication failed');
             return; // Stop execution if not authenticated
         }
         
