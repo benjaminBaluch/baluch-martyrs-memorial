@@ -4,6 +4,7 @@
 let firebaseDB = null;
 let storageHelper = null;
 let firebaseAvailable = false;
+let formInitialized = false;
 
 // Attempt to load Firebase modules (with fallback for Gulf regions)
 async function loadFirebaseModules() {
@@ -16,15 +17,28 @@ async function loadFirebaseModules() {
         console.log('✅ Firebase modules loaded successfully');
     } catch (error) {
         console.warn('🌍 Firebase modules failed to load (common in Gulf region):', error.message);
-        console.log('💾 Using localStorage-only mode for Gulf region compatibility');
+        console.log('💾 Firebase not available - submissions will fail gracefully');
         firebaseAvailable = false;
     }
 }
 
+// Initialize everything once DOM is loaded
 document.addEventListener('DOMContentLoaded', async function() {
+    if (formInitialized) return; // Prevent double initialization
+    formInitialized = true;
+    
+    console.log('🎯 Initializing add-martyr form...');
+    
     // Try to load Firebase modules first
     await loadFirebaseModules();
+    
+    // Initialize form handlers
     initializeFormHandlers();
+    
+    // Initialize validation
+    initializeValidation();
+    
+    console.log('✅ Form initialization complete');
 });
 
 function initializeFormHandlers() {
@@ -206,51 +220,91 @@ function handlePhotoUpload(event, previewContainer, multiple) {
 // Handle form submission
 function handleFormSubmit(event) {
     event.preventDefault();
+    console.log('📋 Form submission started');
     
-    const form = event.target;
-    const formData = new FormData(form);
-    
-    // Create martyr object
-    const martyrData = {
-        fullName: formData.get('fullName'),
-        birthDate: formData.get('birthDate'),
-        martyrdomDate: formData.get('martyrdomDate'),
-        birthPlace: formData.get('birthPlace'),
-        martyrdomPlace: formData.get('martyrdomPlace'),
-        biography: formData.get('biography'),
-        organization: formData.get('organization'),
-        rank: formData.get('rank'),
-        fatherName: formData.get('fatherName'),
-        familyDetails: formData.get('familyDetails'),
-        submitterName: formData.get('submitterName'),
-        submitterEmail: formData.get('submitterEmail'),
-        submitterRelation: formData.get('submitterRelation'),
-        submittedAt: new Date().toISOString()
-    };
-    
-    // Handle photo data with compression (convert to base64 for localStorage)
-    const photoInput = document.getElementById('martyrPhoto');
-    const compressedFile = photoInput && photoInput.compressedFile;
-    const photoFile = compressedFile || formData.get('martyrPhoto');
-    
-    if (photoFile && photoFile.size > 0) {
-        console.log('📷 Processing photo for submission...');
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            martyrData.photo = e.target.result;
-            console.log(`🗜️ Photo data size: ${(e.target.result.length / 1024 / 1024 * 0.75).toFixed(2)}MB (base64)`);
-            saveMartyrData(martyrData);
+    try {
+        const form = event.target;
+        const formData = new FormData(form);
+        
+        // Validate required fields first
+        const requiredFields = ['fullName', 'martyrdomDate', 'submitterName', 'submitterEmail'];
+        for (const field of requiredFields) {
+            const value = formData.get(field);
+            if (!value || value.toString().trim() === '') {
+                alert(`❌ Please fill in the required field: ${field}`);
+                // Focus on the missing field
+                const fieldElement = form.querySelector(`[name="${field}"]`);
+                if (fieldElement) fieldElement.focus();
+                return; // Stop submission
+            }
+        }
+        
+        console.log('✅ Form validation passed');
+        
+        // Show loading immediately
+        showLoadingState();
+        
+        // Create martyr object
+        const martyrData = {
+            fullName: formData.get('fullName').trim(),
+            birthDate: formData.get('birthDate'),
+            martyrdomDate: formData.get('martyrdomDate'),
+            birthPlace: formData.get('birthPlace')?.trim() || '',
+            martyrdomPlace: formData.get('martyrdomPlace')?.trim() || '',
+            biography: formData.get('biography')?.trim() || '',
+            organization: formData.get('organization')?.trim() || '',
+            rank: formData.get('rank')?.trim() || '',
+            fatherName: formData.get('fatherName')?.trim() || '',
+            familyDetails: formData.get('familyDetails')?.trim() || '',
+            submitterName: formData.get('submitterName').trim(),
+            submitterEmail: formData.get('submitterEmail').trim(),
+            submitterRelation: formData.get('submitterRelation')?.trim() || '',
+            submittedAt: new Date().toISOString()
         };
-        reader.readAsDataURL(photoFile);
-    } else {
-        saveMartyrData(martyrData);
+        
+        console.log('📋 Martyr data prepared:', { name: martyrData.fullName, fields: Object.keys(martyrData).length });
+        
+        // Handle photo data
+        const photoInput = document.getElementById('martyrPhoto');
+        const compressedFile = photoInput && photoInput.compressedFile;
+        const photoFile = compressedFile || (photoInput && photoInput.files[0]);
+        
+        if (photoFile && photoFile.size > 0) {
+            console.log('📷 Processing photo for submission...');
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                martyrData.photo = e.target.result;
+                console.log('🗜️ Photo data ready, saving martyr data...');
+                saveMartyrData(martyrData);
+            };
+            
+            reader.onerror = function() {
+                console.error('❌ Photo processing failed');
+                hideLoadingState();
+                alert('❌ Error processing photo. Please try a different image.');
+            };
+            
+            reader.readAsDataURL(photoFile);
+        } else {
+            console.log('📷 No photo provided, proceeding with submission...');
+            // No photo, proceed with submission
+            saveMartyrData(martyrData);
+        }
+        
+    } catch (error) {
+        console.error('❌ Form submission error:', error);
+        hideLoadingState();
+        alert('❌ Form submission error. Please try again.');
     }
 }
 
 // Save martyr data to pending queue for moderation
 async function saveMartyrData(martyrData) {
+    console.log('💾 Starting to save martyr data...', { name: martyrData.fullName });
+    
     try {
-        // Show loading indicator
+        // Ensure loading state is shown
         showLoadingState();
         
         // Add unique ID and status for tracking
@@ -259,13 +313,13 @@ async function saveMartyrData(martyrData) {
         martyrData.submittedAt = new Date().toISOString();
         
         let saveSuccess = false;
-        let firebaseError = null;
+        let errorMessage = null;
         
-        // Try to save to Firebase only if available
+        // Check if Firebase is available and try to save
         if (firebaseAvailable && firebaseDB) {
+            console.log('🔥 Firebase is available, attempting to save...');
+            
             try {
-                console.log('🌍 Attempting Firebase save (optimized for Pakistan, Gulf region, and international users)...');
-                
                 // Add timeout for regional connectivity issues (Pakistan, Gulf, etc.)
                 const firebasePromise = firebaseDB.addPendingMartyr(martyrData);
                 const timeoutPromise = new Promise((_, reject) => 
@@ -274,77 +328,90 @@ async function saveMartyrData(martyrData) {
                 
                 const result = await Promise.race([firebasePromise, timeoutPromise]);
                 
-                if (result.success) {
-                    console.log('✅ Martyr saved to Firebase successfully (international submission):', result.id);
+                if (result && result.success) {
+                    console.log('✅ Martyr saved to Firebase successfully:', result.id);
                     saveSuccess = true;
                 } else {
-                    firebaseError = result.error;
-                    console.warn('🔥 Firebase save failed (will use localStorage):', result.error);
+                    errorMessage = result ? result.error : 'Unknown Firebase error';
+                    console.warn('🔥 Firebase save failed:', errorMessage);
                 }
             } catch (error) {
-                firebaseError = error.message;
-        console.warn('🌍 Firebase connectivity issue (common for Pakistan/Gulf region users):', error.message);
-                
-                // Check if it's a regional connectivity issue
-                const isRegionalIssue = error.message.includes('timeout') || 
-                                      error.message.includes('unavailable') ||
-                                      error.message.includes('network') ||
-                                      error.code === 'unavailable';
-                
-                if (isRegionalIssue) {
-                    console.log('🌐 Detected regional connectivity issue (Pakistan/Gulf region) - submission will fail');
-                }
+                errorMessage = error.message;
+                console.warn('🌍 Firebase connectivity issue:', error.message);
             }
         } else {
-            console.error('❌ Firebase modules not loaded - cannot process submission');
-            throw new Error('Firebase database is required for submissions. Please check your internet connection and try again.');
+            console.error('❌ Firebase not available for submissions');
+            errorMessage = 'Firebase database connection not available. Please refresh the page and try again.';
         }
         
-        // Only proceed if Firebase save was successful
-        if (!saveSuccess) {
-            throw new Error('Firebase save failed - submission cannot be processed without database connection');
-        }
-        
-        // Store last submission for confirmation page
-        localStorage.setItem('lastSubmittedMartyr', martyrData.fullName);
-        
-        // Store submission method info for confirmation page
-        const submissionInfo = {
-            savedToFirebase: saveSuccess && !firebaseError,
-            savedToLocalStorage: true,
-            isRegionalFallback: !!firebaseError,
-            firebaseError: firebaseError
-        };
-        localStorage.setItem('lastSubmissionInfo', JSON.stringify(submissionInfo));
-        
-        // Hide loading state
+        // Always hide loading state
         hideLoadingState();
         
-        // Redirect to confirmation page
-        window.location.href = 'confirmation.html?name=' + encodeURIComponent(martyrData.fullName);
+        if (saveSuccess) {
+            // Success - redirect to confirmation
+            console.log('✅ Submission successful, redirecting to confirmation...');
+            
+            // Store for confirmation page
+            localStorage.setItem('lastSubmittedMartyr', martyrData.fullName);
+            localStorage.setItem('lastSubmissionInfo', JSON.stringify({
+                savedToFirebase: true,
+                savedToLocalStorage: false,
+                submittedAt: martyrData.submittedAt,
+                martyrId: martyrData.id
+            }));
+            
+            // Small delay to ensure localStorage is written
+            setTimeout(() => {
+                console.log('🔄 Redirecting to confirmation page...');
+                window.location.href = 'confirmation.html?name=' + encodeURIComponent(martyrData.fullName);
+            }, 100);
+            
+        } else {
+            // Failed - show detailed error
+            console.error('❌ Submission failed completely');
+            
+            const detailedError = `
+❌ Submission Failed
+
+${errorMessage || 'Unknown error occurred'}
+
+Please try the following:
+1. Check your internet connection
+2. Refresh the page and try again
+3. If you're in Pakistan/Gulf region, wait a moment and retry
+4. Contact support if the problem persists
+
+Your form data has been preserved - you can retry without re-entering everything.
+            `.trim();
+            
+            alert(detailedError);
+            
+            // Don't redirect on failure - let user retry
+            return;
+        }
         
     } catch (error) {
-        console.error('Error saving martyr data:', error);
+        console.error('❌ Critical error in saveMartyrData:', error);
+        
+        // Always ensure loading state is hidden
         hideLoadingState();
         
-        // Provide more helpful error message for Gulf region users
-        let errorMessage = 'There was an error saving the martyr information. Please try again.';
+        const criticalErrorMsg = `
+❌ Critical Error
+
+Something went wrong while processing your submission.
+
+Error: ${error.message}
+
+Please:
+1. Refresh the page
+2. Try again with a smaller image
+3. Contact support if this continues
+
+Your data has been preserved.
+        `.trim();
         
-        if (error.message.includes('Firebase') || error.message.includes('timeout') || !firebaseAvailable) {
-            errorMessage = `
-                Database Connection Error: Unable to save submission to our database.
-                
-                Please try the following:
-                1. Check your internet connection
-                2. Refresh the page and try again
-                3. Try uploading a smaller image (the form compresses images automatically)
-                4. If you're in Pakistan or Gulf region, please try again in a few minutes
-                
-                Note: All submissions must be saved to our database to ensure they are not lost.
-            `.trim();
-        }
-        
-        alert(errorMessage);
+        alert(criticalErrorMsg);
     }
 }
 
@@ -353,7 +420,9 @@ function showLoadingState() {
     const submitBtn = document.querySelector('button[type="submit"]');
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Saving...';
+        submitBtn.textContent = '⏳ Saving...';
+        submitBtn.style.opacity = '0.7';
+        console.log('🔄 Loading state shown');
     }
 }
 
@@ -362,7 +431,9 @@ function hideLoadingState() {
     const submitBtn = document.querySelector('button[type="submit"]');
     if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit for Review';
+        submitBtn.textContent = 'Submit Memorial';
+        submitBtn.style.opacity = '1';
+        console.log('✅ Loading state hidden');
     }
 }
 
@@ -410,21 +481,27 @@ function resetForm() {
     }
 }
 
-// Form validation enhancements
-document.addEventListener('DOMContentLoaded', function() {
+// Form validation initialization (separate function to avoid duplicate listeners)
+function initializeValidation() {
     const form = document.getElementById('addMartyrForm');
     
     if (form) {
+        console.log('🔍 Initializing form validation...');
+        
         // Add real-time validation
         const requiredFields = form.querySelectorAll('[required]');
         
         requiredFields.forEach(field => {
+            // Remove existing listeners to prevent duplicates
+            field.removeEventListener('blur', validateField);
             field.addEventListener('blur', function() {
                 validateField(this);
             });
         });
+        
+        console.log('✅ Form validation initialized for', requiredFields.length, 'required fields');
     }
-});
+}
 
 // Validate individual field
 function validateField(field) {
