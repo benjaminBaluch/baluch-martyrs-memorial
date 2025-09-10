@@ -3,6 +3,61 @@
 // Import authentication module
 import { adminAuth } from './auth.js';
 
+// Strong authentication validation function
+function validateAdminAuth(actionName = 'admin action') {
+    try {
+        const SESSION_KEY = 'baluch_admin_session';
+        
+        // Check for session in both storages
+        const localSession = localStorage.getItem(SESSION_KEY);
+        const storageSession = sessionStorage.getItem(SESSION_KEY);
+        
+        if (!localSession || !storageSession) {
+            console.error(`❌ No valid session for ${actionName} - redirecting to login`);
+            window.location.href = 'admin-login.html';
+            return false;
+        }
+        
+        const localData = JSON.parse(localSession);
+        const storageData = JSON.parse(storageSession);
+        
+        // Verify sessions match (tamper detection)
+        if (localData.username !== storageData.username || 
+            localData.loginTime !== storageData.loginTime) {
+            console.error(`❌ Session tamper detected during ${actionName} - clearing sessions`);
+            localStorage.removeItem(SESSION_KEY);
+            sessionStorage.removeItem(SESSION_KEY);
+            window.location.href = 'admin-login.html';
+            return false;
+        }
+        
+        // Check if session is expired
+        if (localData.expires <= Date.now()) {
+            console.error(`❌ Session expired during ${actionName} - redirecting to login`);
+            localStorage.removeItem(SESSION_KEY);
+            sessionStorage.removeItem(SESSION_KEY);
+            window.location.href = 'admin-login.html';
+            return false;
+        }
+        
+        // Also validate using the auth module if available
+        if (window.adminAuth && typeof window.adminAuth.isAuthenticated === 'function') {
+            if (!window.adminAuth.isAuthenticated()) {
+                console.error(`❌ Auth module validation failed for ${actionName}`);
+                window.location.href = 'admin-login.html';
+                return false;
+            }
+        }
+        
+        console.log(`✅ Authentication validated for ${actionName} by ${localData.username}`);
+        return true;
+    } catch (error) {
+        console.error(`❌ Authentication validation error for ${actionName}:`, error);
+        window.location.href = 'admin-login.html';
+        return false;
+    }
+}
+
 // Use global Firebase instance instead of direct import
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -92,6 +147,11 @@ window.attemptFirebaseReconnection = attemptFirebaseReconnection;
 function initializeAdminPanel() {
     try {
         console.log('🔥 Firebase available, initializing admin panel...');
+        
+        // Validate admin authentication before proceeding
+        if (!validateAdminAuth('initialize admin panel')) {
+            return; // Stop execution if not authenticated
+        }
         
         // Debug Firebase availability
         console.log('Firebase DB available:', !!window.firebaseDB);
@@ -469,10 +529,10 @@ function createPendingItem(martyr) {
 
 // Approve a martyr submission
 async function approveMartyr(martyrId) {
-    // Temporarily disabled auth validation to test logout issue
-    // if (!adminAuth.validateAdminAction('approve martyr')) {
-    //     return;
-    // }
+    // Validate admin authentication
+    if (!validateAdminAuth('approve martyr')) {
+        return;
+    }
     
     console.log('🚀 Starting approval process for ID:', martyrId);
     
@@ -613,10 +673,10 @@ async function approveMartyr(martyrId) {
 
 // Reject a martyr submission
 async function rejectMartyr(martyrId) {
-    // Temporarily disabled auth validation to test logout issue
-    // if (!adminAuth.validateAdminAction('reject martyr')) {
-    //     return;
-    // }
+    // Validate admin authentication
+    if (!validateAdminAuth('reject martyr')) {
+        return;
+    }
     
     console.log('rejectMartyr called with ID:', martyrId);
     
@@ -740,10 +800,10 @@ function formatDate(dateString) {
 async function refreshData() {
     console.log('🔄 Refreshing admin panel data...');
     
-    // Temporarily disabled auth validation to test logout issue
-    // if (!adminAuth.validateAdminAction('refresh data')) {
-    //     return;
-    // }
+    // Validate admin authentication
+    if (!validateAdminAuth('refresh data')) {
+        return;
+    }
     
     try {
         // Show loading state in refresh button
@@ -779,7 +839,7 @@ async function refreshData() {
 // Clear all pending submissions (admin function)
 async function clearAllPending() {
     // Validate admin authentication
-    if (!adminAuth.validateAdminAction('clear all pending submissions')) {
+    if (!validateAdminAuth('clear all pending submissions')) {
         return;
     }
     
@@ -828,7 +888,7 @@ async function clearAllPending() {
 // Export all data to JSON file
 function exportData() {
     // Validate admin authentication
-    if (!adminAuth.validateAdminAction('export data')) {
+    if (!validateAdminAuth('export data')) {
         return;
     }
     
@@ -857,7 +917,7 @@ function exportData() {
 // Import data from JSON file
 function importData() {
     // Validate admin authentication
-    if (!adminAuth.validateAdminAction('import data')) {
+    if (!validateAdminAuth('import data')) {
         return;
     }
     
@@ -900,7 +960,11 @@ function importData() {
 // Load and display approved martyrs
 async function loadApprovedMartyrs() {
     console.log('💼 Starting loadApprovedMartyrs function...');
-    console.log('🔐 Skipping auth validation for loadApprovedMartyrs to test logout issue');
+    
+    // Validate admin authentication
+    if (!validateAdminAuth('load approved martyrs')) {
+        return;
+    }
     
     const approvedList = document.getElementById('approvedList');
     const loadBtn = document.getElementById('loadApprovedBtn');
@@ -1067,7 +1131,7 @@ function createApprovedMartyrItem(martyr) {
 // Delete an approved martyr
 async function deleteApprovedMartyr(martyrId, martyrName) {
     // Validate admin authentication
-    if (!adminAuth.validateAdminAction('delete approved martyr')) {
+    if (!validateAdminAuth('delete approved martyr')) {
         return;
     }
     
@@ -1116,7 +1180,7 @@ async function deleteApprovedMartyr(martyrId, martyrName) {
 // Clear all approved martyrs (DANGER!)
 async function clearAllApproved() {
     // Validate admin authentication
-    if (!adminAuth.validateAdminAction('clear all approved martyrs')) {
+    if (!validateAdminAuth('clear all approved martyrs')) {
         return;
     }
     

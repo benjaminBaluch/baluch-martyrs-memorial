@@ -206,41 +206,91 @@
         </div>
     </main>
 
-    <!-- Basic Authentication Check -->
+    <!-- Strong Authentication Check -->
     <script>
-        // Basic session check - less aggressive than before
         const SESSION_KEY = 'baluch_admin_session';
         
-        function checkBasicAuth() {
+        function checkStrongAuth() {
             try {
                 const sessionData = localStorage.getItem(SESSION_KEY);
+                const sessionStorageData = sessionStorage.getItem(SESSION_KEY);
                 
-                if (!sessionData) {
-                    console.log('🔍 No session found - will check again after modules load');
-                    return true; // Allow page to load, auth will be checked later
-                }
-                
-                const session = JSON.parse(sessionData);
-                
-                // Only redirect if session is clearly expired (give some buffer time)
-                if (session.expires && session.expires <= (Date.now() - 5 * 60 * 1000)) { // 5 minute buffer
-                    console.log('❌ Session clearly expired - redirecting to login');
-                    localStorage.removeItem(SESSION_KEY);
-                    sessionStorage.removeItem(SESSION_KEY);
-                    window.location.href = 'admin-login.html';
+                // Require both localStorage and sessionStorage
+                if (!sessionData || !sessionStorageData) {
+                    console.log('❌ No valid session found - redirecting to login');
+                    redirectToLogin('No session found');
                     return false;
                 }
                 
-                console.log('✅ Session check passed, continuing to load...');
+                const localSession = JSON.parse(sessionData);
+                const storageSession = JSON.parse(sessionStorageData);
+                
+                // Verify both storages match (tamper detection)
+                if (localSession.username !== storageSession.username || 
+                    localSession.loginTime !== storageSession.loginTime) {
+                    console.log('❌ Session tamper detected - clearing and redirecting');
+                    clearSessions();
+                    redirectToLogin('Session tamper detected');
+                    return false;
+                }
+                
+                // Check if session is expired (with small grace period)
+                if (localSession.expires <= (Date.now() + 30000)) { // 30 second grace
+                    console.log('❌ Session expired - redirecting to login');
+                    clearSessions();
+                    redirectToLogin('Session expired');
+                    return false;
+                }
+                
+                console.log('✅ Strong authentication passed');
                 return true;
             } catch (error) {
-                console.warn('⚠️ Session check error, allowing page load:', error);
-                return true; // Allow page to load, proper auth will happen later
+                console.error('❌ Authentication error:', error);
+                clearSessions();
+                redirectToLogin('Authentication error');
+                return false;
             }
         }
         
-        // Run basic auth check (non-blocking)
-        checkBasicAuth();
+        function clearSessions() {
+            localStorage.removeItem(SESSION_KEY);
+            sessionStorage.removeItem(SESSION_KEY);
+        }
+        
+        function redirectToLogin(reason) {
+            // Show loading message before redirect
+            document.body.innerHTML = `
+                <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                            background: white; padding: 2rem; border-radius: 8px; 
+                            box-shadow: 0 4px 20px rgba(0,0,0,0.3); text-align: center;
+                            font-family: Arial, sans-serif; z-index: 10000;">
+                    <h3 style="color: #2c5530; margin-bottom: 1rem;">🔒 Authentication Required</h3>
+                    <p>Reason: ${reason}</p>
+                    <p style="font-size: 0.9rem; color: #666;">Redirecting to login...</p>
+                    <div style="margin-top: 1rem;">
+                        <div style="display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3;
+                                    border-top: 3px solid #2c5530; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    </div>
+                </div>
+                <style>
+                    @keyframes spin {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                    }
+                </style>
+            `;
+            
+            // Redirect after 1 second
+            setTimeout(() => {
+                window.location.href = 'admin-login.html';
+            }, 1000);
+        }
+        
+        // Run strong authentication check immediately
+        if (!checkStrongAuth()) {
+            // If auth fails, stop all script execution
+            throw new Error('Authentication failed - stopping script execution');
+        }
     </script>
     
     <!-- Firebase Config Script -->
@@ -325,53 +375,23 @@
                 
                 console.log('✅ Authentication module ready');
                 
-                // Check authentication with better error handling
-                console.log('🔍 Checking authentication status...');
+                // Double-check authentication (already passed initial check)
+                console.log('🔍 Verifying authentication status...');
                 
                 let authPassed = false;
                 try {
                     authPassed = adminAuth.isAuthenticated();
-                    console.log('🔍 Authentication check result:', authPassed);
+                    console.log('🔍 Final authentication check result:', authPassed);
                 } catch (authError) {
-                    console.warn('⚠️ Authentication check error:', authError);
-                    // Try to create a temporary session if there's an issue
+                    console.error('❌ Authentication verification error:', authError);
                     authPassed = false;
                 }
                 
                 if (!authPassed) {
-                    // Before redirecting, give user a chance to login
-                    console.warn('⚠️ Authentication failed, giving 3 seconds before redirect...');
-                    
-                    // Show a more user-friendly message
-                    const redirectMsg = document.createElement('div');
-                    redirectMsg.innerHTML = `
-                        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                                    background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-                                    text-align: center; z-index: 10000; font-family: Arial, sans-serif;">
-                            <h3 style="color: #2c5530; margin-bottom: 1rem;">🔒 Authentication Required</h3>
-                            <p>Please login to access the admin panel.</p>
-                            <p style="font-size: 0.9rem; color: #666;">Redirecting to login in <span id="countdown">3</span> seconds...</p>
-                            <button onclick="window.location.href='admin-login.html'" 
-                                    style="background: #2c5530; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; margin-top: 1rem;">
-                                Login Now
-                            </button>
-                        </div>
-                    `;
-                    document.body.appendChild(redirectMsg);
-                    
-                    // Countdown timer
-                    let countdown = 3;
-                    const countdownElement = document.getElementById('countdown');
-                    const timer = setInterval(() => {
-                        countdown--;
-                        if (countdownElement) countdownElement.textContent = countdown;
-                        if (countdown <= 0) {
-                            clearInterval(timer);
-                            window.location.href = 'admin-login.html';
-                        }
-                    }, 1000);
-                    
-                    return; // Stop further execution
+                    // This should rarely happen since we already passed initial auth
+                    console.error('❌ Final authentication check failed - redirecting immediately');
+                    window.location.href = 'admin-login.html';
+                    return;
                 }
                 
                 console.log('✅ User is authenticated, initializing page protection...');
