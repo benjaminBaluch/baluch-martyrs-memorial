@@ -25,25 +25,25 @@ export class AdminAuth {
                 return null;
             }
 
-            const session = JSON.parse(sessionData);
-            const sessionStorage = JSON.parse(sessionStorageData);
+            const localSession = JSON.parse(sessionData);
+            const sessionStorageSession = JSON.parse(sessionStorageData);
 
             // Verify both storages match (basic tamper detection)
-            if (session.username !== sessionStorage.username || 
-                session.loginTime !== sessionStorage.loginTime) {
+            if (localSession.username !== sessionStorageSession.username || 
+                localSession.loginTime !== sessionStorageSession.loginTime) {
                 this.clearSession();
                 return null;
             }
 
             // Check if session is expired
-            if (session.expires <= Date.now()) {
+            if (localSession.expires <= Date.now()) {
                 this.clearSession();
                 return null;
             }
 
             // Session is valid, extend expiration
-            this.extendSession(session);
-            return session;
+            this.extendSession(localSession);
+            return localSession;
         } catch (error) {
             console.error('Error validating session:', error);
             this.clearSession();
@@ -111,18 +111,90 @@ export class AdminAuth {
 
     // Create login session (called from login page)
     createSession(username) {
-        const sessionData = {
-            username: username,
-            loginTime: Date.now(),
-            expires: Date.now() + SESSION_DURATION
-        };
-        
-        localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
-        this.sessionData = sessionData;
-        
-        console.log(`🔐 Admin session created: ${username}`);
-        return sessionData;
+        try {
+            const sessionData = {
+                username: username,
+                loginTime: Date.now(),
+                expires: Date.now() + SESSION_DURATION
+            };
+            
+            console.log(`🔐 Creating session for: ${username}`);
+            console.log('Session data:', {
+                username: sessionData.username,
+                loginTime: new Date(sessionData.loginTime).toLocaleString(),
+                expires: new Date(sessionData.expires).toLocaleString(),
+                duration: Math.round(SESSION_DURATION / (1000 * 60)) + ' minutes'
+            });
+            
+            // Store in localStorage
+            localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+            console.log('✅ Session stored in localStorage');
+            
+            // Store in sessionStorage
+            sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+            console.log('✅ Session stored in sessionStorage');
+            
+            this.sessionData = sessionData;
+            
+            // Verify storage worked
+            const verifyLocal = localStorage.getItem(SESSION_KEY);
+            const verifySession = sessionStorage.getItem(SESSION_KEY);
+            
+            if (!verifyLocal || !verifySession) {
+                console.error('❌ Session verification failed after storage');
+                console.error('localStorage has session:', !!verifyLocal);
+                console.error('sessionStorage has session:', !!verifySession);
+                this.clearSession();
+                return null;
+            }
+            
+            console.log(`✅ Admin session created successfully: ${username}`);
+            return sessionData;
+            
+        } catch (error) {
+            console.error('❌ Failed to create session:', error);
+            console.error('Error details:', {
+                message: error.message,
+                stack: error.stack,
+                username: username,
+                storageQuota: this.checkStorageQuota()
+            });
+            
+            // Clean up any partial session data
+            this.clearSession();
+            return null;
+        }
+    }
+    
+    // Check storage quota and availability
+    checkStorageQuota() {
+        try {
+            const testKey = 'storage_test_' + Date.now();
+            const testData = 'test';
+            
+            // Test localStorage
+            localStorage.setItem(testKey, testData);
+            const localResult = localStorage.getItem(testKey);
+            localStorage.removeItem(testKey);
+            
+            // Test sessionStorage
+            sessionStorage.setItem(testKey, testData);
+            const sessionResult = sessionStorage.getItem(testKey);
+            sessionStorage.removeItem(testKey);
+            
+            return {
+                localStorage: localResult === testData,
+                sessionStorage: sessionResult === testData,
+                available: localResult === testData && sessionResult === testData
+            };
+        } catch (error) {
+            return {
+                localStorage: false,
+                sessionStorage: false,
+                available: false,
+                error: error.message
+            };
+        }
     }
 
     // Get remaining session time in minutes
