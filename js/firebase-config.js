@@ -354,3 +354,24 @@ export const storageHelper = {
 };
 
 export default app;
+
+// Make firebaseDB available globally for easy access from other scripts
+if (typeof window !== 'undefined') {
+    window.firebaseDB = firebaseDB;
+    window.firebaseApp = app;
+    window.firebaseAvailable = true;
+    
+    console.log('✅ Firebase made available globally on window object');
+    console.log('🔍 Available Firebase methods:', Object.keys(firebaseDB));
+    
+    // Test Firebase immediately when loaded
+    firebaseDB.testConnection().then(result => {
+        if (result.success) {
+            console.log('✅ Initial Firebase connectivity test passed');
+        } else {
+            console.warn('⚠️ Initial Firebase connectivity test failed:', result.error);
+        }
+    }).catch(error => {
+        console.error('❌ Initial Firebase test error:', error);
+    });
+}

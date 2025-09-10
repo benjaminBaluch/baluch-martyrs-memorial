@@ -206,84 +206,142 @@
         </div>
     </main>
 
+    <!-- Firebase Config Script -->
+    <script type="module" src="js/firebase-config.js"></script>
+    
+    <!-- Authentication Script -->
+    <script type="module" src="js/auth.js"></script>
+    
+    <!-- Admin Panel Main Script -->
     <script type="module">
         let adminAuth = null;
         let firebaseDB = null;
         
-        // Initialize admin panel with error handling
+        // Wait for Firebase to be ready
+        function waitForFirebase() {
+            return new Promise((resolve) => {
+                if (window.firebaseDB) {
+                    resolve(window.firebaseDB);
+                    return;
+                }
+                
+                // Check every 100ms for up to 10 seconds
+                let attempts = 0;
+                const maxAttempts = 100;
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    console.log(`🔄 Checking for Firebase... attempt ${attempts}/${maxAttempts}`);
+                    
+                    if (window.firebaseDB) {
+                        clearInterval(checkInterval);
+                        console.log('✅ Firebase detected and ready!');
+                        resolve(window.firebaseDB);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        console.error('❌ Firebase failed to load after maximum attempts');
+                        resolve(null);
+                    }
+                }, 100);
+            });
+        }
+        
+        // Wait for authentication to be ready
+        function waitForAuth() {
+            return new Promise((resolve) => {
+                if (window.adminAuth) {
+                    resolve(window.adminAuth);
+                    return;
+                }
+                
+                let attempts = 0;
+                const maxAttempts = 50;
+                const checkInterval = setInterval(() => {
+                    attempts++;
+                    
+                    if (window.adminAuth) {
+                        clearInterval(checkInterval);
+                        console.log('✅ Admin auth detected and ready!');
+                        resolve(window.adminAuth);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(checkInterval);
+                        console.error('❌ Admin auth failed to load');
+                        resolve(null);
+                    }
+                }, 100);
+            });
+        }
+        
+        // Initialize admin panel with proper waiting
         async function initializeAdminPanel() {
             try {
-                console.log('🔐 Loading authentication module...');
-                const authModule = await import('./js/auth.js');
-                adminAuth = authModule.adminAuth;
-                console.log('✅ Authentication module loaded successfully');
+                console.log('🚀 Starting admin panel initialization...');
                 
-                // Initialize page protection - this will redirect if not authenticated
+                // Wait for authentication
+                console.log('🔐 Waiting for authentication module...');
+                adminAuth = await waitForAuth();
+                
+                if (!adminAuth) {
+                    console.error('❌ Authentication module failed to load');
+                    alert('Authentication system failed to load. Please refresh the page.');
+                    return;
+                }
+                
+                console.log('✅ Authentication module ready');
+                
+                // Initialize page protection
                 if (!adminAuth.initializePageProtection()) {
-                    console.log('❌ Authentication failed - user redirected to login');
+                    console.log('❌ Authentication failed - user will be redirected');
                     return;
                 }
                 
                 console.log('✅ Admin authentication passed');
                 
-            } catch (error) {
-                console.error('❌ Error loading authentication module:', error);
-                alert('Error loading authentication. Please refresh the page.');
-                return;
-            }
-            
-            // Try to load Firebase with comprehensive error handling
-            try {
-                console.log('🔥 Attempting to load Firebase module...');
-                const firebaseModule = await import('./js/firebase-config.js');
-                firebaseDB = firebaseModule.firebaseDB;
-                console.log('✅ Firebase module import successful');
-                console.log('🔍 Firebase DB object:', !!firebaseDB);
+                // Wait for Firebase
+                console.log('🔥 Waiting for Firebase module...');
+                firebaseDB = await waitForFirebase();
                 
-                if (firebaseDB) {
-                    console.log('🔍 Available Firebase methods:', Object.keys(firebaseDB));
-                } else {
-                    console.warn('⚠️ Firebase DB is null/undefined after import');
-                }
-                
-            } catch (firebaseError) {
-                console.error('❌ Error importing Firebase module:', firebaseError);
-                console.error('Firebase error details:', {
-                    message: firebaseError.message,
-                    stack: firebaseError.stack,
-                    name: firebaseError.name
-                });
-                
-                // Try alternative Firebase loading approach
-                console.log('🔄 Attempting alternative Firebase loading...');
-                try {
-                    // Try direct module loading
-                    const altFirebaseModule = await import('./js/firebase-config.js?v=' + Date.now());
-                    firebaseDB = altFirebaseModule.firebaseDB;
-                    console.log('✅ Alternative Firebase loading successful');
-                } catch (altError) {
-                    console.error('❌ Alternative Firebase loading also failed:', altError);
+                if (!firebaseDB) {
+                    console.error('❌ Firebase module failed to load');
+                    // Don't stop completely, show error but allow offline functionality
+                    const errorMsg = `
+⚠️ Database Connection Failed
+
+The Firebase database could not be loaded. This could be due to:
+- Network connectivity issues
+- Firebase service problems  
+- Browser security restrictions
+
+The admin panel will show limited functionality.
+Please refresh the page or try again later.
+                    `.trim();
+                    alert(errorMsg);
                     firebaseDB = null;
+                } else {
+                    console.log('✅ Firebase module ready with methods:', Object.keys(firebaseDB));
                 }
-            }
-            
-            // Make modules globally available
-            window.firebaseDB = firebaseDB;
-            window.adminAuth = adminAuth;
-            
-            if (firebaseDB) {
-                console.log('✅ Firebase made globally available');
-            } else {
-                console.error('❌ Firebase could not be made available globally');
-            }
-            
-            if (adminAuth) {
-                console.log('✅ Admin auth made globally available');
+                
+                // Make modules globally available
+                window.firebaseDB = firebaseDB;
+                window.adminAuth = adminAuth;
+                
+                console.log('🎯 Admin panel initialization complete!');
+                
+            } catch (error) {
+                console.error('❌ Critical error in admin panel initialization:', error);
+                alert('Critical error initializing admin panel. Please refresh the page.');
             }
         }
         
-        // Initialize everything
-        await initializeAdminPanel();
+        // Initialize everything when the page loads
+        document.addEventListener('DOMContentLoaded', initializeAdminPanel);
+        
+        // Also try immediate initialization if DOMContentLoaded already fired
+        if (document.readyState === 'loading') {
+            // DOMContentLoaded hasn't fired yet, wait for it
+        } else {
+            // DOMContentLoaded has already fired, initialize immediately
+            initializeAdminPanel();
+        }
         
         // Test Firebase connectivity with detailed error handling
         async function testFirebaseConnection() {
