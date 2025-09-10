@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Login | Baluch Martyrs Memorial</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 400px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #2c5530;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #1a3d20;
+        }
+        .debug {
+            background: #f0f0f0;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 Admin Login Test</h1>
+        <p>Testing admin authentication system</p>
+        
+        <div id="debugInfo" class="debug">
+            Loading debug info...
+        </div>
+        
+        <form id="testForm">
+            <div class="form-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" value="admin" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" value="baluch2024!" required>
+            </div>
+            
+            <button type="submit">🔐 Test Login</button>
+        </form>
+        
+        <div id="result"></div>
+        
+        <div style="margin-top: 20px;">
+            <button onclick="clearSessions()">🗑️ Clear All Sessions</button>
+            <button onclick="checkCurrentSession()">🔍 Check Current Session</button>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <a href="admin-login.html">← Back to Real Login</a>
+        </div>
+    </div>
+
+    <script>
+        const ADMIN_CREDENTIALS = {
+            'admin': 'baluch2024!',
+            'moderator': 'memorial@admin'
+        };
+        
+        const SESSION_KEY = 'baluch_admin_session';
+        const SESSION_DURATION = 4 * 60 * 60 * 1000; // 4 hours
+        
+        function updateDebugInfo() {
+            const debugDiv = document.getElementById('debugInfo');
+            const now = new Date();
+            const localSession = localStorage.getItem(SESSION_KEY);
+            const sessionSession = sessionStorage.getItem(SESSION_KEY);
+            
+            let debug = `🕐 Current Time: ${now.toISOString()}\n`;
+            debug += `📦 LocalStorage Session: ${localSession ? '✅ Present' : '❌ Missing'}\n`;
+            debug += `📦 SessionStorage Session: ${sessionSession ? '✅ Present' : '❌ Missing'}\n`;
+            
+            if (localSession) {
+                try {
+                    const session = JSON.parse(localSession);
+                    debug += `👤 Username: ${session.username}\n`;
+                    debug += `⏰ Login Time: ${new Date(session.loginTime).toISOString()}\n`;
+                    debug += `⏰ Expires: ${new Date(session.expires).toISOString()}\n`;
+                    debug += `⏳ Valid: ${session.expires > Date.now() ? '✅ Yes' : '❌ Expired'}\n`;
+                } catch (e) {
+                    debug += `❌ Invalid session data: ${e.message}\n`;
+                }
+            }
+            
+            debugDiv.textContent = debug;
+        }
+        
+        function showResult(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = type;
+            resultDiv.innerHTML = message;
+        }
+        
+        function setAdminSession(username) {
+            const sessionData = {
+                username: username,
+                loginTime: Date.now(),
+                expires: Date.now() + SESSION_DURATION,
+                admin: true
+            };
+            
+            try {
+                const sessionStr = JSON.stringify(sessionData);
+                localStorage.setItem(SESSION_KEY, sessionStr);
+                sessionStorage.setItem(SESSION_KEY, sessionStr);
+                
+                console.log('Session created:', sessionData);
+                return true;
+            } catch (error) {
+                console.error('Failed to create session:', error);
+                return false;
+            }
+        }
+        
+        function clearSessions() {
+            localStorage.removeItem(SESSION_KEY);
+            sessionStorage.removeItem(SESSION_KEY);
+            showResult('🗑️ All sessions cleared!', 'success');
+            updateDebugInfo();
+        }
+        
+        function checkCurrentSession() {
+            updateDebugInfo();
+            const session = localStorage.getItem(SESSION_KEY);
+            if (session) {
+                try {
+                    const data = JSON.parse(session);
+                    const isValid = data.expires > Date.now();
+                    showResult(`📋 Session found for ${data.username} - ${isValid ? 'Valid' : 'Expired'}`, isValid ? 'success' : 'error');
+                } catch (e) {
+                    showResult('❌ Invalid session data', 'error');
+                }
+            } else {
+                showResult('❌ No session found', 'error');
+            }
+        }
+        
+        document.getElementById('testForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            console.log(`Testing login: ${username} / ${password}`);
+            console.log('Available credentials:', Object.keys(ADMIN_CREDENTIALS));
+            
+            if (ADMIN_CREDENTIALS[username] && ADMIN_CREDENTIALS[username] === password) {
+                console.log('✅ Credentials match!');
+                
+                if (setAdminSession(username)) {
+                    showResult(`✅ Login successful! Session created for ${username}`, 'success');
+                    updateDebugInfo();
+                    
+                    // Test redirect (commented out for testing)
+                    setTimeout(() => {
+                        if (confirm('Login successful! Redirect to admin panel?')) {
+                            window.location.href = 'admin.html';
+                        }
+                    }, 2000);
+                } else {
+                    showResult('❌ Failed to create session', 'error');
+                }
+            } else {
+                console.log('❌ Invalid credentials');
+                showResult('❌ Invalid username or password', 'error');
+            }
+        });
+        
+        // Initialize
+        updateDebugInfo();
+        setInterval(updateDebugInfo, 1000); // Update every second
+    </script>
+</body>
+</html>
