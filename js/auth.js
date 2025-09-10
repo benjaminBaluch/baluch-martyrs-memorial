@@ -134,7 +134,7 @@ export class AdminAuth {
         return Math.max(0, Math.floor(remaining / (1000 * 60)));
     }
 
-    // Add session warning for expiring sessions
+    // Add session warning for expiring sessions (original aggressive version)
     startSessionWarning() {
         const checkInterval = 5 * 60 * 1000; // Check every 5 minutes
         
@@ -153,25 +153,43 @@ export class AdminAuth {
             }
         }, checkInterval);
     }
+    
+    // Add lenient session warning for better user experience
+    startLenientSessionWarning() {
+        const checkInterval = 30 * 60 * 1000; // Check every 30 minutes instead of 5
+        
+        setInterval(() => {
+            const remaining = this.getSessionTimeRemaining();
+            
+            // Only warn when session actually expires, not before
+            if (remaining === 0) {
+                alert('Your admin session has expired. You will be redirected to login.');
+                this.logout();
+            } else if (remaining <= 30) { // Give 30 minute warning instead of 15
+                console.log(`🔔 Admin session warning: ${remaining} minutes remaining`);
+                // Auto-extend session instead of asking user
+                if (this.sessionData) {
+                    this.extendSession(this.sessionData);
+                    console.log('🔄 Admin session auto-extended');
+                }
+            }
+        }, checkInterval);
+    }
 
     // Initialize page protection (call this on admin pages)
     initializePageProtection() {
-        // TEMPORARY: Bypass authentication for testing
-        console.log('🔧 TEMPORARY: Authentication bypassed for testing purposes');
+        console.log('🔐 Initializing admin page protection with proper authentication...');
         
-        // Create a temporary admin session if none exists
-        if (!this.isAuthenticated()) {
-            console.log('🔧 Creating temporary admin session for testing...');
-            this.createSession('temp-admin');
+        // Require authentication - redirect to login if not authenticated
+        if (!this.requireAuth()) {
+            console.log('❌ Authentication required - redirecting to login');
+            return false;
         }
-        
-        // Don't require strict authentication for now
-        // if (!this.requireAuth()) {
-        //     return false;
-        // }
 
-        // Don't start aggressive session warning system for now
-        // this.startSessionWarning();
+        console.log('✅ Admin authentication verified');
+
+        // Start a more lenient session warning system (every 30 minutes instead of 5)
+        this.startLenientSessionWarning();
 
         // Add beforeunload warning
         window.addEventListener('beforeunload', (e) => {
@@ -181,14 +199,14 @@ export class AdminAuth {
             }
         });
 
-        // Don't add strict security headers for now
-        // this.addSecurityHeaders();
+        // Add basic security measures (less strict)
+        this.addBasicSecurity();
 
-        console.log('✅ Admin panel access granted (temporary bypass)');
+        console.log('✅ Admin panel access granted with proper authentication');
         return true;
     }
 
-    // Add basic client-side security measures
+    // Add basic client-side security measures (strict version)
     addSecurityHeaders() {
         // Disable right-click context menu on admin pages
         document.addEventListener('contextmenu', (e) => {
@@ -215,41 +233,43 @@ export class AdminAuth {
             window.top.location = window.location;
         }
     }
+    
+    // Add basic security without aggressive restrictions
+    addBasicSecurity() {
+        // Only basic frame busting for security
+        if (window.top !== window.self) {
+            console.error('Admin page loaded in frame - potential security risk');
+            window.top.location = window.location;
+        }
+        
+        console.log('🔒 Basic security measures applied');
+    }
 
     // Validate admin action (can be used before sensitive operations)
     validateAdminAction(actionName = 'admin action') {
-        // TEMPORARY: Always allow admin actions for testing
-        console.log(`🔧 TEMPORARY: Admin action always authorized: ${actionName}`);
-        
-        // Create session if it doesn't exist
+        // Check if user is authenticated
         if (!this.isAuthenticated()) {
-            console.log('🔧 Creating temporary session for admin action');
-            this.createSession('temp-admin');
+            console.error(`🚫 Attempted ${actionName} without authentication - redirecting to login`);
+            this.logout();
+            return false;
+        }
+
+        const remaining = this.getSessionTimeRemaining();
+        
+        // Only logout if session has completely expired (0 minutes)
+        if (remaining === 0) {
+            console.error(`🚫 Session expired during ${actionName} - redirecting to login`);
+            this.logout();
+            return false;
         }
         
-        // Don't logout on authentication issues for now
-        // if (!this.isAuthenticated()) {
-        //     console.error(`🚫 Attempted ${actionName} without authentication`);
-        //     this.logout();
-        //     return false;
-        // }
+        // Auto-extend session if running low (instead of asking user)
+        if (remaining <= 30 && this.sessionData) {
+            console.log(`⏰ Auto-extending session during ${actionName} (${remaining}m remaining)`);
+            this.extendSession(this.sessionData);
+        }
 
-        // Don't check session expiration for now
-        // const remaining = this.getSessionTimeRemaining();
-        // 
-        // // Only logout if session has completely expired (0 minutes)
-        // // For low time remaining, just extend the session automatically
-        // if (remaining === 0) {
-        //     console.error(`🚫 Session expired during ${actionName}`);
-        //     this.logout();
-        //     return false;
-        // } else if (remaining <= 15 && this.sessionData) {
-        //     // Auto-extend session if running low during admin actions
-        //     console.log(`⏰ Auto-extending session during ${actionName} (${remaining}m remaining)`);
-        //     this.extendSession(this.sessionData);
-        // }
-
-        console.log(`✅ Admin action authorized (temporary bypass): ${actionName}`);
+        console.log(`✅ Admin action authorized: ${actionName} by ${this.getCurrentAdmin().username}`);
         return true;
     }
 }
