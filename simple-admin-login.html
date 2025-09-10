@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Admin Login | Baluch Martyrs Memorial</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0066cc, #dc143c, #228b22);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .login-container {
+            background: white;
+            padding: 3rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .login-header h1 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+            font-size: 1.8rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        .login-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+        .login-btn:hover {
+            background: #1a3d20;
+        }
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>🔐 Admin Login</h1>
+            <p>Simple login for admin panel access</p>
+        </div>
+
+        <div id="errorMessage" class="error-message"></div>
+        <div id="successMessage" class="success-message"></div>
+
+        <form id="simpleLoginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required value="admin">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required value="baluch2024!">
+            </div>
+            
+            <button type="submit" class="login-btn">
+                Login to Admin Panel
+            </button>
+        </form>
+
+        <a href="index.html" style="color: #666; text-decoration: none; font-size: 0.9rem;">
+            ← Back to Website
+        </a>
+    </div>
+
+    <script>
+        // Simple credentials
+        const CREDENTIALS = {
+            'admin': 'baluch2024!'
+        };
+        
+        function showMessage(message, type = 'error') {
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            
+            // Hide both first
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+            
+            if (type === 'error') {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            } else {
+                successDiv.textContent = message;
+                successDiv.style.display = 'block';
+            }
+        }
+        
+        function setSimpleSession(username) {
+            // Very simple session - just store admin flag with long expiration
+            const session = {
+                admin: true,
+                username: username,
+                loginTime: Date.now(),
+                expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+            };
+            
+            // Store in both places for compatibility
+            localStorage.setItem('simple_admin_session', JSON.stringify(session));
+            localStorage.setItem('baluch_admin_session', JSON.stringify(session));
+            sessionStorage.setItem('simple_admin_session', JSON.stringify(session));
+            sessionStorage.setItem('baluch_admin_session', JSON.stringify(session));
+            
+            return true;
+        }
+        
+        document.getElementById('simpleLoginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            console.log('Simple login attempt:', username);
+            
+            if (!username || !password) {
+                showMessage('Please enter both username and password');
+                return;
+            }
+            
+            if (CREDENTIALS[username] && CREDENTIALS[username] === password) {
+                console.log('Login successful');
+                
+                if (setSimpleSession(username)) {
+                    showMessage('Login successful! Redirecting...', 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = 'simple-admin.html';
+                    }, 1000);
+                } else {
+                    showMessage('Failed to create session');
+                }
+            } else {
+                showMessage('Invalid username or password');
+                document.getElementById('password').value = '';
+            }
+        });
+        
+        // Check if already logged in
+        try {
+            const session = localStorage.getItem('simple_admin_session');
+            if (session) {
+                const sessionData = JSON.parse(session);
+                if (sessionData.admin && sessionData.expires > Date.now()) {
+                    console.log('Already logged in, redirecting...');
+                    window.location.href = 'simple-admin.html';
+                }
+            }
+        } catch (e) {
+            // Ignore errors
+        }
+        
+        console.log('Simple login page loaded');
+    </script>
+</body>
+</html>

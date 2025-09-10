@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Admin Panel | Baluch Martyrs Memorial</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .admin-header {
+            background: #1a3d20;
+            color: white;
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+        .admin-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        .pending-item {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .pending-header {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .pending-content {
+            padding: 1.5rem;
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 1.5rem;
+        }
+        .pending-image {
+            width: 200px;
+            height: 200px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .pending-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .pending-actions {
+            padding: 1rem 1.5rem;
+            background: #f8f9fa;
+            display: flex;
+            gap: 1rem;
+        }
+        .btn-approve {
+            background: #28a745;
+            color: white;
+        }
+        .btn-approve:hover {
+            background: #218838;
+        }
+        .btn-reject {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-reject:hover {
+            background: #c82333;
+        }
+        .no-pending {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+        .detail-row {
+            margin-bottom: 0.5rem;
+        }
+        .detail-label {
+            font-weight: bold;
+            color: #666;
+        }
+        @media (max-width: 768px) {
+            .pending-content {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            .pending-image {
+                width: 150px;
+                height: 150px;
+                margin: 0 auto;
+            }
+            .admin-controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Simple Auth Check -->
+    <script>
+        // Very simple auth check
+        function checkSimpleAuth() {
+            try {
+                const session = localStorage.getItem('simple_admin_session');
+                if (!session) {
+                    console.log('No simple session found, redirecting...');
+                    window.location.href = 'simple-admin-login.html';
+                    return false;
+                }
+                
+                const sessionData = JSON.parse(session);
+                if (!sessionData.admin || sessionData.expires < Date.now()) {
+                    console.log('Session expired, redirecting...');
+                    window.location.href = 'simple-admin-login.html';
+                    return false;
+                }
+                
+                console.log('Simple auth passed:', sessionData.username);
+                return true;
+            } catch (e) {
+                console.log('Auth error, redirecting...', e);
+                window.location.href = 'simple-admin-login.html';
+                return false;
+            }
+        }
+        
+        if (!checkSimpleAuth()) {
+            // Stop here if not authenticated
+        }
+    </script>
+
+    <header class="admin-header">
+        <div class="container">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>Simple Admin Panel</h1>
+                    <p>Moderate martyr submissions</p>
+                </div>
+                <div style="text-align: right; color: white;">
+                    <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">
+                        Welcome, <strong id="adminUsername">Admin</strong>
+                    </div>
+                    <button id="logoutBtn" class="btn btn-secondary" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); padding: 0.25rem 0.75rem; font-size: 0.8rem;">
+                        🚪 Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="container">
+            <div class="admin-controls">
+                <button onclick="loadPendingSubmissions()" class="btn btn-primary">Refresh Data</button>
+                <button onclick="exportData()" class="btn btn-secondary">Export Data</button>
+                <button onclick="clearAllPending()" class="btn btn-outline" style="color: #dc3545; border-color: #dc3545;">Clear All Pending</button>
+                <button onclick="window.location.href='index.html'" class="btn btn-secondary">Back to Website</button>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="pendingCount">0</div>
+                    <div>Pending Submissions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="approvedCount">0</div>
+                    <div>Approved Martyrs</div>
+                </div>
+            </div>
+
+            <div id="pendingContainer">
+                <h2>Pending Submissions</h2>
+                <div id="pendingList">
+                    <p class="no-pending">Loading submissions...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        // Simple admin functionality
+        let pendingSubmissions = [];
+        let approvedMartyrs = [];
+        
+        // Load Firebase if available, fallback to localStorage
+        let firebaseDB = null;
+        
+        function initializeAdmin() {
+            console.log('Initializing simple admin...');
+            
+            // Update UI with username
+            try {
+                const session = JSON.parse(localStorage.getItem('simple_admin_session'));
+                document.getElementById('adminUsername').textContent = session.username;
+            } catch (e) {
+                // Ignore
+            }
+            
+            // Setup logout
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                localStorage.removeItem('simple_admin_session');
+                sessionStorage.removeItem('simple_admin_session');
+                localStorage.removeItem('baluch_admin_session');
+                sessionStorage.removeItem('baluch_admin_session');
+                window.location.href = 'simple-admin-login.html';
+            });
+            
+            // Wait for Firebase or use localStorage
+            setTimeout(() => {
+                if (window.firebaseDB) {
+                    firebaseDB = window.firebaseDB;
+                    console.log('Firebase available');
+                }
+                loadPendingSubmissions();
+                updateStats();
+            }, 1000);
+        }
+        
+        window.loadPendingSubmissions = async function() {
+            console.log('Loading pending submissions...');
+            
+            try {
+                // Try Firebase first
+                if (firebaseDB && firebaseDB.getPendingMartyrs) {
+                    pendingSubmissions = await firebaseDB.getPendingMartyrs();
+                    console.log('Loaded from Firebase:', pendingSubmissions.length, 'submissions');
+                } else {
+                    // Fallback to localStorage
+                    const localData = localStorage.getItem('pendingMartyrs');
+                    pendingSubmissions = localData ? JSON.parse(localData) : [];
+                    console.log('Loaded from localStorage:', pendingSubmissions.length, 'submissions');
+                }
+                
+                displayPendingSubmissions();
+                updateStats();
+            } catch (error) {
+                console.error('Error loading submissions:', error);
+                document.getElementById('pendingList').innerHTML = '<p class="no-pending">Error loading submissions. Check console for details.</p>';
+            }
+        };
+        
+        function displayPendingSubmissions() {
+            const container = document.getElementById('pendingList');
+            
+            if (pendingSubmissions.length === 0) {
+                container.innerHTML = '<p class="no-pending">No pending submissions found.</p>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            pendingSubmissions.forEach(martyr => {
+                const item = createPendingItem(martyr);
+                container.appendChild(item);
+            });
+        }
+        
+        function createPendingItem(martyr) {
+            const item = document.createElement('div');
+            item.className = 'pending-item';
+            
+            item.innerHTML = `
+                <div class="pending-header">
+                    <h3>${martyr.fullName}</h3>
+                    <small>Submitted: ${new Date(martyr.submittedAt || Date.now()).toLocaleDateString()}</small>
+                </div>
+                <div class="pending-content">
+                    <div class="pending-image">
+                        ${martyr.photo ? `<img src="${martyr.photo}" alt="${martyr.fullName}">` : '<div style="display:flex;align-items:center;justify-content:center;height:100%;background:#f0f0f0;color:#666;">No Photo</div>'}
+                    </div>
+                    <div class="pending-details">
+                        <div class="detail-row">
+                            <span class="detail-label">Birth Date:</span> ${martyr.birthDate || 'N/A'}
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Martyrdom Date:</span> ${martyr.martyrdomDate || 'N/A'}
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Birth Place:</span> ${martyr.birthPlace || 'N/A'}
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Martyrdom Place:</span> ${martyr.martyrdomPlace || 'N/A'}
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Organization:</span> ${martyr.organization || 'N/A'}
+                        </div>
+                        ${martyr.biography ? `
+                        <div class="detail-row">
+                            <span class="detail-label">Biography:</span>
+                            <div style="max-height: 100px; overflow-y: auto; background: #f8f9fa; padding: 0.5rem; border-radius: 4px; margin-top: 0.25rem;">
+                                ${martyr.biography}
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="pending-actions">
+                    <button class="btn btn-approve" onclick="approveSubmission('${martyr.id}')">
+                        ✅ Approve & Publish
+                    </button>
+                    <button class="btn btn-reject" onclick="rejectSubmission('${martyr.id}')">
+                        ❌ Reject
+                    </button>
+                </div>
+            `;
+            
+            return item;
+        }
+        
+        window.approveSubmission = async function(martyrId) {
+            console.log('Approving submission:', martyrId);
+            
+            try {
+                const martyr = pendingSubmissions.find(m => m.id === martyrId);
+                if (!martyr) {
+                    alert('Martyr not found');
+                    return;
+                }
+                
+                // Try Firebase first
+                if (firebaseDB && firebaseDB.approveSubmission) {
+                    await firebaseDB.approveSubmission(martyrId);
+                } else {
+                    // Fallback to localStorage
+                    const approved = JSON.parse(localStorage.getItem('martyrsData') || '[]');
+                    martyr.status = 'approved';
+                    approved.push(martyr);
+                    localStorage.setItem('martyrsData', JSON.stringify(approved));
+                    
+                    const pending = pendingSubmissions.filter(m => m.id !== martyrId);
+                    localStorage.setItem('pendingMartyrs', JSON.stringify(pending));
+                }
+                
+                alert('Martyr approved and published successfully!');
+                loadPendingSubmissions();
+                
+            } catch (error) {
+                console.error('Error approving submission:', error);
+                alert('Error approving submission: ' + error.message);
+            }
+        };
+        
+        window.rejectSubmission = async function(martyrId) {
+            if (!confirm('Are you sure you want to reject this submission? This action cannot be undone.')) {
+                return;
+            }
+            
+            console.log('Rejecting submission:', martyrId);
+            
+            try {
+                // Try Firebase first
+                if (firebaseDB && firebaseDB.rejectSubmission) {
+                    await firebaseDB.rejectSubmission(martyrId);
+                } else {
+                    // Fallback to localStorage
+                    const pending = pendingSubmissions.filter(m => m.id !== martyrId);
+                    localStorage.setItem('pendingMartyrs', JSON.stringify(pending));
+                }
+                
+                alert('Submission rejected successfully.');
+                loadPendingSubmissions();
+                
+            } catch (error) {
+                console.error('Error rejecting submission:', error);
+                alert('Error rejecting submission: ' + error.message);
+            }
+        };
+        
+        window.clearAllPending = function() {
+            if (!confirm('Are you sure you want to clear ALL pending submissions? This action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                localStorage.removeItem('pendingMartyrs');
+                if (firebaseDB && firebaseDB.clearAllPending) {
+                    firebaseDB.clearAllPending();
+                }
+                
+                alert('All pending submissions cleared.');
+                loadPendingSubmissions();
+            } catch (error) {
+                console.error('Error clearing submissions:', error);
+                alert('Error clearing submissions: ' + error.message);
+            }
+        };
+        
+        window.exportData = function() {
+            try {
+                const approved = JSON.parse(localStorage.getItem('martyrsData') || '[]');
+                const pending = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
+                
+                const data = {
+                    approved: approved,
+                    pending: pending,
+                    exportDate: new Date().toISOString()
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `baluch-martyrs-export-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                alert('Data exported successfully!');
+            } catch (error) {
+                console.error('Error exporting data:', error);
+                alert('Error exporting data: ' + error.message);
+            }
+        };
+        
+        function updateStats() {
+            try {
+                document.getElementById('pendingCount').textContent = pendingSubmissions.length;
+                
+                const approved = JSON.parse(localStorage.getItem('martyrsData') || '[]');
+                document.getElementById('approvedCount').textContent = approved.length;
+            } catch (error) {
+                console.error('Error updating stats:', error);
+            }
+        }
+        
+        // Initialize when page loads
+        initializeAdmin();
+    </script>
+    
+    <!-- Load Firebase if available -->
+    <script type="module" src="js/firebase-config.js"></script>
+</body>
+</html>
