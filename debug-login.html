@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Login | Baluch Martyrs Memorial</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 1rem;
+            background: #f5f5f5;
+        }
+        .debug-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        .login-form {
+            background: #e8f4f8;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        .debug-log {
+            background: #2d3748;
+            color: #f7fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 1rem 0;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.25rem;
+            font-weight: bold;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        .btn {
+            background: #2c5530;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-right: 0.5rem;
+        }
+        .btn:hover {
+            background: #1a3d20;
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        .status {
+            padding: 0.75rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>🔧 Debug Login System</h1>
+        <p>This page helps debug authentication issues with the admin panel.</p>
+        
+        <div class="login-form">
+            <h2>Test Login</h2>
+            <form id="debugLoginForm">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" value="admin" placeholder="Enter username">
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" value="baluch2024!" placeholder="Enter password">
+                </div>
+                <button type="submit" class="btn">Test Login</button>
+                <button type="button" class="btn btn-secondary" onclick="clearStorage()">Clear Storage</button>
+                <button type="button" class="btn btn-secondary" onclick="checkSession()">Check Session</button>
+                <button type="button" class="btn btn-secondary" onclick="goToAdmin()">Go to Admin</button>
+            </form>
+        </div>
+        
+        <div id="statusMessage" class="status" style="display: none;"></div>
+        
+        <div class="debug-container">
+            <h2>Debug Log</h2>
+            <div id="debugLog" class="debug-log">Starting debug session...\n</div>
+        </div>
+        
+        <div class="debug-container">
+            <h2>Storage Contents</h2>
+            <h3>localStorage:</h3>
+            <div id="localStorageContent" class="debug-log"></div>
+            
+            <h3>sessionStorage:</h3>
+            <div id="sessionStorageContent" class="debug-log"></div>
+        </div>
+    </div>
+
+    <script>
+        const SESSION_KEY = 'baluch_admin_session';
+        const ADMIN_CREDENTIALS = {
+            'admin': 'baluch2024!',
+            'moderator': 'memorial@admin'
+        };
+        
+        function log(message) {
+            const logDiv = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function showStatus(message, type = 'success') {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        function updateStorageDisplay() {
+            const localDiv = document.getElementById('localStorageContent');
+            const sessionDiv = document.getElementById('sessionStorageContent');
+            
+            // Display localStorage
+            const localData = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                localData[key] = localStorage.getItem(key);
+            }
+            localDiv.textContent = JSON.stringify(localData, null, 2);
+            
+            // Display sessionStorage
+            const sessionData = {};
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                sessionData[key] = sessionStorage.getItem(key);
+            }
+            sessionDiv.textContent = JSON.stringify(sessionData, null, 2);
+        }
+        
+        function setAdminSession(username) {
+            const SESSION_DURATION = 4 * 60 * 60 * 1000; // 4 hours
+            const sessionData = {
+                username: username,
+                loginTime: Date.now(),
+                expires: Date.now() + SESSION_DURATION
+            };
+            
+            log(`Setting session for user: ${username}`);
+            log(`Session expires at: ${new Date(sessionData.expires).toLocaleString()}`);
+            
+            try {
+                localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+                sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+                log('✅ Session data stored successfully');
+                return true;
+            } catch (error) {
+                log(`❌ Failed to store session: ${error.message}`);
+                return false;
+            }
+        }
+        
+        function checkSession() {
+            log('🔍 Checking current session...');
+            
+            const localSession = localStorage.getItem(SESSION_KEY);
+            const sessionSession = sessionStorage.getItem(SESSION_KEY);
+            
+            log(`localStorage session: ${localSession ? 'EXISTS' : 'NOT FOUND'}`);
+            log(`sessionStorage session: ${sessionSession ? 'EXISTS' : 'NOT FOUND'}`);
+            
+            if (localSession) {
+                try {
+                    const session = JSON.parse(localSession);
+                    log(`Session user: ${session.username}`);
+                    log(`Session expires: ${new Date(session.expires).toLocaleString()}`);
+                    log(`Current time: ${new Date().toLocaleString()}`);
+                    log(`Session valid: ${session.expires > Date.now() ? 'YES' : 'NO'}`);
+                    
+                    if (session.expires > Date.now()) {
+                        showStatus('✅ Valid session found!', 'success');
+                    } else {
+                        showStatus('❌ Session expired!', 'error');
+                    }
+                } catch (error) {
+                    log(`❌ Failed to parse session: ${error.message}`);
+                    showStatus('❌ Invalid session data!', 'error');
+                }
+            } else {
+                showStatus('❌ No session found!', 'error');
+            }
+            
+            updateStorageDisplay();
+        }
+        
+        function clearStorage() {
+            log('🗑️ Clearing all storage...');
+            localStorage.removeItem(SESSION_KEY);
+            sessionStorage.removeItem(SESSION_KEY);
+            log('✅ Storage cleared');
+            showStatus('Storage cleared successfully!', 'success');
+            updateStorageDisplay();
+        }
+        
+        function goToAdmin() {
+            log('🚀 Attempting to navigate to admin panel...');
+            window.location.href = 'admin.html';
+        }
+        
+        document.getElementById('debugLoginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            log(`🔐 Testing login for username: "${username}"`);
+            log(`Password provided: ${password ? 'YES' : 'NO'}`);
+            
+            if (!username || !password) {
+                log('❌ Username or password missing');
+                showStatus('Please enter both username and password', 'error');
+                return;
+            }
+            
+            log(`Checking credentials...`);
+            log(`Available users: ${Object.keys(ADMIN_CREDENTIALS).join(', ')}`);
+            log(`Username exists: ${ADMIN_CREDENTIALS.hasOwnProperty(username) ? 'YES' : 'NO'}`);
+            
+            if (ADMIN_CREDENTIALS[username] && ADMIN_CREDENTIALS[username] === password) {
+                log('✅ Credentials valid!');
+                
+                if (setAdminSession(username)) {
+                    showStatus('✅ Login successful! Session created.', 'success');
+                    log('✅ Login process completed successfully');
+                    updateStorageDisplay();
+                    
+                    // Offer to redirect
+                    setTimeout(() => {
+                        if (confirm('Login successful! Go to admin panel now?')) {
+                            goToAdmin();
+                        }
+                    }, 1000);
+                } else {
+                    showStatus('❌ Failed to create session', 'error');
+                }
+            } else {
+                log('❌ Invalid credentials');
+                showStatus('Invalid username or password', 'error');
+            }
+        });
+        
+        // Initialize
+        log('🚀 Debug login page loaded');
+        checkSession();
+        updateStorageDisplay();
+    </script>
+</body>
+</html>
