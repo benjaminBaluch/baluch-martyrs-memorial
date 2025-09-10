@@ -171,8 +171,10 @@
         <div class="container">
             <div class="admin-controls">
                 <button onclick="loadPendingSubmissions()" class="btn btn-primary">Refresh Data</button>
+                <button onclick="createTestSubmissions()" class="btn btn-secondary">Create Test Submissions</button>
                 <button onclick="exportData()" class="btn btn-secondary">Export Data</button>
                 <button onclick="clearAllPending()" class="btn btn-outline" style="color: #dc3545; border-color: #dc3545;">Clear All Pending</button>
+                <button onclick="showDebugInfo()" class="btn btn-secondary">Show Debug Info</button>
                 <button onclick="window.location.href='index.html'" class="btn btn-secondary">Back to Website</button>
             </div>
 
@@ -236,25 +238,77 @@
         }
         
         window.loadPendingSubmissions = async function() {
-            console.log('Loading pending submissions...');
+            console.log('🔄 Loading pending submissions...');
             
             try {
+                let submissionsLoaded = false;
+                
                 // Try Firebase first
                 if (firebaseDB && firebaseDB.getPendingMartyrs) {
-                    pendingSubmissions = await firebaseDB.getPendingMartyrs();
-                    console.log('Loaded from Firebase:', pendingSubmissions.length, 'submissions');
-                } else {
-                    // Fallback to localStorage
-                    const localData = localStorage.getItem('pendingMartyrs');
-                    pendingSubmissions = localData ? JSON.parse(localData) : [];
-                    console.log('Loaded from localStorage:', pendingSubmissions.length, 'submissions');
+                    console.log('📡 Trying Firebase...');
+                    try {
+                        pendingSubmissions = await firebaseDB.getPendingMartyrs();
+                        console.log('✅ Loaded from Firebase:', pendingSubmissions.length, 'submissions');
+                        submissionsLoaded = true;
+                    } catch (firebaseError) {
+                        console.warn('⚠️ Firebase failed:', firebaseError.message);
+                    }
                 }
+                
+                // Fallback to localStorage if Firebase failed or not available
+                if (!submissionsLoaded) {
+                    console.log('💾 Using localStorage fallback...');
+                    const localData = localStorage.getItem('pendingMartyrs');
+                    console.log('📄 Raw localStorage data:', localData);
+                    
+                    if (localData) {
+                        try {
+                            pendingSubmissions = JSON.parse(localData);
+                            console.log('✅ Parsed localStorage submissions:', pendingSubmissions.length);
+                        } catch (parseError) {
+                            console.error('❌ Error parsing localStorage data:', parseError);
+                            pendingSubmissions = [];
+                        }
+                    } else {
+                        console.log('ℹ️ No localStorage data found - empty submissions');
+                        pendingSubmissions = [];
+                    }
+                }
+                
+                // Ensure pendingSubmissions is always an array
+                if (!Array.isArray(pendingSubmissions)) {
+                    console.warn('⚠️ Submissions data is not an array, converting...');
+                    pendingSubmissions = [];
+                }
+                
+                console.log('📊 Final submissions count:', pendingSubmissions.length);
                 
                 displayPendingSubmissions();
                 updateStats();
+                
             } catch (error) {
-                console.error('Error loading submissions:', error);
-                document.getElementById('pendingList').innerHTML = '<p class="no-pending">Error loading submissions. Check console for details.</p>';
+                console.error('❌ Critical error loading submissions:', error);
+                console.error('Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    firebaseAvailable: !!firebaseDB,
+                    localStorageAvailable: typeof localStorage !== 'undefined'
+                });
+                
+                // Show more helpful error message
+                document.getElementById('pendingList').innerHTML = `
+                    <div class="no-pending">
+                        <h3>Error Loading Submissions</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p><strong>Debug Info:</strong></p>
+                        <ul style="text-align: left; display: inline-block;">
+                            <li>Firebase Available: ${!!firebaseDB ? 'Yes' : 'No'}</li>
+                            <li>LocalStorage Available: ${typeof localStorage !== 'undefined' ? 'Yes' : 'No'}</li>
+                            <li>Current URL: ${window.location.href}</li>
+                        </ul>
+                        <p><button onclick="loadPendingSubmissions()" class="btn btn-primary">Try Again</button></p>
+                    </div>
+                `;
             }
         };
         
@@ -443,6 +497,102 @@
                 console.error('Error updating stats:', error);
             }
         }
+        
+        window.createTestSubmissions = function() {
+            console.log('🇺️ Creating test submissions...');
+            
+            const testSubmissions = [
+                {
+                    id: 'test-' + Date.now() + '-1',
+                    fullName: 'Test Martyr 1',
+                    birthDate: '1985-03-15',
+                    martyrdomDate: '2020-08-10',
+                    birthPlace: 'Quetta, Balochistan',
+                    martyrdomPlace: 'Karachi, Sindh',
+                    organization: 'Baloch Liberation Army',
+                    rank: 'Fighter',
+                    biography: 'This is a test martyr created for testing the admin panel functionality.',
+                    submittedAt: Date.now(),
+                    submitterName: 'Test Submitter',
+                    status: 'pending'
+                },
+                {
+                    id: 'test-' + Date.now() + '-2',
+                    fullName: 'Test Martyr 2',
+                    birthDate: '1990-07-22',
+                    martyrdomDate: '2021-12-03',
+                    birthPlace: 'Turbat, Balochistan',
+                    martyrdomPlace: 'Gwadar, Balochistan',
+                    organization: 'Balochistan Liberation Front',
+                    rank: 'Commander',
+                    biography: 'Another test martyr for admin panel testing. This one has more details.',
+                    submittedAt: Date.now() + 1000,
+                    submitterName: 'Another Test Submitter',
+                    status: 'pending'
+                }
+            ];
+            
+            try {
+                // Add to localStorage
+                const existing = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
+                const combined = [...existing, ...testSubmissions];
+                localStorage.setItem('pendingMartyrs', JSON.stringify(combined));
+                
+                // Also try to add to Firebase if available
+                if (firebaseDB && firebaseDB.submitMartyr) {
+                    testSubmissions.forEach(async (martyr) => {
+                        try {
+                            await firebaseDB.submitMartyr(martyr);
+                            console.log('✅ Added to Firebase:', martyr.fullName);
+                        } catch (error) {
+                            console.warn('⚠️ Failed to add to Firebase:', martyr.fullName, error.message);
+                        }
+                    });
+                }
+                
+                alert(`Created ${testSubmissions.length} test submissions!`);
+                loadPendingSubmissions();
+                
+            } catch (error) {
+                console.error('❌ Error creating test submissions:', error);
+                alert('Error creating test submissions: ' + error.message);
+            }
+        };
+        
+        window.showDebugInfo = function() {
+            console.log('🔍 Showing debug information...');
+            
+            const debugInfo = {
+                firebaseAvailable: !!firebaseDB,
+                firebaseMethods: firebaseDB ? Object.keys(firebaseDB) : [],
+                localStorageKeys: Object.keys(localStorage),
+                pendingMartyrsRaw: localStorage.getItem('pendingMartyrs'),
+                martyrsDataRaw: localStorage.getItem('martyrsData'),
+                currentSubmissions: pendingSubmissions.length,
+                sessionInfo: {
+                    simple: localStorage.getItem('simple_admin_session'),
+                    baluch: localStorage.getItem('baluch_admin_session')
+                },
+                pageUrl: window.location.href,
+                userAgent: navigator.userAgent
+            };
+            
+            console.log('📄 Debug Information:', debugInfo);
+            
+            // Show in alert for easy viewing
+            const summary = `Debug Information:
+
+• Firebase Available: ${!!firebaseDB ? 'Yes' : 'No'}
+• Current Submissions: ${pendingSubmissions.length}
+• LocalStorage Keys: ${Object.keys(localStorage).length}
+• Pending Data Exists: ${!!localStorage.getItem('pendingMartyrs') ? 'Yes' : 'No'}
+• Approved Data Exists: ${!!localStorage.getItem('martyrsData') ? 'Yes' : 'No'}
+• Session Active: ${!!localStorage.getItem('simple_admin_session') ? 'Yes' : 'No'}
+
+Check browser console (F12) for detailed information.`;
+            
+            alert(summary);
+        };
         
         // Initialize when page loads
         initializeAdmin();

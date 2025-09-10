@@ -13,7 +13,7 @@ function validateAdminAuth(actionName = 'admin action') {
         
         if (!sessionData) {
             console.error(`❌ No session found for ${actionName}`);
-            return false; // Don't redirect here, let caller handle it
+            return false;
         }
         
         const session = JSON.parse(sessionData);
@@ -24,16 +24,16 @@ function validateAdminAuth(actionName = 'admin action') {
             return false;
         }
         
-        // Check expiration with 5 minute buffer (same as main auth)
-        const timeLeft = session.expires - Date.now();
-        const bufferTime = 5 * 60 * 1000; // 5 minutes buffer
+        // Check expiration with same 1 hour buffer as main auth
+        const now = Date.now();
+        const bufferTime = 60 * 60 * 1000; // 1 hour buffer (same as main auth)
         
-        if (timeLeft < -bufferTime) {
-            console.error(`❌ Session expired during ${actionName} (${Math.abs(Math.round(timeLeft / (1000 * 60)))} minutes ago)`);
+        if (session.expires < (now - bufferTime)) {
+            console.error(`❌ Session expired during ${actionName}`);
             return false;
         }
         
-        console.log(`✅ Authentication OK for ${actionName} by ${session.username} (${Math.round(timeLeft / (1000 * 60))} minutes left)`);
+        console.log(`✅ Authentication OK for ${actionName} by ${session.username}`);
         return true;
     } catch (error) {
         console.error(`❌ Authentication error for ${actionName}:`, error);

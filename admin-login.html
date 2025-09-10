@@ -166,10 +166,26 @@
             const sessionData = {
                 username: username,
                 loginTime: Date.now(),
-                expires: Date.now() + SESSION_DURATION
+                expires: Date.now() + SESSION_DURATION,
+                admin: true
             };
-            localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
-            sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+            
+            console.log('Creating session:', {
+                username: sessionData.username,
+                loginTime: new Date(sessionData.loginTime).toLocaleString(),
+                expires: new Date(sessionData.expires).toLocaleString(),
+                duration: Math.round(SESSION_DURATION / (1000 * 60)) + ' minutes'
+            });
+            
+            try {
+                localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+                sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+                console.log('✅ Session stored successfully');
+                return true;
+            } catch (error) {
+                console.error('❌ Failed to store session:', error);
+                return false;
+            }
         }
 
         function hashPassword(password) {
@@ -225,13 +241,28 @@
             setTimeout(() => {
                 if (ADMIN_CREDENTIALS[username] && ADMIN_CREDENTIALS[username] === password) {
                     // Successful login
-                    setAdminSession(username);
+                    console.log(`🔐 Attempting to create session for: ${username}`);
                     
-                    // Log authentication event
-                    console.log(`🔐 Admin login successful: ${username} at ${new Date().toISOString()}`);
-                    
-                    // Redirect to admin panel
-                    window.location.href = 'admin.html';
+                    if (setAdminSession(username)) {
+                        console.log(`✅ Admin login successful: ${username} at ${new Date().toISOString()}`);
+                        
+                        // Verify session was created
+                        const verifySession = localStorage.getItem(SESSION_KEY);
+                        if (verifySession) {
+                            console.log('✅ Session verification successful');
+                            // Redirect to admin panel
+                            window.location.href = 'admin.html';
+                        } else {
+                            console.error('❌ Session verification failed');
+                            showError('Failed to create session. Please try again.');
+                            loginBtn.disabled = false;
+                            loginBtn.textContent = 'Login to Admin Panel';
+                        }
+                    } else {
+                        showError('Failed to create session. Please try again.');
+                        loginBtn.disabled = false;
+                        loginBtn.textContent = 'Login to Admin Panel';
+                    }
                 } else {
                     // Failed login
                     showError('Invalid username or password. Please try again.');
@@ -242,7 +273,7 @@
                     loginBtn.disabled = false;
                     loginBtn.textContent = 'Login to Admin Panel';
                 }
-            }, 1000);
+            }, 500);
         });
 
         // Check for existing session on page load

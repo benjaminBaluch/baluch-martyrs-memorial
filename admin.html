@@ -206,109 +206,96 @@
         </div>
     </main>
 
-    <!-- Simple Authentication Check -->
+    <!-- Fixed Authentication Check -->
     <script>
         const SESSION_KEY = 'baluch_admin_session';
         
-        function checkAuth() {
+        function checkAdminAuth() {
+            console.log('🔍 Checking admin authentication...');
+            
             try {
-                console.log('🔍 Checking authentication...');
                 const sessionData = localStorage.getItem(SESSION_KEY);
+                console.log('Session data found:', !!sessionData);
                 
                 if (!sessionData) {
-                    console.log('❌ No session data found');
-                    redirectToLogin('No session found');
+                    console.log('❌ No session found, redirecting to login');
+                    window.location.href = 'admin-login.html';
                     return false;
                 }
                 
                 const session = JSON.parse(sessionData);
-                console.log('📋 Session data:', {
+                console.log('Session details:', {
                     username: session.username,
-                    loginTime: session.loginTime ? new Date(session.loginTime).toLocaleString() : 'N/A',
+                    hasExpires: !!session.expires,
                     expires: session.expires ? new Date(session.expires).toLocaleString() : 'N/A',
                     currentTime: new Date().toLocaleString(),
-                    timeLeft: session.expires ? Math.round((session.expires - Date.now()) / (1000 * 60)) + ' minutes' : 'N/A'
+                    isExpired: session.expires ? session.expires < Date.now() : 'Unknown'
                 });
                 
-                // Check required fields
+                // Basic validation
                 if (!session.username || !session.expires) {
-                    console.log('❌ Invalid session structure');
-                    clearSession();
-                    redirectToLogin('Invalid session data');
+                    console.log('❌ Invalid session data, redirecting to login');
+                    localStorage.removeItem(SESSION_KEY);
+                    sessionStorage.removeItem(SESSION_KEY);
+                    window.location.href = 'admin-login.html';
                     return false;
                 }
                 
-                // Check expiration with 5 minute buffer to prevent edge cases
-                const timeLeft = session.expires - Date.now();
-                const bufferTime = 5 * 60 * 1000; // 5 minutes buffer
+                // Check if expired (with 1 hour buffer for safety)
+                const now = Date.now();
+                const bufferTime = 60 * 60 * 1000; // 1 hour buffer
                 
-                if (timeLeft < -bufferTime) {
-                    console.log(`❌ Session expired ${Math.abs(Math.round(timeLeft / (1000 * 60)))} minutes ago`);
-                    clearSession();
-                    redirectToLogin('Session expired');
+                if (session.expires < (now - bufferTime)) {
+                    console.log('❌ Session expired, redirecting to login');
+                    localStorage.removeItem(SESSION_KEY);
+                    sessionStorage.removeItem(SESSION_KEY);
+                    window.location.href = 'admin-login.html';
                     return false;
                 }
                 
                 console.log('✅ Authentication successful for:', session.username);
-                updateUI(session);
+                
+                // Update UI
+                const usernameEl = document.getElementById('adminUsername');
+                if (usernameEl) {
+                    usernameEl.textContent = session.username;
+                }
+                
+                const timerEl = document.getElementById('sessionTimer');
+                if (timerEl) {
+                    const remaining = Math.max(0, Math.floor((session.expires - now) / (1000 * 60)));
+                    timerEl.textContent = remaining;
+                }
+                
+                // Setup logout button
+                const logoutBtn = document.getElementById('logoutBtn');
+                if (logoutBtn) {
+                    logoutBtn.onclick = () => {
+                        localStorage.removeItem(SESSION_KEY);
+                        sessionStorage.removeItem(SESSION_KEY);
+                        window.location.href = 'admin-login.html';
+                    };
+                }
+                
                 return true;
                 
             } catch (error) {
-                console.error('❌ Authentication check failed:', error);
-                clearSession();
-                redirectToLogin('Authentication error');
+                console.error('❌ Authentication error:', error);
+                localStorage.removeItem(SESSION_KEY);
+                sessionStorage.removeItem(SESSION_KEY);
+                window.location.href = 'admin-login.html';
                 return false;
             }
         }
         
-        function clearSession() {
-            console.log('🗑️ Clearing session data...');
-            localStorage.removeItem(SESSION_KEY);
-            sessionStorage.removeItem(SESSION_KEY);
+        // Run authentication check immediately
+        console.log('🚀 Starting admin authentication...');
+        if (!checkAdminAuth()) {
+            console.log('❌ Authentication failed, stopping page load');
+            // Stop execution
+            throw new Error('Authentication failed');
         }
-        
-        function updateUI(session) {
-            // Update username display
-            const usernameEl = document.getElementById('adminUsername');
-            if (usernameEl) {
-                usernameEl.textContent = session.username;
-            }
-            
-            // Update timer display (simple, no auto-refresh)
-            const timerEl = document.getElementById('sessionTimer');
-            if (timerEl) {
-                const remaining = Math.max(0, Math.floor((session.expires - Date.now()) / (1000 * 60)));
-                timerEl.textContent = remaining;
-            }
-            
-            // Setup logout button (only once)
-            const logoutBtn = document.getElementById('logoutBtn');
-            if (logoutBtn && !logoutBtn.hasAttribute('data-setup')) {
-                logoutBtn.setAttribute('data-setup', 'true');
-                logoutBtn.addEventListener('click', () => {
-                    console.log('👤 User initiated logout');
-                    clearSession();
-                    window.location.href = 'admin-login.html';
-                });
-            }
-        }
-        
-        function redirectToLogin(reason = 'Authentication required') {
-            console.log(`🔒 Redirecting to login: ${reason}`);
-            // Add a small delay to ensure logs are visible
-            setTimeout(() => {
-                window.location.href = 'admin-login.html';
-            }, 100);
-        }
-        
-        // Run authentication check
-        console.log('🚀 Starting admin panel authentication...');
-        if (!checkAuth()) {
-            console.log('❌ Authentication failed - stopping execution');
-            // Don't throw error, just stop here
-        } else {
-            console.log('✅ Admin panel authentication passed');
-        }
+        console.log('✅ Admin authentication passed, page loading...');
     </script>
     
     <!-- Firebase Config Script -->
