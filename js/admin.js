@@ -3,56 +3,49 @@
 // Import authentication module
 import { adminAuth } from './auth.js';
 
-// Strong authentication validation function
+// Simple authentication validation function
 function validateAdminAuth(actionName = 'admin action') {
     try {
         const SESSION_KEY = 'baluch_admin_session';
         
-        // Check for session in both storages
-        const localSession = localStorage.getItem(SESSION_KEY);
-        const storageSession = sessionStorage.getItem(SESSION_KEY);
+        // Check for session in localStorage only (keep it simple)
+        const sessionData = localStorage.getItem(SESSION_KEY);
         
-        if (!localSession || !storageSession) {
-            console.error(`❌ No valid session for ${actionName} - redirecting to login`);
+        if (!sessionData) {
+            console.error(`❌ No valid session for ${actionName}`);
+            alert('Session expired. Please login again.');
             window.location.href = 'admin-login.html';
             return false;
         }
         
-        const localData = JSON.parse(localSession);
-        const storageData = JSON.parse(storageSession);
+        const session = JSON.parse(sessionData);
         
-        // Verify sessions match (tamper detection)
-        if (localData.username !== storageData.username || 
-            localData.loginTime !== storageData.loginTime) {
-            console.error(`❌ Session tamper detected during ${actionName} - clearing sessions`);
+        // Check if session has required fields
+        if (!session.username || !session.expires) {
+            console.error(`❌ Invalid session data for ${actionName}`);
             localStorage.removeItem(SESSION_KEY);
-            sessionStorage.removeItem(SESSION_KEY);
+            alert('Invalid session. Please login again.');
             window.location.href = 'admin-login.html';
             return false;
         }
         
         // Check if session is expired
-        if (localData.expires <= Date.now()) {
-            console.error(`❌ Session expired during ${actionName} - redirecting to login`);
+        if (session.expires <= Date.now()) {
+            console.error(`❌ Session expired during ${actionName}`);
             localStorage.removeItem(SESSION_KEY);
             sessionStorage.removeItem(SESSION_KEY);
+            alert('Session expired. Please login again.');
             window.location.href = 'admin-login.html';
             return false;
         }
         
-        // Also validate using the auth module if available
-        if (window.adminAuth && typeof window.adminAuth.isAuthenticated === 'function') {
-            if (!window.adminAuth.isAuthenticated()) {
-                console.error(`❌ Auth module validation failed for ${actionName}`);
-                window.location.href = 'admin-login.html';
-                return false;
-            }
-        }
-        
-        console.log(`✅ Authentication validated for ${actionName} by ${localData.username}`);
+        console.log(`✅ Authentication OK for ${actionName} by ${session.username}`);
         return true;
     } catch (error) {
-        console.error(`❌ Authentication validation error for ${actionName}:`, error);
+        console.error(`❌ Authentication error for ${actionName}:`, error);
+        localStorage.removeItem(SESSION_KEY);
+        sessionStorage.removeItem(SESSION_KEY);
+        alert('Authentication error. Please login again.');
         window.location.href = 'admin-login.html';
         return false;
     }

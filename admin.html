@@ -206,91 +206,109 @@
         </div>
     </main>
 
-    <!-- Strong Authentication Check -->
+    <!-- Simple Authentication Check -->
     <script>
         const SESSION_KEY = 'baluch_admin_session';
         
-        function checkStrongAuth() {
+        function checkSimpleAuth() {
             try {
                 const sessionData = localStorage.getItem(SESSION_KEY);
-                const sessionStorageData = sessionStorage.getItem(SESSION_KEY);
                 
-                // Require both localStorage and sessionStorage
-                if (!sessionData || !sessionStorageData) {
-                    console.log('❌ No valid session found - redirecting to login');
-                    redirectToLogin('No session found');
+                // Just check localStorage for simplicity
+                if (!sessionData) {
+                    console.log('❌ No session found - redirecting to login');
+                    redirectToLogin();
                     return false;
                 }
                 
-                const localSession = JSON.parse(sessionData);
-                const storageSession = JSON.parse(sessionStorageData);
+                const session = JSON.parse(sessionData);
                 
-                // Verify both storages match (tamper detection)
-                if (localSession.username !== storageSession.username || 
-                    localSession.loginTime !== storageSession.loginTime) {
-                    console.log('❌ Session tamper detected - clearing and redirecting');
-                    clearSessions();
-                    redirectToLogin('Session tamper detected');
+                // Check if session exists and has required fields
+                if (!session.username || !session.expires) {
+                    console.log('❌ Invalid session data - redirecting to login');
+                    clearSession();
+                    redirectToLogin();
                     return false;
                 }
                 
-                // Check if session is expired (with small grace period)
-                if (localSession.expires <= (Date.now() + 30000)) { // 30 second grace
+                // Check if session is expired (with generous buffer)
+                if (session.expires <= Date.now()) {
                     console.log('❌ Session expired - redirecting to login');
-                    clearSessions();
-                    redirectToLogin('Session expired');
+                    clearSession();
+                    redirectToLogin();
                     return false;
                 }
                 
-                console.log('✅ Strong authentication passed');
+                console.log('✅ Authentication passed for user:', session.username);
+                
+                // Update UI with user info
+                updateAdminUI(session);
+                
                 return true;
             } catch (error) {
                 console.error('❌ Authentication error:', error);
-                clearSessions();
-                redirectToLogin('Authentication error');
+                clearSession();
+                redirectToLogin();
                 return false;
             }
         }
         
-        function clearSessions() {
+        function clearSession() {
             localStorage.removeItem(SESSION_KEY);
             sessionStorage.removeItem(SESSION_KEY);
         }
         
-        function redirectToLogin(reason) {
-            // Show loading message before redirect
-            document.body.innerHTML = `
-                <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-                            background: white; padding: 2rem; border-radius: 8px; 
-                            box-shadow: 0 4px 20px rgba(0,0,0,0.3); text-align: center;
-                            font-family: Arial, sans-serif; z-index: 10000;">
-                    <h3 style="color: #2c5530; margin-bottom: 1rem;">🔒 Authentication Required</h3>
-                    <p>Reason: ${reason}</p>
-                    <p style="font-size: 0.9rem; color: #666;">Redirecting to login...</p>
-                    <div style="margin-top: 1rem;">
-                        <div style="display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3;
-                                    border-top: 3px solid #2c5530; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                    </div>
-                </div>
-                <style>
-                    @keyframes spin {
-                        0% { transform: rotate(0deg); }
-                        100% { transform: rotate(360deg); }
-                    }
-                </style>
-            `;
+        function updateAdminUI(session) {
+            // Update admin username
+            const usernameEl = document.getElementById('adminUsername');
+            if (usernameEl) {
+                usernameEl.textContent = session.username;
+            }
             
-            // Redirect after 1 second
-            setTimeout(() => {
-                window.location.href = 'admin-login.html';
-            }, 1000);
+            // Update session timer
+            updateSessionTimer(session);
+            
+            // Setup logout button
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', () => {
+                    clearSession();
+                    window.location.href = 'admin-login.html';
+                });
+            }
         }
         
-        // Run strong authentication check immediately
-        if (!checkStrongAuth()) {
-            // If auth fails, stop all script execution
+        function updateSessionTimer(session) {
+            const timerEl = document.getElementById('sessionTimer');
+            if (!timerEl) return;
+            
+            function updateTimer() {
+                const remaining = Math.max(0, Math.floor((session.expires - Date.now()) / (1000 * 60)));
+                timerEl.textContent = remaining;
+                
+                if (remaining <= 0) {
+                    clearSession();
+                    alert('Session expired. Redirecting to login...');
+                    window.location.href = 'admin-login.html';
+                }
+            }
+            
+            updateTimer();
+            setInterval(updateTimer, 60000); // Update every minute
+        }
+        
+        function redirectToLogin() {
+            console.log('🔒 Redirecting to login page...');
+            window.location.href = 'admin-login.html';
+        }
+        
+        // Run simple authentication check
+        if (!checkSimpleAuth()) {
+            // Stop script execution if auth fails
             throw new Error('Authentication failed - stopping script execution');
         }
+        
+        console.log('✅ Admin page loaded successfully');
     </script>
     
     <!-- Firebase Config Script -->
