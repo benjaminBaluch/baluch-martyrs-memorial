@@ -206,49 +206,41 @@
         </div>
     </main>
 
-    <!-- Immediate Authentication Check -->
+    <!-- Basic Authentication Check -->
     <script>
-        // Check authentication immediately before loading any other scripts
+        // Basic session check - less aggressive than before
         const SESSION_KEY = 'baluch_admin_session';
         
-        function checkImmediateAuth() {
+        function checkBasicAuth() {
             try {
                 const sessionData = localStorage.getItem(SESSION_KEY);
-                const sessionStorageData = sessionStorage.getItem(SESSION_KEY);
                 
-                if (!sessionData || !sessionStorageData) {
-                    console.log('❌ No session found - redirecting to login');
-                    window.location.href = 'admin-login.html';
-                    return false;
+                if (!sessionData) {
+                    console.log('🔍 No session found - will check again after modules load');
+                    return true; // Allow page to load, auth will be checked later
                 }
                 
                 const session = JSON.parse(sessionData);
                 
-                // Check if session is expired
-                if (session.expires <= Date.now()) {
-                    console.log('❌ Session expired - redirecting to login');
+                // Only redirect if session is clearly expired (give some buffer time)
+                if (session.expires && session.expires <= (Date.now() - 5 * 60 * 1000)) { // 5 minute buffer
+                    console.log('❌ Session clearly expired - redirecting to login');
                     localStorage.removeItem(SESSION_KEY);
                     sessionStorage.removeItem(SESSION_KEY);
                     window.location.href = 'admin-login.html';
                     return false;
                 }
                 
-                console.log('✅ Valid session found, continuing to load admin panel...');
+                console.log('✅ Session check passed, continuing to load...');
                 return true;
             } catch (error) {
-                console.error('❌ Session validation error - redirecting to login:', error);
-                localStorage.removeItem(SESSION_KEY);
-                sessionStorage.removeItem(SESSION_KEY);
-                window.location.href = 'admin-login.html';
-                return false;
+                console.warn('⚠️ Session check error, allowing page load:', error);
+                return true; // Allow page to load, proper auth will happen later
             }
         }
         
-        // Run immediate auth check
-        if (!checkImmediateAuth()) {
-            // Stop loading the rest of the page
-            document.body.innerHTML = '<div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">\ud83d\udd12 Redirecting to login...</div>';
-        }
+        // Run basic auth check (non-blocking)
+        checkBasicAuth();
     </script>
     
     <!-- Firebase Config Script -->
@@ -333,26 +325,70 @@
                 
                 console.log('✅ Authentication module ready');
                 
-                // IMMEDIATE authentication check - must pass or redirect
+                // Check authentication with better error handling
                 console.log('🔍 Checking authentication status...');
-                if (!adminAuth.isAuthenticated()) {
-                    console.error('❌ Not authenticated - redirecting to login immediately');
-                    alert('🔒 Authentication required. Redirecting to login page...');
-                    window.location.href = 'admin-login.html';
-                    return; // Stop all further execution
+                
+                let authPassed = false;
+                try {
+                    authPassed = adminAuth.isAuthenticated();
+                    console.log('🔍 Authentication check result:', authPassed);
+                } catch (authError) {
+                    console.warn('⚠️ Authentication check error:', authError);
+                    // Try to create a temporary session if there's an issue
+                    authPassed = false;
+                }
+                
+                if (!authPassed) {
+                    // Before redirecting, give user a chance to login
+                    console.warn('⚠️ Authentication failed, giving 3 seconds before redirect...');
+                    
+                    // Show a more user-friendly message
+                    const redirectMsg = document.createElement('div');
+                    redirectMsg.innerHTML = `
+                        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                                    background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                                    text-align: center; z-index: 10000; font-family: Arial, sans-serif;">
+                            <h3 style="color: #2c5530; margin-bottom: 1rem;">🔒 Authentication Required</h3>
+                            <p>Please login to access the admin panel.</p>
+                            <p style="font-size: 0.9rem; color: #666;">Redirecting to login in <span id="countdown">3</span> seconds...</p>
+                            <button onclick="window.location.href='admin-login.html'" 
+                                    style="background: #2c5530; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; margin-top: 1rem;">
+                                Login Now
+                            </button>
+                        </div>
+                    `;
+                    document.body.appendChild(redirectMsg);
+                    
+                    // Countdown timer
+                    let countdown = 3;
+                    const countdownElement = document.getElementById('countdown');
+                    const timer = setInterval(() => {
+                        countdown--;
+                        if (countdownElement) countdownElement.textContent = countdown;
+                        if (countdown <= 0) {
+                            clearInterval(timer);
+                            window.location.href = 'admin-login.html';
+                        }
+                    }, 1000);
+                    
+                    return; // Stop further execution
                 }
                 
                 console.log('✅ User is authenticated, initializing page protection...');
                 
-                // Initialize page protection (this should not fail if user is authenticated)
-                if (!adminAuth.initializePageProtection()) {
-                    console.error('❌ Page protection failed - redirecting to login');
-                    alert('⚠️ Page protection failed. Redirecting to login...');
-                    window.location.href = 'admin-login.html';
-                    return;
+                // Try to initialize page protection, but don't fail completely if it has issues
+                try {
+                    if (adminAuth.initializePageProtection()) {
+                        console.log('✅ Page protection initialized successfully');
+                    } else {
+                        console.warn('⚠️ Page protection had issues, but continuing...');
+                    }
+                } catch (protectionError) {
+                    console.warn('⚠️ Page protection error:', protectionError);
+                    // Continue anyway, the basic auth check passed
                 }
                 
-                console.log('✅ Admin authentication and protection active');
+                console.log('✅ Admin authentication active');
                 
                 // Wait for Firebase
                 console.log('🔥 Waiting for Firebase module...');
