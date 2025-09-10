@@ -120,7 +120,7 @@
         <form id="loginForm">
             <div class="form-group">
                 <label for="username">Username</label>
-                <input type="text" id="username" name="username" required autocomplete="username">
+                <input type="text" id="username" name="username" required autocomplete="username" value="admin">
             </div>
             
             <div class="form-group">
@@ -143,83 +143,50 @@
     </div>
 
     <script type="module">
+        import { adminAuth } from './js/auth.js';
+        
         // Admin credentials - In production, these should be server-side
         const ADMIN_CREDENTIALS = {
             'admin': 'baluch2024!',  // Default credentials
             'moderator': 'memorial@admin'  // Additional admin user
         };
 
-        // Session management
-        const SESSION_KEY = 'baluch_admin_session';
-        const SESSION_DURATION = 4 * 60 * 60 * 1000; // 4 hours
-
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
             errorDiv.textContent = message;
+            errorDiv.style.background = '#f8d7da';
+            errorDiv.style.color = '#721c24';
             errorDiv.style.display = 'block';
             setTimeout(() => {
                 errorDiv.style.display = 'none';
             }, 5000);
         }
 
-        function setAdminSession(username) {
-            const sessionData = {
-                username: username,
-                loginTime: Date.now(),
-                expires: Date.now() + SESSION_DURATION,
-                admin: true
-            };
-            
-            console.log('Creating session:', {
-                username: sessionData.username,
-                loginTime: new Date(sessionData.loginTime).toLocaleString(),
-                expires: new Date(sessionData.expires).toLocaleString(),
-                duration: Math.round(SESSION_DURATION / (1000 * 60)) + ' minutes'
-            });
-            
-            try {
-                localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
-                sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
-                console.log('✅ Session stored successfully');
-                return true;
-            } catch (error) {
-                console.error('❌ Failed to store session:', error);
-                return false;
-            }
-        }
-
-        function hashPassword(password) {
-            // Simple hash for client-side (not cryptographically secure)
-            let hash = 0;
-            for (let i = 0; i < password.length; i++) {
-                const char = password.charCodeAt(i);
-                hash = ((hash << 5) - hash) + char;
-                hash = hash & hash; // Convert to 32bit integer
-            }
-            return Math.abs(hash).toString(16);
+        function showSuccess(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.background = '#d4edda';
+            errorDiv.style.color = '#155724';
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 2000);
         }
 
         // Check if already logged in
         function checkExistingSession() {
-            const sessionData = localStorage.getItem(SESSION_KEY);
-            if (sessionData) {
-                try {
-                    const session = JSON.parse(sessionData);
-                    if (session.expires > Date.now()) {
-                        // Valid session exists
-                        window.location.href = 'admin.html';
-                        return;
-                    } else {
-                        // Session expired
-                        localStorage.removeItem(SESSION_KEY);
-                        sessionStorage.removeItem(SESSION_KEY);
-                    }
-                } catch (e) {
-                    // Invalid session data
-                    localStorage.removeItem(SESSION_KEY);
-                    sessionStorage.removeItem(SESSION_KEY);
-                }
+            console.log('🔍 Checking for existing admin session...');
+            
+            if (adminAuth.isAuthenticated()) {
+                console.log('✅ Valid session found, redirecting to admin panel');
+                const admin = adminAuth.getCurrentAdmin();
+                console.log(`Session for: ${admin.username}, expires: ${admin.expires.toLocaleString()}`);
+                window.location.href = 'admin.html';
+                return true;
             }
+            
+            console.log('❌ No valid session found');
+            return false;
         }
 
         document.getElementById('loginForm').addEventListener('submit', function(e) {
@@ -229,6 +196,8 @@
             const password = document.getElementById('password').value;
             const loginBtn = document.getElementById('loginBtn');
             
+            console.log(`🔐 Login attempt for username: ${username}`);
+            
             if (!username || !password) {
                 showError('Please enter both username and password');
                 return;
@@ -237,39 +206,49 @@
             loginBtn.disabled = true;
             loginBtn.textContent = 'Logging in...';
 
-            // Simulate network delay for better UX
+            // Verify credentials
             setTimeout(() => {
-                if (ADMIN_CREDENTIALS[username] && ADMIN_CREDENTIALS[username] === password) {
-                    // Successful login
-                    console.log(`🔐 Attempting to create session for: ${username}`);
-                    
-                    if (setAdminSession(username)) {
-                        console.log(`✅ Admin login successful: ${username} at ${new Date().toISOString()}`);
+                try {
+                    if (ADMIN_CREDENTIALS[username] && ADMIN_CREDENTIALS[username] === password) {
+                        console.log(`✅ Credentials verified for: ${username}`);
                         
-                        // Verify session was created
-                        const verifySession = localStorage.getItem(SESSION_KEY);
-                        if (verifySession) {
-                            console.log('✅ Session verification successful');
-                            // Redirect to admin panel
-                            window.location.href = 'admin.html';
+                        // Create session using auth.js
+                        const sessionData = adminAuth.createSession(username);
+                        
+                        if (sessionData) {
+                            console.log(`✅ Session created successfully`);
+                            showSuccess('Login successful! Redirecting...');
+                            
+                            // Double-check session was created
+                            if (adminAuth.isAuthenticated()) {
+                                console.log('✅ Session verification passed');
+                                setTimeout(() => {
+                                    window.location.href = 'admin.html';
+                                }, 1000);
+                            } else {
+                                console.error('❌ Session verification failed after creation');
+                                showError('Session creation failed. Please try again.');
+                                loginBtn.disabled = false;
+                                loginBtn.textContent = 'Login to Admin Panel';
+                            }
                         } else {
-                            console.error('❌ Session verification failed');
+                            console.error('❌ Failed to create session');
                             showError('Failed to create session. Please try again.');
                             loginBtn.disabled = false;
                             loginBtn.textContent = 'Login to Admin Panel';
                         }
                     } else {
-                        showError('Failed to create session. Please try again.');
+                        console.warn(`🚫 Invalid credentials for: ${username}`);
+                        showError('Invalid username or password. Please try again.');
+                        
+                        // Reset form
+                        document.getElementById('password').value = '';
                         loginBtn.disabled = false;
                         loginBtn.textContent = 'Login to Admin Panel';
                     }
-                } else {
-                    // Failed login
-                    showError('Invalid username or password. Please try again.');
-                    console.warn(`🚫 Failed login attempt: ${username} at ${new Date().toISOString()}`);
-                    
-                    // Reset form
-                    document.getElementById('password').value = '';
+                } catch (error) {
+                    console.error('❌ Login process error:', error);
+                    showError('An error occurred during login. Please try again.');
                     loginBtn.disabled = false;
                     loginBtn.textContent = 'Login to Admin Panel';
                 }
@@ -277,10 +256,19 @@
         });
 
         // Check for existing session on page load
-        checkExistingSession();
-
-        // Auto-focus username field
-        document.getElementById('username').focus();
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Admin login page loaded');
+            checkExistingSession();
+            
+            // Auto-focus password field (username is pre-filled)
+            document.getElementById('password').focus();
+        });
+        
+        // Also run immediately if DOM already loaded
+        if (document.readyState !== 'loading') {
+            console.log('🚀 Admin login page already loaded');
+            checkExistingSession();
+        }
     </script>
 </body>
 </html>

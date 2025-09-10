@@ -206,96 +206,64 @@
         </div>
     </main>
 
-    <!-- Fixed Authentication Check -->
-    <script>
-        const SESSION_KEY = 'baluch_admin_session';
+    <!-- Simple Authentication Check using auth.js -->
+    <script type="module">
+        import { adminAuth } from './js/auth.js';
         
-        function checkAdminAuth() {
-            console.log('🔍 Checking admin authentication...');
-            
-            try {
-                const sessionData = localStorage.getItem(SESSION_KEY);
-                console.log('Session data found:', !!sessionData);
-                
-                if (!sessionData) {
-                    console.log('❌ No session found, redirecting to login');
-                    window.location.href = 'admin-login.html';
-                    return false;
-                }
-                
-                const session = JSON.parse(sessionData);
-                console.log('Session details:', {
-                    username: session.username,
-                    hasExpires: !!session.expires,
-                    expires: session.expires ? new Date(session.expires).toLocaleString() : 'N/A',
-                    currentTime: new Date().toLocaleString(),
-                    isExpired: session.expires ? session.expires < Date.now() : 'Unknown'
-                });
-                
-                // Basic validation
-                if (!session.username || !session.expires) {
-                    console.log('❌ Invalid session data, redirecting to login');
-                    localStorage.removeItem(SESSION_KEY);
-                    sessionStorage.removeItem(SESSION_KEY);
-                    window.location.href = 'admin-login.html';
-                    return false;
-                }
-                
-                // Check if expired (with 1 hour buffer for safety)
-                const now = Date.now();
-                const bufferTime = 60 * 60 * 1000; // 1 hour buffer
-                
-                if (session.expires < (now - bufferTime)) {
-                    console.log('❌ Session expired, redirecting to login');
-                    localStorage.removeItem(SESSION_KEY);
-                    sessionStorage.removeItem(SESSION_KEY);
-                    window.location.href = 'admin-login.html';
-                    return false;
-                }
-                
-                console.log('✅ Authentication successful for:', session.username);
-                
-                // Update UI
+        console.log('🚀 Starting admin authentication...');
+        
+        // Check authentication immediately
+        if (!adminAuth.isAuthenticated()) {
+            console.log('❌ Not authenticated, redirecting to login');
+            window.location.href = 'admin-login.html';
+            throw new Error('Authentication required');
+        }
+        
+        console.log('✅ Authentication verified, setting up page...');
+        
+        // Update UI with admin info
+        document.addEventListener('DOMContentLoaded', () => {
+            const admin = adminAuth.getCurrentAdmin();
+            if (admin) {
                 const usernameEl = document.getElementById('adminUsername');
                 if (usernameEl) {
-                    usernameEl.textContent = session.username;
+                    usernameEl.textContent = admin.username;
                 }
                 
                 const timerEl = document.getElementById('sessionTimer');
                 if (timerEl) {
-                    const remaining = Math.max(0, Math.floor((session.expires - now) / (1000 * 60)));
+                    const remaining = adminAuth.getSessionTimeRemaining();
                     timerEl.textContent = remaining;
                 }
-                
-                // Setup logout button
-                const logoutBtn = document.getElementById('logoutBtn');
-                if (logoutBtn) {
-                    logoutBtn.onclick = () => {
-                        localStorage.removeItem(SESSION_KEY);
-                        sessionStorage.removeItem(SESSION_KEY);
-                        window.location.href = 'admin-login.html';
-                    };
-                }
-                
-                return true;
-                
-            } catch (error) {
-                console.error('❌ Authentication error:', error);
-                localStorage.removeItem(SESSION_KEY);
-                sessionStorage.removeItem(SESSION_KEY);
-                window.location.href = 'admin-login.html';
-                return false;
             }
-        }
+            
+            // Setup logout button
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.onclick = () => {
+                    adminAuth.logout();
+                };
+            }
+            
+            // Update session timer every minute
+            setInterval(() => {
+                const remaining = adminAuth.getSessionTimeRemaining();
+                const timerEl = document.getElementById('sessionTimer');
+                if (timerEl) {
+                    timerEl.textContent = remaining;
+                    
+                    if (remaining <= 15) {
+                        timerEl.style.color = '#ffeb3b';
+                    }
+                    if (remaining <= 5) {
+                        timerEl.style.color = '#f44336';
+                    }
+                }
+            }, 60000);
+        });
         
-        // Run authentication check immediately
-        console.log('🚀 Starting admin authentication...');
-        if (!checkAdminAuth()) {
-            console.log('❌ Authentication failed, stopping page load');
-            // Stop execution
-            throw new Error('Authentication failed');
-        }
-        console.log('✅ Admin authentication passed, page loading...');
+        // Make adminAuth globally available for other scripts
+        window.adminAuth = adminAuth;
     </script>
     
     <!-- Firebase Config Script -->

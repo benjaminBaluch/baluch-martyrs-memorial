@@ -3,42 +3,9 @@
 // Import authentication module
 import { adminAuth } from './auth.js';
 
-// Simple authentication validation function - matches main auth logic
+// Use auth.js module for authentication validation
 function validateAdminAuth(actionName = 'admin action') {
-    try {
-        const SESSION_KEY = 'baluch_admin_session';
-        
-        console.log(`🔍 Validating auth for: ${actionName}`);
-        const sessionData = localStorage.getItem(SESSION_KEY);
-        
-        if (!sessionData) {
-            console.error(`❌ No session found for ${actionName}`);
-            return false;
-        }
-        
-        const session = JSON.parse(sessionData);
-        
-        // Check if session has required fields
-        if (!session.username || !session.expires) {
-            console.error(`❌ Invalid session data for ${actionName}`);
-            return false;
-        }
-        
-        // Check expiration with same 1 hour buffer as main auth
-        const now = Date.now();
-        const bufferTime = 60 * 60 * 1000; // 1 hour buffer (same as main auth)
-        
-        if (session.expires < (now - bufferTime)) {
-            console.error(`❌ Session expired during ${actionName}`);
-            return false;
-        }
-        
-        console.log(`✅ Authentication OK for ${actionName} by ${session.username}`);
-        return true;
-    } catch (error) {
-        console.error(`❌ Authentication error for ${actionName}:`, error);
-        return false;
-    }
+    return adminAuth.validateAdminAction(actionName);
 }
 
 // Use global Firebase instance instead of direct import
