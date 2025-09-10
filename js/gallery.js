@@ -258,7 +258,7 @@ function createGalleryCard(martyr) {
     card.dataset.birthPlace = (martyr.birthPlace || '').toLowerCase();
     card.dataset.martyrdomPlace = (martyr.martyrdomPlace || '').toLowerCase();
     card.dataset.organization = (martyr.organization || '').toLowerCase();
-    card.dataset.year = martyr.martyrdomDate ? new Date(martyr.martyrdomDate).getFullYear().toString() : '';
+    card.dataset.year = martyr.martyrdomDate ? formatDateYear(martyr.martyrdomDate).toString() : '';
     
     // Image section
     const imageDiv = document.createElement('div');
@@ -284,8 +284,8 @@ function createGalleryCard(martyr) {
     name.textContent = martyr.fullName;
     
     const dates = document.createElement('p');
-    const birthYear = martyr.birthDate ? new Date(martyr.birthDate).getFullYear() : '?';
-    const martyrdomYear = new Date(martyr.martyrdomDate).getFullYear();
+    const birthYear = martyr.birthDate ? formatDateYear(martyr.birthDate) : '?';
+    const martyrdomYear = formatDateYear(martyr.martyrdomDate);
     dates.textContent = `${birthYear} - ${martyrdomYear}`;
     
     const place = document.createElement('p');
@@ -447,7 +447,7 @@ function applyFilters() {
         
         // Year filter
         if (currentFilters.year) {
-            const martyrdomYear = martyr.martyrdomDate ? new Date(martyr.martyrdomDate).getFullYear().toString() : '';
+            const martyrdomYear = martyr.martyrdomDate ? formatDateYear(martyr.martyrdomDate).toString() : '';
             if (martyrdomYear !== currentFilters.year) {
                 return false;
             }
@@ -709,11 +709,69 @@ function closeModal() {
     }
 }
 
-// Format date helper
+// Format date year helper - safely extract year from date string
+function formatDateYear(dateString) {
+    if (!dateString) return '?';
+    
+    try {
+        // Handle different date formats
+        let date;
+        
+        // If it's already a Date object
+        if (dateString instanceof Date) {
+            date = dateString;
+        } else {
+            // Try to parse the date string
+            // Handle YYYY-MM-DD format (HTML date input)
+            if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString.trim())) {
+                date = new Date(dateString + 'T00:00:00'); // Add time to avoid timezone issues
+            } else {
+                date = new Date(dateString);
+            }
+        }
+        
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+            console.warn('Invalid date format:', dateString);
+            return '?';
+        }
+        
+        return date.getFullYear();
+    } catch (error) {
+        console.error('Error parsing date:', dateString, error);
+        return '?';
+    }
+}
+
+// Format date helper - for full date display
 function formatDate(dateString) {
     if (!dateString) return null;
     
-    const date = new Date(dateString);
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return date.toLocaleDateString('en-US', options);
+    try {
+        let date;
+        
+        // If it's already a Date object
+        if (dateString instanceof Date) {
+            date = dateString;
+        } else {
+            // Handle YYYY-MM-DD format (HTML date input)
+            if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString.trim())) {
+                date = new Date(dateString + 'T00:00:00'); // Add time to avoid timezone issues
+            } else {
+                date = new Date(dateString);
+            }
+        }
+        
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+            console.warn('Invalid date format:', dateString);
+            return 'Invalid Date';
+        }
+        
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        return date.toLocaleDateString('en-US', options);
+    } catch (error) {
+        console.error('Error formatting date:', dateString, error);
+        return 'Invalid Date';
+    }
 }
