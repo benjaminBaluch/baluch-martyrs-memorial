@@ -709,69 +709,95 @@ function closeModal() {
     }
 }
 
-// Format date year helper - safely extract year from date string
-function formatDateYear(dateString) {
-    if (!dateString) return '?';
+// Format date year helper - safely extract year from date string or Firestore Timestamp
+function formatDateYear(dateValue) {
+    if (!dateValue) return '?';
     
     try {
-        // Handle different date formats
         let date;
         
+        // Handle Firestore Timestamp objects
+        if (dateValue && typeof dateValue === 'object' && typeof dateValue.toDate === 'function') {
+            date = dateValue.toDate();
+            console.log('Converted Firestore Timestamp to Date:', date);
+        }
         // If it's already a Date object
-        if (dateString instanceof Date) {
-            date = dateString;
-        } else {
-            // Try to parse the date string
+        else if (dateValue instanceof Date) {
+            date = dateValue;
+        }
+        // Handle date strings
+        else if (typeof dateValue === 'string') {
+            if (dateValue.trim() === '') return '?';
+            
             // Handle YYYY-MM-DD format (HTML date input)
-            if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString.trim())) {
-                date = new Date(dateString + 'T00:00:00'); // Add time to avoid timezone issues
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue.trim())) {
+                date = new Date(dateValue + 'T00:00:00'); // Add time to avoid timezone issues
             } else {
-                date = new Date(dateString);
+                date = new Date(dateValue);
             }
+        }
+        // Try direct conversion for other types
+        else {
+            console.warn('Unknown date format, trying direct conversion:', dateValue);
+            date = new Date(dateValue);
         }
         
         // Check if date is valid
-        if (isNaN(date.getTime())) {
-            console.warn('Invalid date format:', dateString);
+        if (!date || isNaN(date.getTime())) {
+            console.warn('Invalid date after processing:', dateValue);
             return '?';
         }
         
         return date.getFullYear();
     } catch (error) {
-        console.error('Error parsing date:', dateString, error);
+        console.error('Error parsing date:', dateValue, error);
         return '?';
     }
 }
 
-// Format date helper - for full date display
-function formatDate(dateString) {
-    if (!dateString) return null;
+// Format date helper - for full date display (handles Firestore Timestamps)
+function formatDate(dateValue) {
+    if (!dateValue) return null;
     
     try {
         let date;
         
+        // Handle Firestore Timestamp objects
+        if (dateValue && typeof dateValue === 'object' && typeof dateValue.toDate === 'function') {
+            date = dateValue.toDate();
+            console.log('Converted Firestore Timestamp to Date for formatting:', date);
+        }
         // If it's already a Date object
-        if (dateString instanceof Date) {
-            date = dateString;
-        } else {
+        else if (dateValue instanceof Date) {
+            date = dateValue;
+        }
+        // Handle date strings
+        else if (typeof dateValue === 'string') {
+            if (dateValue.trim() === '') return null;
+            
             // Handle YYYY-MM-DD format (HTML date input)
-            if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString.trim())) {
-                date = new Date(dateString + 'T00:00:00'); // Add time to avoid timezone issues
+            if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue.trim())) {
+                date = new Date(dateValue + 'T00:00:00'); // Add time to avoid timezone issues
             } else {
-                date = new Date(dateString);
+                date = new Date(dateValue);
             }
+        }
+        // Try direct conversion for other types
+        else {
+            console.warn('Unknown date format in formatDate, trying direct conversion:', dateValue);
+            date = new Date(dateValue);
         }
         
         // Check if date is valid
-        if (isNaN(date.getTime())) {
-            console.warn('Invalid date format:', dateString);
+        if (!date || isNaN(date.getTime())) {
+            console.warn('Invalid date format after processing:', dateValue);
             return 'Invalid Date';
         }
         
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
         return date.toLocaleDateString('en-US', options);
     } catch (error) {
-        console.error('Error formatting date:', dateString, error);
+        console.error('Error formatting date:', dateValue, error);
         return 'Invalid Date';
     }
 }
