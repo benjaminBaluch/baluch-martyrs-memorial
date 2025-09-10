@@ -206,6 +206,51 @@
         </div>
     </main>
 
+    <!-- Immediate Authentication Check -->
+    <script>
+        // Check authentication immediately before loading any other scripts
+        const SESSION_KEY = 'baluch_admin_session';
+        
+        function checkImmediateAuth() {
+            try {
+                const sessionData = localStorage.getItem(SESSION_KEY);
+                const sessionStorageData = sessionStorage.getItem(SESSION_KEY);
+                
+                if (!sessionData || !sessionStorageData) {
+                    console.log('❌ No session found - redirecting to login');
+                    window.location.href = 'admin-login.html';
+                    return false;
+                }
+                
+                const session = JSON.parse(sessionData);
+                
+                // Check if session is expired
+                if (session.expires <= Date.now()) {
+                    console.log('❌ Session expired - redirecting to login');
+                    localStorage.removeItem(SESSION_KEY);
+                    sessionStorage.removeItem(SESSION_KEY);
+                    window.location.href = 'admin-login.html';
+                    return false;
+                }
+                
+                console.log('✅ Valid session found, continuing to load admin panel...');
+                return true;
+            } catch (error) {
+                console.error('❌ Session validation error - redirecting to login:', error);
+                localStorage.removeItem(SESSION_KEY);
+                sessionStorage.removeItem(SESSION_KEY);
+                window.location.href = 'admin-login.html';
+                return false;
+            }
+        }
+        
+        // Run immediate auth check
+        if (!checkImmediateAuth()) {
+            // Stop loading the rest of the page
+            document.body.innerHTML = '<div style="text-align: center; padding: 50px; font-family: Arial, sans-serif;">\ud83d\udd12 Redirecting to login...</div>';
+        }
+    </script>
+    
     <!-- Firebase Config Script -->
     <script type="module" src="js/firebase-config.js"></script>
     
@@ -288,13 +333,26 @@
                 
                 console.log('✅ Authentication module ready');
                 
-                // Initialize page protection
+                // IMMEDIATE authentication check - must pass or redirect
+                console.log('🔍 Checking authentication status...');
+                if (!adminAuth.isAuthenticated()) {
+                    console.error('❌ Not authenticated - redirecting to login immediately');
+                    alert('🔒 Authentication required. Redirecting to login page...');
+                    window.location.href = 'admin-login.html';
+                    return; // Stop all further execution
+                }
+                
+                console.log('✅ User is authenticated, initializing page protection...');
+                
+                // Initialize page protection (this should not fail if user is authenticated)
                 if (!adminAuth.initializePageProtection()) {
-                    console.log('❌ Authentication failed - user will be redirected');
+                    console.error('❌ Page protection failed - redirecting to login');
+                    alert('⚠️ Page protection failed. Redirecting to login...');
+                    window.location.href = 'admin-login.html';
                     return;
                 }
                 
-                console.log('✅ Admin authentication passed');
+                console.log('✅ Admin authentication and protection active');
                 
                 // Wait for Firebase
                 console.log('🔥 Waiting for Firebase module...');
