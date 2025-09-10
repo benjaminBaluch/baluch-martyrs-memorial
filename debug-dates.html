@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Martyrs Dates</title>
+    <style>
+        body { font-family: monospace; margin: 2rem; background: #f5f5f5; }
+        .debug-container { background: white; padding: 2rem; border-radius: 8px; margin-bottom: 1rem; }
+        .martyr-data { background: #f8f9fa; padding: 1rem; margin: 1rem 0; border-radius: 4px; }
+        .date-test { background: #e8f4f8; padding: 0.5rem; margin: 0.5rem 0; border-radius: 4px; }
+        .error { color: #dc3545; background: #f8d7da; }
+        .success { color: #155724; background: #d4edda; }
+        .warning { color: #856404; background: #fff3cd; }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>🔍 Debug Martyrs Date Data</h1>
+        <button onclick="debugDates()" id="debugBtn" style="padding: 1rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Load and Debug Martyrs Data</button>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        // Test different date formats
+        function testDateFormat(dateString, label) {
+            const results = [];
+            
+            results.push(`--- Testing: ${label} ---`);
+            results.push(`Raw value: "${dateString}" (type: ${typeof dateString})`);
+            results.push(`Is empty/null: ${!dateString}`);
+            
+            if (!dateString) {
+                results.push('Result: Empty/null date');
+                return results;
+            }
+            
+            try {
+                // Test direct Date parsing
+                const directDate = new Date(dateString);
+                results.push(`Direct new Date(): ${directDate} (valid: ${!isNaN(directDate.getTime())})`);
+                
+                // Test with T00:00:00 suffix
+                let processedDate;
+                if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateString.trim())) {
+                    processedDate = new Date(dateString + 'T00:00:00');
+                    results.push(`With T00:00:00: ${processedDate} (valid: ${!isNaN(processedDate.getTime())})`);
+                } else {
+                    processedDate = new Date(dateString);
+                    results.push(`Processed: ${processedDate} (valid: ${!isNaN(processedDate.getTime())})`);
+                }
+                
+                if (!isNaN(processedDate.getTime())) {
+                    results.push(`✅ Year: ${processedDate.getFullYear()}`);
+                    results.push(`✅ Full format: ${processedDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`);
+                } else {
+                    results.push('❌ Invalid date after processing');
+                }
+                
+            } catch (error) {
+                results.push(`❌ Error: ${error.message}`);
+            }
+            
+            return results;
+        }
+
+        async function debugDates() {
+            const resultsDiv = document.getElementById('results');
+            const btn = document.getElementById('debugBtn');
+            
+            btn.disabled = true;
+            btn.textContent = 'Loading...';
+            resultsDiv.innerHTML = '<p>Loading martyrs data...</p>';
+            
+            try {
+                // Try to get martyrs data
+                let martyrsData = [];
+                
+                // First try localStorage
+                const localData = localStorage.getItem('martyrsData');
+                if (localData) {
+                    martyrsData = JSON.parse(localData);
+                    resultsDiv.innerHTML += '<p class="success">✅ Found data in localStorage</p>';
+                } else {
+                    resultsDiv.innerHTML += '<p class="warning">⚠️ No localStorage data found</p>';
+                }
+                
+                // Also try to load from Firebase if available
+                if (window.firebaseDB) {
+                    try {
+                        const firebaseResult = await window.firebaseDB.getApprovedMartyrs();
+                        if (firebaseResult.success && firebaseResult.data) {
+                            martyrsData = firebaseResult.data;
+                            resultsDiv.innerHTML += '<p class="success">✅ Loaded data from Firebase</p>';
+                        }
+                    } catch (firebaseError) {
+                        resultsDiv.innerHTML += `<p class="warning">⚠️ Firebase error: ${firebaseError.message}</p>`;
+                    }
+                }
+                
+                if (martyrsData.length === 0) {
+                    resultsDiv.innerHTML += '<p class="error">❌ No martyrs data found anywhere</p>';
+                    return;
+                }
+                
+                resultsDiv.innerHTML += `<p class="success">✅ Found ${martyrsData.length} martyrs</p>`;
+                
+                // Debug first few martyrs
+                const martyrsToDebug = martyrsData.slice(0, 3);
+                
+                martyrsToDebug.forEach((martyr, index) => {
+                    const martyrDiv = document.createElement('div');
+                    martyrDiv.className = 'martyr-data';
+                    
+                    let debugOutput = [];
+                    debugOutput.push(`=== MARTYR ${index + 1}: ${martyr.fullName} ===`);
+                    debugOutput.push('');
+                    
+                    // Debug birth date
+                    const birthTests = testDateFormat(martyr.birthDate, 'Birth Date');
+                    debugOutput = debugOutput.concat(birthTests);
+                    debugOutput.push('');
+                    
+                    // Debug martyrdom date
+                    const martyrdomTests = testDateFormat(martyr.martyrdomDate, 'Martyrdom Date');
+                    debugOutput = debugOutput.concat(martyrdomTests);
+                    debugOutput.push('');
+                    
+                    // Debug submitted date
+                    if (martyr.submittedAt) {
+                        const submittedTests = testDateFormat(martyr.submittedAt, 'Submitted Date');
+                        debugOutput = debugOutput.concat(submittedTests);
+                    }
+                    
+                    martyrDiv.innerHTML = '<pre>' + debugOutput.join('\n') + '</pre>';
+                    resultsDiv.appendChild(martyrDiv);
+                });
+                
+                // Test the actual formatDate function if available
+                if (typeof formatDate === 'function') {
+                    const testDiv = document.createElement('div');
+                    testDiv.className = 'martyr-data';
+                    testDiv.innerHTML = '<h3>🧪 Testing formatDate Function</h3>';
+                    
+                    const testDates = [
+                        '2024-01-15',
+                        '1990-06-30',
+                        '',
+                        null,
+                        '2024-01-15T00:00:00',
+                        'invalid-date'
+                    ];
+                    
+                    testDates.forEach(testDate => {
+                        try {
+                            const result = formatDate(testDate);
+                            testDiv.innerHTML += `<div class="date-test">formatDate("${testDate}") = "${result}"</div>`;
+                        } catch (error) {
+                            testDiv.innerHTML += `<div class="date-test error">formatDate("${testDate}") = ERROR: ${error.message}</div>`;
+                        }
+                    });
+                    
+                    resultsDiv.appendChild(testDiv);
+                } else {
+                    resultsDiv.innerHTML += '<p class="warning">⚠️ formatDate function not available</p>';
+                }
+                
+            } catch (error) {
+                resultsDiv.innerHTML += `<p class="error">❌ Debug error: ${error.message}</p>`;
+                console.error('Debug error:', error);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Load and Debug Martyrs Data';
+            }
+        }
+
+        // Load Firebase if available
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                if (!window.firebaseDB) {
+                    // Try to load Firebase
+                    const firebaseModule = await import('./js/firebase-config.js');
+                    window.firebaseDB = firebaseModule.firebaseDB;
+                    console.log('✅ Firebase loaded for debugging');
+                }
+            } catch (error) {
+                console.log('⚠️ Firebase not available for debugging:', error.message);
+            }
+            
+            // Auto-run debug
+            setTimeout(() => {
+                debugDates();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
