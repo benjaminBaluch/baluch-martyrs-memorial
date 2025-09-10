@@ -285,18 +285,47 @@ async function loadPendingSubmissions() {
             timestamp: new Date().toISOString()
         });
         
-        // Try localStorage as fallback for comparison
-        console.log('💾 Checking localStorage for comparison...');
-        const localPendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
-        console.log(`💾 Found ${localPendingData.length} items in localStorage pendingMartyrs`);
-        if (localPendingData.length > 0) {
-            console.log('💾 localStorage items:', localPendingData.map(m => ({ id: m.id, name: m.fullName })));
-        }
+        // This memorial requires Firebase for permanent storage - no localStorage fallback
+        console.error('🛑 Memorial admin requires Firebase database connection for permanent storage');
         
-        // Set empty data and show error
+        // Show detailed error to admin
         pendingData = [];
         loadingSource = 'failed';
         usingLocalStorage = false;
+        
+        // Display Firebase connection required message
+        const errorDiv = document.createElement('div');
+        errorDiv.innerHTML = `
+            <div class="firebase-required-error" style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px; padding: 2rem; margin: 1rem 0; color: #721c24;">
+                <h3>🔥 Firebase Database Required</h3>
+                <p><strong>Error:</strong> ${error.message}</p>
+                <p>This memorial's admin panel requires a permanent Firebase database connection to manage submissions properly.</p>
+                <div style="margin-top: 1rem;">
+                    <p><strong>Please:</strong></p>
+                    <ul style="text-align: left; margin: 1rem 0;">
+                        <li>Refresh the page and wait for Firebase to load</li>
+                        <li>Check your internet connection</li>
+                        <li>Verify Firebase configuration</li>
+                        <li>Contact support if this persists</li>
+                    </ul>
+                </div>
+                <div style="margin-top: 1rem; padding: 1rem; background: #f1f3f4; border-radius: 4px; font-size: 0.9rem;">
+                    <strong>Debug Info:</strong><br>
+                    • Firebase available: ${!!window.firebaseDB}<br>
+                    • Error: ${error.message}<br>
+                    • Timestamp: ${new Date().toLocaleString()}<br>
+                </div>
+                <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 1rem; background: #dc3545; border-color: #dc3545;">
+                    🔄 Reload Page
+                </button>
+                <button onclick="attemptFirebaseReconnection()" class="btn btn-secondary" style="margin-left: 0.5rem; margin-top: 1rem;">
+                    🔧 Retry Firebase Connection
+                </button>
+            </div>
+        `;
+        pendingList.innerHTML = '';
+        pendingList.appendChild(errorDiv);
+        return;
     }
 
     // Show results with detailed debug info

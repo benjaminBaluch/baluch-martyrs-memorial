@@ -299,9 +299,9 @@ function handleFormSubmit(event) {
     }
 }
 
-// Save martyr data to pending queue for moderation
+// Save martyr data permanently to Firebase database only
 async function saveMartyrData(martyrData) {
-    console.log('💾 Starting to save martyr data...', { name: martyrData.fullName });
+    console.log('💾 Starting to save martyr data permanently to Firebase...', { name: martyrData.fullName });
     
     try {
         // Ensure loading state is shown
@@ -312,36 +312,96 @@ async function saveMartyrData(martyrData) {
         martyrData.status = 'pending';
         martyrData.submittedAt = new Date().toISOString();
         
-        let saveSuccess = false;
-        let errorMessage = null;
+        // Ensure Firebase is available - this is mandatory for permanent storage
+        if (!firebaseAvailable || !firebaseDB) {
+            console.error('❌ Firebase database is not available - cannot proceed with permanent storage');
+            hideLoadingState();
+            
+            const firebaseRequiredMsg = `
+❌ Database Connection Required
+
+This memorial requires a permanent database connection to store submissions.
+
+Please:
+1. Refresh the page and wait for the database to load
+2. Check your internet connection
+3. Try again in a few moments
+4. Contact support if this continues
+
+We cannot store your submission locally as it needs to be permanently preserved for this important memorial.
+            `.trim();
+            
+            alert(firebaseRequiredMsg);
+            return;
+        }
         
-        // Check if Firebase is available and try to save
-        if (firebaseAvailable && firebaseDB) {
-            console.log('🔥 Firebase is available, attempting to save...');
+        // Attempt Firebase save with automatic retry mechanism
+        let saveSuccess = false;
+        let lastError = null;
+        const maxRetries = 3;
+        const baseDelay = 2000; // 2 seconds
+        
+        console.log('🔥 Firebase is available, attempting permanent save with retry mechanism...');
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            console.log(`🎯 Save attempt ${attempt}/${maxRetries} for martyr: ${martyrData.fullName}`);
             
             try {
-                // Add timeout for regional connectivity issues (Pakistan, Gulf, etc.)
+                // Update loading message for retry attempts
+                if (attempt > 1) {
+                    const loadingDiv = document.getElementById('loadingOverlay');
+                    if (loadingDiv) {
+                        const loadingText = loadingDiv.querySelector('.loading-text');
+                        if (loadingText) {
+                            loadingText.textContent = `Saving to permanent database... (Attempt ${attempt}/${maxRetries})`;
+                        }
+                    }
+                }
+                
+                // Extended timeout for regional connectivity (Gulf, Pakistan, etc.)
+                const timeoutDuration = 20000 + (attempt - 1) * 10000; // 20s, 30s, 40s
+                
                 const firebasePromise = firebaseDB.addPendingMartyr(martyrData);
                 const timeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Firebase timeout - possible regional connectivity issue')), 15000)
+                    setTimeout(() => reject(new Error(`Firebase timeout after ${timeoutDuration/1000}s - attempt ${attempt}`)), timeoutDuration)
                 );
                 
                 const result = await Promise.race([firebasePromise, timeoutPromise]);
                 
                 if (result && result.success) {
-                    console.log('✅ Martyr saved to Firebase successfully:', result.id);
+                    console.log(`✅ Martyr saved to Firebase permanently on attempt ${attempt}:`, result.id);
                     saveSuccess = true;
+                    break; // Success! Exit retry loop
                 } else {
-                    errorMessage = result ? result.error : 'Unknown Firebase error';
-                    console.warn('🔥 Firebase save failed:', errorMessage);
+                    lastError = result ? result.error : `Unknown Firebase error on attempt ${attempt}`;
+                    console.warn(`🔥 Firebase save failed on attempt ${attempt}:`, lastError);
+                    throw new Error(lastError);
                 }
             } catch (error) {
-                errorMessage = error.message;
-                console.warn('🌍 Firebase connectivity issue:', error.message);
+                lastError = error.message;
+                console.warn(`🌍 Firebase connectivity issue on attempt ${attempt}:`, lastError);
+                
+                // Wait before retry (exponential backoff)
+                if (attempt < maxRetries) {
+                    const delay = baseDelay * Math.pow(2, attempt - 1); // 2s, 4s, 8s
+                    console.log(`⏳ Waiting ${delay/1000}s before retry...`);
+                    
+                    // Show countdown in loading message
+                    for (let countdown = Math.ceil(delay/1000); countdown > 0; countdown--) {
+                        const loadingDiv = document.getElementById('loadingOverlay');
+                        if (loadingDiv) {
+                            const loadingText = loadingDiv.querySelector('.loading-text');
+                            if (loadingText) {
+                                loadingText.textContent = `Retrying in ${countdown} seconds... (Attempt ${attempt+1}/${maxRetries})`;
+                            }
+                        }
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                } else {
+                    // Final attempt failed
+                    console.error(`❌ All ${maxRetries} save attempts failed for permanent storage`);
+                }
             }
-        } else {
-            console.error('❌ Firebase not available for submissions');
-            errorMessage = 'Firebase database connection not available. Please refresh the page and try again.';
         }
         
         // Always hide loading state
@@ -349,66 +409,73 @@ async function saveMartyrData(martyrData) {
         
         if (saveSuccess) {
             // Success - redirect to confirmation
-            console.log('✅ Submission successful, redirecting to confirmation...');
+            console.log('✅ Submission permanently saved to Firebase, redirecting to confirmation...');
             
-            // Store for confirmation page
+            // Store success info for confirmation page (temporary storage only for UX)
             localStorage.setItem('lastSubmittedMartyr', martyrData.fullName);
             localStorage.setItem('lastSubmissionInfo', JSON.stringify({
                 savedToFirebase: true,
-                savedToLocalStorage: false,
+                savedPermanently: true,
                 submittedAt: martyrData.submittedAt,
-                martyrId: martyrData.id
+                martyrId: martyrData.id,
+                attempts: maxRetries
             }));
             
-            // Small delay to ensure localStorage is written
+            // Small delay to ensure localStorage is written for UX
             setTimeout(() => {
                 console.log('🔄 Redirecting to confirmation page...');
                 window.location.href = 'confirmation.html?name=' + encodeURIComponent(martyrData.fullName);
             }, 100);
             
         } else {
-            // Failed - show detailed error
-            console.error('❌ Submission failed completely');
+            // All attempts failed - cannot proceed without permanent storage
+            console.error('❌ Permanent storage failed after all retry attempts');
             
-            const detailedError = `
-❌ Submission Failed
+            const permanentStorageError = `
+❌ Permanent Storage Failed
 
-${errorMessage || 'Unknown error occurred'}
+We could not save your submission to the permanent memorial database after ${maxRetries} attempts.
 
-Please try the following:
+Last error: ${lastError || 'Connection timeout'}
+
+This memorial requires permanent storage to honor the martyrs properly. Please:
+
 1. Check your internet connection
-2. Refresh the page and try again
-3. If you're in Pakistan/Gulf region, wait a moment and retry
-4. Contact support if the problem persists
+2. Refresh the page completely
+3. Try again - your form data is preserved
+4. If you're in a region with connectivity issues, please wait and retry
+5. Contact support if this continues
 
-Your form data has been preserved - you can retry without re-entering everything.
+We apologize for the inconvenience. The memorial must ensure all submissions are permanently preserved.
             `.trim();
             
-            alert(detailedError);
+            alert(permanentStorageError);
             
             // Don't redirect on failure - let user retry
             return;
         }
         
     } catch (error) {
-        console.error('❌ Critical error in saveMartyrData:', error);
+        console.error('❌ Critical error in permanent storage system:', error);
         
         // Always ensure loading state is hidden
         hideLoadingState();
         
         const criticalErrorMsg = `
-❌ Critical Error
+❌ Critical Database Error
 
-Something went wrong while processing your submission.
+A critical error occurred in the permanent storage system.
 
 Error: ${error.message}
 
-Please:
-1. Refresh the page
-2. Try again with a smaller image
-3. Contact support if this continues
+This memorial requires reliable permanent storage. Please:
 
-Your data has been preserved.
+1. Refresh the page completely
+2. Clear your browser cache
+3. Try with a smaller image if applicable
+4. Contact support immediately with this error message
+
+We cannot proceed without ensuring permanent storage for this important memorial.
         `.trim();
         
         alert(criticalErrorMsg);

@@ -207,46 +207,125 @@
     </main>
 
     <script type="module">
-        // Import authentication and Firebase
-        import { adminAuth } from './js/auth.js';
-        import { firebaseDB } from './js/firebase-config.js';
+        let adminAuth = null;
+        let firebaseDB = null;
         
-        // Initialize page protection - this will redirect if not authenticated
-        if (!adminAuth.initializePageProtection()) {
-            // User was redirected to login
-            return;
+        // Initialize admin panel with error handling
+        async function initializeAdminPanel() {
+            try {
+                console.log('🔐 Loading authentication module...');
+                const authModule = await import('./js/auth.js');
+                adminAuth = authModule.adminAuth;
+                console.log('✅ Authentication module loaded successfully');
+                
+                // Initialize page protection - this will redirect if not authenticated
+                if (!adminAuth.initializePageProtection()) {
+                    console.log('❌ Authentication failed - user redirected to login');
+                    return;
+                }
+                
+                console.log('✅ Admin authentication passed');
+                
+            } catch (error) {
+                console.error('❌ Error loading authentication module:', error);
+                alert('Error loading authentication. Please refresh the page.');
+                return;
+            }
+            
+            // Try to load Firebase with comprehensive error handling
+            try {
+                console.log('🔥 Attempting to load Firebase module...');
+                const firebaseModule = await import('./js/firebase-config.js');
+                firebaseDB = firebaseModule.firebaseDB;
+                console.log('✅ Firebase module import successful');
+                console.log('🔍 Firebase DB object:', !!firebaseDB);
+                
+                if (firebaseDB) {
+                    console.log('🔍 Available Firebase methods:', Object.keys(firebaseDB));
+                } else {
+                    console.warn('⚠️ Firebase DB is null/undefined after import');
+                }
+                
+            } catch (firebaseError) {
+                console.error('❌ Error importing Firebase module:', firebaseError);
+                console.error('Firebase error details:', {
+                    message: firebaseError.message,
+                    stack: firebaseError.stack,
+                    name: firebaseError.name
+                });
+                
+                // Try alternative Firebase loading approach
+                console.log('🔄 Attempting alternative Firebase loading...');
+                try {
+                    // Try direct module loading
+                    const altFirebaseModule = await import('./js/firebase-config.js?v=' + Date.now());
+                    firebaseDB = altFirebaseModule.firebaseDB;
+                    console.log('✅ Alternative Firebase loading successful');
+                } catch (altError) {
+                    console.error('❌ Alternative Firebase loading also failed:', altError);
+                    firebaseDB = null;
+                }
+            }
+            
+            // Make modules globally available
+            window.firebaseDB = firebaseDB;
+            window.adminAuth = adminAuth;
+            
+            if (firebaseDB) {
+                console.log('✅ Firebase made globally available');
+            } else {
+                console.error('❌ Firebase could not be made available globally');
+            }
+            
+            if (adminAuth) {
+                console.log('✅ Admin auth made globally available');
+            }
         }
         
-        console.log('🔐 Admin authentication passed');
-        
-        // Make Firebase and adminAuth globally available for admin panel
-        window.firebaseDB = firebaseDB;
-        window.adminAuth = adminAuth;
-        console.log('🔥 Firebase module loaded globally for admin panel');
-        console.log('🔐 Admin auth module loaded globally');
+        // Initialize everything
+        await initializeAdminPanel();
         
         // Test Firebase connectivity with detailed error handling
         async function testFirebaseConnection() {
+            console.log('🧪 Starting Firebase connectivity test...');
+            console.log('🔍 Current window.firebaseDB:', !!window.firebaseDB);
+            
             try {
-                console.log('🧪 Testing Firebase connection...');
-                
                 if (!window.firebaseDB) {
-                    throw new Error('Firebase DB not available in window object');
+                    console.error('❌ Firebase DB not available in window object');
+                    
+                    // Try to reload Firebase if it's not available
+                    console.log('🔄 Attempting to reload Firebase...');
+                    try {
+                        const reloadModule = await import('./js/firebase-config.js?reload=' + Date.now());
+                        window.firebaseDB = reloadModule.firebaseDB;
+                        console.log('✅ Firebase reloaded successfully');
+                    } catch (reloadError) {
+                        console.error('❌ Firebase reload failed:', reloadError);
+                        throw new Error('Firebase DB not available and reload failed');
+                    }
                 }
+                
+                console.log('🔍 Firebase DB methods available:', window.firebaseDB ? Object.keys(window.firebaseDB) : 'None');
                 
                 if (typeof window.firebaseDB.testConnection !== 'function') {
                     console.warn('⚠️ Firebase testConnection method not available, trying basic operations...');
                     
                     // Try basic Firebase operations
                     if (typeof window.firebaseDB.getPendingMartyrs === 'function') {
+                        console.log('🔍 Testing with getPendingMartyrs...');
                         const result = await window.firebaseDB.getPendingMartyrs();
-                        console.log('✅ Firebase basic connectivity test passed:', result.success);
+                        console.log('📊 Firebase basic test result:', { success: result.success, dataLength: result.data?.length });
                         return result.success;
                     } else {
+                        console.error('❌ Firebase getPendingMartyrs method not available');
                         throw new Error('Firebase methods not available');
                     }
                 } else {
+                    console.log('🧪 Running Firebase testConnection method...');
                     const testResult = await window.firebaseDB.testConnection();
+                    console.log('📊 Firebase test result:', testResult);
+                    
                     if (testResult.success) {
                         console.log('✅ Firebase connectivity test passed');
                         return true;
@@ -257,11 +336,13 @@
                 }
             } catch (error) {
                 console.error('❌ Firebase connectivity test error:', error);
-                console.error('Error details:', {
+                console.error('🔍 Detailed error info:', {
                     message: error.message,
-                    stack: error.stack,
+                    stack: error.stack?.substring(0, 500),
                     firebaseDB: !!window.firebaseDB,
-                    firebaseDBMethods: window.firebaseDB ? Object.keys(window.firebaseDB) : 'N/A'
+                    firebaseDBType: typeof window.firebaseDB,
+                    firebaseDBMethods: window.firebaseDB ? Object.keys(window.firebaseDB) : 'N/A',
+                    timestamp: new Date().toISOString()
                 });
                 return false;
             }
