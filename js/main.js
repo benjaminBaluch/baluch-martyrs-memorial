@@ -197,6 +197,10 @@ function createMartyrCard(martyr) {
     const infoDiv = document.createElement('div');
     infoDiv.className = 'martyr-info';
     
+    // Create content wrapper
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'martyr-info-content';
+    
     const name = document.createElement('h3');
     name.textContent = martyr.fullName;
     
@@ -205,6 +209,29 @@ function createMartyrCard(martyr) {
     
     const place = document.createElement('p');
     place.textContent = martyr.martyrdomPlace || 'Unknown location';
+    
+    // Add biography if available
+    if (martyr.biography && martyr.biography.trim()) {
+        const bio = document.createElement('p');
+        bio.textContent = martyr.biography.length > 120 
+            ? martyr.biography.substring(0, 120) + '...' 
+            : martyr.biography;
+        bio.style.fontSize = '0.9rem';
+        bio.style.color = '#777';
+        bio.style.fontStyle = 'italic';
+        contentDiv.appendChild(name);
+        contentDiv.appendChild(dates);
+        contentDiv.appendChild(place);
+        contentDiv.appendChild(bio);
+    } else {
+        contentDiv.appendChild(name);
+        contentDiv.appendChild(dates);
+        contentDiv.appendChild(place);
+    }
+    
+    // Create actions wrapper
+    const actionsDiv = document.createElement('div');
+    actionsDiv.className = 'martyr-info-actions';
     
     const viewBtn = document.createElement('a');
     viewBtn.href = '#';
@@ -215,10 +242,10 @@ function createMartyrCard(martyr) {
         showMartyrDetails(martyr);
     };
     
-    infoDiv.appendChild(name);
-    infoDiv.appendChild(dates);
-    infoDiv.appendChild(place);
-    infoDiv.appendChild(viewBtn);
+    actionsDiv.appendChild(viewBtn);
+    
+    infoDiv.appendChild(contentDiv);
+    infoDiv.appendChild(actionsDiv);
     
     card.appendChild(imageDiv);
     card.appendChild(infoDiv);
