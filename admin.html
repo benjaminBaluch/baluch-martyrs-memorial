@@ -158,10 +158,19 @@
         <div class="container">
             <div class="admin-controls">
                 <button onclick="refreshData()" class="btn btn-primary">Refresh Data</button>
+                <button id="testFirebaseBtn" class="btn btn-secondary">Test Firebase</button>
                 <button onclick="exportData()" class="btn btn-secondary">Export Data</button>
                 <button onclick="importData()" class="btn btn-secondary">Import Data</button>
                 <button onclick="clearAllPending()" class="btn btn-outline" style="color: #dc3545; border-color: #dc3545;">Clear All Pending</button>
                 <button onclick="window.location.href='index.html'" class="btn btn-secondary">Back to Website</button>
+            </div>
+            
+            <!-- Firebase Debug Panel (initially hidden) -->
+            <div id="firebaseDebugPanel" style="display: none; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
+                <h4 style="margin: 0 0 0.5rem 0; color: #495057;">🔧 Firebase Debug Information</h4>
+                <div id="firebaseDebugContent">
+                    <!-- Debug info will be populated here -->
+                </div>
             </div>
 
             <div class="stats" id="statsContainer">
@@ -330,9 +339,123 @@
         
         // Add logout button event listener
         document.getElementById('logoutBtn').addEventListener('click', function() {
-            console.log('🚪 Logout button clicked');
+            console.log('🚺 Logout button clicked');
             adminAuth.logout();
         });
+        
+        // Add Firebase test button event listener
+        document.getElementById('testFirebaseBtn').addEventListener('click', async function() {
+            const btn = this;
+            const originalText = btn.textContent;
+            const debugPanel = document.getElementById('firebaseDebugPanel');
+            const debugContent = document.getElementById('firebaseDebugContent');
+            
+            try {
+                btn.disabled = true;
+                btn.textContent = 'Testing...';
+                
+                // Show debug panel
+                debugPanel.style.display = 'block';
+                debugContent.innerHTML = '<p>Running Firebase diagnostics...</p>';
+                
+                const diagnostics = await runFirebaseDiagnostics();
+                
+                // Display results
+                debugContent.innerHTML = `
+                    <div style="font-family: monospace; font-size: 0.9rem; white-space: pre-wrap;">${diagnostics}</div>
+                    <button onclick="document.getElementById('firebaseDebugPanel').style.display='none'" class="btn btn-secondary" style="margin-top: 0.5rem; font-size: 0.8rem;">Hide Debug Info</button>
+                `;
+                
+            } catch (error) {
+                debugContent.innerHTML = `<p style="color: #dc3545;">Error running diagnostics: ${error.message}</p>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        });
+        
+        // Firebase diagnostics function
+        async function runFirebaseDiagnostics() {
+            let report = '🔍 Firebase Diagnostics Report\n';
+            report += '='.repeat(40) + '\n';
+            report += `Timestamp: ${new Date().toISOString()}\n`;
+            report += `User Agent: ${navigator.userAgent.substring(0, 100)}...\n`;
+            report += `Online Status: ${navigator.onLine}\n`;
+            report += `Page URL: ${window.location.href}\n\n`;
+            
+            // Basic Firebase availability
+            report += '🔥 Firebase Module Status:\n';
+            report += `- window.firebaseDB exists: ${!!window.firebaseDB}\n`;
+            if (window.firebaseDB) {
+                report += `- Available methods: ${Object.keys(window.firebaseDB).join(', ')}\n`;
+                report += `- getPendingMartyrs method: ${typeof window.firebaseDB.getPendingMartyrs}\n`;
+                report += `- testConnection method: ${typeof window.firebaseDB.testConnection}\n`;
+            }
+            report += '\n';
+            
+            // Firebase connection test
+            report += '🧪 Firebase Connection Test:\n';
+            try {
+                if (window.firebaseDB && typeof window.firebaseDB.testConnection === 'function') {
+                    const testResult = await window.firebaseDB.testConnection();
+                    report += `- Connection test result: ${JSON.stringify(testResult, null, 2)}\n`;
+                } else {
+                    report += '- Connection test not available\n';
+                }
+            } catch (error) {
+                report += `- Connection test error: ${error.message}\n`;
+            }
+            report += '\n';
+            
+            // Data retrieval test
+            report += '📁 Data Retrieval Test:\n';
+            try {
+                if (window.firebaseDB && typeof window.firebaseDB.getPendingMartyrs === 'function') {
+                    const pendingResult = await window.firebaseDB.getPendingMartyrs();
+                    report += `- getPendingMartyrs success: ${pendingResult.success}\n`;
+                    if (pendingResult.success) {
+                        report += `- Pending martyrs count: ${pendingResult.data?.length || 0}\n`;
+                        if (pendingResult.data?.length > 0) {
+                            report += '- Sample IDs: ';
+                            const sampleIds = pendingResult.data.slice(0, 3).map(m => m.id).join(', ');
+                            report += sampleIds + (pendingResult.data.length > 3 ? '...' : '') + '\n';
+                        }
+                    } else {
+                        report += `- Error: ${pendingResult.error}\n`;
+                    }
+                } else {
+                    report += '- getPendingMartyrs method not available\n';
+                }
+                
+                if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
+                    const approvedResult = await window.firebaseDB.getApprovedMartyrs();
+                    report += `- getApprovedMartyrs success: ${approvedResult.success}\n`;
+                    if (approvedResult.success) {
+                        report += `- Approved martyrs count: ${approvedResult.data?.length || 0}\n`;
+                    }
+                }
+            } catch (error) {
+                report += `- Data retrieval error: ${error.message}\n`;
+            }
+            report += '\n';
+            
+            // localStorage comparison
+            report += '💾 localStorage Comparison:\n';
+            try {
+                const localPending = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
+                const localApproved = JSON.parse(localStorage.getItem('martyrsData') || '[]');
+                report += `- localStorage pending: ${localPending.length} items\n`;
+                report += `- localStorage approved: ${localApproved.length} items\n`;
+                if (localPending.length > 0) {
+                    const sampleLocal = localPending.slice(0, 3).map(m => `${m.fullName} (${m.id})`).join(', ');
+                    report += `- Sample local pending: ${sampleLocal}${localPending.length > 3 ? '...' : ''}\n`;
+                }
+            } catch (error) {
+                report += `- localStorage error: ${error.message}\n`;
+            }
+            
+            return report;
+        }
     </script>
     <script src="js/mobile-menu.js"></script>
     <script type="module" src="js/admin.js"></script>

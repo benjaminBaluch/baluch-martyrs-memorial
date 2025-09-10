@@ -124,11 +124,16 @@ function initializeAdminPanel() {
 
 // Initialize admin control buttons
 function initializeAdminControls() {
+    console.log('🎮 Initializing admin control buttons...');
+    
     // Refresh Data button
     const refreshBtn = document.querySelector('button[onclick="refreshData()"]');
     if (refreshBtn) {
         refreshBtn.removeAttribute('onclick');
         refreshBtn.addEventListener('click', refreshData);
+        console.log('✅ Refresh Data button event listener added');
+    } else {
+        console.warn('⚠️ Refresh Data button not found');
     }
     
     // Export Data button
@@ -136,6 +141,9 @@ function initializeAdminControls() {
     if (exportBtn) {
         exportBtn.removeAttribute('onclick');
         exportBtn.addEventListener('click', exportData);
+        console.log('✅ Export Data button event listener added');
+    } else {
+        console.warn('⚠️ Export Data button not found');
     }
     
     // Import Data button
@@ -143,6 +151,9 @@ function initializeAdminControls() {
     if (importBtn) {
         importBtn.removeAttribute('onclick');
         importBtn.addEventListener('click', importData);
+        console.log('✅ Import Data button event listener added');
+    } else {
+        console.warn('⚠️ Import Data button not found');
     }
     
     // Clear All Pending button
@@ -150,7 +161,20 @@ function initializeAdminControls() {
     if (clearBtn) {
         clearBtn.removeAttribute('onclick');
         clearBtn.addEventListener('click', clearAllPending);
+        console.log('✅ Clear All Pending button event listener added');
+    } else {
+        console.warn('⚠️ Clear All Pending button not found');
     }
+    
+    console.log('✅ Admin control buttons initialization completed');
+    
+    // Make functions globally accessible for HTML onclick handlers as backup
+    window.refreshData = refreshData;
+    window.exportData = exportData;
+    window.importData = importData;
+    window.clearAllPending = clearAllPending;
+    window.loadPendingSubmissions = loadPendingSubmissions;
+    console.log('🌎 Admin functions made globally accessible');
 }
 
 // Initialize approved martyrs management buttons
@@ -195,47 +219,133 @@ async function loadPendingSubmissions() {
     const pendingList = document.getElementById('pendingList');
     let pendingData = [];
     let usingLocalStorage = false;
+    let loadingSource = 'unknown';
+    
+    console.log('📄 Starting loadPendingSubmissions...');
+    
+    // Show loading state
+    pendingList.innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">Loading pending submissions...</div>';
     
     try {
         // Try to load from Firebase first using global instance
         if (window.firebaseDB && typeof window.firebaseDB.getPendingMartyrs === 'function') {
-            console.log('🔥 Attempting to load from Firebase...');
+            console.log('🔥 Firebase available - attempting to load pending submissions...');
+            
+            // Test Firebase connection first
+            if (typeof window.firebaseDB.testConnection === 'function') {
+                console.log('🧪 Testing Firebase connection before loading...');
+                const connectionTest = await window.firebaseDB.testConnection();
+                console.log('🧪 Firebase connection test result:', connectionTest);
+                if (!connectionTest.success) {
+                    console.warn('⚠️ Firebase connection test failed, but continuing anyway...');
+                }
+            }
+            
             const result = await window.firebaseDB.getPendingMartyrs();
+            console.log('📁 Firebase getPendingMartyrs result:', {
+                success: result.success,
+                dataLength: result.data ? result.data.length : 'null',
+                error: result.error || 'none',
+                dataPreview: result.data ? result.data.slice(0, 2).map(m => ({ id: m.id, name: m.fullName })) : 'no data'
+            });
             
             if (result.success) {
                 pendingData = result.data || [];
-                console.log(`✅ Loaded ${pendingData.length} pending submissions from Firebase`);
+                loadingSource = 'Firebase';
+                console.log(`✅ Successfully loaded ${pendingData.length} pending submissions from Firebase`);
+                
+                // Log detailed info about each submission
+                if (pendingData.length > 0) {
+                    console.log('🗂 Pending submissions details:');
+                    pendingData.forEach((martyr, index) => {
+                        console.log(`  ${index + 1}. ID: ${martyr.id}, Name: ${martyr.fullName}, Submitted: ${martyr.submittedAt}`);
+                    });
+                }
             } else {
-                console.warn('Firebase getPendingMartyrs failed:', result.error);
-                throw new Error(result.error);
+                console.warn('⚠️ Firebase getPendingMartyrs failed:', result.error);
+                throw new Error(result.error || 'Firebase query failed');
             }
         } else {
-            console.warn('⚠️ Firebase not available, using localStorage');
+            console.warn('⚠️ Firebase not available or getPendingMartyrs method missing');
+            console.log('Firebase debug info:', {
+                firebaseDB: !!window.firebaseDB,
+                firebaseDBType: typeof window.firebaseDB,
+                getPendingMartyrsMethod: window.firebaseDB ? typeof window.firebaseDB.getPendingMartyrs : 'N/A',
+                availableMethods: window.firebaseDB ? Object.keys(window.firebaseDB) : 'N/A'
+            });
             throw new Error('Firebase not available');
         }
         
     } catch (error) {
-        console.error('Error loading pending submissions from Firebase:', error);
-        // No fallback - Firebase is required
-        console.log('❌ Firebase database unavailable - cannot load pending submissions');
+        console.error('❌ Error loading pending submissions from Firebase:', error);
+        console.log('🔍 Error details:', {
+            message: error.message,
+            stack: error.stack?.substring(0, 300),
+            firebaseAvailable: !!window.firebaseDB,
+            timestamp: new Date().toISOString()
+        });
+        
+        // Try localStorage as fallback for comparison
+        console.log('💾 Checking localStorage for comparison...');
+        const localPendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
+        console.log(`💾 Found ${localPendingData.length} items in localStorage pendingMartyrs`);
+        if (localPendingData.length > 0) {
+            console.log('💾 localStorage items:', localPendingData.map(m => ({ id: m.id, name: m.fullName })));
+        }
+        
+        // Set empty data and show error
         pendingData = [];
+        loadingSource = 'failed';
         usingLocalStorage = false;
     }
 
+    // Show results with detailed debug info
+    console.log(`📈 Final results: ${pendingData.length} pending submissions from ${loadingSource}`);
+    
     if (pendingData.length === 0) {
-        pendingList.innerHTML = `
-            <div class="no-pending">
-                <h3>No pending submissions</h3>
-                <p>All submissions have been reviewed or database is unavailable.</p>
+        const debugInfo = `
+            <div class="no-pending" style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 2rem; margin: 1rem 0;">
+                <h3>📎 No pending submissions found</h3>
+                <p><strong>Data source attempted:</strong> ${loadingSource}</p>
+                <p>This could mean:</p>
+                <ul style="text-align: left; margin: 1rem 0;">
+                    <li>All submissions have been reviewed</li>
+                    <li>Firebase database connection issue</li>
+                    <li>Submissions are being stored but not retrieved properly</li>
+                </ul>
+                <div style="margin-top: 1rem; padding: 1rem; background: #e9ecef; border-radius: 4px; font-size: 0.9rem;">
+                    <strong>Debug Info:</strong><br>
+                    • Firebase available: ${!!window.firebaseDB}<br>
+                    • Loading source: ${loadingSource}<br>
+                    • Using localStorage: ${usingLocalStorage}<br>
+                    • Timestamp: ${new Date().toLocaleString()}<br>
+                </div>
+                <button onclick="loadPendingSubmissions()" class="btn btn-primary" style="margin-top: 1rem;">
+                    🔄 Refresh
+                </button>
             </div>
         `;
+        pendingList.innerHTML = debugInfo;
         return;
     }
-
-    pendingData.forEach(martyr => {
+    
+    // Clear loading state
+    pendingList.innerHTML = '';
+    
+    // Create header with source info
+    const headerDiv = document.createElement('div');
+    headerDiv.style.cssText = 'background: #d1ecf1; padding: 0.75rem 1rem; margin-bottom: 1rem; border-radius: 4px; font-size: 0.9rem;';
+    headerDiv.innerHTML = `📁 Showing ${pendingData.length} pending submission(s) from <strong>${loadingSource}</strong> ${usingLocalStorage ? '(localStorage)' : ''}`;
+    pendingList.appendChild(headerDiv);
+    
+    // Add each pending item
+    pendingData.forEach((martyr, index) => {
+        console.log(`🎨 Creating UI for martyr ${index + 1}/${pendingData.length}: ${martyr.fullName}`);
         const pendingItem = createPendingItem(martyr);
         pendingList.appendChild(pendingItem);
     });
+    
+    console.log(`✅ Successfully rendered ${pendingData.length} pending submissions in UI`);
 }
 
 // Create a pending item element
@@ -599,13 +709,42 @@ function formatDate(dateString) {
 
 // Refresh all data
 async function refreshData() {
+    console.log('🔄 Refreshing admin panel data...');
+    
     // Temporarily disabled auth validation to test logout issue
     // if (!adminAuth.validateAdminAction('refresh data')) {
     //     return;
     // }
     
-    await loadPendingSubmissions();
-    await updateStats();
+    try {
+        // Show loading state in refresh button
+        const refreshBtn = document.querySelector('button[onclick="refreshData()"]') || 
+                          Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('Refresh'));
+        
+        if (refreshBtn) {
+            const originalText = refreshBtn.textContent;
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = '🔄 Refreshing...';
+            
+            // Restore button after refresh
+            setTimeout(() => {
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = originalText;
+            }, 2000);
+        }
+        
+        console.log('📄 Loading pending submissions...');
+        await loadPendingSubmissions();
+        
+        console.log('📈 Updating statistics...');
+        await updateStats();
+        
+        console.log('✅ Data refresh completed successfully');
+        
+    } catch (error) {
+        console.error('❌ Error during data refresh:', error);
+        alert('Error refreshing data. Check console for details.');
+    }
 }
 
 // Clear all pending submissions (admin function)
