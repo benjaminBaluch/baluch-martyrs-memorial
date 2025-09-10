@@ -29,30 +29,6 @@
             margin-bottom: 2rem;
             color: rgba(255,255,255,0.95);
         }
-        .hero-stats {
-            display: flex;
-            gap: 2rem;
-            justify-content: center;
-            margin-bottom: 2rem;
-            flex-wrap: wrap;
-        }
-        .stat {
-            text-align: center;
-            background: rgba(255,255,255,0.1);
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            backdrop-filter: blur(10px);
-        }
-        .stat-number {
-            display: block;
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--accent-color);
-        }
-        .stat-label {
-            font-size: 0.9rem;
-            color: rgba(255,255,255,0.9);
-        }
 
         /* Impact Section */
         .impact-section {
@@ -272,15 +248,6 @@
 
         /* Responsive Design */
         @media (max-width: 768px) {
-            .hero-stats {
-                gap: 1rem;
-            }
-            .stat {
-                padding: 0.75rem 1rem;
-            }
-            .stat-number {
-                font-size: 1.5rem;
-            }
             .purpose-content {
                 grid-template-columns: 1fr;
                 gap: 2rem;
@@ -521,16 +488,6 @@
                 <span class="hero-subtitle">🕊️ In Memory of Freedom Fighters</span>
                 <h2>Baluch Martyrs Memorial</h2>
                 <p class="hero-description">A sacred digital sanctuary preserving the legacy of brave souls who made the ultimate sacrifice for freedom, justice, and the dignity of the Baluch nation.</p>
-                <div class="hero-stats">
-                    <div class="stat">
-                        <span class="stat-number" id="heroTotalMartyrs">--</span>
-                        <span class="stat-label">Heroes Honored</span>
-                    </div>
-                    <div class="stat">
-                        <span class="stat-number" id="heroRecentAdded">--</span>
-                        <span class="stat-label">Recently Added</span>
-                    </div>
-                </div>
                 <div class="hero-buttons">
                     <a href="gallery.html" class="btn btn-primary">🏛️ Explore Memorial</a>
                     <a href="add-martyr.html" class="btn btn-secondary">➕ Honor a Hero</a>
@@ -801,11 +758,6 @@
                     return submitted > monthAgo;
                 }).length;
                 
-                // Update hero stats
-                const heroTotal = document.getElementById('heroTotalMartyrs');
-                const heroRecent = document.getElementById('heroRecentAdded');
-                if (heroTotal) heroTotal.textContent = total;
-                if (heroRecent) heroRecent.textContent = recent;
                 
                 // Update impact section stats
                 const totalCount = document.getElementById('totalMartyrsCount');
@@ -822,7 +774,7 @@
             } catch (error) {
                 console.error('❌ Error updating homepage stats:', error);
                 // Set fallback numbers
-                ['heroTotalMartyrs', 'heroRecentAdded', 'totalMartyrsCount', 'totalStoriesCount', 'recentActivityCount'].forEach(id => {
+                ['totalMartyrsCount', 'totalStoriesCount', 'recentActivityCount'].forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.textContent = '0';
                 });
