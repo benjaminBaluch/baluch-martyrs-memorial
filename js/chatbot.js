@@ -111,12 +111,8 @@ class BaluchistanChatbot {
                         <div class="chatbot-title">Baluchistan AI Guide</div>
                         <div class="chatbot-subtitle">Learn about occupied Baluchistan</div>
                     </div>
-                    <div style="display: flex; align-items: center;">
-                        <div id="language-toggle-container"></div>
-                        <button class="chatbot-toggle" onclick="chatbot.toggleChatbot(); event.stopPropagation();">−</button>
-                    </div>
+                    <button class="chatbot-toggle" onclick="chatbot.toggleChatbot(); event.stopPropagation();">−</button>
                 </div>
-                <div class="language-indicator" id="language-indicator">EN</div>
                 <div class="chatbot-body">
                     <div class="chatbot-messages" id="chatbot-messages"></div>
                     <div class="chatbot-input-area">
@@ -130,11 +126,6 @@ class BaluchistanChatbot {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', chatbotHTML);
-        
-        // Wait for translator to load and add language toggle
-        setTimeout(() => {
-            this.initializeLanguageSupport();
-        }, 500);
     }
 
     attachEventListeners() {
@@ -171,64 +162,9 @@ class BaluchistanChatbot {
         }
     }
 
-    async initializeLanguageSupport() {
-        // Wait for translator to be ready
-        if (!window.translator) {
-            setTimeout(() => this.initializeLanguageSupport(), 500);
-            return;
-        }
-        
-        // Add language toggle to header
-        const toggleContainer = document.getElementById('language-toggle-container');
-        if (toggleContainer) {
-            toggleContainer.innerHTML = window.translator.getLanguageToggleHTML();
-        }
-        
-        // Set initial language state
-        this.updateLanguageInterface();
-    }
-    
-    updateLanguageInterface() {
-        if (!window.translator) return;
-        
-        const container = document.getElementById('chatbot-container');
-        const indicator = document.getElementById('language-indicator');
-        const input = document.getElementById('chatbot-input');
-        
-        const currentLang = window.translator.getCurrentLanguage();
-        const direction = window.translator.getTextDirection();
-        
-        // Update container attributes
-        container.setAttribute('dir', direction);
-        container.classList.toggle('baluchi-mode', currentLang === 'bal');
-        
-        // Update language indicator
-        indicator.textContent = currentLang === 'bal' ? 'بلوچی' : 'EN';
-        
-        // Update input placeholder
-        if (currentLang === 'bal') {
-            input.placeholder = 'بلوچستان کی تاریخ کے بارے میں پوچھیں...';
-        } else {
-            input.placeholder = "Ask about Baluchistan's history...";
-        }
-    }
-    
-    async refreshWithLanguage() {
-        // Clear current messages
-        document.getElementById('chatbot-messages').innerHTML = '';
-        document.getElementById('quick-buttons').innerHTML = '';
-        
-        // Update interface
-        this.updateLanguageInterface();
-        
-        // Show welcome message in new language
-        await this.showWelcomeMessage();
-    }
 
-    async showWelcomeMessage() {
-        const welcomeMessage = window.translator ? 
-            await window.translator.getWelcomeMessage() : 
-            "السلام علیکم! I'm your AI guide to learning about Baluchistan as an occupied land. I can tell you about:";
+    showWelcomeMessage() {
+        const welcomeMessage = "السلام علیکم! I'm your AI guide to learning about Baluchistan as an occupied land. I can tell you about:";
             
         const buttons = [
             'History of Baluchistan',
@@ -239,54 +175,36 @@ class BaluchistanChatbot {
             'Human rights situation'
         ];
         
-        setTimeout(async () => {
+        setTimeout(() => {
             this.addMessage('bot', welcomeMessage, false);
-            
-            if (window.translator) {
-                const translatedButtons = await window.translator.translateQuickButtons(buttons);
-                this.showQuickButtons(translatedButtons, buttons); // Pass original buttons as reference
-            } else {
-                this.showQuickButtons(buttons);
-            }
+            this.showQuickButtons(buttons);
         }, 1000);
     }
 
-    showQuickButtons(buttons, originalButtons = null) {
+    showQuickButtons(buttons) {
         const quickButtonsContainer = document.getElementById('quick-buttons');
         quickButtonsContainer.innerHTML = '';
         
-        buttons.forEach((buttonText, index) => {
+        buttons.forEach(buttonText => {
             const button = document.createElement('button');
             button.className = 'quick-btn';
             button.textContent = buttonText;
-            // Use original button text for logic if available, otherwise use displayed text
-            const logicText = originalButtons ? originalButtons[index] : buttonText;
-            button.onclick = () => this.handleQuickButton(logicText, buttonText);
+            button.onclick = () => this.handleQuickButton(buttonText);
             quickButtonsContainer.appendChild(button);
         });
     }
 
-    async handleQuickButton(logicText, displayText = null) {
-        // Show user message with display text
-        this.addMessage('user', displayText || logicText);
+    handleQuickButton(buttonText) {
+        this.addMessage('user', buttonText);
         document.getElementById('quick-buttons').innerHTML = '';
         
-        // Auto-detect Baluchi if user clicked a Baluchi button
-        if (window.translator && displayText && window.translator.detectBaluchiContent(displayText)) {
-            window.translator.setLanguage('bal');
-            this.updateLanguageInterface();
-        }
-        
         const responses = {
-            'History of Baluchistan': async () => {
+            'History of Baluchistan': () => {
                 const message = "Baluchistan has a rich history spanning thousands of years. Let me tell you about different periods:";
                 const buttons = ['Ancient Baluchistan', 'Medieval period', 'British colonial era', 'Khanate of Kalat'];
                 
-                const translatedMessage = window.translator ? await window.translator.translateText(message) : message;
-                const translatedButtons = window.translator ? await window.translator.translateQuickButtons(buttons) : buttons;
-                
-                this.addMessage('bot', translatedMessage, false);
-                this.showQuickButtons(translatedButtons, buttons);
+                this.addMessage('bot', message, false);
+                this.showQuickButtons(buttons);
             },
             'Why it\'s considered occupied': () => {
                 this.addMessage('bot', "Many Baluch consider their land occupied due to the forced annexation in 1948. Here's why:", false);
@@ -355,11 +273,11 @@ class BaluchistanChatbot {
             'International reports': () => this.addMessage('bot', this.knowledgeBase.current_situation.international.content)
         };
 
-        const response = responses[logicText];
+        const response = responses[buttonText];
         if (response) {
-            setTimeout(async () => {
-                await response();
-                await this.showContextualQuestions();
+            setTimeout(() => {
+                response();
+                this.showContextualQuestions();
             }, 800);
         }
     }
@@ -370,22 +288,16 @@ class BaluchistanChatbot {
         
         if (!message) return;
         
-        // Auto-detect and switch to Baluchi if user types in Baluchi
-        if (window.translator && window.translator.detectBaluchiContent(message)) {
-            window.translator.setLanguage('bal');
-            this.updateLanguageInterface();
-        }
-        
         this.addMessage('user', message);
         input.value = '';
         document.getElementById('quick-buttons').innerHTML = '';
         
-        setTimeout(async () => {
-            await this.generateResponse(message);
+        setTimeout(() => {
+            this.generateResponse(message);
         }, 800);
     }
 
-    async generateResponse(userMessage) {
+    generateResponse(userMessage) {
         const lowerMessage = userMessage.toLowerCase();
         let response = "";
         let followUpButtons = [];
@@ -483,18 +395,14 @@ class BaluchistanChatbot {
         }
 
         this.showTypingIndicator();
-        setTimeout(async () => {
+        setTimeout(() => {
             this.hideTypingIndicator();
-            
-            // Translate response if translator is available
-            const translatedResponse = window.translator ? await window.translator.translateText(response) : response;
-            this.addMessage('bot', translatedResponse);
+            this.addMessage('bot', response);
             
             if (followUpButtons.length > 0) {
-                const translatedButtons = window.translator ? await window.translator.translateQuickButtons(followUpButtons) : followUpButtons;
-                this.showQuickButtons(translatedButtons, followUpButtons);
+                this.showQuickButtons(followUpButtons);
             } else {
-                await this.showContextualQuestions();
+                this.showContextualQuestions();
             }
         }, 1500);
     }
@@ -503,16 +411,11 @@ class BaluchistanChatbot {
         return keywords.some(keyword => text.includes(keyword));
     }
 
-    async showContextualQuestions() {
+    showContextualQuestions() {
         const buttons = ['Tell me more', 'Current situation', 'How can I help?', 'New topic'];
         
-        setTimeout(async () => {
-            if (window.translator) {
-                const translatedButtons = await window.translator.translateQuickButtons(buttons);
-                this.showQuickButtons(translatedButtons, buttons);
-            } else {
-                this.showQuickButtons(buttons);
-            }
+        setTimeout(() => {
+            this.showQuickButtons(buttons);
         }, 1000);
     }
 
