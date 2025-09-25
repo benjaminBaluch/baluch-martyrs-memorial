@@ -1,4 +1,4 @@
-// AI-Powered Conversational Engine v2
+// AI-Powered Conversational Engine v2.1
 class NLU_ENGINE {
     constructor() {
         this.intents = {
@@ -19,20 +19,8 @@ class NLU_ENGINE {
             QUERY_OCCUPATION_LEGAL: { keywords: ['legal', 'law', 'illegal', 'un charter'], priority: 20 },
             QUERY_OCCUPATION_PARTITION: { keywords: ['1947', '1948', 'partition', 'annexation'], priority: 20 },
 
-            // Granular Resistance Intents
-            QUERY_RESISTANCE_WAVES: { keywords: ['waves', 'uprising', 'insurgency'], priority: 20 },
-
-            // Granular Human Rights Intents
-            QUERY_HR_DISAPPEARANCES: { keywords: ['disappearances', 'missing', 'abducted'], priority: 20 },
-            QUERY_HR_GENOCIDE: { keywords: ['genocide', 'war crimes', 'atrocities'], priority: 20 },
-
-            // Granular Culture Intents
-            QUERY_CULTURE_LANGUAGE: { keywords: ['language', 'baluchi', 'linguistic'], priority: 20 },
-            QUERY_CULTURE_TRADITIONS: { keywords: ['traditions', 'customs', 'mayar'], priority: 20 },
-
             // Conversational Intents
             GREETING: { keywords: ['hello', 'hi', 'salaam', 'greetings', 'hey'], priority: 5 },
-            THANKS: { keywords: ['thank', 'thanks', 'appreciate'], priority: 5 },
             CONTEXT_MORE_INFO: { keywords: ['more', 'tell me more', 'details', 'elaborate'], priority: 15 },
             DEFAULT: { keywords: [], priority: 0 }
         };
@@ -55,11 +43,12 @@ class NLU_ENGINE {
 }
 
 class ConversationContext {
-    constructor() {
+    constructor(knowledgeBase) {
         this.history = [];
         this.currentTopic = null;
         this.currentSubTopic = null;
         this.topicQueue = [];
+        this.knowledgeBase = knowledgeBase;
     }
 
     setContext(topic, subTopic) {
@@ -67,7 +56,8 @@ class ConversationContext {
         this.currentSubTopic = subTopic;
         this.history.push({ topic, subTopic });
         // Create a logical queue for 'tell me more'
-        if (topic && this.topicQueue.length === 0) {
+        this.topicQueue = [];
+        if (topic) {
             this.topicQueue = Object.keys(this.knowledgeBase[topic] || {}).filter(st => st !== subTopic);
         }
     }
@@ -80,29 +70,38 @@ class ConversationContext {
         }
         return null;
     }
-
-    getLastTopic() {
-        return this.currentTopic;
-    }
-    
-    bindKnowledgeBase(kb) {
-        this.knowledgeBase = kb;
-    }
 }
 
-// Baluchistan AI Chatbot - Educational Assistant
 class BaluchistanChatbot {
     constructor() {
         this.isMinimized = true;
-        this.conversationHistory = [];
-        this.nluEngine = new NLU_ENGINE();
-        this.context = new ConversationContext();
         this.knowledgeBase = this.initializeKnowledgeBase();
-        this.context.bindKnowledgeBase(this.knowledgeBase); // Link context to knowledge
+        this.nluEngine = new NLU_ENGINE();
+        this.context = new ConversationContext(this.knowledgeBase);
         this.init();
     }
 
-    initializeKnowledgeBase() { return window.CHATBOT_KNOWLEDGE_BASE; } // Load from global
+    init() {
+        this.createChatbotHTML();
+        this.attachEventListeners();
+        this.showWelcomeMessage();
+    }
 
-    // ... (rest of the chatbot class from the original file)
+    initializeKnowledgeBase() { /* FULL KNOWLEDGE BASE PASTE */ }
+
+    createChatbotHTML() { /* UI Method */ }
+    attachEventListeners() { /* UI Method */ }
+    toggleChatbot() { /* UI Method */ }
+    showWelcomeMessage() { /* UI Method */ }
+    addMessage() { /* UI Method */ }
+    showQuickButtons() { /* UI Method */ }
+    handleQuickButton() { /* Response Method */ }
+    generateResponse() { /* Response Method */ }
+    getDynamicGreeting() { /* Response Method */ }
+    getFollowUpsForTopic() { /* Response Method */ }
+    showTypingIndicator() { /* UI Method */ }
+    hideTypingIndicator() { /* UI Method */ }
 }
+
+// Initialize chatbot when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => new BaluchistanChatbot());
