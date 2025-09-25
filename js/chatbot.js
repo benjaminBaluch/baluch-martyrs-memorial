@@ -1,9 +1,61 @@
+// AI-Powered Conversational Engine
+class NLU_ENGINE {
+    constructor() {
+        this.intents = {
+            GREETING: { keywords: ['hello', 'hi', 'salaam', 'greetings', 'hey'] },
+            THANKS: { keywords: ['thank', 'thanks', 'appreciate', 'grateful'] },
+            REQUEST_HELP: { keywords: ['help', 'support', 'what can i do'] },
+            QUERY_INDEPENDENCE: { keywords: ['independence', 'free', 'freedom', 'liberation', 'azadi'] },
+            QUERY_OCCUPATION: { keywords: ['occupied', 'occupation', 'annexation', 'illegal', 'stolen'] },
+            QUERY_RESISTANCE: { keywords: ['resistance', 'insurgency', 'rebellion', 'fight', 'struggle', 'uprising'] },
+            QUERY_HISTORY: { keywords: ['history', 'historical', 'past', 'ancient', 'old', 'medieval', 'british', 'khanate'] },
+            QUERY_CULTURE: { keywords: ['culture', 'language', 'tradition', 'custom', 'baluchi', 'heritage'] },
+            QUERY_RESOURCES: { keywords: ['resources', 'gas', 'mineral', 'oil', 'gwadar', 'wealth', 'looted'] },
+            QUERY_HUMAN_RIGHTS: { keywords: ['human rights', 'disappearances', 'killings', 'torture', 'violations'] },
+            QUERY_LEADERS: { keywords: ['leaders', 'heroes', 'martyrs', 'sacrifice', 'figures'] },
+            QUERY_CURRENT_SITUATION: { keywords: ['current', 'today', 'now', 'present', 'situation', 'latest'] },
+            CONTEXT_MORE_INFO: { keywords: ['more', 'tell me more', 'details', 'elaborate'] },
+            REACTION_POSITIVE: { keywords: ['amazing', 'incredible', 'wow', 'shocking'] },
+            REACTION_NEGATIVE: { keywords: ['sad', 'sorry', 'tragic', 'heartbreaking', 'terrible'] },
+        };
+    }
+
+    getIntent(message) {
+        const lowerMessage = message.toLowerCase();
+        for (const intent in this.intents) {
+            if (this.intents[intent].keywords.some(keyword => lowerMessage.includes(keyword))) {
+                return intent;
+            }
+        }
+        return 'DEFAULT'; // Fallback intent
+    }
+}
+
+class ConversationContext {
+    constructor() {
+        this.history = [];
+        this.lastTopic = null;
+    }
+
+    addTurn(intent, topic) {
+        this.history.push({ intent, topic });
+        if (topic) {
+            this.lastTopic = topic;
+        }
+    }
+
+    getLastTopic() {
+        return this.lastTopic;
+    }
+}
+
 // Baluchistan AI Chatbot - Educational Assistant
 class BaluchistanChatbot {
     constructor() {
         this.isMinimized = true;
         this.conversationHistory = [];
-        this.currentContext = null;
+        this.nluEngine = new NLU_ENGINE();
+        this.context = new ConversationContext();
         this.knowledgeBase = this.initializeKnowledgeBase();
         this.init();
     }
@@ -298,117 +350,75 @@ class BaluchistanChatbot {
     }
 
     generateResponse(userMessage) {
-        const lowerMessage = userMessage.toLowerCase();
+        const intent = this.nluEngine.getIntent(userMessage);
         let response = "";
         let followUpButtons = [];
-
-        // Keyword-based response system
-        if (this.containsKeywords(lowerMessage, ['history', 'historical', 'past', 'ancient', 'old'])) {
-            if (this.containsKeywords(lowerMessage, ['ancient', 'old', 'early'])) {
-                response = this.knowledgeBase.history.ancient.content;
-            } else if (this.containsKeywords(lowerMessage, ['british', 'colonial', 'empire'])) {
-                response = this.knowledgeBase.history.british.content;
-            } else if (this.containsKeywords(lowerMessage, ['kalat', 'khanate', 'khan'])) {
-                response = this.knowledgeBase.history.khanate.content;
-            } else {
-                response = "Baluchistan has a rich and complex history spanning thousands of years. Would you like to know about a specific period?";
-                followUpButtons = ['Ancient Baluchistan', 'Medieval period', 'British colonial era', 'Khanate of Kalat'];
-            }
-        } else if (this.containsKeywords(lowerMessage, ['occupied', 'occupation', 'annexation', 'independence', 'illegal'])) {
-            if (this.containsKeywords(lowerMessage, ['1947', '1948', 'partition'])) {
-                response = this.knowledgeBase.occupation.partition.content;
-            } else if (this.containsKeywords(lowerMessage, ['legal', 'law', 'international'])) {
-                response = this.knowledgeBase.occupation.legal_status.content;
-            } else {
-                response = this.knowledgeBase.occupation.partition.content;
-                followUpButtons = ['Legal arguments', 'International law perspective', 'Resistance movements'];
-            }
-        } else if (this.containsKeywords(lowerMessage, ['resistance', 'insurgency', 'rebellion', 'fight', 'struggle'])) {
-            response = this.knowledgeBase.occupation.resistance.content;
-            followUpButtons = ['Notable leaders', 'Current movement', 'Five major insurgencies'];
-        } else if (this.containsKeywords(lowerMessage, ['culture', 'language', 'tradition', 'custom', 'baluchi'])) {
-            if (this.containsKeywords(lowerMessage, ['language', 'baluchi', 'speak'])) {
-                response = this.knowledgeBase.culture.language.content;
-            } else if (this.containsKeywords(lowerMessage, ['tradition', 'custom', 'culture'])) {
-                response = this.knowledgeBase.culture.traditions.content;
-            } else {
-                response = "Baluch culture is ancient and rich, but faces systematic suppression. What aspect interests you?";
-                followUpButtons = ['Baluchi language', 'Traditional customs', 'Cultural suppression'];
-            }
-        } else if (this.containsKeywords(lowerMessage, ['resources', 'gas', 'mineral', 'oil', 'gwadar', 'wealth'])) {
-            if (this.containsKeywords(lowerMessage, ['gwadar', 'port', 'trade'])) {
-                response = this.knowledgeBase.resources.natural.content;
-            } else {
-                response = this.knowledgeBase.resources.exploitation.content;
-                followUpButtons = ['Gas and mineral wealth', 'Gwadar port importance', 'Economic exploitation'];
-            }
-        } else if (this.containsKeywords(lowerMessage, ['human rights', 'disappearances', 'killings', 'torture', 'violations'])) {
-            response = this.knowledgeBase.occupation.human_rights.content;
-            followUpButtons = ['Enforced disappearances', 'International reports', 'Diaspora campaigns'];
-        } else if (this.containsKeywords(lowerMessage, ['leaders', 'heroes', 'martyrs', 'sacrifice'])) {
-            response = this.knowledgeBase.leaders.martyrs.content;
-            followUpButtons = ['Historical leaders', 'Modern leaders', 'Memorial significance'];
-        } else if (this.containsKeywords(lowerMessage, ['current', 'today', 'now', 'present', 'situation'])) {
-            response = this.knowledgeBase.current_situation.political.content;
-            followUpButtons = ['International perspective', 'Human rights situation', 'Resistance movements'];
-        } else if (this.containsKeywords(lowerMessage, ['hello', 'hi', 'salaam', 'greetings', 'hey', 'good morning', 'good afternoon', 'good evening'])) {
-            const greetings = [
-                "السلام علیکم! Welcome to the Baluchistan AI Guide. I'm here to educate you about the world's largest occupied territory and its people's heroic struggle for freedom.",
-                "Greetings, friend of justice! I'm here to share the untold story of Baluchistan - a land rich in resources but robbed by occupiers, a people ancient in heritage but denied their rights.",
-                "Welcome! You've entered a space dedicated to truth about Baluchistan. For 75+ years, this story has been suppressed. Let's explore it together."
-            ];
-            response = greetings[Math.floor(Math.random() * greetings.length)];
-            followUpButtons = ['Why is Baluchistan occupied?', 'Tell me about Baluch martyrs', 'What can I do to help?', 'Show me the evidence'];
-        } else if (this.containsKeywords(lowerMessage, ['thank', 'thanks', 'appreciate', 'grateful'])) {
-            const thankResponses = [
-                "Your interest in learning about Baluchistan gives hope to millions of oppressed people. Every person who learns the truth becomes a voice for justice!",
-                "Thank you for caring about human rights and justice. The Baluch people's struggle is strengthened by global awareness and support.",
-                "Knowledge is power, and you now carry the responsibility of sharing this truth. Together, we can break the silence around Baluchistan's occupation."
-            ];
-            response = thankResponses[Math.floor(Math.random() * thankResponses.length)];
-            followUpButtons = ['How to spread awareness', 'Support Baluch rights', 'Learn more facts', 'Current developments'];
-        } else if (this.containsKeywords(lowerMessage, ['help', 'support', 'what can i do', 'how to help', 'assist'])) {
-            response = "🎆 **HOW YOU CAN HELP FREE BALUCHISTAN:**\n\n📱 **Spread Awareness:**\n• Share #FreeBaluchistan on social media\n• Tell friends and family about the occupation\n• Post about Baluch martyrs and heroes\n\n📜 **Educate Yourself & Others:**\n• Read about Baluchistan's history\n• Watch documentaries on Baluch struggle\n• Follow Baluch activists and organizations\n\n🏛️ **Political Action:**\n• Contact your local representatives\n• Support resolutions for Baluch rights\n• Attend protests at Pakistani embassies\n\n❤️ **Moral Support:**\n• Remember Baluch martyrs in your prayers\n• Stand with families of disappeared persons\n• Never let the world forget this injustice!";
-            followUpButtons = ['Share this website', 'Learn about martyrs', 'Contact representatives', 'Join protests'];
-        } else if (this.containsKeywords(lowerMessage, ['independence', 'free', 'freedom', 'liberation', 'azadi'])) {
-            response = "🗽 **BALUCHISTAN WILL BE FREE!**\n\nThe dream of Baluch independence is not just a hope - it's an inevitable reality. Here's why:\n\n🎆 **Historical Precedent:** Baluchistan WAS independent (declared August 12, 1947) before illegal occupation\n\n🌍 **International Law:** UN Charter supports self-determination of peoples\n\n💪 **Unbroken Resistance:** 75+ years of continuous struggle proves the people's will\n\n📈 **Growing Support:** Global diaspora and international awareness increasing daily\n\n⚖️ **Legal Basis:** No valid treaty of accession exists - occupation is illegal\n\n🌹 **Martyrs' Blood:** 50,000+ martyrs demand justice and freedom\n\nThe question is not IF Baluchistan will be free, but WHEN!";
-            followUpButtons = ['Legal arguments for independence', 'International support', 'Resistance movements', 'How to accelerate freedom'];
-        } else if (this.containsKeywords(lowerMessage, ['sad', 'sorry', 'tragic', 'heartbreaking', 'terrible'])) {
-            response = "Your empathy honors the memory of every Baluch martyr. Yes, the situation is heartbreaking, but from great suffering comes unbreakable determination. The Baluch people have endured 75+ years of occupation, yet their spirit remains unbroken. Every tear shed for Baluchistan waters the tree of freedom. Your compassion gives strength to those still fighting for justice.";
-            followUpButtons = ['Honor the martyrs', 'Stories of resilience', 'How we can help', 'Signs of hope'];
-        } else if (this.containsKeywords(lowerMessage, ['amazing', 'incredible', 'wow', 'unbelievable', 'shocking'])) {
-            response = "Indeed, the scale of both the injustice and the resistance is remarkable. What amazes me most is how the Baluch people have maintained their dignity, culture, and determination despite facing one of the world's most systematic occupations. Their courage in the face of such overwhelming odds is truly inspiring. This is why their story must be told!";
-            followUpButtons = ['Most inspiring stories', 'Heroes of resistance', 'Cultural preservation', 'International recognition'];
-        } else if (this.containsKeywords(lowerMessage, ['pakistan', 'pakistani', 'government', 'military', 'army'])) {
-            response = "😭 **PAKISTANI OCCUPATION & STATE TERRORISM:**\n\nPakistan's treatment of Baluchistan is a textbook example of colonial exploitation:\n\n🔴 **Military Occupation:** 80,000+ troops stationed to suppress Baluch people\n🔴 **Economic Theft:** $200+ billion in resources stolen, 0% returned to Baluch\n🔴 **Cultural Genocide:** Baluchi language banned, traditions suppressed\n🔴 **Human Rights Violations:** 25,000+ disappeared, 5,000+ killed\n🔴 **Demographic Engineering:** Punjabi settlers brought to change population\n\nPakistan treats Baluchistan not as a province but as a colony to be exploited!";
-            followUpButtons = ['Human rights violations', 'Resource exploitation', 'Military operations', 'International condemnation'];
-        } else {
-            // Enhanced default responses based on context
-            const defaultResponses = [
-                "🤔 That's an interesting question about Baluchistan! This region has so many untold stories. Let me guide you to the most important aspects of the Baluch struggle for freedom:",
-                "📚 I have extensive knowledge about Baluchistan's history, culture, and current situation. Let me suggest some fascinating topics that might answer your question:",
-                "🌍 Baluchistan is a complex topic with many dimensions - historical, political, cultural, and humanitarian. Here are some key areas I can explore with you:",
-                "✨ Great question! The story of Baluchistan touches on themes of justice, resistance, culture, and human rights. Let me suggest some paths to explore:"
-            ];
-            response = defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
-            followUpButtons = ['History of occupation', 'Current resistance', 'Baluch culture', 'Human rights crisis', 'Natural resources', 'International support'];
-        }
+        let topic = null;
 
         this.showTypingIndicator();
+
+        switch (intent) {
+            case 'GREETING':
+                response = "السلام علیکم! Welcome to the Baluchistan AI Guide. I'm ready to share the documented history of Baluchistan's occupation and its people's heroic struggle for freedom.";
+                followUpButtons = ['Why is Baluchistan occupied?', 'Tell me about Baluch martyrs', 'Show me the evidence of resource theft'];
+                break;
+            
+            case 'QUERY_OCCUPATION':
+                response = this.knowledgeBase.occupation.partition.content;
+                followUpButtons = ['What are the legal arguments?', 'Tell me about the first resistance', 'How did the British occupy it?'];
+                topic = 'occupation';
+                break;
+
+            case 'QUERY_HISTORY':
+                response = "Baluchistan has a rich, 9,000-year history. Which period interests you most? Knowing the past is key to understanding the present.";
+                followUpButtons = ['Ancient Civilization (Mehrgarh)', 'The Khanate of Kalat', 'The British Colonial Era', 'The 1948 Annexation'];
+                topic = 'history';
+                break;
+            
+            case 'QUERY_LEADERS':
+                response = this.knowledgeBase.leaders.martyrs.content;
+                followUpButtons = ['Tell me about historical heroes', 'Who are the modern leaders?', 'Why was Nawab Bugti martyred?'];
+                topic = 'leaders';
+                break;
+
+            case 'CONTEXT_MORE_INFO':
+                const lastTopic = this.context.getLastTopic();
+                if (lastTopic && this.knowledgeBase[lastTopic]) {
+                    // Provide a more detailed piece of info from the same topic
+                    const subTopics = Object.keys(this.knowledgeBase[lastTopic]);
+                    const randomSubTopic = subTopics[Math.floor(Math.random() * subTopics.length)];
+                    response = this.knowledgeBase[lastTopic][randomSubTopic].content;
+                    followUpButtons = this.getFollowUpsForTopic(lastTopic);
+                } else {
+                    response = "I can elaborate if you first ask me about a specific topic. For example, try asking about 'Baluch history' or 'human rights violations'.";
+                    followUpButtons = ['History of Baluchistan', 'Human Rights Crisis', 'Natural Resources'];
+                }
+                break;
+
+            default:
+                response = "That's a great question. The story of Baluchistan is vast. Let me point you to some key topics that might have the answer you're looking for.";
+                followUpButtons = ['History of the Occupation', 'The Human Rights Crisis', 'Key Resistance Movements', 'Resource Exploitation'];
+                break;
+        }
+
+        this.context.addTurn(intent, topic);
+
         setTimeout(() => {
             this.hideTypingIndicator();
             this.addMessage('bot', response);
-            
             if (followUpButtons.length > 0) {
                 this.showQuickButtons(followUpButtons);
-            } else {
-                this.showContextualQuestions();
             }
-        }, 1500);
+        }, 1200);
     }
-
-    containsKeywords(text, keywords) {
-        return keywords.some(keyword => text.includes(keyword));
+    
+    getFollowUpsForTopic(topic) {
+        const allTopics = {
+            history: ['Ancient Civilization (Mehrgarh)', 'The Khanate of Kalat', 'The British Colonial Era'],
+            occupation: ['What are the legal arguments?', 'How did Pakistan annex it?', 'Was it ever independent?'],
+            leaders: ['Tell me about historical heroes', 'Who are the modern leaders?', 'Why was Nawab Bugti martyred?'],
+        };
+        return allTopics[topic] || ['Main Menu', 'How can I help?'];
     }
 
     showContextualQuestions() {
