@@ -332,6 +332,139 @@
     }
 }
 
+/* Language Toggle Styles */
+.language-toggle {
+    display: flex;
+    gap: 5px;
+    margin-left: 10px;
+    align-items: center;
+}
+
+.lang-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: var(--transition);
+    min-width: 28px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lang-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: scale(1.05);
+}
+
+.lang-btn.active {
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--baluch-blue);
+    border-color: rgba(255, 255, 255, 0.9);
+    font-weight: bold;
+}
+
+.lang-btn.active:hover {
+    background: white;
+    color: var(--baluch-red);
+}
+
+/* RTL Support for Baluchi */
+.chatbot-container[dir="rtl"] .chatbot-messages {
+    text-align: right;
+    direction: rtl;
+}
+
+.chatbot-container[dir="rtl"] .message.user {
+    align-items: flex-start;
+}
+
+.chatbot-container[dir="rtl"] .message.bot {
+    align-items: flex-end;
+}
+
+.chatbot-container[dir="rtl"] .message.user .message-bubble {
+    border-bottom-left-radius: 5px;
+    border-bottom-right-radius: 18px;
+}
+
+.chatbot-container[dir="rtl"] .message.bot .message-bubble {
+    border-bottom-right-radius: 5px;
+    border-bottom-left-radius: 18px;
+}
+
+.chatbot-container[dir="rtl"] .chatbot-input-wrapper {
+    flex-direction: row-reverse;
+}
+
+.chatbot-container[dir="rtl"] .chatbot-input {
+    text-align: right;
+    direction: rtl;
+}
+
+.chatbot-container[dir="rtl"] .quick-btn {
+    font-family: "Noto Sans Arabic", "Amiri", "Times New Roman", serif;
+}
+
+/* Baluchi Font Support */
+.chatbot-container.baluchi-mode {
+    font-family: "Noto Sans Arabic", "Amiri", "Times New Roman", serif;
+}
+
+.chatbot-container.baluchi-mode .message-bubble {
+    font-family: "Noto Sans Arabic", "Amiri", "Times New Roman", serif;
+    line-height: 1.6;
+}
+
+.chatbot-container.baluchi-mode .chatbot-input {
+    font-family: "Noto Sans Arabic", "Amiri", "Times New Roman", serif;
+}
+
+.chatbot-container.baluchi-mode .quick-btn {
+    font-family: "Noto Sans Arabic", "Amiri", "Times New Roman", serif;
+    font-size: 13px;
+}
+
+/* Language indicator */
+.language-indicator {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.1);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.chatbot-container.minimized .language-indicator {
+    display: none;
+}
+
+/* Translation loading indicator */
+.translation-loading {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid var(--baluch-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-left: 5px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 /* Animation for opening/closing */
 .chatbot-container.opening {
     animation: chatbotOpen 0.3s ease-out forwards;
