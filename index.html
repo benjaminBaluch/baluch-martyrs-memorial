@@ -942,13 +942,12 @@
         hideBannerAndFixLayout();
     }
     
-    // Function to hide Google Translate banner
+    // Function to hide Google Translate banner only (preserve the widget)
     function hideBannerAndFixLayout() {
-        // Remove banner elements
+        // Only hide the top banner, not the translate widget itself
         const bannersToHide = [
-            '.goog-te-banner-frame',
+            '.goog-te-banner-frame:not(#google_translate_element *)',
             'iframe.goog-te-banner-frame', 
-            '.skiptranslate',
             '#goog-gt-tt',
             '.goog-te-balloon-frame'
         ];
@@ -956,36 +955,35 @@
         bannersToHide.forEach(selector => {
             const elements = document.querySelectorAll(selector);
             elements.forEach(el => {
-                if (el) {
+                // Only hide if it's not part of our translate widget
+                if (el && !el.closest('#google_translate_element')) {
                     el.style.display = 'none';
                     el.style.visibility = 'hidden';
                     el.style.opacity = '0';
                     el.style.height = '0';
-                    el.style.position = 'absolute';
-                    el.style.left = '-9999px';
-                    el.remove(); // Complete removal
                 }
             });
         });
         
-        // Reset body position
+        // Reset body position only
         document.body.style.top = '0';
         document.body.style.marginTop = '0';
         document.body.style.paddingTop = '0';
         
-        // Monitor for dynamically added banners
+        // Monitor for dynamically added banners (be more selective)
         const observer = new MutationObserver(function(mutations) {
             mutations.forEach(function(mutation) {
                 mutation.addedNodes.forEach(function(node) {
                     if (node.nodeType === 1) { // Element node
-                        if (node.classList && (node.classList.contains('goog-te-banner-frame') || 
-                            node.classList.contains('skiptranslate'))) {
-                            node.remove();
+                        // Only remove banner frames, not the widget
+                        if (node.classList && node.classList.contains('goog-te-banner-frame') && 
+                            !node.closest('#google_translate_element')) {
+                            node.style.display = 'none';
                         }
-                        // Also check children
-                        const bannerChildren = node.querySelectorAll && node.querySelectorAll('.goog-te-banner-frame, .skiptranslate');
-                        if (bannerChildren) {
-                            bannerChildren.forEach(child => child.remove());
+                        // Check for iframe banners
+                        if (node.tagName === 'IFRAME' && node.classList && 
+                            node.classList.contains('goog-te-banner-frame')) {
+                            node.style.display = 'none';
                         }
                     }
                 });
@@ -998,8 +996,11 @@
         });
     }
     
-    // Call the function periodically to ensure banner stays hidden
-    setInterval(hideBannerAndFixLayout, 1000);
+    // Call the function periodically but less frequently to preserve widget
+    setTimeout(() => {
+        hideBannerAndFixLayout();
+        setInterval(hideBannerAndFixLayout, 3000); // Every 3 seconds instead of 1
+    }, 2000); // Wait 2 seconds for Google Translate to load first
     </script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>
