@@ -1562,14 +1562,23 @@ section {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-/* Hide Google Translate banner - Enhanced rules */
+/* Professional Google Translate banner styling */
 .goog-te-banner-frame {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    height: 0 !important;
-    position: absolute !important;
-    z-index: -9999 !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    max-height: 30px !important;
+    background: rgba(66, 133, 244, 0.9) !important;
+    border: none !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+    font-size: 12px !important;
+    line-height: 30px !important;
+    padding: 0 10px !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 999 !important;
+    overflow: hidden !important;
 }
 
 /* Prevent Google Translate from pushing body down */
@@ -1595,12 +1604,74 @@ div#goog-gt-tt,
     z-index: -9999 !important;
 }
 
-/* Ensure header stays at top */
+/* Professional banner content styling */
+.goog-te-banner-frame * {
+    font-size: 12px !important;
+    line-height: 30px !important;
+    color: white !important;
+    text-decoration: none !important;
+    padding: 0 5px !important;
+    margin: 0 !important;
+    vertical-align: middle !important;
+}
+
+.goog-te-banner-frame a {
+    color: white !important;
+    text-decoration: underline !important;
+    font-weight: normal !important;
+}
+
+.goog-te-banner-frame .goog-te-banner-content {
+    text-align: center !important;
+    font-size: 12px !important;
+}
+
+/* Adjust header to account for compact banner */
 .site-header {
     position: sticky !important;
-    top: 0 !important;
-    z-index: 9999 !important;
+    top: 30px !important; /* Account for 30px banner */
+    z-index: 9998 !important; /* Below banner but above content */
     margin-top: 0 !important;
+}
+
+/* When banner is hidden, move header back to top */
+body:not(.translated-page) .site-header {
+    top: 0 !important;
+}
+
+/* Make banner text more compact and professional */
+.goog-te-banner-frame table,
+.goog-te-banner-frame tbody,
+.goog-te-banner-frame tr,
+.goog-te-banner-frame td {
+    height: 30px !important;
+    line-height: 30px !important;
+    padding: 0 5px !important;
+    margin: 0 !important;
+    border: none !important;
+    font-size: 12px !important;
+}
+
+/* Style the banner buttons */
+.goog-te-banner-frame .goog-te-menu-value,
+.goog-te-banner-frame .goog-te-menu-frame {
+    font-size: 11px !important;
+    padding: 2px 8px !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 3px !important;
+    color: white !important;
+    margin: 0 3px !important;
+}
+
+/* Minimize the banner when not in use */
+.goog-te-banner-frame:not(:hover) {
+    opacity: 0.8 !important;
+    transition: opacity 0.3s ease !important;
+}
+
+.goog-te-banner-frame:hover {
+    opacity: 1 !important;
 }
 
 /* Override any Google Translate body modifications */

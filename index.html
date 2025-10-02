@@ -942,58 +942,38 @@
         hideBannerAndFixLayout();
     }
     
-    // Function to hide Google Translate banner only (preserve the widget)
+    // Function to style Google Translate banner professionally (keep it compact)
     function hideBannerAndFixLayout() {
-        // Only hide the top banner, not the translate widget itself
-        const bannersToHide = [
-            '.goog-te-banner-frame:not(#google_translate_element *)',
-            'iframe.goog-te-banner-frame', 
-            '#goog-gt-tt',
-            '.goog-te-balloon-frame'
+        // Only hide tooltip and balloon elements, keep main banner styled
+        const elementsToHide = [
+            '#goog-gt-tt', // Tooltip
+            '.goog-te-balloon-frame' // Popup balloon
         ];
         
-        bannersToHide.forEach(selector => {
+        elementsToHide.forEach(selector => {
             const elements = document.querySelectorAll(selector);
             elements.forEach(el => {
-                // Only hide if it's not part of our translate widget
-                if (el && !el.closest('#google_translate_element')) {
+                if (el) {
                     el.style.display = 'none';
-                    el.style.visibility = 'hidden';
-                    el.style.opacity = '0';
-                    el.style.height = '0';
                 }
             });
         });
         
-        // Reset body position only
-        document.body.style.top = '0';
+        // Style the banner to be compact and professional
+        const banners = document.querySelectorAll('.goog-te-banner-frame');
+        banners.forEach(banner => {
+            if (banner && !banner.closest('#google_translate_element')) {
+                // Apply professional styling via CSS classes (handled in CSS)
+                banner.classList.add('professional-banner');
+            }
+        });
+        
+        // Adjust body only if needed
+        if (document.body.style.top && document.body.style.top !== '0px') {
+            document.body.style.top = '30px'; // Account for 30px banner
+        }
         document.body.style.marginTop = '0';
         document.body.style.paddingTop = '0';
-        
-        // Monitor for dynamically added banners (be more selective)
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                mutation.addedNodes.forEach(function(node) {
-                    if (node.nodeType === 1) { // Element node
-                        // Only remove banner frames, not the widget
-                        if (node.classList && node.classList.contains('goog-te-banner-frame') && 
-                            !node.closest('#google_translate_element')) {
-                            node.style.display = 'none';
-                        }
-                        // Check for iframe banners
-                        if (node.tagName === 'IFRAME' && node.classList && 
-                            node.classList.contains('goog-te-banner-frame')) {
-                            node.style.display = 'none';
-                        }
-                    }
-                });
-            });
-        });
-        
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
     }
     
     // Call the function periodically but less frequently to preserve widget
