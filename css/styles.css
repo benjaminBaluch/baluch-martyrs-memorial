@@ -1514,3 +1514,99 @@ section {
         font-size: 1.2rem;
     }
 }
+
+/* Google Translate Widget Styles */
+/* Styling for a specific Google Translate control/button */
+.goog-te-control-button { 
+    background-image: url(https://translate.googleapis.com/translate_static/img/te_ctrl3.gif);
+    background-position: -65px 0px;
+}
+
+/* Styling for all images within the main gadget */
+.goog-te-gadget img {
+    vertical-align: middle;
+    border: none;
+}
+
+/* Styling for the main icon component */
+.goog-te-gadget-icon {
+    margin-left: 2px;
+    margin-right: 2px;
+    width: 19px;
+    height: 19px;
+    border: none;
+    vertical-align: middle;
+}
+
+/* Custom positioning and styling for the Google Translate widget in navigation */
+#google_translate_element {
+    display: inline-block;
+}
+
+#google_translate_element select {
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    padding: 0.3rem 0.5rem;
+    color: var(--primary-color);
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+#google_translate_element select:hover,
+#google_translate_element select:focus {
+    background: white;
+    border-color: var(--secondary-color);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Hide Google Translate banner */
+.goog-te-banner-frame {
+    display: none !important;
+}
+
+body {
+    top: 0 !important;
+}
+
+/* Style the Google Translate combo */
+.goog-te-combo {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 4px !important;
+    padding: 0.3rem 0.5rem !important;
+    color: var(--primary-color) !important;
+    font-size: 0.85rem !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+    outline: none !important;
+}
+
+.goog-te-combo:hover,
+.goog-te-combo:focus {
+    background: white !important;
+    border-color: var(--secondary-color) !important;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
+}
+
+/* Responsive Google Translate */
+@media (max-width: 768px) {
+    .nav-menu li:has(#google_translate_element) {
+        order: 999;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    #google_translate_element {
+        width: 100%;
+    }
+    
+    #google_translate_element select,
+    .goog-te-combo {
+        width: 100% !important;
+        text-align: center;
+    }
+}
