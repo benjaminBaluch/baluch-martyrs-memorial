@@ -935,11 +935,16 @@
     function googleTranslateElementInit() {
         new google.translate.TranslateElement({
             pageLanguage: 'en',
-            layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+            layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+            autoDisplay: false,
+            multilanguagePage: true
         }, 'google_translate_element');
         
-        // Hide banner and fix body position
-        hideBannerAndFixLayout();
+        // Style banner and ensure mobile functionality
+        setTimeout(() => {
+            hideBannerAndFixLayout();
+            fixMobileTranslateWidget();
+        }, 1000);
     }
     
     // Function to style Google Translate banner professionally (keep it compact)
@@ -976,11 +981,51 @@
         document.body.style.paddingTop = '0';
     }
     
+    // Function to fix mobile translate widget functionality
+    function fixMobileTranslateWidget() {
+        const translateElement = document.getElementById('google_translate_element');
+        if (!translateElement) return;
+        
+        const selectElement = translateElement.querySelector('select');
+        const comboElement = translateElement.querySelector('.goog-te-combo');
+        
+        const activeSelect = selectElement || comboElement;
+        if (!activeSelect) return;
+        
+        // Ensure mobile events work properly
+        activeSelect.addEventListener('change', function(e) {
+            console.log('Translation selected:', e.target.value);
+            
+            // Force translation for mobile
+            if (e.target.value && e.target.value !== '') {
+                setTimeout(() => {
+                    // Trigger Google Translate
+                    const event = new Event('change', { bubbles: true });
+                    e.target.dispatchEvent(event);
+                }, 100);
+            }
+        });
+        
+        // Add touch events for mobile
+        activeSelect.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            this.focus();
+            this.click();
+        });
+        
+        // Improve mobile accessibility
+        activeSelect.style.pointerEvents = 'auto';
+        activeSelect.style.touchAction = 'manipulation';
+    }
+    
     // Call the function periodically but less frequently to preserve widget
     setTimeout(() => {
         hideBannerAndFixLayout();
-        setInterval(hideBannerAndFixLayout, 3000); // Every 3 seconds instead of 1
-    }, 2000); // Wait 2 seconds for Google Translate to load first
+        setInterval(() => {
+            hideBannerAndFixLayout();
+            fixMobileTranslateWidget();
+        }, 3000);
+    }, 2000);
     </script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>

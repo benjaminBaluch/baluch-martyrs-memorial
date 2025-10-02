@@ -214,24 +214,35 @@
     function googleTranslateElementInit() {
         new google.translate.TranslateElement({
             pageLanguage: 'en',
-            layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+            layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+            autoDisplay: false,
+            multilanguagePage: true
         }, 'google_translate_element');
-        hideBannerAndFixLayout();
+        setTimeout(() => {
+            hideBannerAndFixLayout();
+            fixMobileTranslateWidget();
+        }, 1000);
     }
     
     function hideBannerAndFixLayout() {
-        // Only hide banner, preserve translate widget
-        const bannersToHide = ['.goog-te-banner-frame', 'iframe.goog-te-banner-frame', '#goog-gt-tt', '.goog-te-balloon-frame'];
+        const bannersToHide = ['#goog-gt-tt', '.goog-te-balloon-frame'];
         bannersToHide.forEach(selector => {
             document.querySelectorAll(selector).forEach(el => {
-                if (el && !el.closest('#google_translate_element')) { 
-                    el.style.display = 'none'; 
-                }
+                if (el) el.style.display = 'none';
             });
         });
         document.body.style.top = '0'; document.body.style.marginTop = '0'; document.body.style.paddingTop = '0';
     }
-    setTimeout(() => { hideBannerAndFixLayout(); setInterval(hideBannerAndFixLayout, 3000); }, 2000);
+    function fixMobileTranslateWidget() {
+        const translateElement = document.getElementById('google_translate_element');
+        if (!translateElement) return;
+        const activeSelect = translateElement.querySelector('select') || translateElement.querySelector('.goog-te-combo');
+        if (activeSelect) {
+            activeSelect.style.pointerEvents = 'auto';
+            activeSelect.style.touchAction = 'manipulation';
+        }
+    }
+    setTimeout(() => { hideBannerAndFixLayout(); setInterval(() => { hideBannerAndFixLayout(); fixMobileTranslateWidget(); }, 3000); }, 2000);
     </script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>
