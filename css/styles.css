@@ -1562,12 +1562,55 @@ section {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-/* Hide Google Translate banner */
+/* Hide Google Translate banner - Enhanced rules */
 .goog-te-banner-frame {
     display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    position: absolute !important;
+    z-index: -9999 !important;
 }
 
+/* Prevent Google Translate from pushing body down */
 body {
+    top: 0 !important;
+    position: relative !important;
+}
+
+/* Additional banner hiding selectors */
+.goog-te-banner-frame.skiptranslate,
+iframe.goog-te-banner-frame,
+.goog-te-banner-frame iframe,
+div#goog-gt-tt,
+.goog-te-balloon-frame {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+    z-index: -9999 !important;
+}
+
+/* Ensure header stays at top */
+.site-header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 9999 !important;
+    margin-top: 0 !important;
+}
+
+/* Override any Google Translate body modifications */
+body.translated-page {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+/* Force body back to normal position */
+body[style*="top:"] {
     top: 0 !important;
 }
 

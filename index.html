@@ -933,8 +933,73 @@
     <!-- Google Translate Scripts -->
     <script type="text/javascript">
     function googleTranslateElementInit() {
-        new google.translate.TranslateElement({pageLanguage: 'en'}, 'google_translate_element');
+        new google.translate.TranslateElement({
+            pageLanguage: 'en',
+            layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+        }, 'google_translate_element');
+        
+        // Hide banner and fix body position
+        hideBannerAndFixLayout();
     }
+    
+    // Function to hide Google Translate banner
+    function hideBannerAndFixLayout() {
+        // Remove banner elements
+        const bannersToHide = [
+            '.goog-te-banner-frame',
+            'iframe.goog-te-banner-frame', 
+            '.skiptranslate',
+            '#goog-gt-tt',
+            '.goog-te-balloon-frame'
+        ];
+        
+        bannersToHide.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => {
+                if (el) {
+                    el.style.display = 'none';
+                    el.style.visibility = 'hidden';
+                    el.style.opacity = '0';
+                    el.style.height = '0';
+                    el.style.position = 'absolute';
+                    el.style.left = '-9999px';
+                    el.remove(); // Complete removal
+                }
+            });
+        });
+        
+        // Reset body position
+        document.body.style.top = '0';
+        document.body.style.marginTop = '0';
+        document.body.style.paddingTop = '0';
+        
+        // Monitor for dynamically added banners
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                mutation.addedNodes.forEach(function(node) {
+                    if (node.nodeType === 1) { // Element node
+                        if (node.classList && (node.classList.contains('goog-te-banner-frame') || 
+                            node.classList.contains('skiptranslate'))) {
+                            node.remove();
+                        }
+                        // Also check children
+                        const bannerChildren = node.querySelectorAll && node.querySelectorAll('.goog-te-banner-frame, .skiptranslate');
+                        if (bannerChildren) {
+                            bannerChildren.forEach(child => child.remove());
+                        }
+                    }
+                });
+            });
+        });
+        
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+    
+    // Call the function periodically to ensure banner stays hidden
+    setInterval(hideBannerAndFixLayout, 1000);
     </script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </body>
