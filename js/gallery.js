@@ -92,10 +92,18 @@ async function loadGallery() {
             
             // Render the gallery
             if (allMartyrs.length > 0) {
+                console.log(`🔢 Total martyrs loaded from Firebase: ${allMartyrs.length}`);
                 renderGallery(allMartyrs);
                 // Apply current filters (will show all if no filters active)
                 applyFilters();
-                console.log(`🖼️ Rendered ${allMartyrs.length} martyrs in gallery`);
+                console.log(`🖼️ Successfully rendered ${allMartyrs.length} martyrs in gallery`);
+                
+                // Update the search results to show correct total
+                updateSearchResultsInfo(allMartyrs.length);
+                const resultsInfo = document.getElementById('searchResultsInfo');
+                if (resultsInfo) {
+                    resultsInfo.style.display = 'flex';
+                }
             } else {
                 showEmptyGalleryMessage();
                 console.log('📭 No approved martyrs found in Firebase');
@@ -109,10 +117,18 @@ async function loadGallery() {
             if (savedMartyrs) {
                 const allMartyrsData = JSON.parse(savedMartyrs);
                 allMartyrs = allMartyrsData.filter(m => !m.status || m.status === 'approved');
+                console.log(`🔢 Total martyrs from localStorage backup: ${allMartyrs.length}`);
                 renderGallery(allMartyrs);
                 // Apply current filters (will show all if no filters active)
                 applyFilters();
                 console.log(`⚠️  Using localStorage backup: ${allMartyrs.length} martyrs`);
+                
+                // Update the search results to show correct total
+                updateSearchResultsInfo(allMartyrs.length);
+                const resultsInfo = document.getElementById('searchResultsInfo');
+                if (resultsInfo) {
+                    resultsInfo.style.display = 'flex';
+                }
                 
                 // Show warning that data might be outdated
                 showOfflineWarning();
@@ -241,13 +257,26 @@ function addDebugButton() {
 // Render martyrs in gallery
 function renderGallery(martyrsData) {
     const galleryGrid = document.getElementById('galleryGrid');
+    if (!galleryGrid) {
+        console.error('❌ Gallery grid element not found!');
+        return;
+    }
+    
+    console.log(`🎨 Rendering ${martyrsData.length} martyrs to gallery...`);
     galleryGrid.innerHTML = '';
     
-    martyrsData.forEach(martyr => {
-        const card = createGalleryCard(martyr);
-        galleryGrid.appendChild(card);
+    let renderedCount = 0;
+    martyrsData.forEach((martyr, index) => {
+        try {
+            const card = createGalleryCard(martyr);
+            galleryGrid.appendChild(card);
+            renderedCount++;
+        } catch (error) {
+            console.error(`❌ Error rendering martyr ${index}:`, error, martyr);
+        }
     });
     
+    console.log(`✅ Successfully rendered ${renderedCount} out of ${martyrsData.length} martyrs`);
     updateSearchResultsInfo(martyrsData.length);
 }
 
@@ -416,18 +445,28 @@ function updateAdvancedFilters() {
 
 // Apply all filters to the gallery
 function applyFilters() {
-    if (!allMartyrs.length) return;
+    if (!allMartyrs || !allMartyrs.length) {
+        console.warn('⚠️ applyFilters called but no martyrs loaded:', { allMartyrsLength: allMartyrs ? allMartyrs.length : 'undefined' });
+        return;
+    }
     
     // Check if any filters are active
     const hasActiveFilters = Object.values(currentFilters).some(filter => filter !== '');
     
     // If no filters are active, show all martyrs
     if (!hasActiveFilters) {
+        console.log(`📊 Showing all ${allMartyrs.length} martyrs (no filters active)`);
         renderGallery(allMartyrs);
+        
+        // Always show the total count when no filters are active
+        updateSearchResultsInfo(allMartyrs.length);
         const resultsInfo = document.getElementById('searchResultsInfo');
-        if (resultsInfo) {
+        if (resultsInfo && allMartyrs.length > 0) {
+            resultsInfo.style.display = 'flex';
+        } else if (resultsInfo) {
             resultsInfo.style.display = 'none';
         }
+        
         hideNoResultsMessage();
         return;
     }
