@@ -93,6 +93,8 @@ async function loadGallery() {
             // Render the gallery
             if (allMartyrs.length > 0) {
                 renderGallery(allMartyrs);
+                // Apply current filters (will show all if no filters active)
+                applyFilters();
                 console.log(`🖼️ Rendered ${allMartyrs.length} martyrs in gallery`);
             } else {
                 showEmptyGalleryMessage();
@@ -108,6 +110,8 @@ async function loadGallery() {
                 const allMartyrsData = JSON.parse(savedMartyrs);
                 allMartyrs = allMartyrsData.filter(m => !m.status || m.status === 'approved');
                 renderGallery(allMartyrs);
+                // Apply current filters (will show all if no filters active)
+                applyFilters();
                 console.log(`⚠️  Using localStorage backup: ${allMartyrs.length} martyrs`);
                 
                 // Show warning that data might be outdated
@@ -414,6 +418,21 @@ function updateAdvancedFilters() {
 function applyFilters() {
     if (!allMartyrs.length) return;
     
+    // Check if any filters are active
+    const hasActiveFilters = Object.values(currentFilters).some(filter => filter !== '');
+    
+    // If no filters are active, show all martyrs
+    if (!hasActiveFilters) {
+        renderGallery(allMartyrs);
+        const resultsInfo = document.getElementById('searchResultsInfo');
+        if (resultsInfo) {
+            resultsInfo.style.display = 'none';
+        }
+        hideNoResultsMessage();
+        return;
+    }
+    
+    // Apply filters
     const filteredMartyrs = allMartyrs.filter(martyr => {
         // General search (searches across all fields)
         if (currentFilters.general) {
@@ -459,7 +478,6 @@ function applyFilters() {
     renderGallery(filteredMartyrs);
     
     // Show/hide results info
-    const hasActiveFilters = Object.values(currentFilters).some(filter => filter !== '');
     const resultsInfo = document.getElementById('searchResultsInfo');
     if (resultsInfo) {
         resultsInfo.style.display = hasActiveFilters ? 'flex' : 'none';
