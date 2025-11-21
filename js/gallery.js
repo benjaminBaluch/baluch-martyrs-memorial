@@ -708,10 +708,129 @@ function formatDate(dateValue) {
     }
 }
 
+// Open a printable view for a single martyr (user can use "Save as PDF")
+function printMartyrProfile(martyr) {
+    try {
+        const printWindow = window.open('', '_blank', 'width=900,height=1100');
+        if (!printWindow) {
+            alert('Please allow pop-ups to print or download the martyr profile.');
+            return;
+        }
+
+        const birth      = formatDate(martyr.birthDate) || 'Unknown';
+        const martyrdom  = formatDate(martyr.martyrdomDate) || 'Unknown';
+        const submitted  = formatDate(martyr.submittedAt) || 'Unknown';
+        const birthPlace = martyr.birthPlace || 'Unknown';
+        const martyrdomPlace = martyr.martyrdomPlace || 'Unknown';
+        const organization   = martyr.organization || 'Unknown';
+        const rank           = martyr.rank || '—';
+        const fatherName     = martyr.fatherName || '—';
+
+        const safe = (val) => (val || '').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>${safe(martyr.fullName)} - Martyr Profile</title>
+<style>
+  body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 40px; background: #f5f5f5; }
+  .page { background: #fff; max-width: 800px; margin: 0 auto; padding: 40px; box-shadow: 0 0 8px rgba(0,0,0,0.15); }
+  .header { text-align: center; border-bottom: 3px solid #2c5530; padding-bottom: 10px; margin-bottom: 20px; }
+  .header h1 { margin: 0; font-size: 26px; color: #2c5530; }
+  .header h2 { margin: 8px 0 0; font-size: 18px; color: #555; }
+  .photo-row { display: flex; gap: 24px; margin-top: 20px; }
+  .photo-box { flex: 0 0 220px; }
+  .photo-box img { width: 100%; border-radius: 8px; border: 3px solid #d4af37; object-fit: cover; height: 260px; }
+  .photo-placeholder { width: 100%; height: 260px; border-radius: 8px; border: 3px solid #d4af37; display: flex; align-items: center; justify-content: center; font-size: 60px; color: #999; background: linear-gradient(135deg,#f0f0f0,#dcdcdc); }
+  .details { flex: 1; font-size: 14px; }
+  .details table { width: 100%; border-collapse: collapse; }
+  .details th { text-align: left; padding: 4px 8px; width: 32%; color: #444; }
+  .details td { padding: 4px 8px; }
+  .section { margin-top: 24px; }
+  .section h3 { margin: 0 0 8px; color: #2c5530; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
+  .section p { margin: 0; line-height: 1.6; color: #333; white-space: pre-wrap; }
+  .footer { margin-top: 32px; font-size: 11px; color: #777; text-align: center; border-top: 1px solid #eee; padding-top: 8px; }
+  @media print {
+    body { background: #fff; padding: 0; }
+    .page { box-shadow: none; margin: 0; max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+    <div class="header">
+      <h1>Baluch Martyrs Memorial</h1>
+      <h2>Martyr Profile</h2>
+    </div>
+
+    <div class="photo-row">
+      <div class="photo-box">
+        ${martyr.photo ? 
+          `<img src="${martyr.photo}" alt="${safe(martyr.fullName)}" />` :
+          '<div class="photo-placeholder">📸</div>'}
+      </div>
+      <div class="details">
+        <table>
+          <tr><th>Name</th><td>${safe(martyr.fullName)}</td></tr>
+          <tr><th>Father</th><td>${safe(fatherName)}</td></tr>
+          <tr><th>Birth</th><td>${safe(birth)} (${safe(birthPlace)})</td></tr>
+          <tr><th>Martyrdom</th><td>${safe(martyrdom)} (${safe(martyrdomPlace)})</td></tr>
+          <tr><th>Organization</th><td>${safe(organization)}</td></tr>
+          <tr><th>Rank / Role</th><td>${safe(rank)}</td></tr>
+        </table>
+      </div>
+    </div>
+
+    ${martyr.biography ? `
+    <div class="section">
+      <h3>Biography</h3>
+      <p>${safe(martyr.biography)}</p>
+    </div>` : ''}
+
+    ${martyr.familyDetails ? `
+    <div class="section">
+      <h3>Family Details</h3>
+      <p>${safe(martyr.familyDetails)}</p>
+    </div>` : ''}
+
+    <div class="section">
+      <h3>Submission</h3>
+      <p><strong>Submitted by:</strong> ${safe(martyr.submitterName || 'Unknown')}</p>
+      ${martyr.submitterRelation ? `<p><strong>Relationship:</strong> ${safe(martyr.submitterRelation)}</p>` : ''}
+      <p><strong>Submitted on:</strong> ${safe(submitted)}</p>
+    </div>
+
+    <div class="footer">
+      Generated from Baluch Martyrs Memorial • ${new Date().toLocaleString('en-US')}
+    </div>
+  </div>
+</body>
+</html>`;
+
+        printWindow.document.open();
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.focus();
+
+        // Give the new window a moment to render, then trigger print
+        printWindow.onload = () => {
+            try {
+                printWindow.print();
+            } catch (e) {
+                console.warn('Print dialog could not be opened automatically:', e);
+            }
+        };
+    } catch (error) {
+        console.error('❌ Error preparing martyr print view:', error);
+        alert('Unable to open print / download view. Please check your popup settings and try again.');
+    }
+}
+
 console.log('✅ Gallery.js loaded successfully');
 console.log('🔧 Debug functions: checkGalleryData(), loadGalleryNow(), retryFirebaseConnection()');
 
-// Show martyr details modal (add this missing function)
+// Show martyr details modal (with print/download support)
 function showMartyrModal(martyr) {
     console.log(`🔍 Showing modal for: ${martyr.fullName}`);
     
@@ -733,24 +852,24 @@ function showMartyrModal(martyr) {
     
     const content = document.createElement('div');
     content.style.cssText = `
-        background: white; max-width: 800px; max-height: 90vh; overflow-y: auto;
+        background: white; max-width: 900px; max-height: 90vh; overflow-y: auto;
         border-radius: 8px; position: relative; width: 100%;
     `;
     
     content.innerHTML = `
-        <button onclick="this.closest('#martyrModal').remove(); document.body.style.overflow = 'auto';" 
+        <button class="close-martyr-modal" 
                 style="position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 24px; cursor: pointer; color: #666; z-index: 1;">&times;</button>
         
         <div style="padding: 2rem;">
             <div style="display: flex; gap: 2rem; flex-wrap: wrap; align-items: flex-start;">
-                <div style="flex: 0 0 250px;">
+                <div style="flex: 0 0 260px;">
                     ${martyr.photo ? 
                         `<img src="${martyr.photo}" alt="${martyr.fullName}" style="width: 100%; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">` :
-                        '<div style="width: 100%; height: 300px; background: linear-gradient(135deg, #f0f0f0, #d0d0d0); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 64px; color: #999;">📸</div>'
+                        '<div style="width: 100%; height: 320px; background: linear-gradient(135deg, #f0f0f0, #d0d0d0); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 64px; color: #999;">📸</div>'
                     }
                 </div>
                 
-                <div style="flex: 1; min-width: 300px;">
+                <div style="flex: 1; min-width: 320px;">
                     <h2 style="margin-top: 0; color: #2c5530; border-bottom: 2px solid #d4af37; padding-bottom: 0.5rem;">${martyr.fullName}</h2>
                     
                     <div style="display: grid; gap: 0.75rem; margin: 1.5rem 0;">
@@ -782,6 +901,15 @@ function showMartyrModal(martyr) {
                         ${martyr.submitterRelation ? `<p><strong>Relationship:</strong> ${martyr.submitterRelation}</p>` : ''}
                         <p><strong>Submitted on:</strong> ${formatDate(martyr.submittedAt) || 'Unknown'}</p>
                     </div>
+                    
+                    <div style="margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                        <button class="martyr-print-btn" style="background: #2c5530; color: #fff; border: none; padding: 0.6rem 1.4rem; border-radius: 4px; cursor: pointer; font-size: 0.95rem;">
+                            Print / Download PDF
+                        </button>
+                        <button class="martyr-close-btn" style="background: #6c757d; color: #fff; border: none; padding: 0.6rem 1.2rem; border-radius: 4px; cursor: pointer; font-size: 0.95rem;">
+                            Close
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -791,19 +919,36 @@ function showMartyrModal(martyr) {
     document.body.appendChild(modal);
     document.body.style.overflow = 'hidden';
     
+    const closeModal = () => {
+        modal.remove();
+        document.body.style.overflow = 'auto';
+    };
+    
+    // Close buttons
+    const closeIcon = modal.querySelector('.close-martyr-modal');
+    const closeBtn  = modal.querySelector('.martyr-close-btn');
+    if (closeIcon) closeIcon.addEventListener('click', closeModal);
+    if (closeBtn)  closeBtn.addEventListener('click', closeModal);
+    
+    // Print / Download button
+    const printBtn = modal.querySelector('.martyr-print-btn');
+    if (printBtn) {
+        printBtn.addEventListener('click', () => {
+            printMartyrProfile(martyr);
+        });
+    }
+    
     // Close on background click
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
-            modal.remove();
-            document.body.style.overflow = 'auto';
+            closeModal();
         }
     });
     
     // Close on Escape key
     const escHandler = (e) => {
         if (e.key === 'Escape') {
-            modal.remove();
-            document.body.style.overflow = 'auto';
+            closeModal();
             document.removeEventListener('keydown', escHandler);
         }
     };
