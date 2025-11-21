@@ -133,9 +133,14 @@ async function loadRecentMartyrs() {
                     martyrsData = result.data || [];
                     console.log(`✅ Loaded ${martyrsData.length} martyrs from Firebase (global)`);
                     
-                    // Cache for faster loading
-                    if (martyrsData.length > 0) {
+                    // Cache with enhanced cache management
+                    if (martyrsData.length > 0 && window.cacheManager) {
+                        window.cacheManager.setCache('martyrsData', martyrsData, 6); // 6 hour cache
+                        console.log('💾 Cached homepage martyrs with expiration');
+                    } else if (martyrsData.length > 0) {
+                        // Fallback to localStorage
                         localStorage.setItem('martyrsData', JSON.stringify(martyrsData));
+                        console.log('💾 Cached homepage martyrs to localStorage (fallback)');
                     }
                 } else {
                     throw new Error('Firebase failed: ' + result.error);
@@ -342,18 +347,163 @@ function formatDateYear(dateValue) {
     }
 }
 
-// Show Martyr Details (Modal or redirect)
+// Show Martyr Details in Professional Modal
 function showMartyrDetails(martyr) {
-    // For now, just alert the details
-    // In production, this would open a modal or redirect to a detail page
-    alert(`
-        Name: ${martyr.fullName}
-        Birth: ${formatDate(martyr.birthDate)}
-        Martyrdom: ${formatDate(martyr.martyrdomDate)}
-        Place: ${martyr.martyrdomPlace}
-        ${martyr.biography ? '\nBiography: ' + martyr.biography : ''}
-    `);
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('martyrDetailsModal');
+    
+    if (!modal) {
+        modal = createMartyrModal();
+        document.body.appendChild(modal);
+    }
+    
+    // Populate modal with martyr details
+    const modalContent = modal.querySelector('.modal-body');
+    
+    modalContent.innerHTML = `
+        <div class="martyr-detail-layout">
+            <div class="martyr-detail-image">
+                ${martyr.photo ? 
+                    `<img src="${martyr.photo}" alt="${martyr.fullName}" class="martyr-detail-photo">` :
+                    '<div class="martyr-detail-placeholder"><div class="placeholder-icon">📷</div><p>No photo available</p></div>'
+                }
+            </div>
+            <div class="martyr-detail-info">
+                <div class="martyr-detail-header">
+                    <h2 class="martyr-name">${martyr.fullName}</h2>
+                    <div class="martyr-dates">
+                        <span class="date-birth">${formatDate(martyr.birthDate)}</span>
+                        <span class="date-separator">—</span>
+                        <span class="date-death">${formatDate(martyr.martyrdomDate)}</span>
+                    </div>
+                </div>
+                
+                <div class="martyr-detail-content">
+                    <div class="detail-section">
+                        <div class="detail-row">
+                            <span class="detail-label">📍 Birth Place:</span>
+                            <span class="detail-value">${martyr.birthPlace || 'Unknown'}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">🏛️ Martyrdom Place:</span>
+                            <span class="detail-value">${martyr.martyrdomPlace || 'Unknown'}</span>
+                        </div>
+                        ${martyr.organization ? `
+                            <div class="detail-row">
+                                <span class="detail-label">🏢 Organization:</span>
+                                <span class="detail-value">${martyr.organization}</span>
+                            </div>
+                        ` : ''}
+                        ${martyr.rank ? `
+                            <div class="detail-row">
+                                <span class="detail-label">🎖️ Rank:</span>
+                                <span class="detail-value">${martyr.rank}</span>
+                            </div>
+                        ` : ''}
+                        ${martyr.fatherName ? `
+                            <div class="detail-row">
+                                <span class="detail-label">👨‍👦 Father's Name:</span>
+                                <span class="detail-value">${martyr.fatherName}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    ${martyr.biography && martyr.biography.trim() ? `
+                        <div class="biography-section">
+                            <h3>📖 Biography</h3>
+                            <div class="biography-text">${martyr.biography}</div>
+                        </div>
+                    ` : ''}
+                    
+                    ${martyr.familyDetails && martyr.familyDetails.trim() ? `
+                        <div class="family-section">
+                            <h3>👨‍👩‍👧‍👦 Family Details</h3>
+                            <div class="family-text">${martyr.familyDetails}</div>
+                        </div>
+                    ` : ''}
+                </div>
+                
+                <div class="martyr-detail-footer">
+                    <div class="submission-info">
+                        <small>
+                            <strong>Submitted by:</strong> ${martyr.submitterName || 'Anonymous'}
+                            ${martyr.submitterRelation ? ` (${martyr.submitterRelation})` : ''}
+                        </small>
+                        ${martyr.submittedAt ? `
+                            <small class="submission-date">
+                                <strong>Added:</strong> ${formatDate(martyr.submittedAt)}
+                            </small>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Show modal with smooth animation
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    
+    // Add animation classes
+    setTimeout(() => {
+        modal.classList.add('modal-show');
+    }, 10);
 }
+
+// Create Professional Modal Element
+function createMartyrModal() {
+    const modal = document.createElement('div');
+    modal.id = 'martyrDetailsModal';
+    modal.className = 'martyr-modal';
+    
+    modal.innerHTML = `
+        <div class="modal-overlay" onclick="closeMartyrModal()"></div>
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Martyr Details</h2>
+                <button class="modal-close" onclick="closeMartyrModal()" aria-label="Close modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Content will be inserted here -->
+            </div>
+        </div>
+    `;
+    
+    // Add event listeners
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal || e.target.classList.contains('modal-overlay')) {
+            closeMartyrModal();
+        }
+    });
+    
+    // ESC key listener
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal.style.display === 'flex') {
+            closeMartyrModal();
+        }
+    });
+    
+    return modal;
+}
+
+// Close Modal Function
+function closeMartyrModal() {
+    const modal = document.getElementById('martyrDetailsModal');
+    if (modal) {
+        modal.classList.remove('modal-show');
+        
+        // Wait for animation to complete before hiding
+        setTimeout(() => {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }, 300);
+    }
+}
+
+// Make close function globally available
+window.closeMartyrModal = closeMartyrModal;
 
 // Utility function to store data in localStorage
 function saveToLocalStorage(key, data) {
