@@ -23,6 +23,12 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeInterface();
     addDebugButton();
     
+    // Immediate check for pre-loaded data
+    if (window.martyrsDataFromFirebase && window.martyrsDataFromFirebase.length > 0) {
+        console.log('🎉 Pre-loaded Firebase data detected immediately!');
+        setTimeout(() => loadGallery(), 100);
+    }
+    
     // Multiple attempts to load gallery with Firebase
     console.log('🎨 Gallery initialization starting...');
     
@@ -141,6 +147,26 @@ async function loadGallery() {
     if (galleryGrid) {
         try {
             console.log('🌍 Loading martyrs from Firebase (global database)...');
+            
+            // First, check if we have pre-loaded Firebase data
+            if (window.martyrsDataFromFirebase && window.martyrsDataFromFirebase.length > 0) {
+                console.log('✨ Using pre-loaded Firebase data!');
+                allMartyrs = window.martyrsDataFromFirebase;
+                console.log(`📊 Pre-loaded data: ${allMartyrs.length} approved martyrs`);
+                
+                // Render immediately
+                renderGallery(allMartyrs);
+                applyFilters();
+                console.log(`🖼️ Successfully rendered ${allMartyrs.length} martyrs from pre-loaded data`);
+                
+                // Update UI
+                updateSearchResultsInfo(allMartyrs.length);
+                const resultsInfo = document.getElementById('searchResultsInfo');
+                if (resultsInfo) {
+                    resultsInfo.style.display = 'flex';
+                }
+                return; // Exit early since we have data
+            }
             
             console.log('🔥 Starting Firebase connection process...');
             

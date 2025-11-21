@@ -136,6 +136,12 @@
         </div>
     </footer>
 
+    <!-- Load gallery.js first to ensure functions are available -->
+    <script src="js/main.js"></script>
+    <script src="js/mobile-menu.js"></script>
+    <script src="js/chatbot.js"></script>
+    <script src="js/gallery.js"></script>
+    
     <script type="module">
         // Import and make Firebase globally available for gallery
         import { firebaseDB } from './js/firebase-config.js';
@@ -146,17 +152,39 @@
             console.log('🔥 Firebase loaded globally for gallery');
             console.log('🔍 Firebase methods:', Object.keys(firebaseDB));
             
-            // Test Firebase immediately
+            // Store Firebase data globally for immediate access
+            window.firebaseReady = true;
+            
+            // Test Firebase and load data immediately
+            console.log('📋 Testing Firebase connection...');
             firebaseDB.getApprovedMartyrs().then(result => {
                 console.log(`📋 Firebase test result:`, result.success ? `SUCCESS - ${result.data?.length || 0} martyrs` : `FAILED - ${result.error}`);
                 
-                // Trigger ready event after successful test
-                window.dispatchEvent(new Event('firebaseReady'));
-                
-                // Force gallery load if Firebase is working
-                if (result.success && window.loadGalleryNow) {
-                    console.log('🚀 Force loading gallery with Firebase data...');
-                    window.loadGalleryNow();
+                if (result.success) {
+                    console.log('✅ Firebase working, storing data and triggering gallery load...');
+                    window.martyrsDataFromFirebase = result.data || [];
+                    
+                    // Trigger ready event
+                    window.dispatchEvent(new Event('firebaseReady'));
+                    
+                    // Force gallery load with a slight delay to ensure DOM is ready
+                    setTimeout(() => {
+                        if (window.loadGalleryNow) {
+                            console.log('🚀 Force loading gallery with Firebase data...');
+                            window.loadGalleryNow();
+                        } else {
+                            console.warn('⚠️ loadGalleryNow function not available yet');
+                            // Try again after gallery.js loads
+                            setTimeout(() => {
+                                if (window.loadGalleryNow) {
+                                    window.loadGalleryNow();
+                                }
+                            }, 1000);
+                        }
+                    }, 100);
+                } else {
+                    console.error('❌ Firebase test failed:', result.error);
+                    window.dispatchEvent(new Event('firebaseReady'));
                 }
             }).catch(error => {
                 console.error('❌ Firebase test failed during initialization:', error);
@@ -166,12 +194,9 @@
             
         } catch (error) {
             console.error('❌ Firebase initialization failed:', error);
+            window.dispatchEvent(new Event('firebaseReady'));
         }
     </script>
-    <script src="js/main.js"></script>
-    <script src="js/mobile-menu.js"></script>
-    <script src="js/chatbot.js"></script>
-    <script src="js/gallery.js"></script>
 
     <!-- Google Translate Scripts -->
     <script type="text/javascript">
