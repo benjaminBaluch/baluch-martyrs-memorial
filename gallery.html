@@ -128,240 +128,248 @@
         </div>
     </footer>
 
+    <!-- Firebase SDK - Direct CDN Loading -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    
     <!-- Load gallery.js first to ensure functions are available -->
     <script src="js/main.js"></script>
     <script src="js/mobile-menu.js"></script>
     <script src="js/chatbot.js"></script>
     <script src="js/gallery.js"></script>
     
-    <script type="module">
-        // PROFESSIONAL Firebase Connection Manager
-        console.log('🔥 Initializing professional Firebase connection...');
+    <script>
+        // DIRECT Firebase Initialization - Production Ready
+        console.log('🔥 Initializing Firebase directly...');
         
-        class FirebaseConnectionManager {
-            constructor() {
-                this.firebaseDB = null;
-                this.isConnected = false;
-                this.retryCount = 0;
-                this.maxRetries = 3;
-                this.connectionTimeout = 15000; // 15 seconds
-            }
-            
-            async initialize() {
-                try {
-                    console.log(`🔧 Firebase connection attempt ${this.retryCount + 1}/${this.maxRetries}`);
-                    
-                    // Import Firebase with timeout
-                    const importPromise = import('./js/firebase-config.js');
-                    const timeoutPromise = new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Firebase import timeout')), this.connectionTimeout)
-                    );
-                    
-                    const { firebaseDB } = await Promise.race([importPromise, timeoutPromise]);
-                    this.firebaseDB = firebaseDB;
-                    
-                    // Test connection immediately
-                    const testResult = await this.testConnection();
-                    if (!testResult.success) {
-                        throw new Error(testResult.error);
-                    }
-                    
-                    // Make available globally
-                    window.firebaseDB = firebaseDB;
-                    window.firebaseReady = true;
-                    this.isConnected = true;
-                    
-                    console.log('✅ Firebase connection established successfully');
-                    return true;
-                    
-                } catch (error) {
-                    console.warn(`⚠️ Firebase connection attempt ${this.retryCount + 1} failed:`, error.message);
-                    
-                    this.retryCount++;
-                    if (this.retryCount < this.maxRetries) {
-                        console.log(`🔄 Retrying in ${2 * this.retryCount} seconds...`);
-                        await new Promise(resolve => setTimeout(resolve, 2000 * this.retryCount));
-                        return this.initialize();
-                    }
-                    
-                    console.error('❌ Firebase connection failed after all retries');
-                    return false;
-                }
-            }
-            
-            async testConnection() {
-                if (!this.firebaseDB) return { success: false, error: 'Firebase not initialized' };
-                
-                try {
-                    const testPromise = this.firebaseDB.testConnection();
-                    const timeoutPromise = new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Connection test timeout')), 10000)
-                    );
-                    
-                    return await Promise.race([testPromise, timeoutPromise]);
-                } catch (error) {
-                    return { success: false, error: error.message };
-                }
-            }
-            
-            async loadMartyrsData() {
-                if (!this.isConnected || !this.firebaseDB) {
-                    throw new Error('Firebase not connected');
-                }
-                
-                try {
-                    console.log('📋 Fetching martyrs from Firebase...');
-                    const dataPromise = this.firebaseDB.getApprovedMartyrs();
-                    const timeoutPromise = new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Data fetch timeout')), 20000)
-                    );
-                    
-                    const result = await Promise.race([dataPromise, timeoutPromise]);
-                    
-                    if (result && result.success && result.data) {
-                        console.log(`✅ Successfully loaded ${result.data.length} martyrs from Firebase`);
-                        
-                        // Cache to localStorage
-                        try {
-                            localStorage.setItem('martyrsData', JSON.stringify(result.data));
-                            localStorage.setItem('martyrsData_timestamp', Date.now().toString());
-                            console.log('💾 Data cached to localStorage');
-                        } catch (e) {
-                            console.warn('LocalStorage caching failed:', e);
-                        }
-                        
-                        return result.data;
-                    } else {
-                        throw new Error(result?.error || 'No data received from Firebase');
-                    }
-                } catch (error) {
-                    console.error('❌ Firebase data fetch failed:', error.message);
-                    throw error;
-                }
-            }
-            
-            loadFromLocalStorage() {
-                try {
-                    const saved = localStorage.getItem('martyrsData');
-                    const timestamp = localStorage.getItem('martyrsData_timestamp');
-                    
-                    if (!saved) {
-                        throw new Error('No localStorage data available');
-                    }
-                    
-                    const data = JSON.parse(saved);
-                    const approved = data.filter(m => !m.status || m.status === 'approved');
-                    
-                    if (approved.length === 0) {
-                        throw new Error('No approved martyrs in localStorage');
-                    }
-                    
-                    // Check data age
-                    const age = timestamp ? Date.now() - parseInt(timestamp) : 0;
-                    const ageHours = Math.floor(age / (1000 * 60 * 60));
-                    
-                    console.log(`💾 Loaded ${approved.length} martyrs from localStorage (${ageHours}h old)`);
-                    return { data: approved, age: ageHours };
-                    
-                } catch (error) {
-                    console.warn('⚠️ LocalStorage fallback failed:', error.message);
-                    throw error;
-                }
-            }
-        }
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBW2JKt68kGKE-CMvKQUUj33ToZ8M-kGII",
+            authDomain: "baluch-martyrs-memorial.firebaseapp.com",
+            projectId: "baluch-martyrs-memorial",
+            storageBucket: "baluch-martyrs-memorial.firebasestorage.app",
+            messagingSenderId: "420195314966",
+            appId: "1:420195314966:web:0e3546e6e0e0c09cf3f437"
+        };
         
-        // Initialize connection manager and load data
-        const connectionManager = new FirebaseConnectionManager();
+        // Initialize Firebase
+        let app, db;
         
-        async function initializeGalleryData() {
-            try {
-                // Try Firebase connection
-                const firebaseConnected = await connectionManager.initialize();
-                
-                let martyrsData = null;
-                let source = 'unknown';
-                
-                if (firebaseConnected) {
+        try {
+            app = firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            console.log('✅ Firebase initialized successfully');
+            
+            // Create global Firebase helper
+            window.firebaseDB = {
+                async getApprovedMartyrs() {
                     try {
-                        martyrsData = await connectionManager.loadMartyrsData();
-                        source = 'Firebase';
+                        console.log('🔍 Fetching martyrs from Firebase...');
                         
-                        // If Firebase is connected but no data, try to initialize database
-                        if (martyrsData.length === 0) {
-                            console.log('🌱 No martyrs found, attempting database initialization...');
-                            const initResult = await connectionManager.firebaseDB.initializeDatabaseIfEmpty();
-                            if (initResult.success && initResult.added > 0) {
-                                console.log(`✅ Database initialized with ${initResult.added} martyrs, reloading...`);
-                                martyrsData = await connectionManager.loadMartyrsData();
-                                source = 'Firebase (initialized)';
+                        // Try martyrs collection first
+                        const martyrsRef = db.collection('martyrs');
+                        const snapshot = await martyrsRef.get();
+                        let martyrs = [];
+                        
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            if (!data.status || data.status === 'approved') {
+                                martyrs.push({
+                                    id: doc.id,
+                                    ...data,
+                                    status: data.status || 'approved'
+                                });
+                            }
+                        });
+                        
+                        console.log(`✅ Found ${martyrs.length} martyrs in Firebase`);
+                        
+                        // If no martyrs, add initial data
+                        if (martyrs.length === 0) {
+                            console.log('🌱 No martyrs found, adding initial data...');
+                            
+                            const initialMartyrs = [
+                                {
+                                    fullName: "Shaheed Mir Balach Marri",
+                                    fatherName: "Nawab Khair Bakhsh Marri",
+                                    birthDate: "1966-01-01",
+                                    martyrdomDate: "2007-11-20",
+                                    birthPlace: "Kohlu, Balochistan",
+                                    martyrdomPlace: "Karachi, Pakistan",
+                                    organization: "Balochistan Liberation Army",
+                                    rank: "Commander",
+                                    biography: "A prominent Baluch freedom fighter and son of Nawab Khair Bakhsh Marri. He dedicated his life to the liberation of Balochistan and became a symbol of resistance.",
+                                    familyDetails: "Son of tribal chief Nawab Khair Bakhsh Marri",
+                                    submitterName: "Memorial Committee",
+                                    submitterRelation: "Historical Record",
+                                    status: "approved"
+                                },
+                                {
+                                    fullName: "Shaheed Nawab Akbar Bugti",
+                                    fatherName: "Nawab Mehrab Khan Bugti",
+                                    birthDate: "1927-07-12",
+                                    martyrdomDate: "2006-08-26",
+                                    birthPlace: "Dera Bugti, Balochistan",
+                                    martyrdomPlace: "Taratani, Balochistan",
+                                    organization: "Jamhoori Watan Party",
+                                    rank: "Nawab",
+                                    biography: "Nawab Akbar Shahbaz Khan Bugti was a prominent Baluch politician and tribal chief who fought for Baluch rights and autonomy until his martyrdom in 2006.",
+                                    familyDetails: "Tribal chief of Bugti tribe, former Governor and Chief Minister of Balochistan",
+                                    submitterName: "Memorial Committee",
+                                    submitterRelation: "Historical Record", 
+                                    status: "approved"
+                                },
+                                {
+                                    fullName: "Shaheed Balaach Marri",
+                                    fatherName: "Nawab Khair Bakhsh Marri", 
+                                    birthDate: "1966-01-15",
+                                    martyrdomDate: "2007-11-20",
+                                    birthPlace: "Quetta, Balochistan",
+                                    martyrdomPlace: "Karachi, Pakistan",
+                                    organization: "Baloch Liberation Army",
+                                    rank: "General Commander",
+                                    biography: "Balaach Marri was a Baloch nationalist leader who founded the Baloch Liberation Army. He was the son of Nawab Khair Bakhsh Marri and dedicated his life to the cause of Baloch independence.",
+                                    familyDetails: "Son of Nawab Khair Bakhsh Marri, brother of Hyrbyair Marri",
+                                    submitterName: "Memorial Committee",
+                                    submitterRelation: "Historical Record",
+                                    status: "approved"
+                                }
+                            ];
+                            
+                            // Add martyrs to Firebase
+                            for (const martyr of initialMartyrs) {
+                                try {
+                                    await martyrsRef.add({
+                                        ...martyr,
+                                        birthDate: new Date(martyr.birthDate),
+                                        martyrdomDate: new Date(martyr.martyrdomDate),
+                                        submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+                                    });
+                                    martyrs.push(martyr);
+                                    console.log(`✅ Added: ${martyr.fullName}`);
+                                } catch (error) {
+                                    console.warn(`⚠️ Failed to add ${martyr.fullName}:`, error);
+                                }
                             }
                         }
-                    } catch (error) {
-                        console.warn('⚠️ Firebase data loading failed, trying localStorage...', error.message);
-                    }
-                }
-                
-                // Fallback to localStorage if Firebase failed
-                if (!martyrsData) {
-                    try {
-                        const localResult = connectionManager.loadFromLocalStorage();
-                        martyrsData = localResult.data;
-                        source = `localStorage (${localResult.age}h old)`;
                         
-                        // Show offline warning for old data
-                        if (localResult.age > 24) {
-                            console.warn(`⚠️ Using old cached data (${localResult.age}h old)`);
-                        }
+                        return { success: true, data: martyrs };
+                        
                     } catch (error) {
-                        console.error('❌ All data loading methods failed:', error.message);
-                        martyrsData = [];
-                        source = 'empty';
+                        console.error('❌ Firebase error:', error);
+                        return { success: false, error: error.message };
                     }
                 }
-                
-                // Store globally and trigger event
-                window.martyrsDataFromFirebase = martyrsData;
-                window.firebaseConnectionStatus = {
-                    connected: firebaseConnected,
-                    source: source,
-                    dataCount: martyrsData.length,
-                    timestamp: new Date().toISOString()
-                };
-                
-                console.log(`🎨 Gallery data ready: ${martyrsData.length} martyrs from ${source}`);
-                
-                // Trigger data ready event
-                window.dispatchEvent(new CustomEvent('martyrsDataReady', { 
-                    detail: { 
-                        data: martyrsData, 
-                        source: source,
-                        connected: firebaseConnected
-                    } 
-                }));
-                
-            } catch (error) {
-                console.error('❌ Gallery initialization failed completely:', error);
-                
-                // Dispatch empty data event
+            };
+            
+            // Load data immediately
+            window.firebaseDB.getApprovedMartyrs().then(result => {
+                if (result.success) {
+                    console.log(`🎨 Gallery ready: ${result.data.length} martyrs`);
+                    
+                    // Store globally
+                    window.martyrsDataFromFirebase = result.data;
+                    
+                    // Cache to localStorage
+                    try {
+                        localStorage.setItem('martyrsData', JSON.stringify(result.data));
+                        localStorage.setItem('martyrsData_timestamp', Date.now().toString());
+                    } catch (e) {
+                        console.warn('LocalStorage cache failed:', e);
+                    }
+                    
+                    // Trigger gallery load
+                    window.dispatchEvent(new CustomEvent('martyrsDataReady', { 
+                        detail: { 
+                            data: result.data, 
+                            source: 'Firebase',
+                            connected: true
+                        } 
+                    }));
+                } else {
+                    console.error('❌ Firebase data loading failed:', result.error);
+                    
+                    // Try localStorage fallback
+                    const saved = localStorage.getItem('martyrsData');
+                    if (saved) {
+                        try {
+                            const data = JSON.parse(saved);
+                            const approved = data.filter(m => !m.status || m.status === 'approved');
+                            console.log(`💾 Using localStorage: ${approved.length} martyrs`);
+                            
+                            window.martyrsDataFromFirebase = approved;
+                            window.dispatchEvent(new CustomEvent('martyrsDataReady', { 
+                                detail: { 
+                                    data: approved, 
+                                    source: 'localStorage',
+                                    connected: false
+                                } 
+                            }));
+                        } catch (e) {
+                            console.error('❌ LocalStorage fallback failed:', e);
+                            window.dispatchEvent(new CustomEvent('martyrsDataReady', { 
+                                detail: { 
+                                    data: [], 
+                                    source: 'failed',
+                                    connected: false,
+                                    error: result.error
+                                } 
+                            }));
+                        }
+                    } else {
+                        window.dispatchEvent(new CustomEvent('martyrsDataReady', { 
+                            detail: { 
+                                data: [], 
+                                source: 'failed',
+                                connected: false,
+                                error: result.error
+                            } 
+                        }));
+                    }
+                }
+            });
+            
+        } catch (error) {
+            console.error('❌ Firebase initialization failed:', error);
+            
+            // Try localStorage as final fallback
+            const saved = localStorage.getItem('martyrsData');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    const approved = data.filter(m => !m.status || m.status === 'approved');
+                    console.log(`💾 Emergency localStorage: ${approved.length} martyrs`);
+                    
+                    window.martyrsDataFromFirebase = approved;
+                    window.dispatchEvent(new CustomEvent('martyrsDataReady', { 
+                        detail: { 
+                            data: approved, 
+                            source: 'localStorage',
+                            connected: false
+                        } 
+                    }));
+                } catch (e) {
+                    console.error('❌ All data loading failed');
+                    window.dispatchEvent(new CustomEvent('martyrsDataReady', { 
+                        detail: { 
+                            data: [], 
+                            source: 'failed',
+                            connected: false,
+                            error: error.message
+                        } 
+                    }));
+                }
+            } else {
                 window.dispatchEvent(new CustomEvent('martyrsDataReady', { 
                     detail: { 
                         data: [], 
                         source: 'failed',
+                        connected: false,
                         error: error.message
                     } 
                 }));
             }
         }
-        
-        // Start initialization
-        initializeGalleryData();
-        
-        // Expose connection manager for debugging
-        window.firebaseConnectionManager = connectionManager;
-        window.retryFirebaseConnection = () => {
-            connectionManager.retryCount = 0;
-            return initializeGalleryData();
-        };
         
     </script>
 
