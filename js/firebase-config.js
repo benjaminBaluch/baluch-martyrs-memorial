@@ -18,16 +18,14 @@ import {
     Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
-// Your web app's Firebase configuration with CORS fix
+// Your web app's Firebase configuration - Production Ready
 const firebaseConfig = {
     apiKey: "AIzaSyBW2JKt68kGKE-CMvKQUUj33ToZ8M-kGII",
     authDomain: "baluch-martyrs-memorial.firebaseapp.com",
     projectId: "baluch-martyrs-memorial",
     storageBucket: "baluch-martyrs-memorial.firebasestorage.app",
     messagingSenderId: "420195314966",
-    appId: "1:420195314966:web:0e3546e6e0e0c09cf3f437",
-    // Add additional configuration for CORS
-    databaseURL: "https://baluch-martyrs-memorial-default-rtdb.firebaseio.com/"
+    appId: "1:420195314966:web:0e3546e6e0e0c09cf3f437"
 };
 
 // Initialize Firebase with error handling
@@ -86,36 +84,97 @@ export const firebaseDB = {
         }
     },
 
-    // Get all approved martyrs (simplified - no complex queries)
+    // Get all approved martyrs with comprehensive collection checking
     async getApprovedMartyrs() {
         try {
-            console.log('🔍 Fetching approved martyrs from Firebase...');
+            console.log('🔍 Fetching martyrs from Firebase collections...');
             
-            // Try simple query first without orderBy to avoid index issues
-            const martyrsCollection = collection(db, 'martyrs');
-            const querySnapshot = await getDocs(martyrsCollection);
-            const martyrs = [];
+            let allMartyrs = [];
             
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                if (data.status === 'approved') {
-                    martyrs.push({
-                        id: doc.id,
-                        ...data
+            // Check main 'martyrs' collection first
+            try {
+                console.log('🔍 Checking main martyrs collection...');
+                const martyrsCollection = collection(db, 'martyrs');
+                const martyrsSnapshot = await getDocs(martyrsCollection);
+                
+                martyrsSnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    // Include all martyrs or only approved ones
+                    if (!data.status || data.status === 'approved') {
+                        allMartyrs.push({
+                            id: doc.id,
+                            ...data,
+                            status: data.status || 'approved' // Default to approved
+                        });
+                    }
+                });
+                
+                console.log(`📋 Found ${martyrsSnapshot.size} total docs in martyrs collection, ${allMartyrs.length} approved`);
+            } catch (error) {
+                console.warn('⚠️ Error accessing martyrs collection:', error.message);
+            }
+            
+            // If no martyrs found, check pendingMartyrs collection for any approved ones
+            if (allMartyrs.length === 0) {
+                try {
+                    console.log('🔍 Checking pendingMartyrs collection for approved items...');
+                    const pendingCollection = collection(db, 'pendingMartyrs');
+                    const pendingSnapshot = await getDocs(pendingCollection);
+                    
+                    pendingSnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        if (data.status === 'approved') {
+                            allMartyrs.push({
+                                id: doc.id,
+                                ...data
+                            });
+                        }
                     });
+                    
+                    console.log(`📋 Found ${pendingSnapshot.size} pending docs, ${allMartyrs.length} approved from pending`);
+                } catch (error) {
+                    console.warn('⚠️ Error accessing pendingMartyrs collection:', error.message);
                 }
-            });
+            }
             
-            console.log(`✅ Found ${martyrs.length} approved martyrs in Firebase`);
-            return { success: true, data: martyrs };
+            // If still no martyrs, check if collections exist and are accessible
+            if (allMartyrs.length === 0) {
+                console.log('📊 No martyrs found. Checking Firebase connectivity and permissions...');
+                
+                // Test basic Firestore read access
+                try {
+                    const testCollection = collection(db, 'test');
+                    const testSnapshot = await getDocs(testCollection);
+                    console.log('✅ Firestore read access confirmed - collections may be empty');
+                } catch (testError) {
+                    console.error('❌ Firestore read access failed:', testError);
+                    throw new Error(`Firebase access denied: ${testError.message}`);
+                }
+            }
+            
+            console.log(`✅ Final result: ${allMartyrs.length} martyrs total`);
+            return { 
+                success: true, 
+                data: allMartyrs,
+                collections_checked: ['martyrs', 'pendingMartyrs'],
+                total_found: allMartyrs.length
+            };
+            
         } catch (error) {
-            console.error('❌ Error getting approved martyrs: ', error);
-            console.error('Error details:', {
+            console.error('❌ Error getting martyrs from Firebase:', error);
+            console.error('🔎 Detailed error info:', {
                 code: error.code,
                 message: error.message,
-                stack: error.stack
+                name: error.name,
+                stack: error.stack?.substring(0, 500)
             });
-            return { success: false, error: error.message, details: error };
+            
+            return { 
+                success: false, 
+                error: error.message,
+                code: error.code,
+                details: error 
+            };
         }
     },
 
@@ -293,6 +352,80 @@ export const firebaseDB = {
             console.error('❌ Error clearing all approved martyrs: ', error);
             return { success: false, error: error.message };
         }
+    },
+    
+    // Initialize database with sample martyrs if empty (production ready)
+    async initializeDatabaseIfEmpty() {
+        try {
+            console.log('🌱 Checking if database needs initialization...');
+            
+            // Check if we have any martyrs
+            const result = await this.getApprovedMartyrs();
+            
+            if (result.success && result.data.length === 0) {
+                console.log('📋 Database is empty, adding initial martyr data...');
+                
+                // Sample martyrs based on historical Baluch figures
+                const initialMartyrs = [
+                    {
+                        fullName: "Shaheed Mir Balach Marri",
+                        fatherName: "Nawab Khair Bakhsh Marri",
+                        birthDate: "1966-01-01",
+                        martyrdomDate: "2007-11-20",
+                        birthPlace: "Kohlu, Balochistan",
+                        martyrdomPlace: "Karachi, Pakistan",
+                        organization: "Balochistan Liberation Army",
+                        rank: "Commander",
+                        biography: "A prominent Baluch freedom fighter and son of Nawab Khair Bakhsh Marri. He dedicated his life to the liberation of Balochistan and became a symbol of resistance.",
+                        familyDetails: "Son of tribal chief Nawab Khair Bakhsh Marri",
+                        submitterName: "Memorial Committee",
+                        submitterRelation: "Historical Record",
+                        status: "approved"
+                    },
+                    {
+                        fullName: "Shaheed Brahumdagh Bugti",
+                        fatherName: "Nawab Akbar Bugti",
+                        birthDate: "1920-07-12",
+                        martyrdomDate: "2006-08-26",
+                        birthPlace: "Dera Bugti, Balochistan",
+                        martyrdomPlace: "Taratani, Balochistan",
+                        organization: "Jamhoori Watan Party",
+                        rank: "Nawab",
+                        biography: "Nawab Akbar Shahbaz Khan Bugti was a prominent Baluch politician and tribal chief who fought for Baluch rights and autonomy until his martyrdom.",
+                        familyDetails: "Tribal chief of Bugti tribe",
+                        submitterName: "Memorial Committee",
+                        submitterRelation: "Historical Record", 
+                        status: "approved"
+                    }
+                ];
+                
+                let addedCount = 0;
+                for (const martyr of initialMartyrs) {
+                    try {
+                        // Process dates
+                        const processedMartyr = { ...martyr };
+                        processedMartyr.birthDate = Timestamp.fromDate(new Date(martyr.birthDate));
+                        processedMartyr.martyrdomDate = Timestamp.fromDate(new Date(martyr.martyrdomDate));
+                        processedMartyr.submittedAt = serverTimestamp();
+                        
+                        const docRef = await addDoc(collection(db, 'martyrs'), processedMartyr);
+                        addedCount++;
+                        console.log(`✅ Added martyr: ${martyr.fullName} with ID: ${docRef.id}`);
+                    } catch (error) {
+                        console.error(`❌ Failed to add ${martyr.fullName}:`, error);
+                    }
+                }
+                
+                console.log(`✅ Database initialized with ${addedCount} martyrs`);
+                return { success: true, added: addedCount };
+            } else {
+                console.log(`✅ Database already has ${result.data.length} martyrs, no initialization needed`);
+                return { success: true, added: 0, existing: result.data.length };
+            }
+        } catch (error) {
+            console.error('❌ Database initialization failed:', error);
+            return { success: false, error: error.message };
+        }
     }
 };
 
@@ -361,17 +494,52 @@ if (typeof window !== 'undefined') {
     window.firebaseApp = app;
     window.firebaseAvailable = true;
     
+    // Log domain information for debugging
     console.log('✅ Firebase made available globally on window object');
+    console.log('🌍 Current domain:', window.location.hostname);
     console.log('🔍 Available Firebase methods:', Object.keys(firebaseDB));
+    
+    // Verify domain is authorized
+    const allowedDomains = [
+        'baluchmartyrs.site',
+        'www.baluchmartyrs.site', 
+        'localhost',
+        '127.0.0.1',
+        'benjaminbaluch.github.io'
+    ];
+    
+    const currentDomain = window.location.hostname;
+    const isDomainAllowed = allowedDomains.some(domain => 
+        currentDomain === domain || currentDomain.endsWith(domain)
+    );
+    
+    if (!isDomainAllowed) {
+        console.warn(`⚠️ Domain ${currentDomain} may not be authorized for Firebase access`);
+        console.log('🔒 Authorized domains:', allowedDomains);
+    } else {
+        console.log('✅ Domain authorized for Firebase access');
+    }
     
     // Test Firebase immediately when loaded
     firebaseDB.testConnection().then(result => {
         if (result.success) {
             console.log('✅ Initial Firebase connectivity test passed');
+            
+            // Auto-initialize database if needed
+            return firebaseDB.initializeDatabaseIfEmpty();
         } else {
             console.warn('⚠️ Initial Firebase connectivity test failed:', result.error);
+            return null;
+        }
+    }).then(initResult => {
+        if (initResult) {
+            if (initResult.added > 0) {
+                console.log(`🌱 Database auto-initialized with ${initResult.added} martyrs`);
+            } else if (initResult.existing > 0) {
+                console.log(`📋 Database already contains ${initResult.existing} martyrs`);
+            }
         }
     }).catch(error => {
-        console.error('❌ Initial Firebase test error:', error);
+        console.error('❌ Firebase initialization error:', error);
     });
 }

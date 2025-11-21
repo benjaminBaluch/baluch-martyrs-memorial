@@ -285,6 +285,17 @@
                     try {
                         martyrsData = await connectionManager.loadMartyrsData();
                         source = 'Firebase';
+                        
+                        // If Firebase is connected but no data, try to initialize database
+                        if (martyrsData.length === 0) {
+                            console.log('🌱 No martyrs found, attempting database initialization...');
+                            const initResult = await connectionManager.firebaseDB.initializeDatabaseIfEmpty();
+                            if (initResult.success && initResult.added > 0) {
+                                console.log(`✅ Database initialized with ${initResult.added} martyrs, reloading...`);
+                                martyrsData = await connectionManager.loadMartyrsData();
+                                source = 'Firebase (initialized)';
+                            }
+                        }
                     } catch (error) {
                         console.warn('⚠️ Firebase data loading failed, trying localStorage...', error.message);
                     }
