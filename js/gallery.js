@@ -1137,14 +1137,16 @@ function renderGallery(martyrsData) {
     updateSearchResultsInfo(martyrsData.length);
 }
 
-// Create gallery card
+// Create gallery card (front of gallery)
+// Shows only key public info: name, martyrdom date, martyrdom place
+// All other details are inside the modal so we never display "?" for unknown birth years.
 function createGalleryCard(martyr) {
     const card = document.createElement('div');
     card.className = 'martyr-card';
     
     // Enhanced search data attributes
     card.dataset.searchText = `${martyr.fullName} ${martyr.birthPlace || ''} ${martyr.martyrdomPlace || ''} ${martyr.organization || ''} ${martyr.fatherName || ''}`.toLowerCase();
-    card.dataset.name = martyr.fullName.toLowerCase();
+    card.dataset.name = (martyr.fullName || '').toLowerCase();
     card.dataset.birthPlace = (martyr.birthPlace || '').toLowerCase();
     card.dataset.martyrdomPlace = (martyr.martyrdomPlace || '').toLowerCase();
     card.dataset.organization = (martyr.organization || '').toLowerCase();
@@ -1157,7 +1159,7 @@ function createGalleryCard(martyr) {
     if (martyr.photo) {
         const img = document.createElement('img');
         img.src = martyr.photo;
-        img.alt = martyr.fullName;
+        img.alt = martyr.fullName || 'Martyr photo';
         img.style.width = '100%';
         img.style.height = '100%';
         img.style.objectFit = 'cover';
@@ -1171,29 +1173,29 @@ function createGalleryCard(martyr) {
     infoDiv.className = 'martyr-info';
     
     const name = document.createElement('h3');
-    name.textContent = martyr.fullName;
+    name.textContent = martyr.fullName || 'Unknown martyr';
     
-    const dates = document.createElement('p');
-    const birthYear = martyr.birthDate ? formatDateYear(martyr.birthDate) : '?';
-    const martyrdomYear = formatDateYear(martyr.martyrdomDate);
-    dates.textContent = `${birthYear} - ${martyrdomYear}`;
+    const martyrdomLine = document.createElement('p');
+    const martyrdomDateText = martyr.martyrdomDate ? formatDateYear(martyr.martyrdomDate) : null;
+    if (martyrdomDateText) {
+        martyrdomLine.textContent = `Martyred: ${martyrdomDateText}`;
+    } else {
+        martyrdomLine.textContent = 'Martyred: Date unknown';
+    }
     
     const place = document.createElement('p');
-    place.textContent = martyr.martyrdomPlace || 'Unknown location';
+    place.textContent = martyr.martyrdomPlace || 'Place of martyrdom unknown';
+    
+    infoDiv.appendChild(name);
+    infoDiv.appendChild(martyrdomLine);
+    infoDiv.appendChild(place);
     
     if (martyr.organization) {
         const org = document.createElement('p');
         org.style.fontSize = '0.9rem';
         org.style.color = '#666';
         org.textContent = martyr.organization;
-        infoDiv.appendChild(name);
-        infoDiv.appendChild(dates);
-        infoDiv.appendChild(place);
         infoDiv.appendChild(org);
-    } else {
-        infoDiv.appendChild(name);
-        infoDiv.appendChild(dates);
-        infoDiv.appendChild(place);
     }
     
     // View details button
