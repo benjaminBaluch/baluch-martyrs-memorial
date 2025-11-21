@@ -7,6 +7,9 @@
     <title>Baluch Martyrs Memorial</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/chatbot.css">
+    
+    <!-- Professional Static Asset Refresh System -->
+    <script src="js/asset-refresh.js"></script>
     <style>
         /* Professional Homepage Styles */
         .hero-text {
@@ -1028,5 +1031,39 @@
     }, 2000);
     </script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    
+    <!-- Initialize Professional Asset Refresh System -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize asset refresh with production-safe settings
+        if (typeof StaticAssetRefresh !== 'undefined') {
+            try {
+                // Initialize with 30-minute auto-refresh for live website
+                const refresher = window.initAutoRefresh({
+                    enableLogging: false, // Disable console logs in production
+                    refreshInterval: 30 * 60 * 1000, // 30 minutes
+                    cookiePrefix: 'bmm_cache_',
+                    autoRefresh: true
+                });
+                
+                // Manual refresh function available globally
+                window.forceRefreshAssets = async function() {
+                    try {
+                        console.log('🔄 Manual asset refresh initiated...');
+                        const results = await window.refreshStaticAssets({ enableLogging: true });
+                        console.log('✅ Manual refresh completed:', results);
+                        return results;
+                    } catch (error) {
+                        console.error('❌ Manual refresh failed:', error);
+                        throw error;
+                    }
+                };
+                
+            } catch (error) {
+                console.warn('⚠️ Asset refresh system initialization failed:', error);
+            }
+        }
+    });
+    </script>
 </body>
 </html>
