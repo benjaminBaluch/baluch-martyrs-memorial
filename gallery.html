@@ -143,79 +143,223 @@
     <script src="js/gallery.js"></script>
     
     <script type="module">
-        // BULLETPROOF Firebase initialization for gallery
-        console.log('🔥 Starting bulletproof Firebase initialization...');
+        // PROFESSIONAL Firebase Connection Manager
+        console.log('🔥 Initializing professional Firebase connection...');
         
-        try {
-            // Import Firebase
-            const { firebaseDB } = await import('./js/firebase-config.js');
-            
-            // Make Firebase globally available
-            window.firebaseDB = firebaseDB;
-            window.firebaseReady = true;
-            console.log('✅ Firebase loaded and available globally');
-            
-            // Immediate data loading
-            console.log('📋 Starting immediate Firebase data fetch...');
-            const result = await firebaseDB.getApprovedMartyrs();
-            
-            console.log('🗨️ Firebase result:', result);
-            
-            if (result && result.success && result.data) {
-                const martyrsData = result.data;
-                console.log(`✅ SUCCESS: Got ${martyrsData.length} martyrs from Firebase`);
-                
-                // Store globally
-                window.martyrsDataFromFirebase = martyrsData;
-                
-                // Cache to localStorage as backup
-                try {
-                    localStorage.setItem('martyrsData', JSON.stringify(martyrsData));
-                    console.log('💾 Cached to localStorage');
-                } catch (e) {
-                    console.warn('LocalStorage cache failed:', e);
-                }
-                
-                // Trigger immediate render
-                console.log('🚀 Triggering immediate render...');
-                window.dispatchEvent(new CustomEvent('martyrsDataReady', { 
-                    detail: { data: martyrsData, source: 'Firebase' } 
-                }));
-                
-            } else {
-                console.error('❌ Firebase failed or returned no data:', result);
-                throw new Error('Firebase query failed: ' + (result?.error || 'Unknown error'));
+        class FirebaseConnectionManager {
+            constructor() {
+                this.firebaseDB = null;
+                this.isConnected = false;
+                this.retryCount = 0;
+                this.maxRetries = 3;
+                this.connectionTimeout = 15000; // 15 seconds
             }
             
-        } catch (error) {
-            console.error('❌ Firebase initialization/fetch failed:', error);
+            async initialize() {
+                try {
+                    console.log(`🔧 Firebase connection attempt ${this.retryCount + 1}/${this.maxRetries}`);
+                    
+                    // Import Firebase with timeout
+                    const importPromise = import('./js/firebase-config.js');
+                    const timeoutPromise = new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Firebase import timeout')), this.connectionTimeout)
+                    );
+                    
+                    const { firebaseDB } = await Promise.race([importPromise, timeoutPromise]);
+                    this.firebaseDB = firebaseDB;
+                    
+                    // Test connection immediately
+                    const testResult = await this.testConnection();
+                    if (!testResult.success) {
+                        throw new Error(testResult.error);
+                    }
+                    
+                    // Make available globally
+                    window.firebaseDB = firebaseDB;
+                    window.firebaseReady = true;
+                    this.isConnected = true;
+                    
+                    console.log('✅ Firebase connection established successfully');
+                    return true;
+                    
+                } catch (error) {
+                    console.warn(`⚠️ Firebase connection attempt ${this.retryCount + 1} failed:`, error.message);
+                    
+                    this.retryCount++;
+                    if (this.retryCount < this.maxRetries) {
+                        console.log(`🔄 Retrying in ${2 * this.retryCount} seconds...`);
+                        await new Promise(resolve => setTimeout(resolve, 2000 * this.retryCount));
+                        return this.initialize();
+                    }
+                    
+                    console.error('❌ Firebase connection failed after all retries');
+                    return false;
+                }
+            }
             
-            // Emergency localStorage fallback
-            console.log('🆘 Attempting emergency localStorage fallback...');
-            try {
-                const saved = localStorage.getItem('martyrsData');
-                if (saved) {
+            async testConnection() {
+                if (!this.firebaseDB) return { success: false, error: 'Firebase not initialized' };
+                
+                try {
+                    const testPromise = this.firebaseDB.testConnection();
+                    const timeoutPromise = new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Connection test timeout')), 10000)
+                    );
+                    
+                    return await Promise.race([testPromise, timeoutPromise]);
+                } catch (error) {
+                    return { success: false, error: error.message };
+                }
+            }
+            
+            async loadMartyrsData() {
+                if (!this.isConnected || !this.firebaseDB) {
+                    throw new Error('Firebase not connected');
+                }
+                
+                try {
+                    console.log('📋 Fetching martyrs from Firebase...');
+                    const dataPromise = this.firebaseDB.getApprovedMartyrs();
+                    const timeoutPromise = new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Data fetch timeout')), 20000)
+                    );
+                    
+                    const result = await Promise.race([dataPromise, timeoutPromise]);
+                    
+                    if (result && result.success && result.data) {
+                        console.log(`✅ Successfully loaded ${result.data.length} martyrs from Firebase`);
+                        
+                        // Cache to localStorage
+                        try {
+                            localStorage.setItem('martyrsData', JSON.stringify(result.data));
+                            localStorage.setItem('martyrsData_timestamp', Date.now().toString());
+                            console.log('💾 Data cached to localStorage');
+                        } catch (e) {
+                            console.warn('LocalStorage caching failed:', e);
+                        }
+                        
+                        return result.data;
+                    } else {
+                        throw new Error(result?.error || 'No data received from Firebase');
+                    }
+                } catch (error) {
+                    console.error('❌ Firebase data fetch failed:', error.message);
+                    throw error;
+                }
+            }
+            
+            loadFromLocalStorage() {
+                try {
+                    const saved = localStorage.getItem('martyrsData');
+                    const timestamp = localStorage.getItem('martyrsData_timestamp');
+                    
+                    if (!saved) {
+                        throw new Error('No localStorage data available');
+                    }
+                    
                     const data = JSON.parse(saved);
                     const approved = data.filter(m => !m.status || m.status === 'approved');
-                    if (approved.length > 0) {
-                        console.log(`💾 Emergency fallback: ${approved.length} martyrs from localStorage`);
-                        window.martyrsDataFromFirebase = approved;
-                        window.dispatchEvent(new CustomEvent('martyrsDataReady', { 
-                            detail: { data: approved, source: 'localStorage' } 
-                        }));
-                    } else {
+                    
+                    if (approved.length === 0) {
                         throw new Error('No approved martyrs in localStorage');
                     }
-                } else {
-                    throw new Error('No localStorage data available');
+                    
+                    // Check data age
+                    const age = timestamp ? Date.now() - parseInt(timestamp) : 0;
+                    const ageHours = Math.floor(age / (1000 * 60 * 60));
+                    
+                    console.log(`💾 Loaded ${approved.length} martyrs from localStorage (${ageHours}h old)`);
+                    return { data: approved, age: ageHours };
+                    
+                } catch (error) {
+                    console.warn('⚠️ LocalStorage fallback failed:', error.message);
+                    throw error;
                 }
-            } catch (fallbackError) {
-                console.error('❌ Emergency fallback also failed:', fallbackError);
+            }
+        }
+        
+        // Initialize connection manager and load data
+        const connectionManager = new FirebaseConnectionManager();
+        
+        async function initializeGalleryData() {
+            try {
+                // Try Firebase connection
+                const firebaseConnected = await connectionManager.initialize();
+                
+                let martyrsData = null;
+                let source = 'unknown';
+                
+                if (firebaseConnected) {
+                    try {
+                        martyrsData = await connectionManager.loadMartyrsData();
+                        source = 'Firebase';
+                    } catch (error) {
+                        console.warn('⚠️ Firebase data loading failed, trying localStorage...', error.message);
+                    }
+                }
+                
+                // Fallback to localStorage if Firebase failed
+                if (!martyrsData) {
+                    try {
+                        const localResult = connectionManager.loadFromLocalStorage();
+                        martyrsData = localResult.data;
+                        source = `localStorage (${localResult.age}h old)`;
+                        
+                        // Show offline warning for old data
+                        if (localResult.age > 24) {
+                            console.warn(`⚠️ Using old cached data (${localResult.age}h old)`);
+                        }
+                    } catch (error) {
+                        console.error('❌ All data loading methods failed:', error.message);
+                        martyrsData = [];
+                        source = 'empty';
+                    }
+                }
+                
+                // Store globally and trigger event
+                window.martyrsDataFromFirebase = martyrsData;
+                window.firebaseConnectionStatus = {
+                    connected: firebaseConnected,
+                    source: source,
+                    dataCount: martyrsData.length,
+                    timestamp: new Date().toISOString()
+                };
+                
+                console.log(`🎨 Gallery data ready: ${martyrsData.length} martyrs from ${source}`);
+                
+                // Trigger data ready event
                 window.dispatchEvent(new CustomEvent('martyrsDataReady', { 
-                    detail: { data: [], source: 'none' } 
+                    detail: { 
+                        data: martyrsData, 
+                        source: source,
+                        connected: firebaseConnected
+                    } 
+                }));
+                
+            } catch (error) {
+                console.error('❌ Gallery initialization failed completely:', error);
+                
+                // Dispatch empty data event
+                window.dispatchEvent(new CustomEvent('martyrsDataReady', { 
+                    detail: { 
+                        data: [], 
+                        source: 'failed',
+                        error: error.message
+                    } 
                 }));
             }
         }
+        
+        // Start initialization
+        initializeGalleryData();
+        
+        // Expose connection manager for debugging
+        window.firebaseConnectionManager = connectionManager;
+        window.retryFirebaseConnection = () => {
+            connectionManager.retryCount = 0;
+            return initializeGalleryData();
+        };
+        
     </script>
 
     <!-- Google Translate Scripts -->
