@@ -858,7 +858,11 @@ function showMartyrModal(martyr) {
     
     content.innerHTML = `
         <button class="close-martyr-modal" 
-                style="position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 24px; cursor: pointer; color: #666; z-index: 1;">&times;</button>
+                style="position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 24px; cursor: pointer; color: #666; z-index: 2;">&times;</button>
+        <button class="martyr-print-btn-header" 
+                style="position: absolute; top: 15px; right: 70px; background: #2c5530; color: #fff; border: none; padding: 0.3rem 0.7rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; z-index: 2;">
+            PDF
+        </button>
         
         <div style="padding: 2rem;">
             <div style="display: flex; gap: 2rem; flex-wrap: wrap; align-items: flex-start;">
@@ -932,11 +936,14 @@ function showMartyrModal(martyr) {
     
     // Print / Download button
     const printBtn = modal.querySelector('.martyr-print-btn');
-    if (printBtn) {
-        printBtn.addEventListener('click', () => {
-            printMartyrProfile(martyr);
-        });
-    }
+    const printHeaderBtn = modal.querySelector('.martyr-print-btn-header');
+    [printBtn, printHeaderBtn].forEach((btn) => {
+        if (btn) {
+            btn.addEventListener('click', () => {
+                printMartyrProfile(martyr);
+            });
+        }
+    });
     
     // Close on background click
     modal.addEventListener('click', (e) => {
