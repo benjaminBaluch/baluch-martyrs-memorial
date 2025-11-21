@@ -1,6 +1,5 @@
 // Gallery Page JavaScript
-
-import { testFirebaseConnection, debugFirebaseRules } from './firebase-test.js';
+// Production-ready without ES6 module imports
 
 let allMartyrs = [];
 let currentFilters = {
@@ -17,35 +16,38 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeInterface();
     addDebugButton();
     
-    // Load gallery after Firebase is ready
+    // Multiple attempts to load gallery with Firebase
+    console.log('🎨 Gallery initialization starting...');
+    
+    // Try immediate load
     if (window.firebaseDB) {
         console.log('🔥 Firebase already available, loading gallery...');
         loadGallery();
     } else {
         console.log('⏳ Waiting for Firebase to be ready...');
-        // Wait for Firebase to be ready
+        
+        // Listen for Firebase ready event
         window.addEventListener('firebaseReady', () => {
             console.log('🔥 Firebase ready event received, loading gallery...');
             loadGallery();
         });
         
-        // Also try loading after delays in case Firebase is still loading
-        setTimeout(() => {
-            if (window.firebaseDB) {
-                console.log('🔥 Firebase available after 1s timeout, loading gallery...');
-                loadGallery();
-            }
-        }, 1000);
-        
-        setTimeout(() => {
-            if (window.firebaseDB) {
-                console.log('🔥 Firebase available after 3s timeout, loading gallery...');
-                loadGallery();
-            } else {
-                console.warn('⚠️ Firebase still not available after 3s, using localStorage fallback');
-                loadGallery(); // Try anyway, will fall back to localStorage
-            }
-        }, 3000);
+        // Progressive timeout attempts
+        const attempts = [500, 1000, 2000, 3000, 5000];
+        attempts.forEach((delay, index) => {
+            setTimeout(() => {
+                if (window.firebaseDB && allMartyrs.length === 0) {
+                    console.log(`🔥 Firebase available after ${delay}ms, loading gallery...`);
+                    loadGallery();
+                } else if (index === attempts.length - 1) {
+                    // Final attempt - try anyway with localStorage fallback
+                    console.warn('⚠️ Firebase still not available after 5s, trying localStorage fallback');
+                    if (allMartyrs.length === 0) {
+                        loadGallery();
+                    }
+                }
+            }, delay);
+        });
     }
 });
 
@@ -69,14 +71,20 @@ async function loadGallery() {
         try {
             console.log('🌍 Loading martyrs from Firebase (global database)...');
             
-            // Test Firebase connection first
-            const connectionTest = await testFirebaseConnection();
+            // Direct Firebase connection using global firebaseDB
+            if (!window.firebaseDB) {
+                throw new Error('Firebase not available globally');
+            }
             
-            if (connectionTest.success) {
-                console.log('✅ Firebase connection test passed');
-                allMartyrs = connectionTest.martyrs || [];
+            console.log('🔍 Fetching martyrs directly from Firebase...');
+            const result = await window.firebaseDB.getApprovedMartyrs();
+            
+            if (result.success) {
+                console.log('✅ Firebase connection successful');
+                allMartyrs = result.data || [];
+                console.log(`📊 Firebase returned ${allMartyrs.length} approved martyrs`);
                 
-                // Cache to localStorage for faster loading next time
+                // Cache martyrs for faster loading
                 if (allMartyrs.length > 0) {
                     localStorage.setItem('martyrsData', JSON.stringify(allMartyrs));
                     console.log('💾 Cached martyrs to localStorage');
@@ -85,8 +93,8 @@ async function loadGallery() {
                 // Hide any previous offline warnings
                 hideOfflineWarning();
             } else {
-                console.error('❌ Firebase connection test failed:', connectionTest.error);
-                throw new Error('Firebase connection test failed: ' + connectionTest.error);
+                console.error('❌ Firebase query failed:', result.error);
+                throw new Error('Firebase query failed: ' + result.error);
             }
             
             
@@ -112,12 +120,35 @@ async function loadGallery() {
         } catch (error) {
             console.error('❌ Firebase failed, trying localStorage backup:', error);
             
-            // Only use localStorage as emergency backup
-            const savedMartyrs = localStorage.getItem('martyrsData');
-            if (savedMartyrs) {
-                const allMartyrsData = JSON.parse(savedMartyrs);
-                allMartyrs = allMartyrsData.filter(m => !m.status || m.status === 'approved');
-                console.log(`🔢 Total martyrs from localStorage backup: ${allMartyrs.length}`);
+            // Try enhanced cache manager first, then localStorage as backup
+            let allMartyrsData = null;
+            
+            if (window.cacheManager) {
+                allMartyrsData = window.cacheManager.getCache('martyrsData');
+                if (allMartyrsData) {
+                    console.log('🔄 Using cached martyrs from cache manager');
+                }
+            }
+            
+            // Fallback to old localStorage method if cache manager fails
+            if (!allMartyrsData) {
+                const savedMartyrs = localStorage.getItem('martyrsData');
+                if (savedMartyrs) {
+                    allMartyrsData = JSON.parse(savedMartyrs);
+                    console.log('🔄 Using martyrs from localStorage backup');
+                }
+            }
+            
+            if (allMartyrsData) {
+                // Filter for approved martyrs (cache manager already stores filtered data, localStorage might not)
+                if (Array.isArray(allMartyrsData) && allMartyrsData.length > 0 && allMartyrsData[0].status) {
+                    // Data has status field, filter it
+                    allMartyrs = allMartyrsData.filter(m => !m.status || m.status === 'approved');
+                } else {
+                    // Data is already filtered or doesn't have status field
+                    allMartyrs = allMartyrsData;
+                }
+                console.log(`🔢 Total martyrs from backup cache: ${allMartyrs.length}`);
                 renderGallery(allMartyrs);
                 // Apply current filters (will show all if no filters active)
                 applyFilters();
@@ -210,11 +241,23 @@ function addDebugButton() {
     debugBtn.addEventListener('click', async function() {
         console.log('=== FIREBASE DEBUG START ===');
         
-        // Test Firebase connection
-        await testFirebaseConnection();
-        
-        // Debug Firebase rules
-        await debugFirebaseRules();
+        // Test Firebase connection directly
+        if (window.firebaseDB) {
+            try {
+                console.log('🔥 Testing Firebase connection...');
+                const result = await window.firebaseDB.getApprovedMartyrs();
+                console.log(`✅ Firebase test: ${result.success ? 'SUCCESS' : 'FAILED'}`);
+                if (result.success) {
+                    console.log(`📊 Found ${result.data ? result.data.length : 0} approved martyrs`);
+                } else {
+                    console.error('❌ Error:', result.error);
+                }
+            } catch (error) {
+                console.error('❌ Firebase test failed:', error);
+            }
+        } else {
+            console.error('❌ Firebase not available globally');
+        }
         
         // Check for localStorage data to migrate
         const localData = localStorage.getItem('martyrsData');
