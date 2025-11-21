@@ -43,8 +43,8 @@ window.checkGalleryData = function() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎨 Gallery DOM loaded, initializing...');
     
-    // Show professional loading state immediately
-    showLoadingState();
+    // We no longer show a large loading panel; gallery will render
+    // martyrs as soon as data is available (from Firebase or cache).
     
     // Setup interface
     initSearchFilter();
@@ -520,22 +520,11 @@ function hideNoResultsMessage() {
     if (msg) msg.remove();
 }
 
+// Previously this function showed a large loading panel.
+// To keep the experience clean, we now just log to console and
+// let the gallery cards appear directly when data is ready.
 function showLoadingState() {
-    const galleryGrid = document.getElementById('galleryGrid');
-    if (galleryGrid) {
-        galleryGrid.innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: #f8f9fa; border-radius: 8px;">
-                <div style="display: inline-block; width: 40px; height: 40px; border: 3px solid #2c5530; border-radius: 50%; border-top-color: transparent; animation: spin 1s ease-in-out infinite; margin-bottom: 1rem;"></div>
-                <h3 style="color: #2c5530;">Loading Memorial Gallery</h3>
-                <p>Connecting to our database to honor our heroes...</p>
-                <style>
-                    @keyframes spin {
-                        to { transform: rotate(360deg); }
-                    }
-                </style>
-            </div>
-        `;
-    }
+    console.log('🔄 Preparing gallery – waiting for data...');
 }
 
 function showEmptyMessage() {
