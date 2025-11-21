@@ -16,6 +16,23 @@ window.loadGalleryNow = function() {
     loadGallery();
 };
 
+// Expose manual data check function
+window.checkGalleryData = function() {
+    console.log('🔍 === MANUAL DATA CHECK START ===');
+    
+    // Check all possible data sources
+    console.log('1. Pre-loaded Firebase data:', window.martyrsDataFromFirebase?.length || 0);
+    console.log('2. Firebase DB available:', !!window.firebaseDB);
+    console.log('3. Local storage data:', localStorage.getItem('martyrsData') ? JSON.parse(localStorage.getItem('martyrsData')).length : 0);
+    console.log('4. Current allMartyrs:', allMartyrs?.length || 0);
+    
+    // Try to load data manually
+    console.log('Attempting manual load...');
+    loadGallery();
+    
+    console.log('🔍 === MANUAL DATA CHECK END ===');
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎨 Gallery DOM loaded, initializing components...');
     initSearchFilter();
@@ -29,39 +46,27 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => loadGallery(), 100);
     }
     
-    // Multiple attempts to load gallery with Firebase
+    // Comprehensive gallery initialization
     console.log('🎨 Gallery initialization starting...');
     
-    // Try immediate load
-    if (window.firebaseDB) {
-        console.log('🔥 Firebase already available, loading gallery...');
+    // Immediate attempts
+    setTimeout(() => loadGallery(), 100);  // Quick attempt
+    setTimeout(() => { if (allMartyrs.length === 0) loadGallery(); }, 500);  // First retry
+    setTimeout(() => { if (allMartyrs.length === 0) loadGallery(); }, 1000); // Second retry
+    
+    // Listen for Firebase ready event
+    window.addEventListener('firebaseReady', () => {
+        console.log('🔥 Firebase ready event received, loading gallery...');
         loadGallery();
-    } else {
-        console.log('⏳ Waiting for Firebase to be ready...');
-        
-        // Listen for Firebase ready event
-        window.addEventListener('firebaseReady', () => {
-            console.log('🔥 Firebase ready event received, loading gallery...');
+    });
+    
+    // Final safety net
+    setTimeout(() => {
+        if (allMartyrs.length === 0) {
+            console.log('🆘 Final attempt: Forcing gallery load...');
             loadGallery();
-        });
-        
-        // Progressive timeout attempts
-        const attempts = [500, 1000, 2000, 3000, 5000];
-        attempts.forEach((delay, index) => {
-            setTimeout(() => {
-                if (window.firebaseDB && allMartyrs.length === 0) {
-                    console.log(`🔥 Firebase available after ${delay}ms, loading gallery...`);
-                    loadGallery();
-                } else if (index === attempts.length - 1) {
-                    // Final attempt - try anyway with localStorage fallback
-                    console.warn('⚠️ Firebase still not available after 5s, trying localStorage fallback');
-                    if (allMartyrs.length === 0) {
-                        loadGallery();
-                    }
-                }
-            }, delay);
-        });
-    }
+        }
+    }, 3000);
     
     // Emergency loader - try loading after page is fully ready
     setTimeout(() => {
@@ -144,29 +149,113 @@ function initializeInterface() {
 async function loadGallery() {
     const galleryGrid = document.getElementById('galleryGrid');
     
-    if (galleryGrid) {
-        try {
-            console.log('🌍 Loading martyrs from Firebase (global database)...');
-            
-            // First, check if we have pre-loaded Firebase data
-            if (window.martyrsDataFromFirebase && window.martyrsDataFromFirebase.length > 0) {
-                console.log('✨ Using pre-loaded Firebase data!');
-                allMartyrs = window.martyrsDataFromFirebase;
-                console.log(`📊 Pre-loaded data: ${allMartyrs.length} approved martyrs`);
-                
-                // Render immediately
-                renderGallery(allMartyrs);
-                applyFilters();
-                console.log(`🖼️ Successfully rendered ${allMartyrs.length} martyrs from pre-loaded data`);
-                
-                // Update UI
-                updateSearchResultsInfo(allMartyrs.length);
-                const resultsInfo = document.getElementById('searchResultsInfo');
-                if (resultsInfo) {
-                    resultsInfo.style.display = 'flex';
+    if (!galleryGrid) {
+        console.error('❌ Gallery grid element not found!');
+        return;
+    }
+    
+    console.log('🌍 Starting comprehensive gallery loading process...');
+    
+    try {
+        // Method 1: Check pre-loaded Firebase data
+        if (window.martyrsDataFromFirebase && window.martyrsDataFromFirebase.length > 0) {
+            console.log('✨ Method 1: Using pre-loaded Firebase data!');
+            allMartyrs = window.martyrsDataFromFirebase;
+            console.log(`📊 Pre-loaded: ${allMartyrs.length} martyrs`);
+            await renderAndDisplay(allMartyrs, 'pre-loaded Firebase data');
+            return;
+        }
+        
+        // Method 2: Direct Firebase call
+        if (window.firebaseDB) {
+            console.log('🔥 Method 2: Direct Firebase call...');
+            try {
+                const result = await window.firebaseDB.getApprovedMartyrs();
+                if (result && result.success && result.data && result.data.length > 0) {
+                    console.log(`✅ Firebase success: ${result.data.length} martyrs`);
+                    allMartyrs = result.data;
+                    await renderAndDisplay(allMartyrs, 'direct Firebase call');
+                    return;
+                } else {
+                    console.warn('⚠️ Firebase returned no data:', result);
                 }
-                return; // Exit early since we have data
+            } catch (error) {
+                console.error('❌ Firebase call failed:', error);
             }
+        }
+        
+        // Method 3: LocalStorage fallback
+        console.log('💾 Method 3: Trying localStorage fallback...');
+        const savedData = localStorage.getItem('martyrsData');
+        if (savedData) {
+            try {
+                const parsedData = JSON.parse(savedData);
+                if (Array.isArray(parsedData) && parsedData.length > 0) {
+                    allMartyrs = parsedData.filter(m => !m.status || m.status === 'approved');
+                    console.log(`💾 LocalStorage: ${allMartyrs.length} martyrs`);
+                    await renderAndDisplay(allMartyrs, 'localStorage backup');
+                    showOfflineWarning();
+                    return;
+                }
+            } catch (error) {
+                console.error('❌ LocalStorage parsing failed:', error);
+            }
+        }
+        
+        // Method 4: Show empty state
+        console.warn('😞 No data available from any source');
+        showEmptyGalleryMessage();
+        
+    } catch (error) {
+        console.error('❌ Gallery loading failed completely:', error);
+        showConnectionIssueMessage();
+    }
+}
+
+// Unified render and display function
+async function renderAndDisplay(martyrsData, source) {
+    try {
+        console.log(`🎨 Rendering ${martyrsData.length} martyrs from ${source}...`);
+        
+        // Clear any existing content
+        const galleryGrid = document.getElementById('galleryGrid');
+        galleryGrid.innerHTML = '';
+        
+        // Render each martyr card
+        let renderedCount = 0;
+        martyrsData.forEach((martyr, index) => {
+            try {
+                const card = createGalleryCard(martyr);
+                if (card) {
+                    galleryGrid.appendChild(card);
+                    renderedCount++;
+                }
+            } catch (error) {
+                console.error(`❌ Failed to render martyr ${index}:`, error, martyr);
+            }
+        });
+        
+        // Apply filters and update UI
+        applyFilters();
+        updateSearchResultsInfo(martyrsData.length);
+        
+        // Show results info
+        const resultsInfo = document.getElementById('searchResultsInfo');
+        if (resultsInfo && martyrsData.length > 0) {
+            resultsInfo.style.display = 'flex';
+        }
+        
+        console.log(`✅ Successfully rendered ${renderedCount}/${martyrsData.length} martyrs from ${source}`);
+        
+        // Hide offline warning if using fresh Firebase data
+        if (source.includes('Firebase')) {
+            hideOfflineWarning();
+        }
+        
+    } catch (error) {
+        console.error('❌ Render and display failed:', error);
+        throw error;
+    }
             
             console.log('🔥 Starting Firebase connection process...');
             
@@ -352,16 +441,31 @@ function addDebugButton() {
     `;
     
     debugBtn.addEventListener('click', async function() {
-        console.log('=== FIREBASE DEBUG START ===');
+        console.log('=== COMPREHENSIVE GALLERY DEBUG START ===');
         
-        // Test Firebase connection directly
+        // Run manual data check
+        window.checkGalleryData();
+        
+        // Show current state
+        const galleryGrid = document.getElementById('galleryGrid');
+        console.log('Gallery grid element:', galleryGrid);
+        console.log('Gallery grid children:', galleryGrid?.children.length || 0);
+        
+        // Test Firebase directly
         if (window.firebaseDB) {
             try {
                 console.log('🔥 Testing Firebase connection...');
                 const result = await window.firebaseDB.getApprovedMartyrs();
                 console.log(`✅ Firebase test: ${result.success ? 'SUCCESS' : 'FAILED'}`);
-                if (result.success) {
-                    console.log(`📊 Found ${result.data ? result.data.length : 0} approved martyrs`);
+                if (result.success && result.data) {
+                    console.log(`📊 Found ${result.data.length} approved martyrs`);
+                    console.log('Sample martyr:', result.data[0]);
+                    
+                    // Try to render directly
+                    if (result.data.length > 0) {
+                        allMartyrs = result.data;
+                        await renderAndDisplay(allMartyrs, 'debug manual load');
+                    }
                 } else {
                     console.error('❌ Error:', result.error);
                 }
