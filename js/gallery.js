@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data && data.length > 0) {
             console.log(`✅ Got ${data.length} martyrs from ${source}`);
             allMartyrs = data;
-            renderGallery();
+            renderGallery(allMartyrs);
             
             // Show offline warning if using localStorage
             if (source.includes('localStorage') && source.includes('h old')) {
@@ -109,7 +109,7 @@ async function loadGallery() {
         if (window.martyrsDataFromFirebase && window.martyrsDataFromFirebase.length > 0) {
             console.log(`✨ Using pre-loaded data: ${window.martyrsDataFromFirebase.length} martyrs`);
             allMartyrs = window.martyrsDataFromFirebase;
-            renderGallery();
+            renderGallery(allMartyrs);
             return;
         }
         
@@ -125,7 +125,7 @@ async function loadGallery() {
                 // Cache for backup
                 localStorage.setItem('martyrsData', JSON.stringify(allMartyrs));
                 
-                renderGallery();
+                renderGallery(allMartyrs);
                 hideOfflineWarning();
                 return;
             } else {
@@ -141,7 +141,7 @@ async function loadGallery() {
             if (Array.isArray(parsedData) && parsedData.length > 0) {
                 allMartyrs = parsedData.filter(m => !m.status || m.status === 'approved');
                 console.log(`💾 LocalStorage success: ${allMartyrs.length} martyrs`);
-                renderGallery();
+                renderGallery(allMartyrs);
                 showOfflineWarning();
                 return;
             }
@@ -161,7 +161,7 @@ async function loadGallery() {
                 status: 'approved'
             }
         ];
-        renderGallery();
+        renderGallery(allMartyrs);
         
     } catch (error) {
         console.error('❌ Gallery loading failed:', error);
