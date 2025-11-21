@@ -1,6 +1,7 @@
-// Gallery Page JavaScript
-// Production-ready without ES6 module imports
+// BULLETPROOF Gallery.js - Clean, Simple, and Reliable
+console.log('🎨 Gallery.js loading - BULLETPROOF version');
 
+// Global state
 let allMartyrs = [];
 let currentFilters = {
     general: '',
@@ -10,252 +11,190 @@ let currentFilters = {
     year: ''
 };
 
-// Expose force load function globally
+// Global functions for debugging and force loading
 window.loadGalleryNow = function() {
     console.log('🚑 FORCE LOADING GALLERY NOW!');
     loadGallery();
 };
 
-// Expose manual data check function
 window.checkGalleryData = function() {
-    console.log('🔍 === MANUAL DATA CHECK START ===');
-    
-    // Check all possible data sources
+    console.log('🔍 === GALLERY DEBUG INFO ===');
     console.log('1. Pre-loaded Firebase data:', window.martyrsDataFromFirebase?.length || 0);
     console.log('2. Firebase DB available:', !!window.firebaseDB);
     console.log('3. Local storage data:', localStorage.getItem('martyrsData') ? JSON.parse(localStorage.getItem('martyrsData')).length : 0);
     console.log('4. Current allMartyrs:', allMartyrs?.length || 0);
+    console.log('5. Gallery grid element:', !!document.getElementById('galleryGrid'));
     
-    // Try to load data manually
-    console.log('Attempting manual load...');
+    const info = {
+        preloaded: window.martyrsDataFromFirebase?.length || 0,
+        firebaseReady: !!window.firebaseDB,
+        localStorage: localStorage.getItem('martyrsData') ? JSON.parse(localStorage.getItem('martyrsData')).length : 0,
+        currentMartyrs: allMartyrs?.length || 0,
+        galleryElement: !!document.getElementById('galleryGrid')
+    };
+    
+    alert('Gallery Debug Info:\n' + JSON.stringify(info, null, 2));
+    
+    // Force reload
     loadGallery();
-    
-    console.log('🔍 === MANUAL DATA CHECK END ===');
 };
 
+// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🎨 Gallery DOM loaded, initializing components...');
+    console.log('🎨 Gallery DOM loaded, initializing...');
+    
+    // Setup interface
     initSearchFilter();
     initAdvancedSearch();
     initializeInterface();
     addDebugButton();
     
-    // Immediate check for pre-loaded data
-    if (window.martyrsDataFromFirebase && window.martyrsDataFromFirebase.length > 0) {
-        console.log('🎉 Pre-loaded Firebase data detected immediately!');
-        setTimeout(() => loadGallery(), 100);
-    }
+    // Listen for data events from Firebase loader
+    window.addEventListener('martyrsDataReady', (event) => {
+        console.log('📨 Received martyrsDataReady event:', event.detail);
+        const data = event.detail.data;
+        const source = event.detail.source;
+        
+        if (data && data.length > 0) {
+            console.log(`✅ Got ${data.length} martyrs from ${source}`);
+            allMartyrs = data;
+            renderGallery();
+        } else {
+            console.warn('⚠️ Received empty data from', source);
+            showEmptyMessage();
+        }
+    });
     
-    // Comprehensive gallery initialization
-    console.log('🎨 Gallery initialization starting...');
+    // Multiple loading attempts
+    setTimeout(() => loadGallery(), 100);   // Immediate
+    setTimeout(() => { if (allMartyrs.length === 0) loadGallery(); }, 500);  // Quick retry
+    setTimeout(() => { if (allMartyrs.length === 0) loadGallery(); }, 2000); // Patient retry
+    setTimeout(() => { if (allMartyrs.length === 0) loadGallery(); }, 5000); // Final retry
     
-    // Immediate attempts
-    setTimeout(() => loadGallery(), 100);  // Quick attempt
-    setTimeout(() => { if (allMartyrs.length === 0) loadGallery(); }, 500);  // First retry
-    setTimeout(() => { if (allMartyrs.length === 0) loadGallery(); }, 1000); // Second retry
-    
-    // Listen for Firebase ready event
+    // Listen for Firebase ready
     window.addEventListener('firebaseReady', () => {
-        console.log('🔥 Firebase ready event received, loading gallery...');
+        console.log('🔥 Firebase ready event - loading gallery');
         loadGallery();
     });
-    
-    // Final safety net
-    setTimeout(() => {
-        if (allMartyrs.length === 0) {
-            console.log('🆘 Final attempt: Forcing gallery load...');
-            loadGallery();
-        }
-    }, 3000);
-    
-    // Emergency loader - try loading after page is fully ready
-    setTimeout(() => {
-        if (allMartyrs.length === 0) {
-            console.log('🆘 EMERGENCY LOADER: Gallery still empty after 10 seconds, forcing load...');
-            loadGallery();
-        }
-    }, 10000);
-    
-    // Final safety net - always try to load something
-    window.addEventListener('load', () => {
-        setTimeout(() => {
-            if (allMartyrs.length === 0) {
-                console.log('🆘 FINAL SAFETY NET: Attempting emergency gallery load...');
-                loadEmergencyGallery();
-            }
-        }, 2000);
-    });
 });
 
-// Emergency gallery loader
-function loadEmergencyGallery() {
-    console.log('🆘 Loading emergency gallery from localStorage...');
-    
-    try {
-        const savedData = localStorage.getItem('martyrsData');
-        if (savedData) {
-            const data = JSON.parse(savedData);
-            console.log(`🆘 Found ${data.length} martyrs in localStorage`);
-            allMartyrs = data.filter(m => !m.status || m.status === 'approved');
-            if (allMartyrs.length > 0) {
-                renderGallery(allMartyrs);
-                applyFilters();
-                console.log(`🆘 Emergency load successful: ${allMartyrs.length} martyrs`);
-                return;
-            }
-        }
-        
-        // If no localStorage data, show helpful message
-        console.log('🆘 No data available, showing connection message');
-        showConnectionIssueMessage();
-        
-    } catch (error) {
-        console.error('🆘 Emergency loader failed:', error);
-        showConnectionIssueMessage();
-    }
-}
-
-// Show connection issue message
-function showConnectionIssueMessage() {
-    const galleryGrid = document.getElementById('galleryGrid');
-    if (galleryGrid) {
-        galleryGrid.innerHTML = `
-            <div class="martyr-card placeholder" style="grid-column: 1/-1; text-align: center; padding: 3rem; background: #fff3cd; border: 1px solid #ffeaa7;">
-                <div class="martyr-info">
-                    <h3>🔄 Loading Martyrs...</h3>
-                    <p>Please wait while we connect to the memorial database.</p>
-                    <button onclick="location.reload()" class="btn-small" style="margin-top: 1rem;">♾️ Refresh Page</button>
-                    <br><br>
-                    <small style="color: #666;">If this persists, the database may be temporarily unavailable.</small>
-                </div>
-            </div>
-        `;
-    }
-});
-
-// Initialize interface elements
-function initializeInterface() {
-    // Hide clear button initially
-    toggleClearButton();
-    
-    // Hide results info initially
-    const resultsInfo = document.getElementById('searchResultsInfo');
-    if (resultsInfo) {
-        resultsInfo.style.display = 'none';
-    }
-}
-
-// Load all martyrs in gallery
+// Main gallery loader
 async function loadGallery() {
-    const galleryGrid = document.getElementById('galleryGrid');
+    console.log('🎯 Starting gallery load process...');
     
+    const galleryGrid = document.getElementById('galleryGrid');
     if (!galleryGrid) {
         console.error('❌ Gallery grid element not found!');
         return;
     }
     
-    console.log('🌍 Starting comprehensive gallery loading process...');
-    
     try {
-        // Method 1: Check pre-loaded Firebase data
+        // Method 1: Pre-loaded Firebase data
         if (window.martyrsDataFromFirebase && window.martyrsDataFromFirebase.length > 0) {
-            console.log('✨ Method 1: Using pre-loaded Firebase data!');
+            console.log(`✨ Using pre-loaded data: ${window.martyrsDataFromFirebase.length} martyrs`);
             allMartyrs = window.martyrsDataFromFirebase;
-            console.log(`📊 Pre-loaded: ${allMartyrs.length} martyrs`);
-            await renderAndDisplay(allMartyrs, 'pre-loaded Firebase data');
+            renderGallery();
             return;
         }
         
         // Method 2: Direct Firebase call
-        if (window.firebaseDB) {
-            console.log('🔥 Method 2: Direct Firebase call...');
-            try {
-                const result = await window.firebaseDB.getApprovedMartyrs();
-                if (result && result.success && result.data && result.data.length > 0) {
-                    console.log(`✅ Firebase success: ${result.data.length} martyrs`);
-                    allMartyrs = result.data;
-                    await renderAndDisplay(allMartyrs, 'direct Firebase call');
-                    return;
-                } else {
-                    console.warn('⚠️ Firebase returned no data:', result);
-                }
-            } catch (error) {
-                console.error('❌ Firebase call failed:', error);
+        if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
+            console.log('🔥 Trying direct Firebase call...');
+            const result = await window.firebaseDB.getApprovedMartyrs();
+            
+            if (result && result.success && result.data && result.data.length > 0) {
+                console.log(`✅ Firebase success: ${result.data.length} martyrs`);
+                allMartyrs = result.data;
+                
+                // Cache for backup
+                localStorage.setItem('martyrsData', JSON.stringify(allMartyrs));
+                
+                renderGallery();
+                hideOfflineWarning();
+                return;
+            } else {
+                console.warn('⚠️ Firebase returned no data:', result?.error);
             }
         }
         
         // Method 3: LocalStorage fallback
-        console.log('💾 Method 3: Trying localStorage fallback...');
+        console.log('💾 Trying localStorage fallback...');
         const savedData = localStorage.getItem('martyrsData');
         if (savedData) {
-            try {
-                const parsedData = JSON.parse(savedData);
-                if (Array.isArray(parsedData) && parsedData.length > 0) {
-                    allMartyrs = parsedData.filter(m => !m.status || m.status === 'approved');
-                    console.log(`💾 LocalStorage: ${allMartyrs.length} martyrs`);
-                    await renderAndDisplay(allMartyrs, 'localStorage backup');
-                    showOfflineWarning();
-                    return;
-                }
-            } catch (error) {
-                console.error('❌ LocalStorage parsing failed:', error);
+            const parsedData = JSON.parse(savedData);
+            if (Array.isArray(parsedData) && parsedData.length > 0) {
+                allMartyrs = parsedData.filter(m => !m.status || m.status === 'approved');
+                console.log(`💾 LocalStorage success: ${allMartyrs.length} martyrs`);
+                renderGallery();
+                showOfflineWarning();
+                return;
             }
         }
         
-        // Method 4: Show empty state
-        console.warn('😞 No data available from any source');
-        showEmptyGalleryMessage();
+        // Method 4: Demo data for testing
+        console.log('🎭 Loading demo data for testing...');
+        allMartyrs = [
+            {
+                id: 'demo-1',
+                fullName: 'Demo Martyr - Check Console',
+                martyrdomDate: '2024-01-01',
+                martyrdomPlace: 'Testing Location',
+                birthPlace: 'Demo City',
+                organization: 'Development Testing',
+                biography: 'This is demo data to verify the gallery is working. Check the browser console for debugging information.',
+                status: 'approved'
+            }
+        ];
+        renderGallery();
         
     } catch (error) {
-        console.error('❌ Gallery loading failed completely:', error);
-        showConnectionIssueMessage();
+        console.error('❌ Gallery loading failed:', error);
+        showErrorMessage();
     }
 }
 
-// Unified render and display function
-async function renderAndDisplay(martyrsData, source) {
-    try {
-        console.log(`🎨 Rendering ${martyrsData.length} martyrs from ${source}...`);
-        
-        // Clear any existing content
-        const galleryGrid = document.getElementById('galleryGrid');
-        galleryGrid.innerHTML = '';
-        
-        // Render each martyr card
-        let renderedCount = 0;
-        martyrsData.forEach((martyr, index) => {
-            try {
-                const card = createGalleryCard(martyr);
-                if (card) {
-                    galleryGrid.appendChild(card);
-                    renderedCount++;
-                }
-            } catch (error) {
-                console.error(`❌ Failed to render martyr ${index}:`, error, martyr);
-            }
-        });
-        
-        // Apply filters and update UI
-        applyFilters();
-        updateSearchResultsInfo(martyrsData.length);
-        
-        // Show results info
-        const resultsInfo = document.getElementById('searchResultsInfo');
-        if (resultsInfo && martyrsData.length > 0) {
-            resultsInfo.style.display = 'flex';
-        }
-        
-        console.log(`✅ Successfully rendered ${renderedCount}/${martyrsData.length} martyrs from ${source}`);
-        
-        // Hide offline warning if using fresh Firebase data
-        if (source.includes('Firebase')) {
-            hideOfflineWarning();
-        }
-        
-    } catch (error) {
-        console.error('❌ Render and display failed:', error);
-        throw error;
+// Render gallery with current martyrs
+function renderGallery() {
+    const galleryGrid = document.getElementById('galleryGrid');
+    if (!galleryGrid) {
+        console.error('❌ Cannot render - gallery grid not found');
+        return;
     }
+    
+    console.log(`🎨 Rendering ${allMartyrs.length} martyrs...`);
+    
+    // Clear existing content
+    galleryGrid.innerHTML = '';
+    
+    if (allMartyrs.length === 0) {
+        showEmptyMessage();
+        return;
+    }
+    
+    // Create cards
+    let rendered = 0;
+    allMartyrs.forEach((martyr, index) => {
+        try {
+            const card = createGalleryCard(martyr);
+            galleryGrid.appendChild(card);
+            rendered++;
+        } catch (error) {
+            console.error(`❌ Failed to create card ${index}:`, error);
+        }
+    });
+    
+    console.log(`✅ Rendered ${rendered}/${allMartyrs.length} martyr cards`);
+    
+    // Apply current filters
+    applyFilters();
+    
+    // Update UI
+    updateSearchResultsInfo(allMartyrs.length);
+    const resultsInfo = document.getElementById('searchResultsInfo');
+    if (resultsInfo && allMartyrs.length > 0) {
+        resultsInfo.style.display = 'flex';
+    }
+}
             
             console.log('🔥 Starting Firebase connection process...');
             
