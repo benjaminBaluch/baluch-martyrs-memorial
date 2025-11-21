@@ -10,7 +10,14 @@ let currentFilters = {
     year: ''
 };
 
+// Expose force load function globally
+window.loadGalleryNow = function() {
+    console.log('🚑 FORCE LOADING GALLERY NOW!');
+    loadGallery();
+};
+
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎨 Gallery DOM loaded, initializing components...');
     initSearchFilter();
     initAdvancedSearch();
     initializeInterface();
@@ -49,6 +56,70 @@ document.addEventListener('DOMContentLoaded', function() {
             }, delay);
         });
     }
+    
+    // Emergency loader - try loading after page is fully ready
+    setTimeout(() => {
+        if (allMartyrs.length === 0) {
+            console.log('🆘 EMERGENCY LOADER: Gallery still empty after 10 seconds, forcing load...');
+            loadGallery();
+        }
+    }, 10000);
+    
+    // Final safety net - always try to load something
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            if (allMartyrs.length === 0) {
+                console.log('🆘 FINAL SAFETY NET: Attempting emergency gallery load...');
+                loadEmergencyGallery();
+            }
+        }, 2000);
+    });
+});
+
+// Emergency gallery loader
+function loadEmergencyGallery() {
+    console.log('🆘 Loading emergency gallery from localStorage...');
+    
+    try {
+        const savedData = localStorage.getItem('martyrsData');
+        if (savedData) {
+            const data = JSON.parse(savedData);
+            console.log(`🆘 Found ${data.length} martyrs in localStorage`);
+            allMartyrs = data.filter(m => !m.status || m.status === 'approved');
+            if (allMartyrs.length > 0) {
+                renderGallery(allMartyrs);
+                applyFilters();
+                console.log(`🆘 Emergency load successful: ${allMartyrs.length} martyrs`);
+                return;
+            }
+        }
+        
+        // If no localStorage data, show helpful message
+        console.log('🆘 No data available, showing connection message');
+        showConnectionIssueMessage();
+        
+    } catch (error) {
+        console.error('🆘 Emergency loader failed:', error);
+        showConnectionIssueMessage();
+    }
+}
+
+// Show connection issue message
+function showConnectionIssueMessage() {
+    const galleryGrid = document.getElementById('galleryGrid');
+    if (galleryGrid) {
+        galleryGrid.innerHTML = `
+            <div class="martyr-card placeholder" style="grid-column: 1/-1; text-align: center; padding: 3rem; background: #fff3cd; border: 1px solid #ffeaa7;">
+                <div class="martyr-info">
+                    <h3>🔄 Loading Martyrs...</h3>
+                    <p>Please wait while we connect to the memorial database.</p>
+                    <button onclick="location.reload()" class="btn-small" style="margin-top: 1rem;">♾️ Refresh Page</button>
+                    <br><br>
+                    <small style="color: #666;">If this persists, the database may be temporarily unavailable.</small>
+                </div>
+            </div>
+        `;
+    }
 });
 
 // Initialize interface elements
@@ -71,30 +142,46 @@ async function loadGallery() {
         try {
             console.log('🌍 Loading martyrs from Firebase (global database)...');
             
-            // Direct Firebase connection using global firebaseDB
+            console.log('🔥 Starting Firebase connection process...');
+            
+            // Check if Firebase is available
             if (!window.firebaseDB) {
+                console.warn('⚠️ Firebase not available globally, will use localStorage');
                 throw new Error('Firebase not available globally');
             }
             
-            console.log('🔍 Fetching martyrs directly from Firebase...');
-            const result = await window.firebaseDB.getApprovedMartyrs();
+            console.log('🔍 Testing Firebase connection...');
+            console.log('🔧 Firebase methods available:', Object.keys(window.firebaseDB));
             
-            if (result.success) {
-                console.log('✅ Firebase connection successful');
+            // Direct Firebase call with timeout protection
+            const result = await Promise.race([
+                window.firebaseDB.getApprovedMartyrs(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Firebase timeout after 10s')), 10000))
+            ]);
+            
+            console.log('📋 Raw Firebase result:', result);
+            
+            if (result && result.success) {
+                console.log('✅ Firebase connection successful!');
                 allMartyrs = result.data || [];
                 console.log(`📊 Firebase returned ${allMartyrs.length} approved martyrs`);
                 
-                // Cache martyrs for faster loading
                 if (allMartyrs.length > 0) {
-                    localStorage.setItem('martyrsData', JSON.stringify(allMartyrs));
-                    console.log('💾 Cached martyrs to localStorage');
+                    console.log('🗣️ Sample martyr data:', allMartyrs[0]);
+                } else {
+                    console.warn('⚠️ Firebase returned empty data array');
                 }
+                
+                // Cache martyrs for faster loading
+                localStorage.setItem('martyrsData', JSON.stringify(allMartyrs));
+                console.log('💾 Cached martyrs to localStorage');
                 
                 // Hide any previous offline warnings
                 hideOfflineWarning();
             } else {
-                console.error('❌ Firebase query failed:', result.error);
-                throw new Error('Firebase query failed: ' + result.error);
+                const error = result ? result.error : 'Unknown Firebase error';
+                console.error('❌ Firebase query failed:', error);
+                throw new Error('Firebase query failed: ' + error);
             }
             
             

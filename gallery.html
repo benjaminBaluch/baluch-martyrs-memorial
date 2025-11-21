@@ -140,16 +140,37 @@
         // Import and make Firebase globally available for gallery
         import { firebaseDB } from './js/firebase-config.js';
         
-        // Make Firebase available globally
-        window.firebaseDB = firebaseDB;
-        console.log('🔥 Firebase loaded globally for gallery');
-        
-        // Trigger ready event
-        window.dispatchEvent(new Event('firebaseReady'));
+        // Make Firebase available globally with enhanced error handling
+        try {
+            window.firebaseDB = firebaseDB;
+            console.log('🔥 Firebase loaded globally for gallery');
+            console.log('🔍 Firebase methods:', Object.keys(firebaseDB));
+            
+            // Test Firebase immediately
+            firebaseDB.getApprovedMartyrs().then(result => {
+                console.log(`📋 Firebase test result:`, result.success ? `SUCCESS - ${result.data?.length || 0} martyrs` : `FAILED - ${result.error}`);
+                
+                // Trigger ready event after successful test
+                window.dispatchEvent(new Event('firebaseReady'));
+                
+                // Force gallery load if Firebase is working
+                if (result.success && window.loadGalleryNow) {
+                    console.log('🚀 Force loading gallery with Firebase data...');
+                    window.loadGalleryNow();
+                }
+            }).catch(error => {
+                console.error('❌ Firebase test failed during initialization:', error);
+                // Still trigger ready event for fallback
+                window.dispatchEvent(new Event('firebaseReady'));
+            });
+            
+        } catch (error) {
+            console.error('❌ Firebase initialization failed:', error);
+        }
     </script>
     <script src="js/main.js"></script>
     <script src="js/mobile-menu.js"></script>
-<script src="js/chatbot.js"></script>
+    <script src="js/chatbot.js"></script>
     <script src="js/gallery.js"></script>
 
     <!-- Google Translate Scripts -->
