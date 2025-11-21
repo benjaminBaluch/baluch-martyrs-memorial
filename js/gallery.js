@@ -43,6 +43,9 @@ window.checkGalleryData = function() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎨 Gallery DOM loaded, initializing...');
     
+    // Show professional loading state immediately
+    showLoadingState();
+    
     // Setup interface
     initSearchFilter();
     initAdvancedSearch();
@@ -517,31 +520,54 @@ function hideNoResultsMessage() {
     if (msg) msg.remove();
 }
 
+function showLoadingState() {
+    const galleryGrid = document.getElementById('galleryGrid');
+    if (galleryGrid) {
+        galleryGrid.innerHTML = `
+            <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: #f8f9fa; border-radius: 8px;">
+                <div style="display: inline-block; width: 40px; height: 40px; border: 3px solid #2c5530; border-radius: 50%; border-top-color: transparent; animation: spin 1s ease-in-out infinite; margin-bottom: 1rem;"></div>
+                <h3 style="color: #2c5530;">Loading Memorial Gallery</h3>
+                <p>Connecting to our database to honor our heroes...</p>
+                <style>
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+                </style>
+            </div>
+        `;
+    }
+}
+
 function showEmptyMessage() {
     const galleryGrid = document.getElementById('galleryGrid');
     if (galleryGrid) {
         galleryGrid.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: #f8f9fa; border-radius: 8px;">
-                <h3>No martyrs in gallery yet</h3>
-                <p>Be the first to add a martyr to our memorial</p>
-                <a href="add-martyr.html" style="display: inline-block; margin-top: 1rem; background: #2c5530; color: white; text-decoration: none; padding: 0.75rem 1.5rem; border-radius: 4px;">Add Martyr</a>
-                <br><br>
-                <button onclick="window.retryFirebaseConnection?.()" style="background: #d4af37; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; margin-top: 1rem;">Retry Connection</button>
+                <h3>🌹 Memorial Gallery</h3>
+                <p>Our memorial gallery is currently being prepared.</p>
+                <p style="color: #666;">New martyr profiles are being added regularly to honor our heroes.</p>
+                <a href="add-martyr.html" style="display: inline-block; margin-top: 1.5rem; background: #2c5530; color: white; text-decoration: none; padding: 0.75rem 1.5rem; border-radius: 4px; font-weight: 500;">Submit a Martyr Profile</a>
+                <br>
+                <small style="color: #888; margin-top: 1rem; display: inline-block;">Help us build this memorial by contributing profiles of our heroes.</small>
             </div>
         `;
     }
 }
 
 function showErrorMessage(errorDetails) {
+    // Log error for developers but show professional message to users
+    console.error('❌ Developer Debug - Gallery Error:', errorDetails);
+    
     const galleryGrid = document.getElementById('galleryGrid');
     if (galleryGrid) {
         galleryGrid.innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px;">
-                <h3>🔄 Connection Error</h3>
-                <p>Unable to load martyrs data: ${errorDetails || 'Unknown error'}</p>
-                <button onclick="loadGallery()" style="margin: 1rem 0.5rem; background: #2c5530; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Retry</button>
-                <button onclick="window.retryFirebaseConnection?.()" style="margin: 1rem 0.5rem; background: #d4af37; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Retry Connection</button>
-                <button onclick="window.checkGalleryData()" style="margin: 1rem 0.5rem; background: #17a2b8; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Debug</button>
+            <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: #f8f9fa; border-radius: 8px;">
+                <h3>🔄 Loading Memorial Gallery</h3>
+                <p>We're connecting to our memorial database to honor our heroes.</p>
+                <p style="color: #666; margin-top: 1rem;">This may take a moment...</p>
+                <button onclick="loadGallery()" style="margin: 1rem 0.5rem; background: #2c5530; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 4px; cursor: pointer; font-size: 14px;">Refresh Gallery</button>
+                <br>
+                <small style="color: #888; margin-top: 1rem; display: inline-block;">Having trouble? Try refreshing the page or check back later.</small>
             </div>
         `;
     }
@@ -571,36 +597,46 @@ function hideOfflineWarning() {
 }
 
 function addDebugButton() {
+    // Only show debug button in development or when there are errors
+    const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const hasErrors = window.galleryConnectionStatus && !window.galleryConnectionStatus.connected;
+    
+    // Don't show debug button for regular users on production
+    if (!isDevelopment && !hasErrors) {
+        return;
+    }
+    
     const debugBtn = document.createElement('button');
-    debugBtn.textContent = 'Debug Gallery';
+    debugBtn.textContent = isDevelopment ? 'Dev Debug' : 'Support';
     debugBtn.style.cssText = `
-        position: fixed; bottom: 20px; left: 20px; background: #ff6b6b; color: white;
-        border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer;
-        z-index: 9999; font-size: 12px;
+        position: fixed; bottom: 20px; left: 20px; background: ${isDevelopment ? '#ff6b6b' : '#6c757d'}; color: white;
+        border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer;
+        z-index: 9999; font-size: 11px; opacity: 0.7;
     `;
     
     debugBtn.onclick = function() {
-        console.log('=== COMPREHENSIVE GALLERY DEBUG ===');
+        console.log('=== GALLERY DEBUG INFO ===');
         window.checkGalleryData();
         
-        // Show connection status
         const status = window.galleryConnectionStatus || 'No status available';
         const fbStatus = window.firebaseConnectionStatus || 'No Firebase status';
         
         console.log('Gallery connection status:', status);
         console.log('Firebase connection status:', fbStatus);
         
-        // Test Firebase directly if available
-        if (window.firebaseDB) {
-            window.firebaseDB.testConnection().then(result => {
-                console.log('Live Firebase test result:', result);
-                alert(`Debug Complete\n\nGallery Status: ${JSON.stringify(status, null, 2)}\n\nFirebase Test: ${result.success ? 'SUCCESS' : 'FAILED: ' + result.error}`);
-            }).catch(error => {
-                console.error('Firebase test failed:', error);
-                alert(`Debug Complete\n\nGallery Status: ${JSON.stringify(status, null, 2)}\n\nFirebase Test: FAILED - ${error.message}`);
-            });
+        if (isDevelopment) {
+            // Full debug info for developers
+            if (window.firebaseDB) {
+                window.firebaseDB.testConnection().then(result => {
+                    console.log('Firebase test result:', result);
+                    alert(`Debug Info\n\nConnection: ${result.success ? 'SUCCESS' : 'FAILED'}\nData Source: ${status.source || 'Unknown'}`);
+                });
+            } else {
+                alert(`Debug Info\n\nFirebase: Not available\nStatus: ${JSON.stringify(status, null, 2)}`);
+            }
         } else {
-            alert(`Debug Complete\n\nGallery Status: ${JSON.stringify(status, null, 2)}\n\nFirebase: Not available`);
+            // Simple message for users
+            alert('Gallery Support\n\nIf you continue to experience issues, please refresh the page or contact support.');
         }
     };
     
