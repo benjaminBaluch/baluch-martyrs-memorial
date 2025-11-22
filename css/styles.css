@@ -182,7 +182,7 @@ a:hover {
 .hero {
     position: relative;
     height: 500px;
-    background: linear-gradient(135deg, var(--primary-color), var(--dark-color));
+    background: linear-gradient(135deg, var(--primary-color), var(--dark-color)); /* Fallback if video fails */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -191,18 +191,30 @@ a:hover {
     overflow: hidden;
 }
 
+/* Background hero video for Baluchistan flag */
+.hero-video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+}
+
 .hero-overlay {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1;
 }
 
 .hero-content {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     max-width: 800px;
     padding: 2rem;
 }
