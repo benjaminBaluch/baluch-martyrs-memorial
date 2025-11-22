@@ -76,42 +76,18 @@ a:hover {
     }
 }
 
-/* Baluch flag logo in header */
-.nav-brand {
-    display: flex;
-    align-items: center;
-    position: relative;
-    z-index: 2;
-}
-
-.nav-brand .brand-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.6rem;
+/* Header logo: subtle star representing Baluch flag */
+.site-header::before {
+    content: '★';
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.7rem;
     color: var(--baluch-white);
-}
-
-.site-logo {
-    height: 40px;
-    width: auto;
-    border-radius: 4px;
-    box-shadow: 0 0 4px rgba(0,0,0,0.35);
-}
-
-.brand-text {
-    font-size: 1.35rem;
-    font-weight: 700;
-    color: var(--baluch-white);
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.35);
-}
-
-@media (max-width: 768px) {
-    .site-logo {
-        height: 32px;
-    }
-    .brand-text {
-        font-size: 1.1rem;
-    }
+    opacity: 0.35;
+    z-index: 1;
+    pointer-events: none;
 }
 
 .navbar {
