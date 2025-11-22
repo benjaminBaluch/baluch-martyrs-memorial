@@ -626,6 +626,10 @@
             <source src="assets/baluch-flag-hero.mp4" type="video/mp4">
         </video>
 
+        <button class="hero-video-play" type="button" aria-label="Play Baluchistan flag video">
+            ▶
+        </button>
+
         <div class="hero-overlay"></div>
 
         <div class="hero-content">
@@ -646,20 +650,56 @@
     document.addEventListener('DOMContentLoaded', function () {
         try {
             var heroVideo = document.querySelector('.hero-video');
+            var playButton = document.querySelector('.hero-video-play');
             if (!heroVideo) return;
+
+            function showPlayButton() {
+                if (playButton) {
+                    playButton.classList.add('visible');
+                }
+            }
+
+            function hidePlayButton() {
+                if (playButton) {
+                    playButton.classList.remove('visible');
+                }
+            }
 
             function ensureHeroVideoPlays() {
                 try {
                     heroVideo.muted = true; // required for autoplay on many browsers
                     var playPromise = heroVideo.play();
                     if (playPromise && typeof playPromise.then === 'function') {
-                        playPromise.catch(function (err) {
-                            console.warn('Hero video autoplay may be blocked:', err);
-                        });
+                        playPromise
+                            .then(function () {
+                                hidePlayButton();
+                            })
+                            .catch(function (err) {
+                                console.warn('Hero video autoplay may be blocked:', err);
+                                showPlayButton();
+                            });
                     }
                 } catch (e) {
                     console.warn('Hero video play error:', e);
+                    showPlayButton();
                 }
+            }
+
+            if (playButton) {
+                playButton.addEventListener('click', function () {
+                    try {
+                        heroVideo.muted = true;
+                        heroVideo.play()
+                            .then(function () {
+                                hidePlayButton();
+                            })
+                            .catch(function (err) {
+                                console.warn('Hero video manual play failed:', err);
+                            });
+                    } catch (e) {
+                        console.warn('Hero video play on click error:', e);
+                    }
+                });
             }
 
             ensureHeroVideoPlays();
