@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Baluchistan flag icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0066cc"/>
+      <stop offset="0.5" stop-color="#dc143c"/>
+      <stop offset="1" stop-color="#228b22"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="62" height="62" rx="10" ry="10" fill="url(#bg)"/>
+  <rect x="1" y="1" width="21" height="62" rx="10" ry="10" fill="#0066cc"/>
+  <rect x="21" y="1" width="22" height="62" fill="#dc143c"/>
+  <rect x="43" y="1" width="20" height="62" rx="10" ry="10" fill="#228b22"/>
+  <polygon fill="#ffffff" points="11,10 13.4,17.3 21,17.3 14.8,21.9 17.2,29.2 11,24.6 4.8,29.2 7.2,21.9 1,17.3 8.6,17.3"/>
+</svg>
