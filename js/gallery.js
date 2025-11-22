@@ -6,6 +6,7 @@ let allMartyrs = [];
 let currentFilters = {
     general: '',
     name: '',
+    father: '',
     location: '',
     organization: '',
     year: ''
@@ -397,6 +398,7 @@ function initAdvancedSearch() {
     // Advanced search inputs
     const inputs = [
         { id: 'searchByName', filter: 'name' },
+        { id: 'searchByFather', filter: 'father' },
         { id: 'searchByLocation', filter: 'location' },
         { id: 'searchByOrganization', filter: 'organization' },
         { id: 'searchByYear', filter: 'year' }
@@ -449,6 +451,7 @@ function clearAdvancedFilters() {
     });
     
     currentFilters.name = '';
+    currentFilters.father = '';
     currentFilters.location = '';
     currentFilters.organization = '';
     currentFilters.year = '';
@@ -470,9 +473,16 @@ function clearAllFilters() {
 function updateSearchResultsInfo(count) {
     const resultsCount = document.getElementById('resultsCount');
     const resultsLabel = document.getElementById('resultsLabel');
+    const resultsFilters = document.getElementById('resultsFilters');
     
     if (resultsCount) resultsCount.textContent = count;
     if (resultsLabel) resultsLabel.textContent = count === 1 ? 'martyr found' : 'martyrs found';
+
+    // Show a short summary of active filters if any
+    if (resultsFilters) {
+        const filtersText = getActiveFiltersText();
+        resultsFilters.textContent = filtersText ? ` | Filters: ${filtersText}` : '';
+    }
 }
 
 function updateConnectionStatus(connected, source, error) {
@@ -1286,6 +1296,7 @@ function initAdvancedSearch() {
 // Update advanced search filters from inputs
 function updateAdvancedFilters() {
     currentFilters.name = (document.getElementById('searchByName')?.value || '').toLowerCase().trim();
+    currentFilters.father = (document.getElementById('searchByFather')?.value || '').toLowerCase().trim();
     currentFilters.location = (document.getElementById('searchByLocation')?.value || '').toLowerCase().trim();
     currentFilters.organization = (document.getElementById('searchByOrganization')?.value || '').toLowerCase().trim();
     currentFilters.year = (document.getElementById('searchByYear')?.value || '').toString().trim();
@@ -1332,6 +1343,14 @@ function applyFilters() {
         // Name filter
         if (currentFilters.name && !martyr.fullName.toLowerCase().includes(currentFilters.name)) {
             return false;
+        }
+
+        // Father name filter
+        if (currentFilters.father) {
+            const father = (martyr.fatherName || '').toLowerCase();
+            if (!father.includes(currentFilters.father)) {
+                return false;
+            }
         }
         
         // Location filter (searches both birth and martyrdom places)
@@ -1420,6 +1439,7 @@ function clearAllFilters() {
     currentFilters = {
         general: '',
         name: '',
+        father: '',
         location: '',
         organization: '',
         year: ''
@@ -1482,10 +1502,11 @@ function hideNoResultsMessage() {
 function getActiveFiltersText() {
     const activeFilters = [];
     
-    if (currentFilters.general) activeFilters.push(`General: "${currentFilters.general}"`);
-    if (currentFilters.name) activeFilters.push(`Name: "${currentFilters.name}"`);
-    if (currentFilters.location) activeFilters.push(`Location: "${currentFilters.location}"`);
-    if (currentFilters.organization) activeFilters.push(`Organization: "${currentFilters.organization}"`);
+    if (currentFilters.general) activeFilters.push(`General: \"${currentFilters.general}\"`);
+    if (currentFilters.name) activeFilters.push(`Name: \"${currentFilters.name}\"`);
+    if (currentFilters.father) activeFilters.push(`Father: \"${currentFilters.father}\"`);
+    if (currentFilters.location) activeFilters.push(`Location: \"${currentFilters.location}\"`);
+    if (currentFilters.organization) activeFilters.push(`Organization: \"${currentFilters.organization}\"`);
     if (currentFilters.year) activeFilters.push(`Year: ${currentFilters.year}`);
     
     return activeFilters.join(', ');

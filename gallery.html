@@ -65,15 +65,21 @@
                                 <input type="text" id="searchByName" placeholder="Search by martyr name...">
                             </div>
                             <div class="search-field">
-                                <label for="searchByLocation">Location:</label>
-                                <input type="text" id="searchByLocation" placeholder="Birth or martyrdom place...">
+                                <label for="searchByFather">Father's Name:</label>
+                                <input type="text" id="searchByFather" placeholder="Father's name...">
                             </div>
                         </div>
                         <div class="search-row">
                             <div class="search-field">
+                                <label for="searchByLocation">Location:</label>
+                                <input type="text" id="searchByLocation" placeholder="Birth or martyrdom place...">
+                            </div>
+                            <div class="search-field">
                                 <label for="searchByOrganization">Organization:</label>
                                 <input type="text" id="searchByOrganization" placeholder="Organization or group...">
                             </div>
+                        </div>
+                        <div class="search-row">
                             <div class="search-field">
                                 <label for="searchByYear">Year:</label>
                                 <input type="number" id="searchByYear" placeholder="Martyrdom year" min="1900" max="2030">
@@ -88,6 +94,7 @@
                     <!-- Search Results Info -->
                     <div id="searchResultsInfo" class="search-results-info" style="display: none;">
                         <span id="resultsCount">0</span> <span id="resultsLabel">martyrs found</span>
+                        <span id="resultsFilters" class="results-filters"></span>
                         <button type="button" id="clearAllFilters" class="clear-filters-btn">Clear filters</button>
                     </div>
                 </div>
