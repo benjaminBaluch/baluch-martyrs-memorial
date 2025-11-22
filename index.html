@@ -622,7 +622,7 @@
     <!-- Hero Section -->
     <section class="hero">
         <!-- Baluchistan flag hero background video -->
-        <video class="hero-video" autoplay muted loop playsinline>
+        <video class="hero-video" autoplay muted loop playsinline preload="auto">
             <source src="assets/baluch-flag-hero.mp4" type="video/mp4">
         </video>
 
@@ -640,6 +640,35 @@
             </div>
         </div>
     </section>
+
+    <!-- Ensure hero video plays reliably, especially on desktop autoplay policies -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        try {
+            var heroVideo = document.querySelector('.hero-video');
+            if (!heroVideo) return;
+
+            function ensureHeroVideoPlays() {
+                try {
+                    heroVideo.muted = true; // required for autoplay on many browsers
+                    var playPromise = heroVideo.play();
+                    if (playPromise && typeof playPromise.then === 'function') {
+                        playPromise.catch(function (err) {
+                            console.warn('Hero video autoplay may be blocked:', err);
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Hero video play error:', e);
+                }
+            }
+
+            ensureHeroVideoPlays();
+            window.addEventListener('load', ensureHeroVideoPlays);
+        } catch (e) {
+            console.warn('Hero video init failed:', e);
+        }
+    });
+    </script>
 
     <!-- Main Content -->
     <main>
