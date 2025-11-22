@@ -186,73 +186,9 @@
                         
                         console.log(`✅ Found ${martyrs.length} martyrs in Firebase`);
                         
-                        // If no martyrs, add initial data
+                        // If no martyrs, just return an empty list – do NOT auto-add demo data
                         if (martyrs.length === 0) {
-                            console.log('🌱 No martyrs found, adding initial data...');
-                            
-                            const initialMartyrs = [
-                                {
-                                    fullName: "Shaheed Mir Balach Marri",
-                                    fatherName: "Nawab Khair Bakhsh Marri",
-                                    birthDate: "1966-01-01",
-                                    martyrdomDate: "2007-11-20",
-                                    birthPlace: "Kohlu, Balochistan",
-                                    martyrdomPlace: "Karachi, Pakistan",
-                                    organization: "Balochistan Liberation Army",
-                                    rank: "Commander",
-                                    biography: "A prominent Baluch freedom fighter and son of Nawab Khair Bakhsh Marri. He dedicated his life to the liberation of Balochistan and became a symbol of resistance.",
-                                    familyDetails: "Son of tribal chief Nawab Khair Bakhsh Marri",
-                                    submitterName: "Memorial Committee",
-                                    submitterRelation: "Historical Record",
-                                    status: "approved"
-                                },
-                                {
-                                    fullName: "Shaheed Nawab Akbar Bugti",
-                                    fatherName: "Nawab Mehrab Khan Bugti",
-                                    birthDate: "1927-07-12",
-                                    martyrdomDate: "2006-08-26",
-                                    birthPlace: "Dera Bugti, Balochistan",
-                                    martyrdomPlace: "Taratani, Balochistan",
-                                    organization: "Jamhoori Watan Party",
-                                    rank: "Nawab",
-                                    biography: "Nawab Akbar Shahbaz Khan Bugti was a prominent Baluch politician and tribal chief who fought for Baluch rights and autonomy until his martyrdom in 2006.",
-                                    familyDetails: "Tribal chief of Bugti tribe, former Governor and Chief Minister of Balochistan",
-                                    submitterName: "Memorial Committee",
-                                    submitterRelation: "Historical Record", 
-                                    status: "approved"
-                                },
-                                {
-                                    fullName: "Shaheed Balaach Marri",
-                                    fatherName: "Nawab Khair Bakhsh Marri", 
-                                    birthDate: "1966-01-15",
-                                    martyrdomDate: "2007-11-20",
-                                    birthPlace: "Quetta, Balochistan",
-                                    martyrdomPlace: "Karachi, Pakistan",
-                                    organization: "Baloch Liberation Army",
-                                    rank: "General Commander",
-                                    biography: "Balaach Marri was a Baloch nationalist leader who founded the Baloch Liberation Army. He was the son of Nawab Khair Bakhsh Marri and dedicated his life to the cause of Baloch independence.",
-                                    familyDetails: "Son of Nawab Khair Bakhsh Marri, brother of Hyrbyair Marri",
-                                    submitterName: "Memorial Committee",
-                                    submitterRelation: "Historical Record",
-                                    status: "approved"
-                                }
-                            ];
-                            
-                            // Add martyrs to Firebase
-                            for (const martyr of initialMartyrs) {
-                                try {
-                                    await martyrsRef.add({
-                                        ...martyr,
-                                        birthDate: new Date(martyr.birthDate),
-                                        martyrdomDate: new Date(martyr.martyrdomDate),
-                                        submittedAt: firebase.firestore.FieldValue.serverTimestamp()
-                                    });
-                                    martyrs.push(martyr);
-                                    console.log(`✅ Added: ${martyr.fullName}`);
-                                } catch (error) {
-                                    console.warn(`⚠️ Failed to add ${martyr.fullName}:`, error);
-                                }
-                            }
+                            console.log('📭 No martyrs found in Firebase martyrs collection. Returning empty list.');
                         }
                         
                         return { success: true, data: martyrs };

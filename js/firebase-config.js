@@ -354,76 +354,65 @@ export const firebaseDB = {
         }
     },
     
-    // Initialize database with sample martyrs if empty (production ready)
+    // Initialize database with sample martyrs if empty (DISABLED to avoid auto-seeding)
     async initializeDatabaseIfEmpty() {
         try {
-            console.log('🌱 Checking if database needs initialization...');
-            
-            // Check if we have any martyrs
+            console.log('🌱 Database auto-initialization is disabled to protect real martyr data.');
             const result = await this.getApprovedMartyrs();
-            
-            if (result.success && result.data.length === 0) {
-                console.log('📋 Database is empty, adding initial martyr data...');
-                
-                // Sample martyrs based on historical Baluch figures
-                const initialMartyrs = [
-                    {
-                        fullName: "Shaheed Mir Balach Marri",
-                        fatherName: "Nawab Khair Bakhsh Marri",
-                        birthDate: "1966-01-01",
-                        martyrdomDate: "2007-11-20",
-                        birthPlace: "Kohlu, Balochistan",
-                        martyrdomPlace: "Karachi, Pakistan",
-                        organization: "Balochistan Liberation Army",
-                        rank: "Commander",
-                        biography: "A prominent Baluch freedom fighter and son of Nawab Khair Bakhsh Marri. He dedicated his life to the liberation of Balochistan and became a symbol of resistance.",
-                        familyDetails: "Son of tribal chief Nawab Khair Bakhsh Marri",
-                        submitterName: "Memorial Committee",
-                        submitterRelation: "Historical Record",
-                        status: "approved"
-                    },
-                    {
-                        fullName: "Shaheed Brahumdagh Bugti",
-                        fatherName: "Nawab Akbar Bugti",
-                        birthDate: "1920-07-12",
-                        martyrdomDate: "2006-08-26",
-                        birthPlace: "Dera Bugti, Balochistan",
-                        martyrdomPlace: "Taratani, Balochistan",
-                        organization: "Jamhoori Watan Party",
-                        rank: "Nawab",
-                        biography: "Nawab Akbar Shahbaz Khan Bugti was a prominent Baluch politician and tribal chief who fought for Baluch rights and autonomy until his martyrdom.",
-                        familyDetails: "Tribal chief of Bugti tribe",
-                        submitterName: "Memorial Committee",
-                        submitterRelation: "Historical Record", 
-                        status: "approved"
-                    }
-                ];
-                
-                let addedCount = 0;
-                for (const martyr of initialMartyrs) {
-                    try {
-                        // Process dates
-                        const processedMartyr = { ...martyr };
-                        processedMartyr.birthDate = Timestamp.fromDate(new Date(martyr.birthDate));
-                        processedMartyr.martyrdomDate = Timestamp.fromDate(new Date(martyr.martyrdomDate));
-                        processedMartyr.submittedAt = serverTimestamp();
-                        
-                        const docRef = await addDoc(collection(db, 'martyrs'), processedMartyr);
-                        addedCount++;
-                        console.log(`✅ Added martyr: ${martyr.fullName} with ID: ${docRef.id}`);
-                    } catch (error) {
-                        console.error(`❌ Failed to add ${martyr.fullName}:`, error);
-                    }
-                }
-                
-                console.log(`✅ Database initialized with ${addedCount} martyrs`);
-                return { success: true, added: addedCount };
-            } else {
-                console.log(`✅ Database already has ${result.data.length} martyrs, no initialization needed`);
-                return { success: true, added: 0, existing: result.data.length };
-            }
+            const existingCount = result && result.success && Array.isArray(result.data)
+                ? result.data.length
+                : 0;
+            return { success: true, added: 0, existing: existingCount, disabled: true };
         } catch (error) {
-            console.error('❌ Database initialization failed:', error);
+            console.error('❌ Database initialization check failed:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    // One-time cleanup helper: remove seeded "Memorial Committee / Historical Record" martyrs only
+    async cleanupSeededHistoricalMartyrs() {
+        try {
+            console.log('🧹 Checking for seeded historical martyrs to clean up...');
+
+            const martyrsCollection = collection(db, 'martyrs');
+            // Narrow query by submitter name + relation; additional filtering by name is done in JS
+            const q = query(
+                martyrsCollection,
+                where('submitterName', '==', 'Memorial Committee'),
+                where('submitterRelation', '==', 'Historical Record')
+            );
+
+            const snapshot = await getDocs(q);
+            const seededNames = new Set([
+                'Shaheed Mir Balach Marri',
+                'Shaheed Brahumdagh Bugti',
+                'Shaheed Nawab Akbar Bugti',
+                'Shaheed Balaach Marri'
+            ]);
+
+            const deletePromises = [];
+            snapshot.forEach((docSnapshot) => {
+                const data = docSnapshot.data();
+                const fullName = data?.fullName || '';
+
+                if (seededNames.has(fullName)) {
+                    console.log(`🗑️ Deleting seeded historical martyr: ${fullName} (ID: ${docSnapshot.id})`);
+                    deletePromises.push(deleteDoc(docSnapshot.ref));
+                } else {
+                    console.log(`ℹ️ Skipping non-seeded martyr: ${fullName} (ID: ${docSnapshot.id})`);
+                }
+            });
+
+            if (deletePromises.length === 0) {
+                console.log('✅ No seeded historical martyrs found that require cleanup');
+                return { success: true, deletedCount: 0 };
+            }
+
+            await Promise.all(deletePromises);
+            console.log(`✅ Deleted ${deletePromises.length} seeded historical martyrs`);
+            return { success: true, deletedCount: deletePromises.length };
+        } catch (error) {
+            console.error('❌ Error cleaning up seeded historical martyrs:', error);
             return { success: false, error: error.message };
         }
     }
@@ -520,26 +509,25 @@ if (typeof window !== 'undefined') {
         console.log('✅ Domain authorized for Firebase access');
     }
     
-    // Test Firebase immediately when loaded
+    // Test Firebase immediately when loaded and clean up any old seeded demo martyrs
     firebaseDB.testConnection().then(result => {
         if (result.success) {
             console.log('✅ Initial Firebase connectivity test passed');
-            
-            // Auto-initialize database if needed
-            return firebaseDB.initializeDatabaseIfEmpty();
+            // Clean up previously seeded historical martyrs that were added by old demo code
+            return firebaseDB.cleanupSeededHistoricalMartyrs();
         } else {
             console.warn('⚠️ Initial Firebase connectivity test failed:', result.error);
             return null;
         }
-    }).then(initResult => {
-        if (initResult) {
-            if (initResult.added > 0) {
-                console.log(`🌱 Database auto-initialized with ${initResult.added} martyrs`);
-            } else if (initResult.existing > 0) {
-                console.log(`📋 Database already contains ${initResult.existing} martyrs`);
+    }).then(cleanupResult => {
+        if (cleanupResult && typeof cleanupResult.deletedCount === 'number') {
+            if (cleanupResult.deletedCount > 0) {
+                console.log(`🧹 Removed ${cleanupResult.deletedCount} seeded historical martyrs from Firebase`);
+            } else {
+                console.log('🧹 No seeded historical martyrs needed cleanup');
             }
         }
     }).catch(error => {
-        console.error('❌ Firebase initialization error:', error);
+        console.error('❌ Firebase initialization/cleanup error:', error);
     });
 }
