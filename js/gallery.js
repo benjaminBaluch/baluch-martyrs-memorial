@@ -1032,7 +1032,7 @@ function showMartyrModal(martyr) {
                     ` : ''}
 
                     <div style="margin-top: 1.5rem;">
-                        <button class="martyr-voice-btn" style="background: #ffc107; color: #212529; border: none; padding: 0.5rem 1.1rem; border-radius: 4px; cursor: pointer; font-size: 0.9rem;">
+                        <button class="martyr-voice-btn" type="button">
                             🔊 Listen to this martyr's story
                         </button>
                     </div>
