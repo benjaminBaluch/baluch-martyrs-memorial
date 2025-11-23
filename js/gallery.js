@@ -707,6 +707,130 @@ function formatDate(dateValue) {
     }
 }
 
+// ===== Voice assistant (text-to-speech) helpers =====
+let currentMartyrUtterance = null;
+
+function stopMartyrSpeech() {
+    try {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+        }
+    } catch (e) {
+        console.warn('Error stopping martyr speech:', e);
+    }
+    currentMartyrUtterance = null;
+}
+
+function buildMartyrSpeechText(martyr) {
+    const parts = [];
+
+    const name = martyr.fullName || 'Unknown martyr';
+    parts.push(name + '.');
+
+    if (martyr.fatherName) {
+        parts.push('Child of ' + martyr.fatherName + '.');
+    }
+
+    const birth = formatDate(martyr.birthDate);
+    const birthPlace = martyr.birthPlace || '';
+    if (birth || birthPlace) {
+        parts.push('Born ' + (birth || 'on an unknown date') + (birthPlace ? ' in ' + birthPlace + '.' : '.'));
+    }
+
+    const martyrdom = formatDate(martyr.martyrdomDate);
+    const martyrdomPlace = martyr.martyrdomPlace || '';
+    if (martyrdom || martyrdomPlace) {
+        parts.push('Martyred ' + (martyrdom || 'on an unknown date') + (martyrdomPlace ? ' in ' + martyrdomPlace + '.' : '.'));
+    }
+
+    if (martyr.organization) {
+        parts.push('Organization: ' + martyr.organization + '.');
+    }
+
+    if (martyr.rank) {
+        parts.push('Rank or role: ' + martyr.rank + '.');
+    }
+
+    if (martyr.biography) {
+        parts.push('Biography: ' + martyr.biography + '.');
+    }
+
+    if (martyr.familyDetails) {
+        parts.push('Family details: ' + martyr.familyDetails + '.');
+    }
+
+    // Submission info
+    if (martyr.submitterName || martyr.submitterRelation || martyr.submittedAt) {
+        const submittedOn = formatDate(martyr.submittedAt);
+        let submissionText = 'Submitted by ' + (martyr.submitterName || 'an unknown submitter');
+        if (martyr.submitterRelation) {
+            submissionText += ', relation: ' + martyr.submitterRelation;
+        }
+        if (submittedOn) {
+            submissionText += ', on ' + submittedOn;
+        }
+        parts.push(submissionText + '.');
+    }
+
+    return parts.join(' ');
+}
+
+function toggleMartyrSpeech(martyr, buttonEl) {
+    if (!('speechSynthesis' in window) || typeof window.SpeechSynthesisUtterance === 'undefined') {
+        alert('Your browser does not support voice playback for this memorial.');
+        return;
+    }
+
+    // If already speaking, stop
+    if (window.speechSynthesis.speaking && currentMartyrUtterance) {
+        stopMartyrSpeech();
+        if (buttonEl) {
+            buttonEl.textContent = '🔊 Listen to this martyr\'s story';
+        }
+        return;
+    }
+
+    const text = buildMartyrSpeechText(martyr);
+    if (!text) {
+        alert('There is no information available to read aloud for this martyr.');
+        return;
+    }
+
+    try {
+        stopMartyrSpeech(); // cancel anything else
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'en-US';
+        utterance.rate = 0.95; // slightly slower for clarity
+        utterance.pitch = 1.0;
+
+        utterance.onend = function() {
+            currentMartyrUtterance = null;
+            if (buttonEl) {
+                buttonEl.textContent = '🔊 Listen to this martyr\'s story';
+            }
+        };
+
+        utterance.onerror = function() {
+            currentMartyrUtterance = null;
+            if (buttonEl) {
+                buttonEl.textContent = '🔊 Listen to this martyr\'s story';
+            }
+        };
+
+        currentMartyrUtterance = utterance;
+        if (buttonEl) {
+            buttonEl.textContent = '⏹ Stop audio';
+        }
+
+        window.speechSynthesis.speak(utterance);
+    } catch (e) {
+        console.warn('Failed to start martyr speech:', e);
+        if (buttonEl) {
+            buttonEl.textContent = '🔊 Listen to this martyr\'s story';
+        }
+    }
+}
+
 // Open a printable view for a single martyr (user can use "Save as PDF")
 function printMartyrProfile(martyr) {
     try {
@@ -906,6 +1030,12 @@ function showMartyrModal(martyr) {
                             <p style="line-height: 1.6; color: #444;">${martyr.familyDetails}</p>
                         </div>
                     ` : ''}
+
+                    <div style="margin-top: 1.5rem;">
+                        <button class="martyr-voice-btn" style="background: #ffc107; color: #212529; border: none; padding: 0.5rem 1.1rem; border-radius: 4px; cursor: pointer; font-size: 0.9rem;">
+                            🔊 Listen to this martyr's story
+                        </button>
+                    </div>
                     
                     <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eee; color: #666; font-size: 0.9rem;">
                         <p><strong>Submitted by:</strong> ${martyr.submitterName || 'Unknown'}</p>
@@ -931,6 +1061,7 @@ function showMartyrModal(martyr) {
     document.body.style.overflow = 'hidden';
     
     const closeModal = () => {
+        stopMartyrSpeech();
         modal.remove();
         document.body.style.overflow = 'auto';
     };
@@ -951,6 +1082,19 @@ function showMartyrModal(martyr) {
             });
         }
     });
+
+    // Voice assistant button (text-to-speech)
+    const voiceBtn = modal.querySelector('.martyr-voice-btn');
+    if (voiceBtn) {
+        if ('speechSynthesis' in window && typeof window.SpeechSynthesisUtterance !== 'undefined') {
+            voiceBtn.addEventListener('click', () => {
+                toggleMartyrSpeech(martyr, voiceBtn);
+            });
+        } else {
+            // Hide button if TTS is not supported
+            voiceBtn.style.display = 'none';
+        }
+    }
     
     // Close on background click
     modal.addEventListener('click', (e) => {
