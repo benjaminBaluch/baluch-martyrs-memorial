@@ -760,12 +760,9 @@ function buildMartyrSpeechText(martyr) {
     }
 
     // Submission info
-    if (martyr.submitterName || martyr.submitterRelation || martyr.submittedAt) {
+    if (martyr.submitterName || martyr.submittedAt) {
         const submittedOn = formatDate(martyr.submittedAt);
         let submissionText = 'Submitted by ' + (martyr.submitterName || 'an unknown submitter');
-        if (martyr.submitterRelation) {
-            submissionText += ', relation: ' + martyr.submitterRelation;
-        }
         if (submittedOn) {
             submissionText += ', on ' + submittedOn;
         }
@@ -920,7 +917,6 @@ function printMartyrProfile(martyr) {
     <div class="section">
       <h3>Submission</h3>
       <p><strong>Submitted by:</strong> ${safe(martyr.submitterName || 'Unknown')}</p>
-      ${martyr.submitterRelation ? `<p><strong>Relationship:</strong> ${safe(martyr.submitterRelation)}</p>` : ''}
       <p><strong>Submitted on:</strong> ${safe(submitted)}</p>
     </div>
 
@@ -1039,7 +1035,6 @@ function showMartyrModal(martyr) {
                     
                     <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eee; color: #666; font-size: 0.9rem;">
                         <p><strong>Submitted by:</strong> ${martyr.submitterName || 'Unknown'}</p>
-                        ${martyr.submitterRelation ? `<p><strong>Relationship:</strong> ${martyr.submitterRelation}</p>` : ''}
                         <p><strong>Submitted on:</strong> ${formatDate(martyr.submittedAt) || 'Unknown'}</p>
                     </div>
                     
