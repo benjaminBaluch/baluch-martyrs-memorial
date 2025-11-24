@@ -333,7 +333,6 @@ function handleFormSubmit(event) {
             organization: formData.get('organization')?.trim() || '',
             rank: formData.get('rank')?.trim() || '',
             fatherName: formData.get('fatherName')?.trim() || '',
-            familyDetails: formData.get('familyDetails')?.trim() || '',
             submitterName: formData.get('submitterName').trim(),
             submitterEmail: formData.get('submitterEmail').trim(),
             submitterRelation: formData.get('submitterRelation')?.trim() || '',
