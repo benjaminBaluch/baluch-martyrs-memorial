@@ -50,7 +50,38 @@ function initializeFormHandlers() {
         
         // Initialize file upload handlers
         initFileUploads();
+
+        // Initialize helper text for date fields
+        initDateHelpers();
     }
+}
+
+// Initialize helper text for date fields so users can verify their selections
+function initDateHelpers() {
+    const birthInput = document.getElementById('birthDate');
+    const martyrInput = document.getElementById('martyrdomDate');
+    const birthHelper = document.getElementById('birthDateHelper');
+    const martyrHelper = document.getElementById('martyrdomDateHelper');
+
+    const attachHelper = (input, helper, label) => {
+        if (!input || !helper) return;
+        const update = () => {
+            const value = (input.value || '').trim();
+            if (!value) {
+                helper.textContent = '';
+                return;
+            }
+            const pretty = formatDateForHelper(value);
+            helper.textContent = pretty
+                ? `${label}: ${pretty}`
+                : 'Please pick a valid date.';
+        };
+        input.addEventListener('change', update);
+        input.addEventListener('blur', update);
+    };
+
+    attachHelper(birthInput, birthHelper, 'You selected');
+    attachHelper(martyrInput, martyrHelper, 'You selected');
 }
 
 // Initialize file upload handlers
@@ -241,14 +272,61 @@ function handleFormSubmit(event) {
         
         console.log('✅ Form validation passed');
         
+        // Normalize date strings to protect against subtle browser / timezone issues
+        const rawBirth = (formData.get('birthDate') || '').toString().trim();
+        const rawMartyrdom = (formData.get('martyrdomDate') || '').toString().trim();
+
+        const normalizedBirth = rawBirth ? normalizeDateString(rawBirth) : '';
+        const normalizedMartyrdom = normalizeDateString(rawMartyrdom);
+
+        if (rawBirth && !normalizedBirth) {
+            alert('Date of Birth looks invalid. Please select it again.');
+            const birthField = form.querySelector('#birthDate');
+            if (birthField) birthField.focus();
+            return;
+        }
+        if (!normalizedMartyrdom) {
+            alert('Date of Martyrdom looks invalid. Please select it again.');
+            const martyrField = form.querySelector('#martyrdomDate');
+            if (martyrField) martyrField.focus();
+            return;
+        }
+
+        // Optional logical check: birth after martyrdom
+        if (normalizedBirth && normalizedMartyrdom && normalizedBirth > normalizedMartyrdom) {
+            const proceed = confirm('Warning: Date of birth is after date of martyrdom.\n\nIf this is not correct, press Cancel and fix the dates.');
+            if (!proceed) {
+                const birthField = form.querySelector('#birthDate');
+                if (birthField) birthField.focus();
+                return;
+            }
+        }
+
+        // Let the user confirm key dates before saving to the memorial database
+        const prettyBirth = normalizedBirth ? formatDateForHelper(normalizedBirth) : 'Not provided';
+        const prettyMartyrdom = formatDateForHelper(normalizedMartyrdom) || 'Unknown';
+        const confirmMessage = [
+            'Please confirm the key dates before submitting:',
+            '',
+            `Name: ${formData.get('fullName').toString().trim()}`,
+            `Date of Birth: ${prettyBirth}`,
+            `Date of Martyrdom: ${prettyMartyrdom}`,
+            '',
+            'If any date is incorrect, press Cancel and fix it. Continue?'
+        ].join('\n');
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+        
         // Show loading immediately
         showLoadingState();
         
         // Create martyr object
         const martyrData = {
             fullName: formData.get('fullName').trim(),
-            birthDate: formData.get('birthDate'),
-            martyrdomDate: formData.get('martyrdomDate'),
+            birthDate: normalizedBirth,
+            martyrdomDate: normalizedMartyrdom,
             birthPlace: formData.get('birthPlace')?.trim() || '',
             martyrdomPlace: formData.get('martyrdomPlace')?.trim() || '',
             biography: formData.get('biography')?.trim() || '',
@@ -616,4 +694,43 @@ function clearFieldError(field) {
 function isValidEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+}
+
+// Normalize a date string from the <input type="date"> field into YYYY-MM-DD.
+// Returns '' for empty input or null if the value cannot be parsed.
+function normalizeDateString(value) {
+    if (!value) return '';
+    const str = value.toString().trim();
+    if (!str) return '';
+
+    const parts = str.split('-');
+    if (parts.length !== 3) return null;
+
+    const year = Number(parts[0]);
+    const month = Number(parts[1]);
+    const day = Number(parts[2]);
+
+    if (!year || !month || !day) return null;
+
+    const date = new Date(year, month - 1, day);
+    if (isNaN(date.getTime())) return null;
+
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+// Format a YYYY-MM-DD string into a friendly "Month Day, Year" text for helpers/confirmations
+function formatDateForHelper(dateStr) {
+    if (!dateStr) return '';
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return '';
+    const year = Number(parts[0]);
+    const month = Number(parts[1]);
+    const day = Number(parts[2]);
+    if (!year || !month || !day) return '';
+    const date = new Date(year, month - 1, day);
+    if (isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 }

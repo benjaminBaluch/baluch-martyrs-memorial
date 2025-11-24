@@ -1332,6 +1332,14 @@ section {
     margin-top: 0.25rem;
 }
 
+/* Helper text shown under date fields on the add-martyr form */
+.date-helper {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    color: #555;
+}
+
 .form-group input.error,
 .form-group textarea.error,
 .form-group select.error {
