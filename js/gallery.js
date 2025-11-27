@@ -25,6 +25,74 @@ let currentFilters = {
 };
 let deepLinkHandled = false;
 
+// ===== Deep-link helpers for shareable martyr URLs (gallery.html?id=...) =====
+function getRequestedMartyrIdFromUrl() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('id');
+        return id ? id.trim() : null;
+    } catch (e) {
+        console.warn('Unable to parse gallery URL parameters:', e);
+        return null;
+    }
+}
+
+function openMartyrFromUrlIfNeeded(martyrsList) {
+    if (deepLinkHandled) {
+        return;
+    }
+
+    const list = Array.isArray(martyrsList) && martyrsList.length ? martyrsList : allMartyrs;
+    if (!list || !list.length) {
+        return;
+    }
+
+    const id = getRequestedMartyrIdFromUrl();
+    if (!id) {
+        return;
+    }
+
+    const martyr = list.find((m) => m && m.id === id);
+    if (!martyr) {
+        console.warn('No martyr found for URL id:', id);
+        return;
+    }
+
+    deepLinkHandled = true;
+    showMartyrModal(martyr);
+}
+
+function pushMartyrIdToUrl(id) {
+    if (!id) return;
+
+    try {
+        if (!window.history || typeof window.history.replaceState !== 'function') {
+            return;
+        }
+        const url = new URL(window.location.href);
+        url.searchParams.set('id', id);
+        window.history.replaceState({ martyrId: id }, '', url.toString());
+    } catch (e) {
+        console.warn('Unable to update gallery URL for martyr id:', e);
+    }
+}
+
+function removeMartyrIdFromUrl() {
+    try {
+        if (!window.history || typeof window.history.replaceState !== 'function') {
+            return;
+        }
+        const url = new URL(window.location.href);
+        if (!url.searchParams.has('id')) {
+            return;
+        }
+        url.searchParams.delete('id');
+        window.history.replaceState({}, '', url.toString());
+    } catch (e) {
+        console.warn('Unable to clean up gallery URL params:', e);
+    }
+}
+
 // Global functions for debugging and force loading
 window.loadGalleryNow = function() {
     console.log('🚑 FORCE LOADING GALLERY NOW!');
@@ -683,6 +751,12 @@ function getYear(dateValue) {
         console.warn('Error getting year from:', dateValue, error);
         return '';
     }
+}
+
+// Lightweight helper to extract just the year for display/filtering
+function formatDateYear(dateValue) {
+    const year = getYear(dateValue);
+    return year || '';
 }
 
 function formatDate(dateValue) {
