@@ -35,6 +35,15 @@ body {
     padding: 0 20px;
 }
 
+/* Search highlight for gallery results */
+.search-highlight,
+mark.search-highlight {
+    background-color: #fff3cd;
+    color: inherit;
+    padding: 0 0.05em;
+    border-radius: 2px;
+}
+
 h1, h2, h3, h4, h5, h6 {
     margin-bottom: 1rem;
     color: var(--dark-color);
