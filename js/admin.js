@@ -186,6 +186,84 @@ function initializeAdminControls() {
     window.clearAllPending = clearAllPending;
     window.loadPendingSubmissions = loadPendingSubmissions;
     console.log('🌎 Admin functions made globally accessible');
+
+    // Initialize pending search/filter controls
+    initPendingSearch();
+}
+
+// Simple helper to safely get lowercased strings
+function toSearchString(value) {
+    return (value || '').toString().toLowerCase();
+}
+
+// Initialize search/filter for pending submissions list
+function initPendingSearch() {
+    const searchInput = document.getElementById('pendingSearch');
+    const clearBtn = document.getElementById('pendingSearchClear');
+    if (!searchInput) return;
+
+    const applyFilter = () => {
+        const query = searchInput.value.toLowerCase().trim();
+        filterPendingSubmissions(query);
+    };
+
+    searchInput.addEventListener('input', () => {
+        // Debounce lightly via requestAnimationFrame to keep UI smooth
+        window.requestAnimationFrame(applyFilter);
+    });
+
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            applyFilter();
+        });
+    }
+}
+
+// Filter visible pending submissions in the DOM by martyr or submitter
+function filterPendingSubmissions(query) {
+    const list = document.getElementById('pendingList');
+    if (!list) return;
+
+    const items = list.querySelectorAll('.pending-item');
+    if (!items.length) return;
+
+    const trimmed = (query || '').toLowerCase().trim();
+    let visibleCount = 0;
+
+    items.forEach(item => {
+        // Skip header/info rows that don't carry dataset
+        if (!item.dataset || !item.dataset.martyrId) return;
+        const name = item.dataset.martyrName || '';
+        const submitter = item.dataset.submitterName || '';
+        const email = item.dataset.submitterEmail || '';
+
+        const haystack = `${name} ${submitter} ${email}`;
+        const isMatch = !trimmed || haystack.includes(trimmed);
+        item.style.display = isMatch ? '' : 'none';
+        if (isMatch) visibleCount++;
+    });
+
+    // Simple status message under the search bar
+    let status = document.getElementById('pendingSearchStatus');
+    if (!status) {
+        status = document.createElement('div');
+        status.id = 'pendingSearchStatus';
+        status.style.cssText = 'margin: 0.25rem 0 0.75rem 0; font-size: 0.85rem; color: #666;';
+        const searchBar = document.getElementById('pendingSearchBar');
+        if (searchBar && searchBar.parentNode) {
+            searchBar.parentNode.insertBefore(status, searchBar.nextSibling);
+        }
+    }
+
+    const total = items.length;
+    if (trimmed && !visibleCount) {
+        status.textContent = 'No pending submissions match your search.';
+    } else if (trimmed) {
+        status.textContent = `Showing ${visibleCount} of ${total} pending submissions for "${query}".`;
+    } else {
+        status.textContent = '';
+    }
 }
 
 // Initialize approved martyrs management buttons
@@ -393,6 +471,9 @@ function createPendingItem(martyr) {
     const item = document.createElement('div');
     item.className = 'pending-item';
     item.dataset.martyrId = martyr.id;
+    item.dataset.martyrName = toSearchString(martyr.fullName);
+    item.dataset.submitterName = toSearchString(martyr.submitterName);
+    item.dataset.submitterEmail = toSearchString(martyr.submitterEmail);
 
     const submittedDate = new Date(martyr.submittedAt).toLocaleDateString('en-US', {
         year: 'numeric',
@@ -460,12 +541,16 @@ function createPendingItem(martyr) {
             <button data-action="reject" data-martyr-id="${martyr.id}" class="btn btn-reject">
                 ✗ Reject & Delete
             </button>
+            <button data-action="preview" data-martyr-id="${martyr.id}" class="btn btn-secondary" style="margin-left: auto;">
+                👁 Preview as Visitor
+            </button>
         </div>
     `;
 
     // Add event listeners to buttons
     const approveBtn = item.querySelector('.btn-approve');
     const rejectBtn = item.querySelector('.btn-reject');
+    const previewBtn = item.querySelector('[data-action="preview"]');
     
     if (approveBtn) {
         approveBtn.addEventListener('click', () => approveMartyr(martyr.id));
@@ -475,7 +560,131 @@ function createPendingItem(martyr) {
         rejectBtn.addEventListener('click', () => rejectMartyr(martyr.id));
     }
 
+    if (previewBtn) {
+        previewBtn.addEventListener('click', () => openPendingPreview(martyr));
+    }
+
     return item;
+}
+
+// Open a small public-style preview for a pending submission
+function openPendingPreview(martyr) {
+    // Remove existing preview if present
+    const existing = document.getElementById('pendingPreviewOverlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'pendingPreviewOverlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        padding: 1rem;
+    `;
+
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: #fff;
+        max-width: 400px;
+        width: 100%;
+        border-radius: 8px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        overflow: hidden;
+        font-family: system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    `;
+
+    const header = document.createElement('div');
+    header.style.cssText = 'padding: 0.75rem 1rem; background: #2c5530; color: #fff; display: flex; justify-content: space-between; align-items: center;';
+
+    const title = document.createElement('div');
+    title.textContent = 'Public Preview';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '×';
+    closeBtn.setAttribute('aria-label', 'Close preview');
+    closeBtn.style.cssText = 'background:none;border:none;color:#fff;font-size:1.4rem;cursor:pointer;';
+
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+
+    const body = document.createElement('div');
+    body.style.cssText = 'padding: 1rem;';
+
+    // Build a card similar to gallery/homepage cards using safe textContent
+    const card = document.createElement('div');
+    card.style.cssText = 'border:1px solid #ddd;border-radius:8px;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,0.1);';
+
+    const imgWrapper = document.createElement('div');
+    imgWrapper.style.cssText = 'height:220px;background:linear-gradient(135deg,#ddd,#aaa);display:flex;align-items:center;justify-content:center;';
+
+    if (martyr.photo) {
+        const img = document.createElement('img');
+        img.src = martyr.photo;
+        img.alt = martyr.fullName || 'Martyr photo';
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+        imgWrapper.appendChild(img);
+    } else {
+        const icon = document.createElement('div');
+        icon.textContent = '📸';
+        icon.style.cssText = 'font-size:3rem;color:#777;';
+        imgWrapper.appendChild(icon);
+    }
+
+    const info = document.createElement('div');
+    info.style.cssText = 'padding:1rem;';
+
+    const nameEl = document.createElement('h3');
+    nameEl.textContent = martyr.fullName || 'Unknown martyr';
+    nameEl.style.cssText = 'margin:0 0 0.5rem 0;color:#2c5530;';
+
+    const datesEl = document.createElement('p');
+    datesEl.style.cssText = 'margin:0 0 0.5rem 0;font-weight:500;';
+    datesEl.textContent = `${formatDate(martyr.birthDate)} - ${formatDate(martyr.martyrdomDate)}`;
+
+    const placeEl = document.createElement('p');
+    placeEl.styleCssText = 'margin:0 0 0.5rem 0;color:#666;';
+    placeEl.textContent = martyr.martyrdomPlace || 'Place of martyrdom unknown';
+
+    info.appendChild(nameEl);
+    info.appendChild(datesEl);
+    info.appendChild(placeEl);
+
+    if (martyr.organization) {
+        const orgEl = document.createElement('p');
+        orgEl.style.cssText = 'margin:0 0 0.5rem 0;font-size:0.9rem;color:#888;';
+        orgEl.textContent = martyr.organization;
+        info.appendChild(orgEl);
+    }
+
+    if (martyr.biography) {
+        const bioEl = document.createElement('p');
+        bioEl.style.cssText = 'margin:0.5rem 0 0 0;font-size:0.9rem;color:#555;';
+        const text = martyr.biography.toString();
+        bioEl.textContent = text.length > 180 ? text.substring(0, 180) + '…' : text;
+        info.appendChild(bioEl);
+    }
+
+    card.appendChild(imgWrapper);
+    card.appendChild(info);
+
+    body.appendChild(card);
+
+    modal.appendChild(header);
+    modal.appendChild(body);
+    overlay.appendChild(modal);
+
+    const close = () => overlay.remove();
+    closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+
+    document.body.appendChild(overlay);
 }
 
 // Approve a martyr submission

@@ -189,6 +189,20 @@
 
             <div id="pendingContainer">
                 <h2>Pending Submissions</h2>
+
+                <!-- Pending search/filter controls -->
+                <div id="pendingSearchBar" style="margin: 0 0 1rem 0; display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                    <input
+                        type="text"
+                        id="pendingSearch"
+                        placeholder="Search pending by martyr name, submitter name, or email..."
+                        style="flex: 1; min-width: 220px; padding: 0.5rem 0.75rem; border-radius: 4px; border: 1px solid #dee2e6; font-size: 0.95rem;"
+                    />
+                    <button id="pendingSearchClear" class="btn btn-secondary" style="font-size: 0.85rem;">
+                        Clear Search
+                    </button>
+                </div>
+
                 <div id="pendingList">
                     <!-- Pending submissions will be loaded here -->
                 </div>
