@@ -23,75 +23,6 @@ let currentFilters = {
     organization: '',
     year: ''
 };
-let deepLinkHandled = false;
-
-// ===== Deep-link helpers for shareable martyr URLs (gallery.html?id=...) =====
-function getRequestedMartyrIdFromUrl() {
-    try {
-        const params = new URLSearchParams(window.location.search);
-        const id = params.get('id');
-        return id ? id.trim() : null;
-    } catch (e) {
-        console.warn('Unable to parse gallery URL parameters:', e);
-        return null;
-    }
-}
-
-function openMartyrFromUrlIfNeeded(martyrsList) {
-    if (deepLinkHandled) {
-        return;
-    }
-
-    const list = Array.isArray(martyrsList) && martyrsList.length ? martyrsList : allMartyrs;
-    if (!list || !list.length) {
-        return;
-    }
-
-    const id = getRequestedMartyrIdFromUrl();
-    if (!id) {
-        return;
-    }
-
-    const martyr = list.find((m) => m && m.id === id);
-    if (!martyr) {
-        console.warn('No martyr found for URL id:', id);
-        return;
-    }
-
-    deepLinkHandled = true;
-    showMartyrModal(martyr);
-}
-
-function pushMartyrIdToUrl(id) {
-    if (!id) return;
-
-    try {
-        if (!window.history || typeof window.history.replaceState !== 'function') {
-            return;
-        }
-        const url = new URL(window.location.href);
-        url.searchParams.set('id', id);
-        window.history.replaceState({ martyrId: id }, '', url.toString());
-    } catch (e) {
-        console.warn('Unable to update gallery URL for martyr id:', e);
-    }
-}
-
-function removeMartyrIdFromUrl() {
-    try {
-        if (!window.history || typeof window.history.replaceState !== 'function') {
-            return;
-        }
-        const url = new URL(window.location.href);
-        if (!url.searchParams.has('id')) {
-            return;
-        }
-        url.searchParams.delete('id');
-        window.history.replaceState({}, '', url.toString());
-    } catch (e) {
-        console.warn('Unable to clean up gallery URL params:', e);
-    }
-}
 
 // Global functions for debugging and force loading
 window.loadGalleryNow = function() {
@@ -146,7 +77,6 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log(`✅ Got ${data.length} martyrs from ${source}`);
             allMartyrs = data;
             renderGallery(allMartyrs);
-            openMartyrFromUrlIfNeeded(allMartyrs);
             
             // Show offline warning if using localStorage
             if (source.includes('localStorage') && source.includes('h old')) {
@@ -753,12 +683,6 @@ function getYear(dateValue) {
     }
 }
 
-// Lightweight helper to extract just the year for display/filtering
-function formatDateYear(dateValue) {
-    const year = getYear(dateValue);
-    return year || '';
-}
-
 function formatDate(dateValue) {
     if (!dateValue) return null;
     
@@ -1037,13 +961,9 @@ function printMartyrProfile(martyr) {
 console.log('✅ Gallery.js loaded successfully');
 console.log('🔧 Debug functions: checkGalleryData(), loadGalleryNow(), retryFirebaseConnection()');
 
-// Deep-link helpers for shareable martyr URLs (gallery.htmfunction showMartyrModal(martyr) {
+// Show martyr details modal (with print/download support)
+function showMartyrModal(martyr) {
     console.log(`🔍 Showing modal for: ${martyr.fullName}`);
-
-    // Update URL so this martyr has a shareable link (gallery.html?id=...)
-    if (martyr && martyr.id) {
-        pushMartyrIdToUrl(martyr.id);
-    }
     
     // Remove existing modal
     const existingModal = document.getElementById('martyrModal');
@@ -1148,7 +1068,6 @@ console.log('🔧 Debug functions: checkGalleryData(), loadGalleryNow(), retryFi
     document.body.style.overflow = 'hidden';
     
     const closeModal = () => {
-        removeMartyrIdFromUrl();
         stopMartyrSpeech();
         modal.remove();
         document.body.style.overflow = 'auto';
@@ -1382,20 +1301,13 @@ function createGalleryCard(martyr) {
     const card = document.createElement('div');
     card.className = 'martyr-card';
     
-    // Enhanced search data attributes (for filtering and deep links)
-    card.dataset.id = martyr.id || '';
+    // Enhanced search data attributes
     card.dataset.searchText = `${martyr.fullName} ${martyr.birthPlace || ''} ${martyr.martyrdomPlace || ''} ${martyr.organization || ''} ${martyr.fatherName || ''}`.toLowerCase();
     card.dataset.name = (martyr.fullName || '').toLowerCase();
     card.dataset.birthPlace = (martyr.birthPlace || '').toLowerCase();
     card.dataset.martyrdomPlace = (martyr.martyrdomPlace || '').toLowerCase();
     card.dataset.organization = (martyr.organization || '').toLowerCase();
     card.dataset.year = martyr.martyrdomDate ? formatDateYear(martyr.martyrdomDate).toString() : '';
-    
-    // Precompute raw display text
-    const rawName = martyr.fullName || 'Unknown martyr';
-    const rawMartyrdomYear = martyr.martyrdomDate ? formatDateYear(martyr.martyrdomDate) : null;
-    const rawPlace = martyr.martyrdomPlace || 'Place of martyrdom unknown';
-    const rawOrg = martyr.organization || '';
     
     // Image section
     const imageDiv = document.createElement('div');
@@ -1404,7 +1316,7 @@ function createGalleryCard(martyr) {
     if (martyr.photo) {
         const img = document.createElement('img');
         img.src = martyr.photo;
-        img.alt = rawName || 'Martyr photo';
+        img.alt = martyr.fullName || 'Martyr photo';
         img.style.width = '100%';
         img.style.height = '100%';
         img.style.objectFit = 'cover';
@@ -1418,32 +1330,28 @@ function createGalleryCard(martyr) {
     infoDiv.className = 'martyr-info';
     
     const name = document.createElement('h3');
-    name.className = 'martyr-name';
-    name.innerHTML = highlightText(rawName, getHighlightTokensForField('name'));
+    name.textContent = martyr.fullName || 'Unknown martyr';
     
     const martyrdomLine = document.createElement('p');
-    martyrdomLine.className = 'martyr-martyrdom';
-    if (rawMartyrdomYear) {
-        const martyrdomText = `Martyred: ${rawMartyrdomYear}`;
-        martyrdomLine.innerHTML = highlightText(martyrdomText, getHighlightTokensForField('year'));
+    const martyrdomDateText = martyr.martyrdomDate ? formatDateYear(martyr.martyrdomDate) : null;
+    if (martyrdomDateText) {
+        martyrdomLine.textContent = `Martyred: ${martyrdomDateText}`;
     } else {
         martyrdomLine.textContent = 'Martyred: Date unknown';
     }
     
     const place = document.createElement('p');
-    place.className = 'martyr-location';
-    place.innerHTML = highlightText(rawPlace, getHighlightTokensForField('location'));
+    place.textContent = martyr.martyrdomPlace || 'Place of martyrdom unknown';
     
     infoDiv.appendChild(name);
     infoDiv.appendChild(martyrdomLine);
     infoDiv.appendChild(place);
     
-    if (rawOrg) {
+    if (martyr.organization) {
         const org = document.createElement('p');
-        org.className = 'martyr-organization';
         org.style.fontSize = '0.9rem';
         org.style.color = '#666';
-        org.innerHTML = highlightText(rawOrg, getHighlightTokensForField('organization'));
+        org.textContent = martyr.organization;
         infoDiv.appendChild(org);
     }
     
@@ -1724,30 +1632,18 @@ function showNoResultsMessage() {
         noResultsMsg.style.border = '1px solid #dee2e6';
         noResultsMsg.style.marginTop = '2rem';
         
+        const hasActiveFilters = Object.values(currentFilters).some(filter => filter !== '');
+        const activeFiltersText = getActiveFiltersText();
+        
+        noResultsMsg.innerHTML = `
+            <h3>No martyrs found</h3>
+            ${hasActiveFilters ? `<p>No martyrs match your search criteria:</p><p style="font-style: italic; color: #007bff;">${activeFiltersText}</p>` : '<p>Try searching with different keywords</p>'}
+            <button onclick="clearAllFilters()" class="btn-small" style="margin-top: 1rem;">Clear All Filters</button>
+        `;
+        
         const galleryGrid = document.getElementById('galleryGrid');
         galleryGrid.parentNode.insertBefore(noResultsMsg, galleryGrid.nextSibling);
     }
-    
-    const hasActiveFilters = Object.values(currentFilters).some(filter => filter !== '');
-    const activeFiltersText = getActiveFiltersText();
-    const suggestionsHtml = `
-        <div style="margin-top: 1rem; font-size: 0.9rem; color: #555; text-align: left; max-width: 480px; margin-left: auto; margin-right: auto;">
-            <p>Suggestions:</p>
-            <ul style="list-style: disc; margin: 0.5rem 0 0 1.5rem; padding: 0;">
-                <li>Try only the first name (for example, \"Abdul\" instead of the full name).</li>
-                <li>Try searching by city instead of a smaller village name.</li>
-            </ul>
-        </div>
-    `;
-    
-    noResultsMsg.innerHTML = `
-        <h3>No martyrs found</h3>
-        ${hasActiveFilters
-            ? `<p>No martyrs match your search criteria:</p><p style="font-style: italic; color: #007bff;">${activeFiltersText}</p>`
-            : '<p>Try searching with different keywords.</p>'}
-        ${suggestionsHtml}
-        <button onclick="clearAllFilters()" class="btn-small" style="margin-top: 1.25rem;">Clear All Filters</button>
-    `;
     
     noResultsMsg.style.display = 'block';
 }
@@ -1772,90 +1668,6 @@ function getActiveFiltersText() {
     if (currentFilters.year) activeFilters.push(`Year: ${currentFilters.year}`);
     
     return activeFilters.join(', ');
-}
-
-// ===== Search highlight helpers =====
-function getHighlightTokensForField(field) {
-    const tokens = [];
-    const addTokens = (value) => {
-        if (!value) return;
-        value
-            .toString()
-            .toLowerCase()
-            .split(/\s+/)
-            .forEach((token) => {
-                const trimmed = token.trim();
-                if (trimmed.length >= 2) {
-                    tokens.push(trimmed);
-                }
-            });
-    };
-
-    // General search applies to all fields
-    if (currentFilters && currentFilters.general) {
-        addTokens(currentFilters.general);
-    }
-
-    if (field === 'name' && currentFilters.name) {
-        addTokens(currentFilters.name);
-    }
-    if (field === 'location' && currentFilters.location) {
-        addTokens(currentFilters.location);
-    }
-    if (field === 'organization' && currentFilters.organization) {
-        addTokens(currentFilters.organization);
-    }
-    if (field === 'year' && currentFilters.year) {
-        tokens.push(currentFilters.year.toString().toLowerCase());
-    }
-
-    // Deduplicate to keep the regex small
-    return Array.from(new Set(tokens));
-}
-
-function escapeRegExp(str) {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function highlightText(text, tokens) {
-    const value = text == null ? '' : text.toString();
-    if (!value) {
-        return escapeHTML(value);
-    }
-    if (!tokens || !tokens.length) {
-        return escapeHTML(value);
-    }
-
-    const escapedTokens = tokens
-        .map((t) => t.trim())
-        .filter(Boolean)
-        .map(escapeRegExp);
-
-    if (!escapedTokens.length) {
-        return escapeHTML(value);
-    }
-
-    const pattern = escapedTokens.join('|');
-    const regex = new RegExp(`(${pattern})`, 'gi');
-
-    let result = '';
-    let lastIndex = 0;
-    let hasMatch = false;
-
-    value.replace(regex, (match, _group, index) => {
-        hasMatch = true;
-        result += escapeHTML(value.slice(lastIndex, index));
-        result += `<mark class="search-highlight">${escapeHTML(match)}</mark>`;
-        lastIndex = index + match.length;
-        return match;
-    });
-
-    if (!hasMatch) {
-        return escapeHTML(value);
-    }
-
-    result += escapeHTML(value.slice(lastIndex));
-    return result;
 }
 
 // (old modal implementation removed – replaced by print‑enabled modal above)
