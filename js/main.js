@@ -6,19 +6,23 @@ if (!window.firebaseDB) {
         window.firebaseDB = module.firebaseDB;
         console.log('🔥 Firebase loaded globally from main.js');
         
-        // Load debugging utilities
-        try {
-            const debugModule = await import('./firebase-test.js');
-            window.testFirebase = debugModule.testFirebaseConnection;
-            window.debugFirebaseRules = debugModule.debugFirebaseRules;
-            window.addTestMartyr = debugModule.addTestMartyr;
-            window.migrateToFirebase = debugModule.migrateLocalStorageToFirebase;
-            window.testFirebaseConnection = window.firebaseDB.testConnection;
-            window.deleteApprovedMartyr = window.firebaseDB.deleteApprovedMartyr;
-            window.clearAllApprovedMartyrs = window.firebaseDB.clearAllApprovedMartyrs;
-            console.log('🔧 Firebase debug utilities loaded (including deletion functions)');
-        } catch (error) {
-            console.warn('Debug utilities not available:', error);
+        // Only load debugging utilities in local development, never on production
+        const hostname = window.location.hostname;
+        const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1';
+        if (isDevelopment) {
+            try {
+                const debugModule = await import('./firebase-test.js');
+                window.testFirebase = debugModule.testFirebaseConnection;
+                window.debugFirebaseRules = debugModule.debugFirebaseRules;
+                window.addTestMartyr = debugModule.addTestMartyr;
+                window.migrateToFirebase = debugModule.migrateLocalStorageToFirebase;
+                window.testFirebaseConnection = window.firebaseDB.testConnection;
+                window.deleteApprovedMartyr = window.firebaseDB.deleteApprovedMartyr;
+                window.clearAllApprovedMartyrs = window.firebaseDB.clearAllApprovedMartyrs;
+                console.log('🔧 Firebase debug utilities loaded (development only)');
+            } catch (error) {
+                console.warn('Debug utilities not available:', error);
+            }
         }
         
         // Trigger any pending operations that need Firebase

@@ -1,6 +1,18 @@
 // BULLETPROOF Gallery.js - Clean, Simple, and Reliable
 console.log('🎨 Gallery.js loading - BULLETPROOF version');
 
+// Minimal HTML-escaping helper to prevent XSS when inserting user content
+function escapeHTML(value) {
+    if (value === null || value === undefined) return '';
+    return value
+        .toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // Global state
 let allMartyrs = [];
 let currentFilters = {
@@ -995,35 +1007,35 @@ function showMartyrModal(martyr) {
             <div style="display: flex; gap: 2rem; flex-wrap: wrap; align-items: flex-start;">
                 <div style="flex: 0 0 260px;">
                     ${martyr.photo ? 
-                        `<img src="${martyr.photo}" alt="${martyr.fullName}" style="width: 100%; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">` :
+                        `<img src="${martyr.photo}" alt="${escapeHTML(martyr.fullName || 'Martyr photo')}" style="width: 100%; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">` :
                         '<div style="width: 100%; height: 320px; background: linear-gradient(135deg, #f0f0f0, #d0d0d0); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 64px; color: #999;">📸</div>'
                     }
                 </div>
                 
                 <div style="flex: 1; min-width: 320px;">
-                    <h2 style="margin-top: 0; color: #2c5530; border-bottom: 2px solid #d4af37; padding-bottom: 0.5rem;">${martyr.fullName}</h2>
+                    <h2 style="margin-top: 0; color: #2c5530; border-bottom: 2px solid #d4af37; padding-bottom: 0.5rem;">${escapeHTML(martyr.fullName || 'Unknown martyr')}</h2>
                     
                     <div style="display: grid; gap: 0.75rem; margin: 1.5rem 0;">
-                        ${martyr.fatherName ? `<p><strong>Father:</strong> ${martyr.fatherName}</p>` : ''}
-                        <p><strong>Birth:</strong> ${formatDate(martyr.birthDate) || 'Unknown'}</p>
-                        <p><strong>Birth Place:</strong> ${martyr.birthPlace || 'Unknown'}</p>
-                        <p><strong>Martyrdom:</strong> ${formatDate(martyr.martyrdomDate) || 'Unknown'}</p>
-                        <p><strong>Martyrdom Place:</strong> ${martyr.martyrdomPlace || 'Unknown'}</p>
-                        ${martyr.organization ? `<p><strong>Organization:</strong> ${martyr.organization}</p>` : ''}
-                        ${martyr.rank ? `<p><strong>Rank:</strong> ${martyr.rank}</p>` : ''}
+                        ${martyr.fatherName ? `<p><strong>Father:</strong> ${escapeHTML(martyr.fatherName)}</p>` : ''}
+                        <p><strong>Birth:</strong> ${escapeHTML(formatDate(martyr.birthDate) || 'Unknown')}</p>
+                        <p><strong>Birth Place:</strong> ${escapeHTML(martyr.birthPlace || 'Unknown')}</p>
+                        <p><strong>Martyrdom:</strong> ${escapeHTML(formatDate(martyr.martyrdomDate) || 'Unknown')}</p>
+                        <p><strong>Martyrdom Place:</strong> ${escapeHTML(martyr.martyrdomPlace || 'Unknown')}</p>
+                        ${martyr.organization ? `<p><strong>Organization:</strong> ${escapeHTML(martyr.organization)}</p>` : ''}
+                        ${martyr.rank ? `<p><strong>Rank:</strong> ${escapeHTML(martyr.rank)}</p>` : ''}
                     </div>
                     
                     ${martyr.biography ? `
                         <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eee;">
                             <h3 style="color: #2c5530;">Biography</h3>
-                            <p style="line-height: 1.6; color: #444;">${martyr.biography}</p>
+                            <p style="line-height: 1.6; color: #444;">${escapeHTML(martyr.biography)}</p>
                         </div>
                     ` : ''}
                     
                     ${martyr.familyDetails ? `
                         <div style="margin-top: 1.5rem;">
                             <h3 style="color: #2c5530;">Family Details</h3>
-                            <p style="line-height: 1.6; color: #444;">${martyr.familyDetails}</p>
+                            <p style="line-height: 1.6; color: #444;">${escapeHTML(martyr.familyDetails)}</p>
                         </div>
                     ` : ''}
 
@@ -1034,8 +1046,8 @@ function showMartyrModal(martyr) {
                     </div>
                     
                     <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eee; color: #666; font-size: 0.9rem;">
-                        <p><strong>Submitted by:</strong> ${martyr.submitterName || 'Unknown'}</p>
-                        <p><strong>Submitted on:</strong> ${formatDate(martyr.submittedAt) || 'Unknown'}</p>
+                        <p><strong>Submitted by:</strong> ${escapeHTML(martyr.submitterName || 'Unknown')}</p>
+                        <p><strong>Submitted on:</strong> ${escapeHTML(formatDate(martyr.submittedAt) || 'Unknown')}</p>
                     </div>
                     
                     <div style="margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 0.75rem;">
@@ -1175,6 +1187,13 @@ function addDebugButton() {
         font-size: 12px;
     `;
     
+    // Only show this heavy debug button in local development, never on production
+    const hostname = window.location.hostname;
+    const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1';
+    if (!isDevelopment) {
+        return;
+    }
+
     debugBtn.addEventListener('click', async function() {
         console.log('=== COMPREHENSIVE GALLERY DEBUG START ===');
         
