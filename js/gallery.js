@@ -1634,11 +1634,21 @@ function showNoResultsMessage() {
         
         const hasActiveFilters = Object.values(currentFilters).some(filter => filter !== '');
         const activeFiltersText = getActiveFiltersText();
+        const suggestionsHtml = `
+            <div style="margin-top: 1rem; font-size: 0.9rem; color: #555; text-align: left; max-width: 480px; margin-left: auto; margin-right: auto;">
+                <p>Suggestions:</p>
+                <ul style="list-style: disc; margin: 0.5rem 0 0 1.5rem; padding: 0;">
+                    <li>Try only the first name (for example, \"Abdul\" instead of the full name).</li>
+                    <li>Try searching by city instead of a smaller village name.</li>
+                </ul>
+            </div>
+        `;
         
         noResultsMsg.innerHTML = `
             <h3>No martyrs found</h3>
-            ${hasActiveFilters ? `<p>No martyrs match your search criteria:</p><p style="font-style: italic; color: #007bff;">${activeFiltersText}</p>` : '<p>Try searching with different keywords</p>'}
-            <button onclick="clearAllFilters()" class="btn-small" style="margin-top: 1rem;">Clear All Filters</button>
+            ${hasActiveFilters ? `<p>No martyrs match your search criteria:</p><p style=\"font-style: italic; color: #007bff;\">${activeFiltersText}</p>` : '<p>Try searching with different keywords</p>'}
+            ${suggestionsHtml}
+            <button onclick=\"clearAllFilters()\" class=\"btn-small\" style=\"margin-top: 1.25rem;\">Clear All Filters</button>
         `;
         
         const galleryGrid = document.getElementById('galleryGrid');
