@@ -1295,80 +1295,123 @@ function renderGallery(martyrsData) {
 }
 
 // Create gallery card (front of gallery)
-// Shows only key public info: name, martyrdom date, martyrdom place
-// All other details are inside the modal so we never display "?" for unknown birth years.
+// Modern, respectful design for gallery grid
 function createGalleryCard(martyr) {
     const card = document.createElement('div');
     card.className = 'martyr-card';
-    
-    // Enhanced search data attributes
+
+    // Enhanced search data attributes (used by filters)
     card.dataset.searchText = `${martyr.fullName} ${martyr.birthPlace || ''} ${martyr.martyrdomPlace || ''} ${martyr.organization || ''} ${martyr.fatherName || ''}`.toLowerCase();
     card.dataset.name = (martyr.fullName || '').toLowerCase();
     card.dataset.birthPlace = (martyr.birthPlace || '').toLowerCase();
     card.dataset.martyrdomPlace = (martyr.martyrdomPlace || '').toLowerCase();
     card.dataset.organization = (martyr.organization || '').toLowerCase();
-    card.dataset.year = martyr.martyrdomDate ? formatDateYear(martyr.martyrdomDate).toString() : '';
-    
-    // Image section
-    const imageDiv = document.createElement('div');
-    imageDiv.className = 'martyr-image';
-    
+    card.dataset.year = martyr.martyrdomDate ? getYear(martyr.martyrdomDate) : '';
+
+    const inner = document.createElement('div');
+    inner.className = 'martyr-card-inner';
+
+    // Portrait photo section with gentle overlay
+    const photoWrapper = document.createElement('div');
+    photoWrapper.className = 'martyr-photo-wrapper';
+
+    const photoOverlay = document.createElement('div');
+    photoOverlay.className = 'martyr-photo-overlay';
+
     if (martyr.photo) {
         const img = document.createElement('img');
         img.src = martyr.photo;
-        img.alt = martyr.fullName || 'Martyr photo';
-        img.style.width = '100%';
-        img.style.height = '100%';
-        img.style.objectFit = 'cover';
-        imageDiv.appendChild(img);
+        img.alt = martyr.fullName || 'Martyr portrait';
+        photoWrapper.appendChild(img);
     } else {
-        imageDiv.style.background = 'linear-gradient(135deg, #ddd, #aaa)';
+        // Fallback gradient with icon when no photo is provided
+        const placeholder = document.createElement('div');
+        placeholder.className = 'martyr-photo-placeholder';
+        placeholder.textContent = '📷';
+        photoWrapper.appendChild(placeholder);
     }
-    
-    // Info section
+    photoWrapper.appendChild(photoOverlay);
+
+    // Information section
     const infoDiv = document.createElement('div');
     infoDiv.className = 'martyr-info';
-    
+
+    // Name with symbolic icon
+    const nameRow = document.createElement('div');
+    nameRow.className = 'martyr-name-row';
+
+    const symbol = document.createElement('span');
+    symbol.className = 'martyr-symbol';
+    symbol.textContent = '✦';
+
     const name = document.createElement('h3');
+    name.className = 'martyr-name';
     name.textContent = martyr.fullName || 'Unknown martyr';
-    
-    const martyrdomLine = document.createElement('p');
-    const martyrdomDateText = martyr.martyrdomDate ? formatDateYear(martyr.martyrdomDate) : null;
-    if (martyrdomDateText) {
-        martyrdomLine.textContent = `Martyred: ${martyrdomDateText}`;
+
+    nameRow.appendChild(symbol);
+    nameRow.appendChild(name);
+    infoDiv.appendChild(nameRow);
+
+    // Location line
+    const locationLine = document.createElement('p');
+    locationLine.className = 'martyr-meta martyr-location';
+    const locIcon = document.createElement('span');
+    locIcon.className = 'martyr-meta-icon';
+    locIcon.textContent = '📍';
+    const locText = document.createElement('span');
+    locText.textContent = martyr.martyrdomPlace || martyr.birthPlace || 'Location unknown';
+    locationLine.appendChild(locIcon);
+    locationLine.appendChild(locText);
+    infoDiv.appendChild(locationLine);
+
+    // Date line (martyrdom)
+    const dateLine = document.createElement('p');
+    dateLine.className = 'martyr-meta martyr-date';
+    const dateIcon = document.createElement('span');
+    dateIcon.className = 'martyr-meta-icon';
+    dateIcon.textContent = '🕊️';
+    const dateText = document.createElement('span');
+    const martyrdomPretty = formatDate(martyr.martyrdomDate);
+    const martyrdomYear = getYear(martyr.martyrdomDate);
+    if (martyrdomPretty) {
+        dateText.textContent = martyrdomPretty;
+    } else if (martyrdomYear) {
+        dateText.textContent = `Year of martyrdom: ${martyrdomYear}`;
     } else {
-        martyrdomLine.textContent = 'Martyred: Date unknown';
+        dateText.textContent = 'Date of martyrdom unknown';
     }
-    
-    const place = document.createElement('p');
-    place.textContent = martyr.martyrdomPlace || 'Place of martyrdom unknown';
-    
-    infoDiv.appendChild(name);
-    infoDiv.appendChild(martyrdomLine);
-    infoDiv.appendChild(place);
-    
+    dateLine.appendChild(dateIcon);
+    dateLine.appendChild(dateText);
+    infoDiv.appendChild(dateLine);
+
+    // Organization line (optional)
     if (martyr.organization) {
-        const org = document.createElement('p');
-        org.style.fontSize = '0.9rem';
-        org.style.color = '#666';
-        org.textContent = martyr.organization;
-        infoDiv.appendChild(org);
+        const orgLine = document.createElement('p');
+        orgLine.className = 'martyr-meta martyr-organization';
+        const orgIcon = document.createElement('span');
+        orgIcon.className = 'martyr-meta-icon';
+        orgIcon.textContent = '🏳️';
+        const orgText = document.createElement('span');
+        orgText.textContent = martyr.organization;
+        orgLine.appendChild(orgIcon);
+        orgLine.appendChild(orgText);
+        infoDiv.appendChild(orgLine);
     }
-    
+
     // View details button
     const viewBtn = document.createElement('button');
-    viewBtn.className = 'btn-small';
+    viewBtn.className = 'btn-small martyr-card-button';
+    viewBtn.type = 'button';
     viewBtn.textContent = 'View Details';
-    viewBtn.style.marginTop = '1rem';
-    viewBtn.onclick = function() {
+    viewBtn.onclick = function () {
         showMartyrModal(martyr);
     };
-    
     infoDiv.appendChild(viewBtn);
-    
-    card.appendChild(imageDiv);
-    card.appendChild(infoDiv);
-    
+
+    inner.appendChild(photoWrapper);
+    inner.appendChild(infoDiv);
+    card.appendChild(inner);
+
     return card;
 }
 
@@ -1530,7 +1573,7 @@ function applyFilters() {
         
         // Year filter
         if (currentFilters.year) {
-            const martyrdomYear = martyr.martyrdomDate ? formatDateYear(martyr.martyrdomDate).toString() : '';
+            const martyrdomYear = martyr.martyrdomDate ? getYear(martyr.martyrdomDate) : '';
             if (martyrdomYear !== currentFilters.year) {
                 return false;
             }

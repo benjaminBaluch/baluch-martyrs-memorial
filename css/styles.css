@@ -812,6 +812,144 @@ section {
     gap: 2rem;
 }
 
+/* Modern martyr cards within gallery */
+.gallery-grid .martyr-card {
+    position: relative;
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.gallery-grid .martyr-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.16);
+    border-color: rgba(44, 85, 48, 0.2);
+}
+
+.gallery-grid .martyr-card-inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.gallery-grid .martyr-photo-wrapper {
+    position: relative;
+    overflow: hidden;
+    border-radius: 16px 16px 0 0;
+    background: linear-gradient(135deg, #dfe7e9, #cfd9df);
+}
+
+.gallery-grid .martyr-photo-wrapper img {
+    display: block;
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    filter: saturate(1.05);
+}
+
+.gallery-grid .martyr-photo-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 220px;
+    font-size: 2.5rem;
+    color: #9ca3af;
+}
+
+.gallery-grid .martyr-photo-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(15, 23, 42, 0.18), rgba(15, 23, 42, 0.02));
+    mix-blend-mode: multiply;
+    pointer-events: none;
+}
+
+.gallery-grid .martyr-info {
+    padding: 1.25rem 1.4rem 1.3rem;
+}
+
+.gallery-grid .martyr-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.4rem;
+}
+
+.gallery-grid .martyr-symbol {
+    font-size: 1.05rem;
+    color: var(--secondary-color);
+}
+
+.gallery-grid .martyr-name {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: var(--primary-color);
+}
+
+.gallery-grid .martyr-meta {
+    margin: 0.15rem 0;
+    font-size: 0.9rem;
+    color: #555555;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.gallery-grid .martyr-meta-icon {
+    font-size: 0.95rem;
+    opacity: 0.85;
+}
+
+.gallery-grid .martyr-organization {
+    margin-top: 0.3rem;
+    font-size: 0.88rem;
+    color: #666666;
+}
+
+.gallery-grid .martyr-card-button {
+    margin-top: 0.95rem;
+    align-self: flex-start;
+    border-radius: 999px;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: 1px solid rgba(44, 85, 48, 0.35);
+    background: rgba(255, 255, 255, 0.9);
+    color: var(--primary-color);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.gallery-grid .martyr-card-button::after {
+    content: '↗';
+    font-size: 0.9rem;
+}
+
+.gallery-grid .martyr-card-button:hover {
+    background: #f0f5f1;
+    box-shadow: 0 0 0 3px rgba(44, 85, 48, 0.12);
+    border-color: rgba(44, 85, 48, 0.6);
+    transform: translateY(-1px);
+}
+
+@media (max-width: 600px) {
+    .gallery-grid .martyr-photo-wrapper img,
+    .gallery-grid .martyr-photo-placeholder {
+        height: 200px;
+    }
+    .gallery-grid .martyr-info {
+        padding: 1.1rem 1.2rem 1.2rem;
+    }
+}
+
 /* Footer Styles */
 .site-footer {
     /* Baluch flag inspired footer background */
