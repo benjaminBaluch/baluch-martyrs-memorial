@@ -1,5 +1,65 @@
 // Main JavaScript for Baluch Martyrs Memorial
 
+// Theme management
+const THEME_STORAGE_KEY = 'bmm_theme_v1';
+
+function applyTheme(theme) {
+    const root = document.documentElement;
+    const mode = theme === 'dark' ? 'dark' : 'light';
+
+    root.setAttribute('data-theme', mode);
+    try {
+        root.style.colorScheme = mode;
+    } catch (e) {
+        // Non-critical; safe to ignore
+    }
+
+    // Update toggle button labels/icons
+    const toggles = document.querySelectorAll('[data-theme-toggle]');
+    toggles.forEach((btn) => {
+        if (mode === 'dark') {
+            btn.textContent = '☀️';
+        } else {
+            btn.textContent = '🌙';
+        }
+    });
+}
+
+function initTheme() {
+    let initial = 'light';
+
+    try {
+        const stored = localStorage.getItem(THEME_STORAGE_KEY);
+        if (stored === 'light' || stored === 'dark') {
+            initial = stored;
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            initial = 'dark';
+        }
+    } catch (e) {
+        // If localStorage is blocked, fall back to prefers-color-scheme only
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            initial = 'dark';
+        }
+    }
+
+    applyTheme(initial);
+
+    // Attach toggle handlers
+    const toggles = document.querySelectorAll('[data-theme-toggle]');
+    toggles.forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+            const next = current === 'dark' ? 'light' : 'dark';
+            applyTheme(next);
+            try {
+                localStorage.setItem(THEME_STORAGE_KEY, next);
+            } catch (e) {
+                // Ignore storage errors
+            }
+        });
+    });
+}
+
 // Initialize Firebase if not already available
 if (!window.firebaseDB) {
     import('./firebase-config.js').then(async (module) => {
@@ -35,6 +95,7 @@ if (!window.firebaseDB) {
 // DOM Content Loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize components
+    initTheme();
     initMobileMenu();
     initSmoothScroll();
     loadRecentMartyrs();
