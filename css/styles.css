@@ -1,4 +1,6 @@
 /* Global Styles */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 :root {
     --primary-color: #2c5530;
     --secondary-color: #d4af37;
@@ -110,8 +112,10 @@ html[data-theme="dark"] .site-footer {
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    line-height: 1.6;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    letter-spacing: 0.01em;
     color: var(--text-color);
     background-color: var(--light-color);
 }
@@ -134,6 +138,37 @@ mark.search-highlight {
 h1, h2, h3, h4, h5, h6 {
     margin-bottom: 1rem;
     color: var(--dark-color);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+h1 {
+    font-size: clamp(2.4rem, 3vw + 1.2rem, 3rem);
+    font-weight: 800;
+    letter-spacing: 0.03em;
+}
+
+h2 {
+    font-size: clamp(2rem, 2.5vw + 0.8rem, 2.4rem);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+h3 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+h4 {
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+
+h5, h6 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
 }
 
 a {
@@ -214,8 +249,8 @@ a:hover {
     color: var(--baluch-white);
     font-size: 1.5rem;
     margin: 0;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+    font-weight: 700;
 }
 
 .nav-menu {
@@ -261,7 +296,7 @@ html[data-theme="dark"] .theme-toggle:hover {
     padding: 0.5rem 1rem;
     border-radius: 4px;
     transition: var(--transition);
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
     border: 1px solid transparent;
 }
 
@@ -371,13 +406,14 @@ html[data-theme="dark"] .theme-toggle:hover {
 }
 
 .hero-content h2 {
-    font-size: 3rem;
+    font-size: clamp(2.4rem, 4vw, 3rem);
     margin-bottom: 1rem;
     color: white;
+    letter-spacing: 0.03em;
 }
 
 .hero-content p {
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     margin-bottom: 2rem;
 }
 
@@ -1113,8 +1149,8 @@ section {
 .footer-section h3 {
     color: var(--baluch-white);
     margin-bottom: 1rem;
-    font-weight: bold;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    font-weight: 700;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 .footer-section ul {
@@ -1127,18 +1163,18 @@ section {
 
 .footer-section a {
     color: var(--baluch-white);
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
     transition: var(--transition);
 }
 
 .footer-section a:hover {
     color: var(--baluch-white);
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
     transform: translateX(3px);
 }
 
 .footer-section p {
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .footer-bottom {
@@ -1146,12 +1182,12 @@ section {
     padding-top: 2rem;
     border-top: 1px solid rgba(255, 255, 255, 0.2);
     color: var(--baluch-white);
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 .footer-bottom p {
     margin: 0.5rem 0;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 
 /* Anniversary Slider Styles */
@@ -2193,7 +2229,7 @@ body[style*="top:"] {
     margin: 0;
     font-size: 1.5rem;
     font-weight: 600;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 .modal-close {
