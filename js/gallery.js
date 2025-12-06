@@ -276,8 +276,8 @@ function createGalleryCard(martyr) {
     viewBtn.textContent = 'View Details';
     viewBtn.className = 'btn-small';
     viewBtn.style.cssText = 'margin-top: 1rem; background: #2c5530; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;';
-    // Use the professional martyr details modal from main.js
-    viewBtn.onclick = () => showMartyrDetails(martyr);
+    // Use the original gallery-specific martyr modal
+    viewBtn.onclick = () => showMartyrModal(martyr);
     
     infoDiv.appendChild(name);
     infoDiv.appendChild(dates);
@@ -1404,9 +1404,9 @@ function createGalleryCard(martyr) {
     viewBtn.className = 'btn-small martyr-card-button';
     viewBtn.type = 'button';
     viewBtn.textContent = 'View Details';
-    // Open the shared professional martyr profile modal
+    // Open the original gallery-specific martyr modal
     viewBtn.onclick = function () {
-        showMartyrDetails(martyr);
+        showMartyrModal(martyr);
     };
     infoDiv.appendChild(viewBtn);
 
