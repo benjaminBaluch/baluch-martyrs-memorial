@@ -1019,7 +1019,7 @@ function showMartyrModal(martyr) {
                 color: #f9fafb;
             ">
                 <div>
-                    <h2 style="margin: 0; font-size: 1.4rem; letter-spacing: 0.08em; text-transform: uppercase; color: #fefce8; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">
+                    <h2 style="margin: 0; font-size: 1.4rem; letter-spacing: 0.08em; text-transform: uppercase;">
                         ${escapeHTML(martyr.fullName || 'Unknown martyr')}
                     </h2>
                     <p style="margin: 0.35rem 0 0; font-size: 0.9rem; opacity: 0.85;">
