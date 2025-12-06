@@ -992,51 +992,113 @@ function showMartyrModal(martyr) {
     
     const content = document.createElement('div');
     content.style.cssText = `
-        background: white; max-width: 900px; max-height: 90vh; overflow-y: auto;
-        border-radius: 8px; position: relative; width: 100%;
+        background: #f9fafb;
+        max-width: 960px;
+        max-height: 90vh;
+        overflow-y: auto;
+        border-radius: 18px;
+        position: relative;
+        width: 100%;
+        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.55);
+        border: 1px solid rgba(148, 163, 184, 0.35);
     `;
+
+    const birthPretty = formatDate(martyr.birthDate) || 'Unknown';
+    const martyrdomPretty = formatDate(martyr.martyrdomDate) || 'Unknown';
+    const dateRangeLabel = `${birthPretty} — ${martyrdomPretty}`;
     
     content.innerHTML = `
-        <button class="close-martyr-modal" 
-                style="position: absolute; top: 15px; right: 20px; background: none; border: none; font-size: 24px; cursor: pointer; color: #666; z-index: 2;">&times;</button>
-        <button class="martyr-print-btn-header" 
-                style="position: absolute; top: 15px; right: 70px; background: #2c5530; color: #fff; border: none; padding: 0.3rem 0.7rem; border-radius: 4px; cursor: pointer; font-size: 0.8rem; z-index: 2;">
-            PDF
-        </button>
-        
-        <div style="padding: 2rem;">
-            <div style="display: flex; gap: 2rem; flex-wrap: wrap; align-items: flex-start;">
-                <div style="flex: 0 0 260px;">
+        <div style="display: flex; flex-direction: column;">
+            <div style="
+                padding: 1.25rem 1.75rem;
+                border-bottom: 1px solid #e5e7eb;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                background: linear-gradient(135deg, #111827, #1f2937);
+                color: #f9fafb;
+            ">
+                <div>
+                    <h2 style="margin: 0; font-size: 1.4rem; letter-spacing: 0.08em; text-transform: uppercase;">
+                        ${escapeHTML(martyr.fullName || 'Unknown martyr')}
+                    </h2>
+                    <p style="margin: 0.35rem 0 0; font-size: 0.9rem; opacity: 0.85;">
+                        ${escapeHTML(dateRangeLabel)}
+                    </p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button class="martyr-print-btn-header"
+                            style="background: #f9fafb; color: #111827; border: none; padding: 0.4rem 0.85rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; cursor: pointer;">
+                        PDF
+                    </button>
+                    <button class="close-martyr-modal"
+                            style="width: 36px; height: 36px; border-radius: 999px; border: 1px solid rgba(148,163,184,0.5); background: rgba(15,23,42,0.75); color: #f9fafb; font-size: 1.4rem; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                        &times;
+                    </button>
+                </div>
+            </div>
+
+            <div style="padding: 1.75rem 1.75rem 1.5rem; display: flex; gap: 1.75rem; flex-wrap: wrap; align-items: flex-start;">
+                <div style="flex: 0 0 260px; max-width: 260px;">
                     ${martyr.photo ? 
-                        `<img src="${martyr.photo}" alt="${escapeHTML(martyr.fullName || 'Martyr photo')}" style="width: 100%; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">` :
-                        '<div style="width: 100%; height: 320px; background: linear-gradient(135deg, #f0f0f0, #d0d0d0); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 64px; color: #999;">📸</div>'
+                        `<img src="${martyr.photo}" alt="${escapeHTML(martyr.fullName || 'Martyr photo')}" style="width: 100%; border-radius: 16px; object-fit: cover; box-shadow: 0 16px 35px rgba(15,23,42,0.45);">` :
+                        '<div style="width: 100%; height: 320px; border-radius: 16px; background: radial-gradient(circle at top, #f3f4f6, #d1d5db); display: flex; align-items: center; justify-content: center; font-size: 3.5rem; color: #9ca3af; box-shadow: 0 16px 35px rgba(15,23,42,0.3);">📷</div>'
                     }
                 </div>
                 
-                <div style="flex: 1; min-width: 320px;">
-                    <h2 style="margin-top: 0; color: #2c5530; border-bottom: 2px solid #d4af37; padding-bottom: 0.5rem;">${escapeHTML(martyr.fullName || 'Unknown martyr')}</h2>
-                    
-                    <div style="display: grid; gap: 0.75rem; margin: 1.5rem 0;">
-                        ${martyr.fatherName ? `<p><strong>Father:</strong> ${escapeHTML(martyr.fatherName)}</p>` : ''}
-                        <p><strong>Birth:</strong> ${escapeHTML(formatDate(martyr.birthDate) || 'Unknown')}</p>
-                        <p><strong>Birth Place:</strong> ${escapeHTML(martyr.birthPlace || 'Unknown')}</p>
-                        <p><strong>Martyrdom:</strong> ${escapeHTML(formatDate(martyr.martyrdomDate) || 'Unknown')}</p>
-                        <p><strong>Martyrdom Place:</strong> ${escapeHTML(martyr.martyrdomPlace || 'Unknown')}</p>
-                        ${martyr.organization ? `<p><strong>Organization:</strong> ${escapeHTML(martyr.organization)}</p>` : ''}
-                        ${martyr.rank ? `<p><strong>Rank:</strong> ${escapeHTML(martyr.rank)}</p>` : ''}
+                <div style="flex: 1; min-width: 280px;">
+                    <div style="display: grid; gap: 0.6rem; font-size: 0.95rem;">
+                        ${martyr.fatherName ? `
+                            <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
+                                <span style="min-width: 120px; font-weight: 600; color: #4b5563;">Father</span>
+                                <span style="color: #111827;">${escapeHTML(martyr.fatherName)}</span>
+                            </div>
+                        ` : ''}
+                        <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
+                            <span style="min-width: 120px; font-weight: 600; color: #4b5563;">Birth</span>
+                            <span style="color: #111827;">${escapeHTML(birthPretty)}</span>
+                        </div>
+                        <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
+                            <span style="min-width: 120px; font-weight: 600; color: #4b5563;">Birth place</span>
+                            <span style="color: #111827;">${escapeHTML(martyr.birthPlace || 'Unknown')}</span>
+                        </div>
+                        <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
+                            <span style="min-width: 120px; font-weight: 600; color: #4b5563;">Martyrdom</span>
+                            <span style="color: #111827;">${escapeHTML(martyrdomPretty)}</span>
+                        </div>
+                        <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
+                            <span style="min-width: 120px; font-weight: 600; color: #4b5563;">Martyrdom place</span>
+                            <span style="color: #111827;">${escapeHTML(martyr.martyrdomPlace || 'Unknown')}</span>
+                        </div>
+                        ${martyr.organization ? `
+                            <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
+                                <span style="min-width: 120px; font-weight: 600; color: #4b5563;">Organization</span>
+                                <span style="color: #111827;">${escapeHTML(martyr.organization)}</span>
+                            </div>
+                        ` : ''}
+                        ${martyr.rank ? `
+                            <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
+                                <span style="min-width: 120px; font-weight: 600; color: #4b5563;">Rank</span>
+                                <span style="color: #111827;">${escapeHTML(martyr.rank)}</span>
+                            </div>
+                        ` : ''}
                     </div>
                     
                     ${martyr.biography ? `
-                        <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eee;">
-                            <h3 style="color: #2c5530;">Biography</h3>
-                            <p style="line-height: 1.6; color: #444;">${escapeHTML(martyr.biography)}</p>
+                        <div style="margin-top: 1.75rem;">
+                            <h3 style="margin: 0 0 0.75rem; font-size: 1.05rem; color: #111827;">Biography</h3>
+                            <div style="background: #f9fafb; padding: 1.3rem 1.2rem; border-radius: 12px; border: 1px solid #e5e7eb; line-height: 1.7; color: #374151; font-size: 0.96rem;">
+                                ${escapeHTML(martyr.biography)}
+                            </div>
                         </div>
                     ` : ''}
                     
                     ${martyr.familyDetails ? `
                         <div style="margin-top: 1.5rem;">
-                            <h3 style="color: #2c5530;">Family Details</h3>
-                            <p style="line-height: 1.6; color: #444;">${escapeHTML(martyr.familyDetails)}</p>
+                            <h3 style="margin: 0 0 0.75rem; font-size: 1.05rem; color: #111827;">Family Details</h3>
+                            <div style="background: #f9fafb; padding: 1.2rem 1.15rem; border-radius: 12px; border: 1px solid #e5e7eb; line-height: 1.7; color: #374151; font-size: 0.95rem;">
+                                ${escapeHTML(martyr.familyDetails)}
+                            </div>
                         </div>
                     ` : ''}
 
@@ -1046,16 +1108,16 @@ function showMartyrModal(martyr) {
                         </button>
                     </div>
                     
-                    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #eee; color: #666; font-size: 0.9rem;">
-                        <p><strong>Submitted by:</strong> ${escapeHTML(martyr.submitterName || 'Unknown')}</p>
-                        <p><strong>Submitted on:</strong> ${escapeHTML(formatDate(martyr.submittedAt) || 'Unknown')}</p>
+                    <div style="margin-top: 1.75rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 0.9rem; display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: space-between;">
+                        <p style="margin: 0;"><strong>Submitted by:</strong> ${escapeHTML(martyr.submitterName || 'Unknown')}</p>
+                        <p style="margin: 0;"><strong>Submitted on:</strong> ${escapeHTML(formatDate(martyr.submittedAt) || 'Unknown')}</p>
                     </div>
                     
-                    <div style="margin-top: 2rem; display: flex; flex-wrap: wrap; gap: 0.75rem;">
-                        <button class="martyr-print-btn" style="background: #2c5530; color: #fff; border: none; padding: 0.6rem 1.4rem; border-radius: 4px; cursor: pointer; font-size: 0.95rem;">
+                    <div style="margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                        <button class="martyr-print-btn" style="background: #2c5530; color: #fff; border: none; padding: 0.6rem 1.4rem; border-radius: 999px; cursor: pointer; font-size: 0.95rem; font-weight: 600;">
                             Print / Download PDF
                         </button>
-                        <button class="martyr-close-btn" style="background: #6c757d; color: #fff; border: none; padding: 0.6rem 1.2rem; border-radius: 4px; cursor: pointer; font-size: 0.95rem;">
+                        <button class="martyr-close-btn" style="background: #e5e7eb; color: #111827; border: none; padding: 0.6rem 1.3rem; border-radius: 999px; cursor: pointer; font-size: 0.95rem;">
                             Close
                         </button>
                     </div>
