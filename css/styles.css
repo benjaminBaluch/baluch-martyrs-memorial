@@ -201,6 +201,25 @@ a:hover {
 }
 
 /* Allow dropdown on mobile */
+@media (max-width: 1024px) {
+    .nav-brand h1 {
+        font-size: 1.35rem;
+    }
+    .nav-menu {
+        gap: 1.2rem;
+    }
+    .nav-menu a {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.95rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .site-header {
+        overflow: visible;
+    }
+}
+
 @media (max-width: 768px) {
     .site-header {
         overflow: visible;
@@ -258,7 +277,8 @@ a:hover {
 .nav-menu {
     display: flex;
     list-style: none;
-    gap: 2rem;
+    gap: 1.75rem;
+    align-items: center;
 }
 
 .theme-toggle {
