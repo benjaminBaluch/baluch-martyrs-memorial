@@ -1005,7 +1005,7 @@ function showMartyrModal(martyr) {
 
     const birthPretty = formatDate(martyr.birthDate) || 'Unknown';
     const martyrdomPretty = formatDate(martyr.martyrdomDate) || 'Unknown';
-    const dateRangeLabel = `${birthPretty} — ${martyrdomPretty}`;
+    const headerDateLabel = martyrdomPretty;
     
     content.innerHTML = `
         <div style="display: flex; flex-direction: column;">
@@ -1023,7 +1023,7 @@ function showMartyrModal(martyr) {
                         ${escapeHTML(martyr.fullName || 'Unknown martyr')}
                     </h2>
                     <p style="margin: 0.35rem 0 0; font-size: 0.9rem; opacity: 0.85;">
-                        ${escapeHTML(dateRangeLabel)}
+                        ${escapeHTML(headerDateLabel)}
                     </p>
                 </div>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">

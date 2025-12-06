@@ -437,8 +437,6 @@ function showMartyrDetails(martyr) {
                 <div class="martyr-detail-header">
                     <h2 class="martyr-name">${martyr.fullName}</h2>
                     <div class="martyr-dates">
-                        <span class="date-birth">${formatDate(martyr.birthDate)}</span>
-                        <span class="date-separator">—</span>
                         <span class="date-death">${formatDate(martyr.martyrdomDate)}</span>
                     </div>
                 </div>
