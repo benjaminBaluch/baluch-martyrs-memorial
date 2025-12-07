@@ -24,6 +24,10 @@ let currentFilters = {
     year: ''
 };
 
+// Simple flags to prevent duplicate/overlapping gallery loads
+let galleryLoading = false;
+let galleryLoaded = false;
+
 // Global functions for debugging and force loading
 window.loadGalleryNow = function() {
     console.log('🚑 FORCE LOADING GALLERY NOW!');
@@ -65,7 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeInterface();
     addDebugButton();
     
-    // Listen for data events from Firebase loader
+        // Listen for data events from Firebase loader
     window.addEventListener('martyrsDataReady', (event) => {
         console.log('📨 Received martyrsDataReady event:', event.detail);
         const { data, source, connected, error } = event.detail;
@@ -77,6 +81,8 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log(`✅ Got ${data.length} martyrs from ${source}`);
             allMartyrs = data;
             renderGallery(allMartyrs);
+            galleryLoaded = true;
+            galleryLoading = false;
             
             // Show offline warning if using localStorage
             if (source.includes('localStorage') && source.includes('h old')) {
@@ -109,6 +115,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Main gallery loader
 async function loadGallery() {
+    // Prevent multiple concurrent or repeated loads
+    if (galleryLoaded) {
+        console.log('📦 Gallery already loaded, skipping extra load request.');
+        return;
+    }
+    if (galleryLoading) {
+        console.log('⏳ Gallery load already in progress, skipping duplicate call.');
+        return;
+    }
+    galleryLoading = true;
+
     console.log('🎯 Starting gallery load process...');
     
     const galleryGrid = document.getElementById('galleryGrid');
@@ -123,6 +140,8 @@ async function loadGallery() {
             console.log(`✨ Using pre-loaded data: ${window.martyrsDataFromFirebase.length} martyrs`);
             allMartyrs = window.martyrsDataFromFirebase;
             renderGallery(allMartyrs);
+            galleryLoaded = true;
+            galleryLoading = false;
             return;
         }
         
@@ -140,6 +159,8 @@ async function loadGallery() {
                 
                 renderGallery(allMartyrs);
                 hideOfflineWarning();
+                galleryLoaded = true;
+                galleryLoading = false;
                 return;
             } else {
                 console.warn('⚠️ Firebase returned no data:', result?.error);
@@ -156,6 +177,8 @@ async function loadGallery() {
                 console.log(`💾 LocalStorage success: ${allMartyrs.length} martyrs`);
                 renderGallery(allMartyrs);
                 showOfflineWarning();
+                galleryLoaded = true;
+                galleryLoading = false;
                 return;
             }
         }
@@ -175,9 +198,12 @@ async function loadGallery() {
             }
         ];
         renderGallery(allMartyrs);
+        galleryLoaded = true;
+        galleryLoading = false;
         
     } catch (error) {
         console.error('❌ Gallery loading failed:', error);
+        galleryLoading = false;
         showErrorMessage();
     }
 }
