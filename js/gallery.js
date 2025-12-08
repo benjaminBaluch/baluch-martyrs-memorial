@@ -240,15 +240,14 @@ function renderGallery() {
     
     console.log(`✅ Rendered ${rendered}/${allMartyrs.length} martyr cards`);
     
-    // Apply current filters
-    applyFilters();
-    
-    // Update UI
-    updateSearchResultsInfo(allMartyrs.length);
+    // Show results info container (initially hidden)
     const resultsInfo = document.getElementById('searchResultsInfo');
-    if (resultsInfo && allMartyrs.length > 0) {
-        resultsInfo.style.display = 'flex';
+    if (resultsInfo) {
+        resultsInfo.style.display = allMartyrs.length > 0 ? 'flex' : 'none';
     }
+
+    // Apply current filters (this will update the result count text)
+    applyFilters();
 }
 // Create individual martyr card
 function createGalleryCard(martyr) {
@@ -686,26 +685,32 @@ function getYear(dateValue) {
     if (!dateValue) return '';
     
     try {
-        let date;
-        
-        // Handle Firestore Timestamp
+        // Handle Firestore Timestamp (duck typing to be safe)
         if (dateValue && typeof dateValue.toDate === 'function') {
-            date = dateValue.toDate();
-        } else if (dateValue instanceof Date) {
-            date = dateValue;
-        } else if (typeof dateValue === 'string') {
-            if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
-                date = new Date(dateValue + 'T00:00:00');
-            } else {
-                date = new Date(dateValue);
-            }
-        } else {
-            date = new Date(dateValue);
+            return dateValue.toDate().getFullYear().toString();
         }
         
-        return !date || isNaN(date.getTime()) ? '' : date.getFullYear().toString();
+        // Handle Date object
+        if (dateValue instanceof Date) {
+            return dateValue.getFullYear().toString();
+        }
+        
+        // Handle strings
+        if (typeof dateValue === 'string') {
+            const d = new Date(dateValue);
+            if (!isNaN(d.getTime())) {
+                return d.getFullYear().toString();
+            }
+        }
+        
+        // Handle object with seconds (Firestore Timestamp serialized)
+        if (dateValue && typeof dateValue.seconds === 'number') {
+            return new Date(dateValue.seconds * 1000).getFullYear().toString();
+        }
+        
+        return '';
     } catch (error) {
-        console.warn('Error getting year from:', dateValue, error);
+        console.warn('Error getting year:', error);
         return '';
     }
 }
@@ -716,24 +721,29 @@ function formatDate(dateValue) {
     try {
         let date;
         
-        // Handle Firestore Timestamp
+        // Handle Firestore Timestamp (duck typing)
         if (dateValue && typeof dateValue.toDate === 'function') {
             date = dateValue.toDate();
-        } else if (dateValue instanceof Date) {
+        } 
+        // Handle object with seconds (Firestore Timestamp serialized)
+        else if (dateValue && typeof dateValue.seconds === 'number') {
+            date = new Date(dateValue.seconds * 1000);
+        }
+        else if (dateValue instanceof Date) {
             date = dateValue;
-        } else if (typeof dateValue === 'string') {
+        } 
+        else if (typeof dateValue === 'string') {
+            // Normalize string to prevent timezone issues if YYYY-MM-DD
             if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
                 date = new Date(dateValue + 'T00:00:00');
             } else {
                 date = new Date(dateValue);
             }
         } else {
-            date = new Date(dateValue);
-        }
-        
-        if (!date || isNaN(date.getTime())) {
             return null;
         }
+        
+        if (!date || isNaN(date.getTime())) return null;
         
         return date.toLocaleDateString('en-US', { 
             year: 'numeric', 
