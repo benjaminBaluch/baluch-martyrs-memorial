@@ -135,7 +135,7 @@ async function loadGallery() {
     }
     
     try {
-        // Method 1: Pre-loaded Firebase data
+        // Method 1: Pre-loaded Firebase data (if some other script populated it)
         if (window.martyrsDataFromFirebase && window.martyrsDataFromFirebase.length > 0) {
             console.log(`✨ Using pre-loaded data: ${window.martyrsDataFromFirebase.length} martyrs`);
             allMartyrs = window.martyrsDataFromFirebase;
@@ -144,67 +144,125 @@ async function loadGallery() {
             galleryLoading = false;
             return;
         }
-        
-        // Method 2: Direct Firebase call
+
+        // Method 2: Direct Firebase call from browser (primary path)
         if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
-            console.log('🔥 Trying direct Firebase call...');
+            console.log('🔥 Trying direct Firebase call (firebaseDB.getApprovedMartyrs)...');
             const result = await window.firebaseDB.getApprovedMartyrs();
-            
-            if (result && result.success && result.data && result.data.length > 0) {
+
+            if (result && result.success && Array.isArray(result.data) && result.data.length > 0) {
                 console.log(`✅ Firebase success: ${result.data.length} martyrs`);
                 allMartyrs = result.data;
-                
+
                 // Cache for backup
-                localStorage.setItem('martyrsData', JSON.stringify(allMartyrs));
-                
+                try {
+                    localStorage.setItem('martyrsData', JSON.stringify(allMartyrs));
+                } catch (storageError) {
+                    console.warn('⚠️ Failed to cache martyrsData to localStorage:', storageError);
+                }
+
                 renderGallery(allMartyrs);
                 hideOfflineWarning();
                 galleryLoaded = true;
                 galleryLoading = false;
                 return;
             } else {
-                console.warn('⚠️ Firebase returned no data:', result?.error);
+                console.warn('⚠️ Firebase returned no data or failed:', result?.error || 'no result');
             }
+        } else {
+            console.warn('⚠️ window.firebaseDB.getApprovedMartyrs is not available – skipping direct Firebase path');
         }
-        
-        // Method 3: LocalStorage fallback
+
+        // Method 3: Netlify serverless API fallback (still uses Firebase on the server)
+        try {
+            console.log('🌐 Trying Netlify API fallback at /api/get-martyrs ...');
+            const response = await fetch('/api/get-martyrs', {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' },
+                cache: 'no-store'
+            });
+
+            if (response.ok) {
+                const apiData = await response.json();
+                if (Array.isArray(apiData) && apiData.length > 0) {
+                    console.log(`✅ Netlify API success: ${apiData.length} martyrs`);
+                    allMartyrs = apiData;
+
+                    // Cache for backup
+                    try {
+                        localStorage.setItem('martyrsData', JSON.stringify(allMartyrs));
+                    } catch (storageError) {
+                        console.warn('⚠️ Failed to cache martyrsData from API to localStorage:', storageError);
+                    }
+
+                    renderGallery(allMartyrs);
+                    hideOfflineWarning();
+                    galleryLoaded = true;
+                    galleryLoading = false;
+                    return;
+                } else {
+                    console.warn('⚠️ Netlify API returned empty martyrs list');
+                }
+            } else {
+                console.warn('⚠️ Netlify API /api/get-martyrs HTTP error:', response.status, response.statusText);
+            }
+        } catch (apiError) {
+            console.warn('⚠️ Netlify API /api/get-martyrs failed:', apiError);
+        }
+
+        // Method 4: LocalStorage fallback (cached data from previous successful visit)
         console.log('💾 Trying localStorage fallback...');
-        const savedData = localStorage.getItem('martyrsData');
-        if (savedData) {
-            const parsedData = JSON.parse(savedData);
-            if (Array.isArray(parsedData) && parsedData.length > 0) {
-                allMartyrs = parsedData.filter(m => !m.status || m.status === 'approved');
-                console.log(`💾 LocalStorage success: ${allMartyrs.length} martyrs`);
-                renderGallery(allMartyrs);
-                showOfflineWarning();
-                galleryLoaded = true;
-                galleryLoading = false;
-                return;
+        try {
+            const savedData = localStorage.getItem('martyrsData');
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                if (Array.isArray(parsedData) && parsedData.length > 0) {
+                    allMartyrs = parsedData.filter(m => !m.status || m.status === 'approved');
+                    console.log(`💾 LocalStorage success: ${allMartyrs.length} martyrs`);
+                    renderGallery(allMartyrs);
+                    showOfflineWarning();
+                    galleryLoaded = true;
+                    galleryLoading = false;
+                    return;
+                }
             }
+        } catch (storageReadError) {
+            console.warn('⚠️ Failed to read martyrsData from localStorage:', storageReadError);
         }
-        
-        // Method 4: Demo data for testing
-        console.log('🎭 Loading demo data for testing...');
-        allMartyrs = [
-            {
-                id: 'demo-1',
-                fullName: 'Demo Martyr - Check Console',
-                martyrdomDate: '2024-01-01',
-                martyrdomPlace: 'Testing Location',
-                birthPlace: 'Demo City',
-                organization: 'Development Testing',
-                biography: 'This is demo data to verify the gallery is working. Check the browser console for debugging information.',
-                status: 'approved'
-            }
-        ];
-        renderGallery(allMartyrs);
+
+        // Method 5: Development-only demo data (never shown on live memorial domain)
+        const hostname = window.location.hostname;
+        const isLiveSite = hostname === 'baluchmartyrs.site' || hostname === 'www.baluchmartyrs.site';
+        if (!isLiveSite) {
+            console.log('🎭 Loading demo data for local development/testing...');
+            allMartyrs = [
+                {
+                    id: 'demo-1',
+                    fullName: 'Demo Martyr - Check Console',
+                    martyrdomDate: '2024-01-01',
+                    martyrdomPlace: 'Testing Location',
+                    birthPlace: 'Demo City',
+                    organization: 'Development Testing',
+                    biography: 'This is demo data to verify the gallery is working. Check the browser console for debugging information.',
+                    status: 'approved'
+                }
+            ];
+            renderGallery(allMartyrs);
+            galleryLoaded = true;
+            galleryLoading = false;
+            return;
+        }
+
+        // On the live site with no data from any source, show a clean empty-state message
+        console.warn('📭 No martyrs available from Firebase, API, or cache – showing empty gallery message');
+        showEmptyMessage();
         galleryLoaded = true;
         galleryLoading = false;
-        
+
     } catch (error) {
         console.error('❌ Gallery loading failed:', error);
         galleryLoading = false;
-        showErrorMessage();
+        showErrorMessage(error?.message || error);
     }
 }
 
