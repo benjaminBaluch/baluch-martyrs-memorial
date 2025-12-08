@@ -60,36 +60,44 @@ function initTheme() {
     });
 }
 
-// Initialize Firebase if not already available
+// Initialize Firebase via modular SDK on most pages.
+// On gallery.html, Firebase is initialized via inline compat script to avoid duplicate app errors.
 if (!window.firebaseDB) {
-    import('./firebase-config.js').then(async (module) => {
-        window.firebaseDB = module.firebaseDB;
-        console.log('🔥 Firebase loaded globally from main.js');
-        
-        // Only load debugging utilities in local development, never on production
-        const hostname = window.location.hostname;
-        const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1';
-        if (isDevelopment) {
-            try {
-                const debugModule = await import('./firebase-test.js');
-                window.testFirebase = debugModule.testFirebaseConnection;
-                window.debugFirebaseRules = debugModule.debugFirebaseRules;
-                window.addTestMartyr = debugModule.addTestMartyr;
-                window.migrateToFirebase = debugModule.migrateLocalStorageToFirebase;
-                window.testFirebaseConnection = window.firebaseDB.testConnection;
-                window.deleteApprovedMartyr = window.firebaseDB.deleteApprovedMartyr;
-                window.clearAllApprovedMartyrs = window.firebaseDB.clearAllApprovedMartyrs;
-                console.log('🔧 Firebase debug utilities loaded (development only)');
-            } catch (error) {
-                console.warn('Debug utilities not available:', error);
+    const path = (window.location && window.location.pathname) || '';
+    const isGalleryPage = path.endsWith('/gallery.html') || path.endsWith('gallery.html');
+
+    if (!isGalleryPage) {
+        import('./firebase-config.js').then(async (module) => {
+            window.firebaseDB = module.firebaseDB;
+            console.log('🔥 Firebase loaded globally from main.js');
+            
+            // Only load debugging utilities in local development, never on production
+            const hostname = window.location.hostname;
+            const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1';
+            if (isDevelopment) {
+                try {
+                    const debugModule = await import('./firebase-test.js');
+                    window.testFirebase = debugModule.testFirebaseConnection;
+                    window.debugFirebaseRules = debugModule.debugFirebaseRules;
+                    window.addTestMartyr = debugModule.addTestMartyr;
+                    window.migrateToFirebase = debugModule.migrateLocalStorageToFirebase;
+                    window.testFirebaseConnection = window.firebaseDB.testConnection;
+                    window.deleteApprovedMartyr = window.firebaseDB.deleteApprovedMartyr;
+                    window.clearAllApprovedMartyrs = window.firebaseDB.clearAllApprovedMartyrs;
+                    console.log('🔧 Firebase debug utilities loaded (development only)');
+                } catch (error) {
+                    console.warn('Debug utilities not available:', error);
+                }
             }
-        }
-        
-        // Trigger any pending operations that need Firebase
-        window.dispatchEvent(new Event('firebaseReady'));
-    }).catch((error) => {
-        console.warn('⚠️ Firebase could not be loaded in main.js:', error);
-    });
+            
+            // Trigger any pending operations that need Firebase
+            window.dispatchEvent(new Event('firebaseReady'));
+        }).catch((error) => {
+            console.warn('⚠️ Firebase could not be loaded in main.js:', error);
+        });
+    } else {
+        console.log('ℹ️ Skipping modular Firebase init on gallery page (using inline compat Firebase).');
+    }
 }
 
 // DOM Content Loaded
