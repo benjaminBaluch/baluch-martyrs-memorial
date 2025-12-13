@@ -483,33 +483,50 @@
             margin: 0;
             border-radius: 0;
             box-shadow: none;
-            background: linear-gradient(135deg, rgba(44,85,48,0.95) 0%, rgba(26,61,32,0.98) 100%);
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
             overflow: hidden;
+            padding: 1.5rem;
+        }
+        .anniversary-card .martyr-image::before {
+            content: '';
+            position: absolute;
+            inset: 1.5rem;
+            border: 3px solid rgba(44,85,48,0.15);
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 2;
         }
         .anniversary-card .martyr-image::after {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.1) 100%);
+            inset: 1.5rem;
+            background: linear-gradient(135deg, rgba(44,85,48,0.03) 0%, rgba(26,61,32,0.05) 100%);
+            border-radius: 8px;
             pointer-events: none;
+            z-index: 1;
         }
         .anniversary-card .martyr-image img {
-            width: 100%;
-            height: 100%;
+            width: calc(100% - 3rem);
+            height: calc(100% - 3rem);
             object-fit: cover;
-            object-position: center top;
-            filter: brightness(1.05) contrast(1.05);
-            transition: transform 0.4s ease;
+            object-position: center center;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15), 
+                       0 1px 3px rgba(0,0,0,0.1),
+                       inset 0 0 0 1px rgba(255,255,255,0.5);
+            position: relative;
+            z-index: 3;
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
         }
         .anniversary-card:hover .martyr-image img {
-            transform: scale(1.05);
+            transform: scale(1.03);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2), 
+                       0 2px 6px rgba(0,0,0,0.15),
+                       inset 0 0 0 1px rgba(255,255,255,0.6);
         }
         .anniversary-card .martyr-info {
             padding: 2.5rem;
@@ -724,13 +741,31 @@
                 max-height: none;
             }
             
-            /* Image - reduced height */
+            /* Image - reduced height with professional frame */
             .anniversary-card .martyr-image {
                 height: 180px;
+                padding: 1rem;
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            }
+            .anniversary-card .martyr-image::before {
+                inset: 1rem;
+                border: 2px solid rgba(44,85,48,0.12);
+                border-radius: 6px;
+            }
+            .anniversary-card .martyr-image::after {
+                inset: 1rem;
+                background: linear-gradient(135deg, rgba(44,85,48,0.02) 0%, rgba(26,61,32,0.04) 100%);
+                border-radius: 6px;
             }
             .anniversary-card .martyr-image img {
+                width: calc(100% - 2rem);
+                height: calc(100% - 2rem);
                 object-position: center center;
                 filter: none;
+                border-radius: 4px;
+                box-shadow: 0 3px 8px rgba(0,0,0,0.12), 
+                           0 1px 2px rgba(0,0,0,0.08),
+                           inset 0 0 0 1px rgba(255,255,255,0.4);
             }
             .anniversary-card:hover .martyr-image img {
                 transform: none;
@@ -843,9 +878,22 @@
                 margin: 0 0.625rem;
             }
 
-            /* Smaller image */
+            /* Smaller image with frame */
             .anniversary-card .martyr-image {
                 height: 160px;
+                padding: 0.875rem;
+            }
+            .anniversary-card .martyr-image::before {
+                inset: 0.875rem;
+                border: 2px solid rgba(44,85,48,0.12);
+            }
+            .anniversary-card .martyr-image::after {
+                inset: 0.875rem;
+            }
+            .anniversary-card .martyr-image img {
+                width: calc(100% - 1.75rem);
+                height: calc(100% - 1.75rem);
+                border-radius: 4px;
             }
             
             /* Tighter padding */
