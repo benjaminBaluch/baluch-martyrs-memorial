@@ -1181,7 +1181,7 @@ function showMartyrModal(martyr) {
                     ${martyr.biography ? `
                         <div style="margin-top: 1.75rem;">
                             <h3 style="margin: 0 0 0.75rem; font-size: 1.05rem; color: #111827;">Biography</h3>
-                            <div style="background: #f9fafb; padding: 1.3rem 1.2rem; border-radius: 12px; border: 1px solid #e5e7eb; line-height: 1.7; color: #374151; font-size: 0.96rem;">
+                            <div style="background: #f9fafb; padding: 1.3rem 1.2rem; border-radius: 12px; border: 1px solid #e5e7eb; line-height: 1.7; color: #374151; font-size: 0.96rem; text-align: justify;">
                                 ${escapeHTML(martyr.biography)}
                             </div>
                         </div>
