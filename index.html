@@ -689,47 +689,65 @@
         }
 
         @media (max-width: 768px) {
+            /* Section spacing - generous breathing room */
             .anniversaries {
-                padding: 3rem 0;
+                padding: 3.5rem 0;
             }
+            
+            /* Typography hierarchy - clear, respectful */
             .anniversaries h2 {
-                font-size: 1.8rem;
-                line-height: 1.3;
-                margin-bottom: 0.5rem;
+                font-size: 1.85rem;
+                line-height: 1.25;
+                margin-bottom: 0.65rem;
+                padding: 0 1.25rem;
+                letter-spacing: -0.015em;
             }
             .anniversaries .section-subtitle {
-                font-size: 0.95rem;
-                margin-bottom: 2rem;
-                padding: 0 1rem;
+                font-size: 0.975rem;
+                line-height: 1.55;
+                margin-bottom: 2.25rem;
+                padding: 0 1.5rem;
+                color: #5f6b7a;
             }
 
+            /* Container - subtle elevation, proper margins */
             .slider-container {
-                border-radius: 16px;
-                box-shadow: 0 12px 32px rgba(15,23,42,0.1), 0 4px 8px rgba(15,23,42,0.06);
-                margin: 0 0.75rem;
+                border-radius: 18px;
+                box-shadow: 0 10px 30px rgba(15,23,42,0.08), 
+                           0 4px 12px rgba(15,23,42,0.04),
+                           0 0 0 1px rgba(148,163,184,0.08);
+                margin: 0 1rem;
+                background: #ffffff;
             }
 
-            /* Mobile-friendly layout: stack image + text */
+            /* Mobile card layout - vertical, spacious */
             .anniversary-card {
                 display: flex;
                 flex-direction: column;
                 grid-template-columns: 1fr;
                 height: auto;
                 max-height: none;
+                border-radius: 18px;
             }
+            
+            /* Image container - dignified proportions */
             .anniversary-card .martyr-image {
-                height: 200px;
+                height: 220px;
+                background: linear-gradient(135deg, rgba(44,85,48,0.92) 0%, rgba(26,61,32,0.96) 100%);
             }
             .anniversary-card .martyr-image img {
-                object-position: center center;
-                filter: brightness(1) contrast(1);
+                object-position: center 30%;
+                filter: brightness(1) contrast(1.02);
             }
             .anniversary-card:hover .martyr-image img {
                 transform: none;
             }
+            
+            /* Content area - generous padding, clear hierarchy */
             .anniversary-card .martyr-info {
-                padding: 1.25rem 1.25rem 1.5rem;
+                padding: 1.75rem 1.5rem 2rem;
                 justify-content: flex-start;
+                gap: 0;
             }
             .anniversary-card .martyr-info::before {
                 width: 100%;
@@ -738,53 +756,86 @@
                 left: 0;
                 right: 0;
                 bottom: auto;
-                background: linear-gradient(90deg, var(--accent-color) 0%, transparent 100%);
+                background: linear-gradient(90deg, var(--accent-color) 0%, rgba(212,175,55,0.3) 70%, transparent 100%);
             }
+            
+            /* Name - prominent, respectful */
             .anniversary-card .martyr-info h3 {
-                font-size: 1.35rem;
+                font-size: 1.4rem;
                 font-weight: 700;
                 line-height: 1.3;
-                margin-bottom: 0.4rem;
+                margin-bottom: 0.5rem;
+                letter-spacing: -0.01em;
+                color: #1e3a20;
             }
+            
+            /* Martyrdom date - clear, solemn */
             .anniversary-card .martyr-dates {
-                font-size: 0.95rem;
-                margin-bottom: 0.3rem;
+                font-size: 0.975rem;
+                margin-bottom: 0.4rem;
+                font-weight: 600;
+                color: #374151;
+                letter-spacing: 0.005em;
             }
+            
+            /* Location - subtle but present */
             .anniversary-card .martyr-location {
-                font-size: 0.88rem;
-                margin-bottom: 0.75rem;
-            }
-            .anniversary-card .anniversary-date {
-                font-size: 0.82rem;
-                padding: 0.5rem 1rem;
-                margin-bottom: 0.85rem;
-            }
-            .anniversary-card .martyr-bio {
                 font-size: 0.9rem;
-                line-height: 1.55;
+                margin-bottom: 0.9rem;
+                color: #6b7280;
+                font-weight: 500;
+            }
+            
+            /* Anniversary badge - refined, tasteful */
+            .anniversary-card .anniversary-date {
+                font-size: 0.85rem;
+                padding: 0.55rem 1.15rem;
                 margin-bottom: 1rem;
+                align-self: flex-start;
+                box-shadow: 0 2px 6px rgba(212,175,55,0.12);
+            }
+            
+            /* Biography - readable, dignified line length */
+            .anniversary-card .martyr-bio {
+                font-size: 0.925rem;
+                line-height: 1.6;
+                margin-bottom: 1.25rem;
+                color: #4b5563;
                 -webkit-line-clamp: 3;
+                max-width: none;
             }
 
-            /* Full-width CTA on mobile */
+            /* CTA - prominent, accessible */
             .anniversary-card .btn-small {
                 align-self: stretch;
                 width: 100%;
-                padding: 0.75rem 1.25rem;
+                padding: 0.875rem 1.5rem;
                 justify-content: center;
-                font-size: 0.9rem;
+                font-size: 0.925rem;
+                font-weight: 700;
+                margin-top: auto;
+                box-shadow: 0 3px 10px rgba(44,85,48,0.18);
+            }
+            .anniversary-card .btn-small:active {
+                transform: scale(0.98);
             }
 
+            /* Navigation dots - clear, accessible */
             .slider-dots {
-                margin: 0.85rem 0 1rem;
-                gap: 0.4rem;
+                margin: 1.1rem 0 1.35rem;
+                gap: 0.45rem;
+                padding: 0.5rem;
             }
             .dot {
-                width: 9px;
-                height: 9px;
+                width: 10px;
+                height: 10px;
+                border: 1.5px solid rgba(44,85,48,0.15);
+            }
+            .dot.active {
+                border-color: rgba(44,85,48,0.4);
             }
 
-            /* Use swipe + dots on mobile; hide arrows */
+            /* Hide desktop navigation on mobile */
             .slider-btn {
                 display: none;
             }
@@ -798,76 +849,88 @@
                 grid-template-columns: 1fr;
             }
 
+            /* Compact section spacing for small screens */
             .anniversaries {
-                padding: 2.5rem 0;
+                padding: 2.75rem 0;
             }
             .anniversaries h2 {
-                font-size: 1.6rem;
-                margin-bottom: 0.4rem;
+                font-size: 1.65rem;
+                line-height: 1.25;
+                margin-bottom: 0.5rem;
+                padding: 0 1rem;
             }
             .anniversaries .section-subtitle {
-                font-size: 0.88rem;
-                margin-bottom: 1.75rem;
+                font-size: 0.9rem;
+                line-height: 1.5;
+                margin-bottom: 1.85rem;
                 padding: 0 1.25rem;
             }
 
+            /* Tighter container margins */
             .slider-container {
-                border-radius: 14px;
-                margin: 0 0.5rem;
+                border-radius: 16px;
+                margin: 0 0.75rem;
             }
 
+            /* Proportional image height */
             .anniversary-card .martyr-image {
-                height: 180px;
+                height: 200px;
             }
+            
+            /* Refined content padding */
             .anniversary-card .martyr-info {
-                padding: 1.1rem 1.1rem 1.35rem;
+                padding: 1.5rem 1.25rem 1.75rem;
             }
+            
+            /* Scaled typography - maintains hierarchy */
             .anniversary-card .martyr-info h3 {
-                font-size: 1.25rem;
-                line-height: 1.25;
-                margin-bottom: 0.35rem;
+                font-size: 1.3rem;
+                line-height: 1.28;
+                margin-bottom: 0.45rem;
             }
             .anniversary-card .martyr-dates {
-                font-size: 0.88rem;
-                margin-bottom: 0.25rem;
+                font-size: 0.9rem;
+                margin-bottom: 0.35rem;
             }
             .anniversary-card .martyr-location {
-                font-size: 0.82rem;
-                margin-bottom: 0.65rem;
+                font-size: 0.85rem;
+                margin-bottom: 0.8rem;
             }
             .anniversary-card .anniversary-date {
-                padding: 0.45rem 0.9rem;
-                font-size: 0.78rem;
-                margin-bottom: 0.75rem;
+                padding: 0.5rem 1rem;
+                font-size: 0.8rem;
+                margin-bottom: 0.9rem;
             }
 
-            /* Keep the card compact on very small screens */
+            /* Compact bio - 2 lines maximum */
             .anniversary-card .martyr-bio {
-                font-size: 0.86rem;
-                line-height: 1.5;
-                margin-bottom: 0.9rem;
+                font-size: 0.88rem;
+                line-height: 1.55;
+                margin-bottom: 1.1rem;
                 -webkit-line-clamp: 2;
             }
 
+            /* Touch-friendly button */
             .anniversary-card .btn-small {
-                padding: 0.7rem 1.15rem;
-                font-size: 0.86rem;
+                padding: 0.8rem 1.25rem;
+                font-size: 0.88rem;
             }
 
+            /* Accessible dots navigation */
             .slider-dots {
-                gap: 0.3rem;
-                margin: 0.75rem 0 0.95rem;
+                gap: 0.35rem;
+                margin: 0.95rem 0 1.15rem;
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
                 justify-content: center;
-                padding: 0 0.5rem;
+                padding: 0.5rem;
             }
             .slider-dots::-webkit-scrollbar {
                 display: none;
             }
             .dot {
-                width: 8px;
-                height: 8px;
+                width: 9px;
+                height: 9px;
             }
 
             .featured-martyrs .martyrs-showcase {
