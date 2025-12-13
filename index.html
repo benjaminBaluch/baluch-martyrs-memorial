@@ -91,11 +91,14 @@
         }
         .impact-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 2.5rem;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 3rem;
             margin-bottom: 2rem;
             position: relative;
             z-index: 1;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
         }
         .impact-card {
             background: linear-gradient(135deg, #ffffff 0%, #fefefe 100%);
@@ -529,8 +532,9 @@
                 font-size: 1.05rem;
             }
             .impact-grid {
-                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                grid-template-columns: 1fr;
                 gap: 2rem;
+                max-width: 500px;
             }
             .impact-card {
                 padding: 2rem 1.5rem;
@@ -1366,18 +1370,6 @@
                         <div class="impact-number" id="totalStoriesCount">--</div>
                         <div class="impact-label">Stories Shared</div>
                         <div class="impact-description">Biographical accounts that inspire generations</div>
-                    </div>
-                    <div class="impact-card">
-                        <div class="impact-icon">🌍</div>
-                        <div class="impact-number" id="globalReachCount">--</div>
-                        <div class="impact-label">Global Reach</div>
-                        <div class="impact-description">Visitors from around the world honoring our heroes</div>
-                    </div>
-                    <div class="impact-card">
-                        <div class="impact-icon">⏰</div>
-                        <div class="impact-number" id="recentActivityCount">--</div>
-                        <div class="impact-label">This Month</div>
-                        <div class="impact-description">New submissions and updates from the community</div>
                     </div>
                 </div>
             </div>
