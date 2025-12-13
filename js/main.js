@@ -869,6 +869,48 @@ function setupSliderControls() {
     
     if (prevBtn) prevBtn.onclick = prevSlide;
     if (nextBtn) nextBtn.onclick = nextSlide;
+
+    // Mobile-friendly: enable swipe gestures on touch devices
+    setupSliderTouchControls();
+}
+
+// Enable simple left/right swipe to change slides (mobile UX)
+function setupSliderTouchControls() {
+    const slider = document.getElementById('anniversary-slider');
+    if (!slider) return;
+
+    // Prevent multiple listener registrations
+    if (slider.dataset.touchInit === '1') return;
+    slider.dataset.touchInit = '1';
+
+    let startX = 0;
+    let startY = 0;
+    const threshold = 50; // px swipe distance
+
+    slider.addEventListener('touchstart', (e) => {
+        const touch = e.changedTouches && e.changedTouches[0];
+        if (!touch) return;
+        startX = touch.clientX;
+        startY = touch.clientY;
+    }, { passive: true });
+
+    slider.addEventListener('touchend', (e) => {
+        const touch = e.changedTouches && e.changedTouches[0];
+        if (!touch) return;
+
+        const dx = touch.clientX - startX;
+        const dy = touch.clientY - startY;
+
+        // Ignore mostly-vertical gestures (so the page can scroll naturally)
+        if (Math.abs(dx) <= Math.abs(dy)) return;
+        if (Math.abs(dx) < threshold) return;
+
+        if (dx < 0) {
+            nextSlide();
+        } else {
+            prevSlide();
+        }
+    }, { passive: true });
 }
 
 // Slider navigation functions

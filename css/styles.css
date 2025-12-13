@@ -1908,6 +1908,68 @@ section {
     .nav-brand h1 {
         font-size: 1.2rem;
     }
+
+    /* Anniversary slider - extra small screens (better spacing + tap targets) */
+    .slider-container {
+        margin: 0 0.75rem;
+        border-radius: 10px;
+    }
+
+    .anniversary-card {
+        padding: 1.25rem;
+    }
+
+    .anniversary-card .martyr-image {
+        width: 160px;
+        height: 160px;
+        margin-bottom: 1rem;
+    }
+
+    .anniversary-card .martyr-info h3 {
+        font-size: 1.35rem;
+        line-height: 1.2;
+    }
+
+    .anniversary-card .martyr-dates {
+        font-size: 1rem;
+    }
+
+    .anniversary-card .martyr-location {
+        justify-content: center;
+    }
+
+    .anniversary-date {
+        font-size: 1.05rem;
+        padding: 0.45rem 0.85rem;
+        max-width: 100%;
+        box-sizing: border-box;
+        text-align: center;
+    }
+
+    .martyr-bio {
+        font-size: 0.95rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .anniversary-card .btn-small {
+        width: 100%;
+        max-width: 320px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* Easier tap targets for slider controls */
+    .slider-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 1.25rem;
+    }
+
+    .dot {
+        width: 14px;
+        height: 14px;
+        margin: 0 10px;
+    }
 }
 
 
