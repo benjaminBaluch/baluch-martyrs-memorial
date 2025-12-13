@@ -778,9 +778,15 @@ function createAnniversaryCard(martyr) {
     
     const dates = document.createElement('p');
     dates.className = 'martyr-dates';
-    const birthYear = martyr.birthDate ? formatDateYear(martyr.birthDate) : '?';
-    const martyrdomYear = formatDateYear(martyr.martyrdomDate);
-    dates.textContent = `${birthYear} - ${martyrdomYear}`;
+
+    // Professional: show only martyrdom date (no birth date/year on anniversary slider)
+    const martyrdomPretty = formatDate(martyr.martyrdomDate);
+    if (martyrdomPretty && martyrdomPretty !== 'Unknown') {
+        dates.textContent = `Martyred: ${martyrdomPretty}`;
+    } else {
+        const martyrdomYear = formatDateYear(martyr.martyrdomDate);
+        dates.textContent = martyrdomYear && martyrdomYear !== '?' ? `Martyred: ${martyrdomYear}` : 'Martyred: Unknown';
+    }
     
     const location = document.createElement('p');
     location.className = 'martyr-location';
