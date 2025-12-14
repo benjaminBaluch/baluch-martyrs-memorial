@@ -105,6 +105,247 @@ html[data-theme="dark"] .site-footer {
     box-shadow: 0 -18px 45px rgba(0, 0, 0, 0.7);
 }
 
+/* ============================================
+   COMPREHENSIVE DARK MODE STYLES - ALL PAGES
+   ============================================ */
+
+/* Section backgrounds with gradients */
+html[data-theme="dark"] .anniversaries {
+    background: linear-gradient(165deg, #0a1628 0%, #0c1e33 25%, #0a1420 50%, #1a1404 75%, #1c1805 100%);
+}
+
+html[data-theme="dark"] .anniversaries::before {
+    background: radial-gradient(circle at 20% 50%, rgba(44,85,48,0.15) 0%, transparent 50%),
+               radial-gradient(circle at 80% 80%, rgba(212,175,55,0.12) 0%, transparent 50%);
+}
+
+html[data-theme="dark"] .purpose-section::before {
+    background: radial-gradient(circle at center, rgba(44,85,48,0.08) 0%, transparent 70%);
+}
+
+html[data-theme="dark"] .impact-section::before {
+    background: radial-gradient(circle at 30% 20%, rgba(44,85,48,0.08) 0%, transparent 50%),
+               radial-gradient(circle at 70% 80%, rgba(212,175,55,0.08) 0%, transparent 50%);
+}
+
+/* Anniversary slider dark mode */
+html[data-theme="dark"] .anniversary-card .martyr-info {
+    background: linear-gradient(135deg, #0f1419 0%, #0a0f15 100%);
+}
+
+html[data-theme="dark"] .anniversary-card .martyr-image {
+    background: linear-gradient(135deg, #1a2028 0%, #151b22 100%);
+}
+
+html[data-theme="dark"] .anniversary-card .martyr-info h3,
+html[data-theme="dark"] .anniversary-card .martyr-dates,
+html[data-theme="dark"] .anniversary-card .martyr-location,
+html[data-theme="dark"] .anniversary-card .martyr-bio {
+    color: var(--text-color);
+}
+
+html[data-theme="dark"] .anniversary-card .anniversary-date {
+    background: linear-gradient(135deg, #2a2410 0%, #3a3016 100%);
+    border-color: rgba(212,175,55,0.3);
+    box-shadow: 0 2px 8px rgba(212,175,55,0.1);
+}
+
+/* Slider controls */
+html[data-theme="dark"] .slider-btn {
+    background: rgba(15,23,42,0.95);
+    border-color: rgba(148,163,184,0.4);
+    color: var(--text-color);
+}
+
+html[data-theme="dark"] .slider-btn:hover {
+    background: rgba(30,41,59,0.98);
+    border-color: var(--primary-color);
+}
+
+html[data-theme="dark"] .dot {
+    background: rgba(148,163,184,0.3);
+    border-color: rgba(148,163,184,0.2);
+}
+
+html[data-theme="dark"] .dot.active {
+    background: var(--primary-color);
+    border-color: rgba(44,85,48,0.4);
+}
+
+/* Impact cards dark mode */
+html[data-theme="dark"] .impact-card {
+    background: linear-gradient(135deg, #0f1419 0%, #0a0f15 100%);
+    border-color: rgba(148,163,184,0.2);
+}
+
+html[data-theme="dark"] .impact-card::before {
+    background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+}
+
+html[data-theme="dark"] .impact-label {
+    color: #86efac;
+}
+
+/* Purpose feature cards */
+html[data-theme="dark"] .purpose-feature {
+    background: rgba(15,23,42,0.6);
+    border-color: rgba(148,163,184,0.2);
+}
+
+html[data-theme="dark"] .purpose-feature:hover {
+    background: rgba(15,23,42,0.85);
+    border-color: rgba(44,85,48,0.3);
+}
+
+html[data-theme="dark"] .purpose-feature-icon {
+    background-color: rgba(44,85,48,0.15);
+}
+
+/* Showcase cards */
+html[data-theme="dark"] .showcase-card {
+    background: linear-gradient(135deg, #0f1419 0%, #0a0f15 100%);
+    border-color: rgba(148,163,184,0.2);
+}
+
+html[data-theme="dark"] .showcase-card:hover {
+    border-color: rgba(44,85,48,0.3);
+}
+
+/* Featured martyrs cards */
+html[data-theme="dark"] .featured-martyrs .martyr-card {
+    background: #0f1419;
+    border-color: rgba(148,163,184,0.2);
+}
+
+html[data-theme="dark"] .featured-martyrs .martyr-card:hover {
+    border-color: rgba(44,85,48,0.3);
+}
+
+html[data-theme="dark"] .featured-martyrs .placeholder {
+    background: linear-gradient(135deg, #0f1419, #0c1116);
+    border-color: rgba(148,163,184,0.3);
+}
+
+/* Gallery page dark mode */
+html[data-theme="dark"] .gallery-grid .martyr-card {
+    background: #0f1419;
+    border-color: rgba(148,163,184,0.2);
+}
+
+html[data-theme="dark"] .gallery-grid .martyr-card:hover {
+    border-color: rgba(44,85,48,0.3);
+}
+
+html[data-theme="dark"] .martyr-image {
+    background: linear-gradient(135deg, #1a2028, #151b22);
+}
+
+/* Filter bar */
+html[data-theme="dark"] .filter-bar {
+    background: #0f1419;
+    border-color: rgba(148,163,184,0.2);
+}
+
+html[data-theme="dark"] .search-input {
+    background: #020617;
+    border-color: #334155;
+    color: var(--text-color);
+}
+
+html[data-theme="dark"] .search-input::placeholder {
+    color: #64748b;
+}
+
+/* Modal dark mode */
+html[data-theme="dark"] .modal-content {
+    background: #0f1419;
+    border-color: rgba(148,163,184,0.2);
+}
+
+html[data-theme="dark"] .modal-header,
+html[data-theme="dark"] .modal-body,
+html[data-theme="dark"] .modal-footer {
+    background: transparent;
+    border-color: rgba(148,163,184,0.2);
+}
+
+html[data-theme="dark"] .close-modal {
+    color: var(--text-color);
+}
+
+/* About page */
+html[data-theme="dark"] .about-hero {
+    background: linear-gradient(135deg, #020617 0%, #0a1420 100%);
+}
+
+html[data-theme="dark"] .team-card,
+html[data-theme="dark"] .timeline-item {
+    background: #0f1419;
+    border-color: rgba(148,163,184,0.2);
+}
+
+/* Contact page */
+html[data-theme="dark"] .contact-info-card {
+    background: #0f1419;
+    border-color: rgba(148,163,184,0.2);
+}
+
+/* Add martyr form */
+html[data-theme="dark"] .form-section {
+    background: #0f1419;
+    border-color: rgba(148,163,184,0.2);
+}
+
+html[data-theme="dark"] .file-upload-area {
+    background: #020617;
+    border-color: #334155;
+}
+
+html[data-theme="dark"] .file-upload-area:hover {
+    border-color: var(--primary-color);
+}
+
+/* Buttons in dark mode */
+html[data-theme="dark"] .btn-outline {
+    border-color: rgba(44,85,48,0.4);
+    color: #86efac;
+}
+
+html[data-theme="dark"] .btn-outline:hover {
+    background: rgba(44,85,48,0.2);
+    border-color: var(--primary-color);
+}
+
+/* Admin panels */
+html[data-theme="dark"] .admin-panel,
+html[data-theme="dark"] .pending-card,
+html[data-theme="dark"] .stats-card {
+    background: #0f1419;
+    border-color: rgba(148,163,184,0.2);
+}
+
+/* Tables */
+html[data-theme="dark"] table {
+    border-color: rgba(148,163,184,0.2);
+}
+
+html[data-theme="dark"] th,
+html[data-theme="dark"] td {
+    border-color: rgba(148,163,184,0.2);
+    color: var(--text-color);
+}
+
+html[data-theme="dark"] tr:hover {
+    background: rgba(44,85,48,0.1);
+}
+
+/* Search highlight in dark mode */
+html[data-theme="dark"] .search-highlight,
+html[data-theme="dark"] mark.search-highlight {
+    background-color: #3a3016;
+    color: #fef3c7;
+}
+
 * {
     margin: 0;
     padding: 0;
