@@ -1,0 +1,28 @@
+{
+    "name": "Baluch Martyrs Memorial",
+    "short_name": "BMM",
+    "description": "A sacred digital sanctuary preserving the legacy of brave souls who made the ultimate sacrifice for freedom, justice, and the dignity of the Baluch nation.",
+    "icons": [
+        {
+            "src": "/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/baluch-flag-logo.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
+        {
+            "src": "/images/baluch-flag-logo.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "theme_color": "#2c5530",
+    "background_color": "#f5f5f5",
+    "display": "standalone",
+    "start_url": "/",
+    "scope": "/"
+}
