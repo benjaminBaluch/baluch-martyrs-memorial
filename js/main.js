@@ -245,79 +245,116 @@ async function loadRecentMartyrs() {
     }
 }
 
-// Create Martyr Card Element - Matching Gallery Exact Design
+// Create Martyr Card Element - Matching Gallery Professional Design
 function createMartyrCard(martyr) {
     const card = document.createElement('div');
     card.className = 'martyr-card';
     
-    // Image section
-    const imageDiv = document.createElement('div');
-    imageDiv.className = 'martyr-image';
+    // Card inner wrapper
+    const cardInner = document.createElement('div');
+    cardInner.className = 'martyr-card-inner';
+    
+    // Photo wrapper with overlay
+    const photoWrapper = document.createElement('div');
+    photoWrapper.className = 'martyr-photo-wrapper';
     
     if (martyr.photo) {
         const img = document.createElement('img');
         img.src = martyr.photo;
         img.alt = martyr.fullName;
-        img.style.cssText = 'width: 100%; height: 200px; object-fit: cover; border-radius: 8px 8px 0 0;';
-        imageDiv.appendChild(img);
+        img.loading = 'lazy';
+        photoWrapper.appendChild(img);
+        
+        // Add photo overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'martyr-photo-overlay';
+        photoWrapper.appendChild(overlay);
     } else {
-        imageDiv.style.cssText = 'height: 200px; background: linear-gradient(135deg, #f0f0f0, #d0d0d0); border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: center; font-size: 48px; color: #999;';
-        imageDiv.textContent = '📸';
+        const placeholder = document.createElement('div');
+        placeholder.className = 'martyr-photo-placeholder';
+        placeholder.textContent = '🕊️';
+        photoWrapper.appendChild(placeholder);
     }
     
     // Info section
     const infoDiv = document.createElement('div');
     infoDiv.className = 'martyr-info';
-    infoDiv.style.cssText = 'padding: 1rem;';
+    
+    // Name row with symbol
+    const nameRow = document.createElement('div');
+    nameRow.className = 'martyr-name-row';
+    
+    const symbol = document.createElement('span');
+    symbol.className = 'martyr-symbol';
+    symbol.textContent = '🕊️';
     
     const name = document.createElement('h3');
+    name.className = 'martyr-name';
     name.textContent = martyr.fullName;
-    name.style.cssText = 'margin: 0 0 0.5rem 0; color: #2c5530;';
     
-    const dates = document.createElement('p');
+    nameRow.appendChild(symbol);
+    nameRow.appendChild(name);
+    
+    // Dates meta
+    const datesMeta = document.createElement('div');
+    datesMeta.className = 'martyr-meta';
+    
+    const dateIcon = document.createElement('span');
+    dateIcon.className = 'martyr-meta-icon';
+    dateIcon.textContent = '📅';
+    
+    const datesText = document.createElement('span');
     const birthYear = martyr.birthDate ? formatDateYear(martyr.birthDate) : '?';
     const martyrdomYear = formatDateYear(martyr.martyrdomDate) || '?';
-    dates.textContent = `${birthYear} - ${martyrdomYear}`;
-    dates.style.cssText = 'margin: 0 0 0.5rem 0; font-weight: 500;';
+    datesText.textContent = `${birthYear} - ${martyrdomYear}`;
     
-    const place = document.createElement('p');
-    place.textContent = martyr.martyrdomPlace || 'Unknown location';
-    place.style.cssText = 'margin: 0 0 0.5rem 0; color: #666;';
+    datesMeta.appendChild(dateIcon);
+    datesMeta.appendChild(datesText);
     
-    const viewBtn = document.createElement('button');
-    viewBtn.textContent = 'View Details';
-    viewBtn.className = 'btn-small';
-    viewBtn.style.cssText = 'margin-top: 1rem; background: #2c5530; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;';
-    viewBtn.onclick = () => showMartyrDetails(martyr);
+    // Location meta
+    const locationMeta = document.createElement('div');
+    locationMeta.className = 'martyr-meta';
     
-    infoDiv.appendChild(name);
-    infoDiv.appendChild(dates);
-    infoDiv.appendChild(place);
+    const locationIcon = document.createElement('span');
+    locationIcon.className = 'martyr-meta-icon';
+    locationIcon.textContent = '📍';
     
+    const locationText = document.createElement('span');
+    locationText.textContent = martyr.martyrdomPlace || 'Unknown location';
+    
+    locationMeta.appendChild(locationIcon);
+    locationMeta.appendChild(locationText);
+    
+    // Organization (if available)
     if (martyr.organization) {
-        const org = document.createElement('p');
-        org.textContent = martyr.organization;
-        org.style.cssText = 'margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #888;';
-        infoDiv.appendChild(org);
+        const orgDiv = document.createElement('div');
+        orgDiv.className = 'martyr-organization';
+        orgDiv.textContent = `🏢 ${martyr.organization}`;
+        infoDiv.appendChild(nameRow);
+        infoDiv.appendChild(datesMeta);
+        infoDiv.appendChild(locationMeta);
+        infoDiv.appendChild(orgDiv);
+    } else {
+        infoDiv.appendChild(nameRow);
+        infoDiv.appendChild(datesMeta);
+        infoDiv.appendChild(locationMeta);
     }
+    
+    // View details button
+    const viewBtn = document.createElement('button');
+    viewBtn.className = 'martyr-card-button';
+    viewBtn.textContent = 'View Details';
+    viewBtn.onclick = function(e) {
+        e.preventDefault();
+        showMartyrDetails(martyr);
+    };
     
     infoDiv.appendChild(viewBtn);
     
-    card.appendChild(imageDiv);
-    card.appendChild(infoDiv);
-    
-    // Card styling
-    card.style.cssText = 'border: 1px solid #ddd; border-radius: 8px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.2s, box-shadow 0.2s; overflow: hidden;';
-    
-    // Hover effect
-    card.addEventListener('mouseenter', () => {
-        card.style.transform = 'translateY(-4px)';
-        card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-    });
-    card.addEventListener('mouseleave', () => {
-        card.style.transform = 'translateY(0)';
-        card.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-    });
+    // Assemble card
+    cardInner.appendChild(photoWrapper);
+    cardInner.appendChild(infoDiv);
+    card.appendChild(cardInner);
     
     return card;
 }
