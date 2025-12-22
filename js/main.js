@@ -245,80 +245,116 @@ async function loadRecentMartyrs() {
     }
 }
 
-// Create Martyr Card Element
+// Create Martyr Card Element - Matching Gallery Professional Design
 function createMartyrCard(martyr) {
     const card = document.createElement('div');
     card.className = 'martyr-card';
     
-    // Create image element
-    const imageDiv = document.createElement('div');
-    imageDiv.className = 'martyr-image';
+    // Card inner wrapper
+    const cardInner = document.createElement('div');
+    cardInner.className = 'martyr-card-inner';
+    
+    // Photo wrapper with overlay
+    const photoWrapper = document.createElement('div');
+    photoWrapper.className = 'martyr-photo-wrapper';
     
     if (martyr.photo) {
         const img = document.createElement('img');
         img.src = martyr.photo;
         img.alt = martyr.fullName;
-        imageDiv.appendChild(img);
+        img.loading = 'lazy';
+        photoWrapper.appendChild(img);
+        
+        // Add photo overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'martyr-photo-overlay';
+        photoWrapper.appendChild(overlay);
     } else {
-        imageDiv.style.background = 'linear-gradient(135deg, #ddd, #aaa)';
+        const placeholder = document.createElement('div');
+        placeholder.className = 'martyr-photo-placeholder';
+        placeholder.textContent = '🕊️';
+        photoWrapper.appendChild(placeholder);
     }
     
-    // Create info section
+    // Info section
     const infoDiv = document.createElement('div');
     infoDiv.className = 'martyr-info';
     
-    // Create content wrapper
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'martyr-info-content';
+    // Name row with symbol
+    const nameRow = document.createElement('div');
+    nameRow.className = 'martyr-name-row';
+    
+    const symbol = document.createElement('span');
+    symbol.className = 'martyr-symbol';
+    symbol.textContent = '🕊️';
     
     const name = document.createElement('h3');
+    name.className = 'martyr-name';
     name.textContent = martyr.fullName;
     
-    const dates = document.createElement('p');
-    dates.textContent = `${formatDate(martyr.birthDate)} - ${formatDate(martyr.martyrdomDate)}`;
+    nameRow.appendChild(symbol);
+    nameRow.appendChild(name);
     
-    const place = document.createElement('p');
-    place.textContent = martyr.martyrdomPlace || 'Unknown location';
+    // Dates meta
+    const datesMeta = document.createElement('div');
+    datesMeta.className = 'martyr-meta';
     
-    // Add biography if available
-    if (martyr.biography && martyr.biography.trim()) {
-        const bio = document.createElement('p');
-        bio.textContent = martyr.biography.length > 120 
-            ? martyr.biography.substring(0, 120) + '...' 
-            : martyr.biography;
-        bio.style.fontSize = '0.9rem';
-        bio.style.color = '#777';
-        bio.style.fontStyle = 'italic';
-        contentDiv.appendChild(name);
-        contentDiv.appendChild(dates);
-        contentDiv.appendChild(place);
-        contentDiv.appendChild(bio);
+    const dateIcon = document.createElement('span');
+    dateIcon.className = 'martyr-meta-icon';
+    dateIcon.textContent = '📅';
+    
+    const datesText = document.createElement('span');
+    const birthYear = martyr.birthDate ? formatDateYear(martyr.birthDate) : '?';
+    const martyrdomYear = formatDateYear(martyr.martyrdomDate) || '?';
+    datesText.textContent = `${birthYear} - ${martyrdomYear}`;
+    
+    datesMeta.appendChild(dateIcon);
+    datesMeta.appendChild(datesText);
+    
+    // Location meta
+    const locationMeta = document.createElement('div');
+    locationMeta.className = 'martyr-meta';
+    
+    const locationIcon = document.createElement('span');
+    locationIcon.className = 'martyr-meta-icon';
+    locationIcon.textContent = '📍';
+    
+    const locationText = document.createElement('span');
+    locationText.textContent = martyr.martyrdomPlace || 'Unknown location';
+    
+    locationMeta.appendChild(locationIcon);
+    locationMeta.appendChild(locationText);
+    
+    // Organization (if available)
+    if (martyr.organization) {
+        const orgDiv = document.createElement('div');
+        orgDiv.className = 'martyr-organization';
+        orgDiv.textContent = `🏢 ${martyr.organization}`;
+        infoDiv.appendChild(nameRow);
+        infoDiv.appendChild(datesMeta);
+        infoDiv.appendChild(locationMeta);
+        infoDiv.appendChild(orgDiv);
     } else {
-        contentDiv.appendChild(name);
-        contentDiv.appendChild(dates);
-        contentDiv.appendChild(place);
+        infoDiv.appendChild(nameRow);
+        infoDiv.appendChild(datesMeta);
+        infoDiv.appendChild(locationMeta);
     }
     
-    // Create actions wrapper
-    const actionsDiv = document.createElement('div');
-    actionsDiv.className = 'martyr-info-actions';
-    
-    const viewBtn = document.createElement('a');
-    viewBtn.href = '#';
-    viewBtn.className = 'btn-small';
+    // View details button
+    const viewBtn = document.createElement('button');
+    viewBtn.className = 'martyr-card-button';
     viewBtn.textContent = 'View Details';
     viewBtn.onclick = function(e) {
         e.preventDefault();
         showMartyrDetails(martyr);
     };
     
-    actionsDiv.appendChild(viewBtn);
+    infoDiv.appendChild(viewBtn);
     
-    infoDiv.appendChild(contentDiv);
-    infoDiv.appendChild(actionsDiv);
-    
-    card.appendChild(imageDiv);
-    card.appendChild(infoDiv);
+    // Assemble card
+    cardInner.appendChild(photoWrapper);
+    cardInner.appendChild(infoDiv);
+    card.appendChild(cardInner);
     
     return card;
 }
