@@ -2269,6 +2269,26 @@ section {
     .anniversary-card .martyr-info h3 {
         font-size: 1.4rem;
     }
+
+    .anniversary-card .martyr-dates,
+    .anniversary-card .martyr-location,
+    .anniversary-date {
+        font-size: 1rem;
+        margin-bottom: 0.45rem;
+    }
+
+    .anniversary-card .martyr-bio {
+        display: none;
+    }
+
+    .anniversary-card .btn-small {
+        padding: 0.55rem 1.2rem;
+        font-size: 0.95rem;
+        border-radius: 999px;
+        width: fit-content;
+        min-width: 150px;
+        margin: 0.4rem auto 0;
+    }
     
     .slider-btn {
         width: 40px;
@@ -2322,6 +2342,23 @@ section {
     
     .anniversary-card .martyr-info {
         max-width: 320px;
+    }
+
+    .anniversary-card .martyr-info h3 {
+        font-size: 1.25rem;
+    }
+
+    .anniversary-card .martyr-dates,
+    .anniversary-card .martyr-location,
+    .anniversary-date {
+        font-size: 0.95rem;
+        margin-bottom: 0.35rem;
+    }
+
+    .anniversary-card .btn-small {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        min-width: 140px;
     }
 
     .anniversary-card .martyr-info h3 {
