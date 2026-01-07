@@ -2277,8 +2277,9 @@ section {
         margin-bottom: 0.45rem;
     }
 
-    .anniversary-card .martyr-bio {
-        display: none;
+    .anniversary-card .martyr-bio,
+    .anniversaries .martyr-bio {
+        display: none !important;
     }
 
     .anniversary-card .btn-small {
@@ -2383,8 +2384,7 @@ section {
     }
 
     .martyr-bio {
-        font-size: 0.95rem;
-        margin-bottom: 1.25rem;
+        display: none !important;
     }
 
     .anniversary-card .btn-small {
