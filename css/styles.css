@@ -2224,42 +2224,50 @@ section {
     }
     
     /* Anniversary slider responsive */
+    .slider-container {
+        margin: 0 auto;
+        padding: 0;
+        max-width: 500px;
+        background: transparent;
+        box-shadow: none;
+        border: none;
+    }
+    
     .anniversary-card {
         flex-direction: column;
         text-align: center;
-        padding: 1.85rem;
+        padding: 1.5rem 1.25rem 1.75rem;
         min-height: auto;
-        background: linear-gradient(160deg, #ffffff 0%, #f8faf5 60%, #f3f7ef 100%);
+        background: #ffffff;
         border-radius: 18px;
-        box-shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+        width: 100%;
+        max-width: 480px;
+        margin: 0 auto;
     }
     
     .anniversary-card .martyr-image {
-        width: clamp(160px, 55vw, 220px);
-        height: clamp(160px, 55vw, 220px);
+        width: min(65vw, 200px);
+        height: min(65vw, 200px);
         margin-right: 0;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1.25rem;
         margin-left: auto;
         margin-right: auto;
-        padding: 0.4rem;
-        background: linear-gradient(145deg, #fdf4e3, #f4f8ea);
+        padding: 0.35rem;
+        background: #fdf9f0;
         border-radius: 16px;
-        box-shadow: 0 12px 35px rgba(0,0,0,0.18);
+        box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+    }
+    
+    .anniversary-card .martyr-info {
+        padding: 0;
+        width: 100%;
+        max-width: 360px;
+        margin: 0 auto;
     }
     
     .anniversary-card .martyr-info h3 {
-        font-size: 1.45rem;
-    }
-
-    .anniversary-card .martyr-info {
-        padding: 0.25rem 0.5rem 0;
-    }
-    
-    .slider-container {
-        margin: 0 1rem;
-        max-width: none;
-        background: transparent;
-        box-shadow: none;
+        font-size: 1.4rem;
     }
     
     .slider-btn {
@@ -2292,21 +2300,28 @@ section {
 
     /* Anniversary slider - extra small screens (better spacing + tap targets) */
     .slider-container {
-        margin: 0 0.75rem;
-        border-radius: 10px;
+        margin: 0 auto;
+        padding: 0;
+        border-radius: 12px;
+        max-width: 94vw;
     }
-
+    
     .anniversary-card {
-        padding: 1.35rem 1.25rem 1.5rem;
+        padding: 1.3rem 1.05rem 1.5rem;
         border-radius: 16px;
+        max-width: 420px;
     }
-
+    
     .anniversary-card .martyr-image {
-        width: clamp(130px, 60vw, 180px);
-        height: clamp(130px, 60vw, 180px);
+        width: min(70vw, 170px);
+        height: min(70vw, 170px);
         margin-bottom: 1rem;
-        padding: 0.35rem;
+        padding: 0.3rem;
         border-radius: 14px;
+    }
+    
+    .anniversary-card .martyr-info {
+        max-width: 320px;
     }
 
     .anniversary-card .martyr-info h3 {
