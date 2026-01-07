@@ -2173,9 +2173,7 @@ section {
     }
     
     .slider-container {
-        margin: 0 auto;
-        padding: 1.2rem 0.75rem 1.5rem;
-        max-width: 520px;
+        margin: 0 1rem;
     }
     
     .slider-btn {
@@ -2260,29 +2258,22 @@ section {
     .slider-container {
         margin: 0 1rem;
         max-width: none;
-        background: rgba(255, 255, 255, 0.88);
-        border-radius: 18px;
-        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.15);
-        border: 1px solid rgba(44, 85, 48, 0.08);
-        backdrop-filter: blur(6px);
+        background: transparent;
+        box-shadow: none;
     }
     
     .slider-btn {
         width: 40px;
         height: 40px;
         font-size: 1.2rem;
-        background: rgba(44, 85, 48, 0.85);
-        top: calc(100% + 10px);
-        transform: translateY(0);
-        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.2);
     }
     
     .slider-prev {
-        left: 30%;
+        left: 10px;
     }
     
     .slider-next {
-        right: 30%;
+        right: 10px;
     }
 }
 
@@ -2301,11 +2292,8 @@ section {
 
     /* Anniversary slider - extra small screens (better spacing + tap targets) */
     .slider-container {
-        margin: 0 auto;
-        padding: 1rem 0.65rem 1.25rem;
-        border-radius: 14px;
-        max-width: 94vw;
-        box-shadow: 0 14px 32px rgba(15, 23, 42, 0.18);
+        margin: 0 0.75rem;
+        border-radius: 10px;
     }
 
     .anniversary-card {
@@ -2327,10 +2315,9 @@ section {
     }
 
     .anniversary-card .martyr-dates {
-        width: 42px;
-        height: 42px;
-        font-size: 1.15rem;
-        left: 24%;
+        font-size: 1rem;
+    }
+
     .anniversary-card .martyr-location {
         justify-content: center;
     }
@@ -2357,26 +2344,15 @@ section {
 
     /* Easier tap targets for slider controls */
     .slider-btn {
-        width: 42px;
-        height: 42px;
-        font-size: 1.15rem;
-        top: calc(100% + 12px);
-        transform: none;
-        left: auto;
-        right: auto;
+        width: 44px;
+        height: 44px;
+        font-size: 1.25rem;
     }
 
-    .slider-prev {
-        left: 20%;
-    }
-
-    .slider-next {
-        right: 20%;
-    }
     .dot {
-        width: 12px;
-        height: 12px;
-        margin: 0 6px;
+        width: 14px;
+        height: 14px;
+        margin: 0 10px;
     }
 }
 
