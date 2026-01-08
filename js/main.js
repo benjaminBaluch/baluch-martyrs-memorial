@@ -294,51 +294,32 @@ function createMartyrCard(martyr) {
     
     nameRow.appendChild(symbol);
     nameRow.appendChild(name);
+    infoDiv.appendChild(nameRow);
     
-    // Dates meta
-    const datesMeta = document.createElement('div');
-    datesMeta.className = 'martyr-meta';
+    // Key details (martyrdom date & place)
+    const detailList = document.createElement('div');
+    detailList.className = 'martyr-detail-list';
     
-    const dateIcon = document.createElement('span');
-    dateIcon.className = 'martyr-meta-icon';
-    dateIcon.textContent = '📅';
+    const martyrdomDate = formatDate(martyr.martyrdomDate);
+    const martyrdomPlace = martyr.martyrdomPlace || 'Location not recorded';
     
-    const datesText = document.createElement('span');
-    const birthYear = martyr.birthDate ? formatDateYear(martyr.birthDate) : '?';
-    const martyrdomYear = formatDateYear(martyr.martyrdomDate) || '?';
-    datesText.textContent = `${birthYear} - ${martyrdomYear}`;
+    const dateRow = document.createElement('div');
+    dateRow.className = 'martyr-detail-row';
+    dateRow.innerHTML = `
+        <span class=\"martyr-detail-label\">Martyred</span>
+        <span class=\"martyr-detail-value\">${martyrdomDate && martyrdomDate !== 'Unknown' ? martyrdomDate : 'Date not recorded'}</span>
+    `;
     
-    datesMeta.appendChild(dateIcon);
-    datesMeta.appendChild(datesText);
+    const placeRow = document.createElement('div');
+    placeRow.className = 'martyr-detail-row';
+    placeRow.innerHTML = `
+        <span class=\"martyr-detail-label\">Place</span>
+        <span class=\"martyr-detail-value\">${martyrdomPlace}</span>
+    `;
     
-    // Location meta
-    const locationMeta = document.createElement('div');
-    locationMeta.className = 'martyr-meta';
-    
-    const locationIcon = document.createElement('span');
-    locationIcon.className = 'martyr-meta-icon';
-    locationIcon.textContent = '📍';
-    
-    const locationText = document.createElement('span');
-    locationText.textContent = martyr.martyrdomPlace || 'Unknown location';
-    
-    locationMeta.appendChild(locationIcon);
-    locationMeta.appendChild(locationText);
-    
-    // Organization (if available)
-    if (martyr.organization) {
-        const orgDiv = document.createElement('div');
-        orgDiv.className = 'martyr-organization';
-        orgDiv.textContent = `🏢 ${martyr.organization}`;
-        infoDiv.appendChild(nameRow);
-        infoDiv.appendChild(datesMeta);
-        infoDiv.appendChild(locationMeta);
-        infoDiv.appendChild(orgDiv);
-    } else {
-        infoDiv.appendChild(nameRow);
-        infoDiv.appendChild(datesMeta);
-        infoDiv.appendChild(locationMeta);
-    }
+    detailList.appendChild(dateRow);
+    detailList.appendChild(placeRow);
+    infoDiv.appendChild(detailList);
     
     // View details button
     const viewBtn = document.createElement('button');

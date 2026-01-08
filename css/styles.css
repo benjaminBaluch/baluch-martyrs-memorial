@@ -945,6 +945,36 @@ section {
     font-size: 0.9rem;
 }
 
+.martyr-detail-list {
+    margin: 0.35rem 0 0.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.martyr-detail-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    font-size: 0.9rem;
+    color: #4b5563;
+}
+
+.martyr-detail-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    color: #1f2937;
+    min-width: 82px;
+}
+
+.martyr-detail-value {
+    font-weight: 600;
+    color: #111827;
+    flex: 1;
+}
+
 .martyr-meta {
     margin: 0.15rem 0;
     font-size: 0.9rem;
