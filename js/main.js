@@ -323,7 +323,7 @@ function createMartyrCard(martyr) {
     
     // View details button
     const viewBtn = document.createElement('button');
-    viewBtn.className = 'martyr-card-button';
+    viewBtn.className = 'btn martyr-card-button';
     viewBtn.textContent = 'View Details';
     viewBtn.onclick = function(e) {
         e.preventDefault();
@@ -833,7 +833,7 @@ function createAnniversaryCard(martyr) {
     }
     
     const viewBtn = document.createElement('button');
-    viewBtn.className = 'btn-small';
+    viewBtn.className = 'btn btn-small';
     viewBtn.textContent = 'Read More';
     viewBtn.onclick = () => showMartyrDetails(martyr);
     infoDiv.appendChild(viewBtn);
@@ -972,7 +972,7 @@ function showEmptyAnniversarySlider() {
                     <h3>No upcoming anniversaries</h3>
                     <p class="martyr-dates">Add martyrs to see their anniversaries</p>
                     <p class="anniversary-date">Check back later for memorial dates</p>
-                    <a href="add-martyr.html" class="btn-small">Add Martyr</a>
+                    <a href="add-martyr.html" class="btn btn-small">Add Martyr</a>
                 </div>
             </div>
         </div>

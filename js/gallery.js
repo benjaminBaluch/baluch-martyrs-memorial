@@ -403,8 +403,7 @@ function createGalleryCard(martyr) {
     
     const viewBtn = document.createElement('button');
     viewBtn.textContent = 'View Details';
-    viewBtn.className = 'btn-small';
-    viewBtn.style.cssText = 'margin-top: 1rem; background: #2c5530; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;';
+    viewBtn.className = 'btn btn-small';
     // Use the original gallery-specific martyr modal
     viewBtn.onclick = () => showMartyrModal(martyr);
     
@@ -1168,8 +1167,7 @@ function showMartyrModal(martyr) {
                     </p>
                 </div>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <button class="martyr-print-btn-header"
-                            style="background: #f9fafb; color: #111827; border: none; padding: 0.4rem 0.85rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; cursor: pointer;">
+                    <button class="btn btn-small btn-outline martyr-print-btn-header" type="button">
                         PDF
                     </button>
                     <button class="close-martyr-modal"
@@ -1244,7 +1242,7 @@ function showMartyrModal(martyr) {
                     ` : ''}
 
                     <div style="margin-top: 1.5rem;">
-                        <button class="martyr-voice-btn" type="button">
+                        <button class="btn martyr-voice-btn" type="button">
                             🔊 Listen to this martyr's story
                         </button>
                     </div>
@@ -1256,11 +1254,11 @@ function showMartyrModal(martyr) {
                     
                     <div class=\"martyr-modal-share-slot\"></div>
 
-                    <div style=\"margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 0.75rem;\">
-                        <button class="martyr-print-btn" style="background: #2c5530; color: #fff; border: none; padding: 0.6rem 1.4rem; border-radius: 999px; cursor: pointer; font-size: 0.95rem; font-weight: 600;">
+                    <div class=\"martyr-modal-actions\" style=\"margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 0.75rem;\">
+                        <button class=\"btn martyr-print-btn\" type=\"button\">
                             Print / Download PDF
                         </button>
-                        <button class="martyr-close-btn" style="background: #e5e7eb; color: #111827; border: none; padding: 0.6rem 1.3rem; border-radius: 999px; cursor: pointer; font-size: 0.95rem;">
+                        <button class=\"btn btn-outline martyr-close-btn\" type=\"button\">
                             Close
                         </button>
                     </div>
@@ -1339,7 +1337,7 @@ function showEmptyGalleryMessage() {
             <div class="martyr-info">
                 <h3>No martyrs in gallery yet</h3>
                 <p>Be the first to add a martyr to our memorial</p>
-                <a href="add-martyr.html" class="btn-small">Add Martyr</a>
+                <a href="add-martyr.html" class="btn btn-small">Add Martyr</a>
             </div>
         </div>
     `;
@@ -1611,7 +1609,7 @@ function createGalleryCard(martyr) {
 
     // View details button
     const viewBtn = document.createElement('button');
-    viewBtn.className = 'btn-small martyr-card-button';
+    viewBtn.className = 'btn btn-small martyr-card-button';
     viewBtn.type = 'button';
     viewBtn.textContent = 'View Details';
     // Open the original gallery-specific martyr modal
@@ -1903,7 +1901,7 @@ function showNoResultsMessage() {
             <h3>No martyrs found</h3>
             ${hasActiveFilters ? `<p>No martyrs match your search criteria:</p><p style=\"font-style: italic; color: #007bff;\">${activeFiltersText}</p>` : '<p>Try searching with different keywords</p>'}
             ${suggestionsHtml}
-            <button onclick=\"clearAllFilters()\" class=\"btn-small\" style=\"margin-top: 1.25rem;\">Clear All Filters</button>
+            <button onclick=\"clearAllFilters()\" class=\"btn btn-small\" style=\"margin-top: 1.25rem;\">Clear All Filters</button>
         `;
         
         const galleryGrid = document.getElementById('galleryGrid');
