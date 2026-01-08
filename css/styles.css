@@ -1488,62 +1488,63 @@ section {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-top: 1rem;
-    padding-top: 0.85rem;
+    margin-top: 1.1rem;
+    padding-top: 1.1rem;
     border-top: 1px solid rgba(15, 23, 42, 0.08);
-    gap: 0.65rem;
+    gap: 0.9rem;
 }
+
 .martyr-share-label {
-.gallery-grid .martyr-share-label {
     font-size: 0.85rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #6b7280;
-    font-weight: 600;
+    color: #4b5563;
+    font-weight: 700;
 }
+
 .martyr-share-actions {
-.gallery-grid .martyr-share-actions {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.55rem;
 }
+
 .martyr-share-icon {
-.gallery-grid .martyr-share-icon {
-    width: 34px;
-    height: 34px;
-    border-radius: 999px;
-    border: 1px solid rgba(15, 23, 42, 0.1);
-    background: white;
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    background: #f9fafb;
     color: var(--primary-color);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
 }
 
 .martyr-share-icon:hover,
 .martyr-share-icon:focus-visible {
     border-color: rgba(44, 85, 48, 0.4);
-    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.15);
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.15);
     transform: translateY(-1px);
+    background: #ffffff;
     color: var(--secondary-color);
 }
+
 .martyr-share-icon:focus-visible {
-.gallery-grid .martyr-share-icon:focus-visible {
     outline: 3px solid rgba(44, 85, 48, 0.25);
-    outline-offset: 2px;
+    outline-offset: 3px;
 }
 
 .martyr-share-row-modal {
-    margin-top: 1.5rem;
-    padding-top: 1.25rem;
+    margin-top: 1.75rem;
+    padding-top: 1.5rem;
     border-top: 1px solid rgba(148, 163, 184, 0.35);
     flex-wrap: wrap;
-    gap: 0.75rem;
+    gap: 0.85rem 1rem;
 }
 
 .martyr-share-row-modal .martyr-share-actions {
