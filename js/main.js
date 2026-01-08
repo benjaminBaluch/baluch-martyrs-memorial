@@ -2,14 +2,6 @@
 
 // Theme management
 const THEME_STORAGE_KEY = 'bmm_theme_v1';
-let activeSpeech;
-
-function stopActiveSpeech() {
-    if (activeSpeech && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-        activeSpeech = null;
-    }
-}
 
 function applyTheme(theme) {
     const root = document.documentElement;
@@ -514,7 +506,6 @@ function showMartyrDetails(martyr) {
     const bio = martyr.biography && martyr.biography.trim() ? escapeHTML(martyr.biography) : '';
     const family = martyr.familyDetails && martyr.familyDetails.trim() ? escapeHTML(martyr.familyDetails) : '';
     const submitter = escapeHTML(martyr.submitterName || 'Anonymous');
-    const submitterRelation = escapeHTML(martyr.submitterRelation || '');
     const submitterDate = martyr.submittedAt ? escapeHTML(formatDate(martyr.submittedAt)) : '';
 
     const detailRows = [
@@ -526,54 +517,74 @@ function showMartyrDetails(martyr) {
         rank ? { label: 'Rank', value: rank } : null,
         fatherName ? { label: 'Father', value: fatherName } : null
     ].filter(Boolean).map(row => `
-        <div class="martyr-modal-row">
-            <span class="martyr-modal-label">${row.label}</span>
-            <span class="martyr-modal-value">${row.value}</span>
+        <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+            <span style="min-width:120px; font-weight:600; color:#4b5563; text-transform:uppercase; letter-spacing:0.08em; font-size:0.8rem;">${row.label}</span>
+            <span style="color:#111827; font-weight:600;">${row.value}</span>
         </div>
     `).join('');
 
-    const voiceButtonId = `voice-btn-${Date.now()}`;
+    const photoMarkup = martyr.photo
+        ? `<img src="${martyr.photo}" alt="${escapeHTML(martyr.fullName || 'Martyr photo')}" style="width:100%; border-radius:16px; object-fit:cover; box-shadow:0 16px 35px rgba(15,23,42,0.45);">`
+        : `<div style="width:100%; height:320px; border-radius:16px; background:radial-gradient(circle at top, #f3f4f6, #d1d5db); display:flex; align-items:center; justify-content:center; font-size:3.5rem; color:#9ca3af; box-shadow:0 16px 35px rgba(15,23,42,0.3);">📷</div>`;
 
     modalContent.innerHTML = `
-        <div class="modal-shell">
-            <div class="modal-hero">
-                <div class="modal-hero-text">
-                    <p class="modal-hero-eyebrow">Baluch Martyrs Memorial</p>
-                    <h2 class="modal-hero-name">${escapeHTML(martyr.fullName || 'Unknown Hero')}</h2>
-                    <p class="modal-hero-date">${martyrdomPretty}</p>
+        <div style="display:flex;flex-direction:column;">
+            <div style="
+                padding:1.25rem 1.75rem;
+                border-bottom:1px solid #e5e7eb;
+                display:flex;
+                align-items:center;
+                justify-content:space-between;
+                background:linear-gradient(135deg, #111827, #1f2937);
+                color:#f9fafb;
+                border-radius:18px 18px 0 0;
+            ">
+                <div>
+                    <h2 style="margin:0;font-size:1.4rem;letter-spacing:0.08em;text-transform:uppercase;color:#f9fafb;">
+                        ${escapeHTML(martyr.fullName || 'Unknown martyr')}
+                    </h2>
+                    <p style="margin:0.35rem 0 0;font-size:0.9rem;opacity:0.85;">${martyrdomPretty}</p>
                 </div>
-                <button class="modal-close-btn" data-close-modal aria-label="Close details">&times;</button>
+                <button data-close-modal style="
+                    width:40px;height:40px;border-radius:999px;
+                    border:1px solid rgba(148,163,184,0.5);
+                    background:rgba(15,23,42,0.75);color:#f9fafb;
+                    font-size:1.4rem;line-height:1;cursor:pointer;
+                    display:flex;align-items:center;justify-content:center;
+                " aria-label="Close modal">&times;</button>
             </div>
-            <div class="modal-content-grid">
-                <div class="modal-photo-frame">
-                    ${martyr.photo
-                        ? `<img src="${martyr.photo}" alt="${escapeHTML(martyr.fullName || 'Martyr photo')}">`
-                        : `<div class="modal-photo-placeholder">📷</div>`
-                    }
-                </div>
-                <div class="modal-detail-panel">
-                    <div class="modal-detail-rows">
-                        ${detailRows}
-                    </div>
+            <div style="
+                padding:1.75rem 1.75rem 1.5rem;
+                display:flex;
+                gap:1.75rem;
+                flex-wrap:wrap;
+                align-items:flex-start;
+                background:#f9fafb;
+                border-radius:0 0 18px 18px;
+            ">
+                <div style="flex:0 0 260px;max-width:260px;">${photoMarkup}</div>
+                <div style="flex:1;min-width:280px;">
+                    <div style="display:grid;gap:0.6rem;font-size:0.95rem;">${detailRows}</div>
                     ${bio ? `
-                        <div class="modal-section">
-                            <h3>Biography</h3>
-                            <div class="modal-section-body">${bio}</div>
+                        <div style="margin-top:1.5rem;">
+                            <h3 style="margin:0 0 0.75rem;font-size:1.05rem;color:#111827;">Biography</h3>
+                            <div style="background:#fff;padding:1.3rem 1.2rem;border-radius:12px;border:1px solid #e5e7eb;line-height:1.7;color:#374151;font-size:0.96rem;text-align:justify;">
+                                ${bio}
+                            </div>
                         </div>
                     ` : ''}
                     ${family ? `
-                        <div class="modal-section">
-                            <h3>Family Details</h3>
-                            <div class="modal-section-body">${family}</div>
+                        <div style="margin-top:1.25rem;">
+                            <h3 style="margin:0 0 0.75rem;font-size:1.05rem;color:#111827;">Family Details</h3>
+                            <div style="background:#fff;padding:1.2rem 1.15rem;border-radius:12px;border:1px solid #e5e7eb;line-height:1.7;color:#374151;font-size:0.95rem;">
+                                ${family}
+                            </div>
                         </div>
                     ` : ''}
-                    <button class="modal-voice-btn" id="${voiceButtonId}" type="button">
-                        🔊 Listen to ${escapeHTML(martyr.fullName || 'this hero')}
-                    </button>
                     <div class="martyr-modal-share-slot"></div>
-                    <div class="modal-submission">
-                        <p><strong>Submitted by:</strong> ${submitter}${submitterRelation ? ` (${submitterRelation})` : ''}</p>
-                        ${submitterDate ? `<p><strong>Submitted on:</strong> ${submitterDate}</p>` : ''}
+                    <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid #e5e7eb;color:#6b7280;font-size:0.9rem;display:flex;flex-wrap:wrap;gap:0.75rem;justify-content:space-between;">
+                        <p style="margin:0;"><strong>Submitted by:</strong> ${submitter}</p>
+                        ${submitterDate ? `<p style="margin:0;"><strong>Submitted on:</strong> ${submitterDate}</p>` : ''}
                     </div>
                 </div>
             </div>
@@ -584,20 +595,6 @@ function showMartyrDetails(martyr) {
     if (shareSlot) {
         shareSlot.replaceWith(createShareRowElement(martyr, 'modal'));
     }
-
-    const voiceBtn = document.getElementById(voiceButtonId);
-    if (voiceBtn && 'speechSynthesis' in window && typeof window.SpeechSynthesisUtterance !== 'undefined') {
-        voiceBtn.addEventListener('click', () => {
-            const utterance = new SpeechSynthesisUtterance(
-                `${martyr.fullName || ''}. Martyrdom date: ${martyrdomPretty}. Martyrdom place: ${martyrPlace}.`
-            );
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(utterance);
-        });
-    } else if (voiceBtn) {
-        voiceBtn.style.display = 'none';
-    }
-
     const closeButton = modalContent.querySelector('[data-close-modal]');
     if (closeButton) {
         closeButton.addEventListener('click', closeMartyrModal);
@@ -639,7 +636,6 @@ function createMartyrModal() {
 function closeMartyrModal() {
     const modal = document.getElementById('martyrDetailsModal');
     if (modal) {
-        stopActiveSpeech();
         modal.classList.remove('modal-show');
         
         // Wait for animation to complete before hiding
