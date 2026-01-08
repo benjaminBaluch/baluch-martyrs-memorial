@@ -3045,3 +3045,59 @@ section {
         font-size: 0.95rem;
     }
 }
+
+html[data-theme="dark"] .modal-shell {
+    background: #020617;
+    box-shadow: 0 40px 90px rgba(2, 6, 23, 0.85);
+}
+
+html[data-theme="dark"] .modal-hero {
+    background: linear-gradient(145deg, #020617, #0b1120);
+    color: #f8fafc;
+}
+
+html[data-theme="dark"] .modal-content-grid {
+    background: linear-gradient(120deg, rgba(2, 6, 23, 0.98), rgba(15, 23, 42, 0.95));
+}
+
+html[data-theme="dark"] .modal-photo-frame {
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.85));
+    box-shadow: 0 25px 60px rgba(2, 6, 23, 0.7);
+}
+
+html[data-theme="dark"] .modal-photo-placeholder {
+    color: #94a3b8;
+    background: linear-gradient(145deg, #1f2937, #0f172a);
+}
+
+html[data-theme="dark"] .modal-detail-panel {
+    color: #e2e8f0;
+}
+
+html[data-theme="dark"] .martyr-modal-label {
+    color: #94a3b8;
+}
+
+html[data-theme="dark"] .martyr-modal-value {
+    color: #f8fafc;
+}
+
+html[data-theme="dark"] .modal-section {
+    background: rgba(15, 23, 42, 0.9);
+    border-color: rgba(148, 163, 184, 0.35);
+}
+
+html[data-theme="dark"] .modal-section h3,
+html[data-theme="dark"] .modal-section-body {
+    color: #e2e8f0;
+}
+
+html[data-theme="dark"] .modal-voice-btn {
+    background: rgba(15, 23, 42, 0.85);
+    border-color: rgba(148, 163, 184, 0.3);
+    box-shadow: 0 12px 25px rgba(2, 6, 23, 0.7);
+}
+
+html[data-theme="dark"] .modal-submission {
+    color: #cbd5f5;
+}
