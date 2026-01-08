@@ -374,6 +374,65 @@ function createGalleryCard(martyr) {
     }
     
     infoDiv.appendChild(viewBtn);
+
+    // Social sharing controls
+    const shareRow = document.createElement('div');
+    shareRow.className = 'martyr-share-row';
+
+    const shareLabel = document.createElement('span');
+    shareLabel.className = 'martyr-share-label';
+    shareLabel.textContent = 'Share';
+
+    const shareActions = document.createElement('div');
+    shareActions.className = 'martyr-share-actions';
+
+    const siteOrigin = (typeof window !== 'undefined' && window.location && window.location.origin)
+        ? window.location.origin
+        : 'https://baluchmartyrs.site';
+    const heroIdentifier = encodeURIComponent(martyr.id || martyr.fullName || '');
+    const targetUrl = `${siteOrigin}/gallery.html?hero=${heroIdentifier}`;
+    const encodedUrl = encodeURIComponent(targetUrl);
+    const shareText = encodeURIComponent(`Honoring ${martyr.fullName || 'a Baluch hero'} on the Baluch Martyrs Memorial`);
+
+    const shareNetworks = [
+        {
+            name: 'X',
+            icon: '𝕏',
+            url: `https://twitter.com/intent/tweet?text=${shareText}&url=${encodedUrl}`
+        },
+        {
+            name: 'Facebook',
+            icon: 'f',
+            url: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`
+        },
+        {
+            name: 'Instagram',
+            icon: '✺',
+            url: `https://www.instagram.com/?url=${encodedUrl}`
+        },
+        {
+            name: 'TikTok',
+            icon: '🎵',
+            url: `https://www.tiktok.com/share?url=${encodedUrl}&text=${shareText}`
+        }
+    ];
+
+    shareNetworks.forEach(({ name, icon, url }) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'martyr-share-icon';
+        btn.innerHTML = icon;
+        btn.setAttribute('aria-label', `Share ${martyr.fullName || 'this hero'} on ${name}`);
+        btn.title = `Share on ${name}`;
+        btn.addEventListener('click', () => {
+            window.open(url, '_blank', 'noopener,noreferrer');
+        });
+        shareActions.appendChild(btn);
+    });
+
+    shareRow.appendChild(shareLabel);
+    shareRow.appendChild(shareActions);
+    infoDiv.appendChild(shareRow);
     
     card.appendChild(imageDiv);
     card.appendChild(infoDiv);

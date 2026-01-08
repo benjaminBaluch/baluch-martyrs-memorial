@@ -1484,6 +1484,60 @@ section {
     transform: translateY(-1px);
 }
 
+.gallery-grid .martyr-share-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid rgba(15, 23, 42, 0.08);
+    gap: 0.65rem;
+}
+
+.gallery-grid .martyr-share-label {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b7280;
+    font-weight: 600;
+}
+
+.gallery-grid .martyr-share-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.gallery-grid .martyr-share-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    background: white;
+    color: var(--primary-color);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.gallery-grid .martyr-share-icon:hover,
+.gallery-grid .martyr-share-icon:focus-visible {
+    border-color: rgba(44, 85, 48, 0.4);
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.15);
+    transform: translateY(-1px);
+    color: var(--secondary-color);
+}
+
+.gallery-grid .martyr-share-icon:focus-visible {
+    outline: 3px solid rgba(44, 85, 48, 0.25);
+    outline-offset: 2px;
+}
+
 @media (max-width: 600px) {
     .gallery-grid .martyr-photo-wrapper img,
     .gallery-grid .martyr-photo-placeholder {
