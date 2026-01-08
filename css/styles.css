@@ -1484,7 +1484,7 @@ section {
     transform: translateY(-1px);
 }
 
-.gallery-grid .martyr-share-row {
+.martyr-share-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1493,7 +1493,7 @@ section {
     border-top: 1px solid rgba(15, 23, 42, 0.08);
     gap: 0.65rem;
 }
-
+.martyr-share-label {
 .gallery-grid .martyr-share-label {
     font-size: 0.85rem;
     text-transform: uppercase;
@@ -1501,13 +1501,13 @@ section {
     color: #6b7280;
     font-weight: 600;
 }
-
+.martyr-share-actions {
 .gallery-grid .martyr-share-actions {
     display: flex;
     align-items: center;
     gap: 0.4rem;
 }
-
+.martyr-share-icon {
 .gallery-grid .martyr-share-icon {
     width: 34px;
     height: 34px;
@@ -1525,17 +1525,30 @@ section {
     box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
 }
 
-.gallery-grid .martyr-share-icon:hover,
-.gallery-grid .martyr-share-icon:focus-visible {
+.martyr-share-icon:hover,
+.martyr-share-icon:focus-visible {
     border-color: rgba(44, 85, 48, 0.4);
     box-shadow: 0 6px 14px rgba(15, 23, 42, 0.15);
     transform: translateY(-1px);
     color: var(--secondary-color);
 }
-
+.martyr-share-icon:focus-visible {
 .gallery-grid .martyr-share-icon:focus-visible {
     outline: 3px solid rgba(44, 85, 48, 0.25);
     outline-offset: 2px;
+}
+
+.martyr-share-row-modal {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.35);
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.martyr-share-row-modal .martyr-share-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
 }
 
 @media (max-width: 600px) {
