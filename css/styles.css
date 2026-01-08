@@ -2284,6 +2284,10 @@ section {
         width: 100%;
         max-width: 360px;
         margin: 0 auto;
+        text-align: left;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
     }
     
     .anniversary-card .martyr-info h3 {
@@ -2295,6 +2299,10 @@ section {
     .anniversary-date {
         font-size: 1rem;
         margin-bottom: 0.45rem;
+    }
+    
+    .anniversary-card .martyr-location {
+        justify-content: flex-start;
     }
 
     .anniversary-card .martyr-bio,
@@ -2308,7 +2316,7 @@ section {
         border-radius: 999px;
         width: fit-content;
         min-width: 150px;
-        margin: 0.4rem auto 0;
+        margin: 0.4rem 0 0;
     }
     
     .slider-btn {
@@ -2364,6 +2372,7 @@ section {
     
     .anniversary-card .martyr-info {
         max-width: 320px;
+        text-align: left;
     }
 
     .anniversary-card .martyr-info h3 {
@@ -2376,11 +2385,16 @@ section {
         font-size: 0.95rem;
         margin-bottom: 0.35rem;
     }
+    
+    .anniversary-card .martyr-location {
+        justify-content: flex-start;
+    }
 
     .anniversary-card .btn-small {
         padding: 0.5rem 1rem;
         font-size: 0.9rem;
         min-width: 140px;
+        margin: 0.35rem 0 0;
     }
 
     .anniversary-card .martyr-info h3 {
