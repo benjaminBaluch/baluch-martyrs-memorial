@@ -213,12 +213,14 @@ html[data-theme="dark"] .showcase-card:hover {
 
 /* Featured martyrs cards */
 html[data-theme="dark"] .featured-martyrs .martyr-card {
-    background: #0f1419;
-    border-color: rgba(148,163,184,0.2);
+    background: linear-gradient(145deg, #0f172a 0%, #0b1120 100%);
+    border-color: rgba(71, 85, 105, 0.45);
+    box-shadow: 0 25px 55px rgba(2, 6, 23, 0.75);
 }
 
 html[data-theme="dark"] .featured-martyrs .martyr-card:hover {
-    border-color: rgba(44,85,48,0.3);
+    border-color: rgba(148, 210, 189, 0.4);
+    box-shadow: 0 35px 70px rgba(2, 6, 23, 0.85);
 }
 
 html[data-theme="dark"] .featured-martyrs .placeholder {
@@ -228,16 +230,48 @@ html[data-theme="dark"] .featured-martyrs .placeholder {
 
 /* Gallery page dark mode */
 html[data-theme="dark"] .gallery-grid .martyr-card {
-    background: #0f1419;
-    border-color: rgba(148,163,184,0.2);
+    background: linear-gradient(145deg, #0f172a 0%, #0a1220 100%);
+    border-color: rgba(71, 85, 105, 0.4);
+    box-shadow: 0 25px 55px rgba(2, 6, 23, 0.75);
 }
 
 html[data-theme="dark"] .gallery-grid .martyr-card:hover {
-    border-color: rgba(44,85,48,0.3);
+    border-color: rgba(148, 210, 189, 0.4);
+    box-shadow: 0 35px 70px rgba(2, 6, 23, 0.85);
 }
 
 html[data-theme="dark"] .martyr-image {
     background: linear-gradient(135deg, #1a2028, #151b22);
+}
+
+html[data-theme="dark"] .martyr-detail-list,
+html[data-theme="dark"] .martyr-detail-row,
+html[data-theme="dark"] .martyr-detail-label,
+html[data-theme="dark"] .martyr-detail-value {
+    color: #e2e8f0;
+}
+
+html[data-theme="dark"] .martyr-detail-label {
+    color: #94a3b8;
+}
+
+html[data-theme="dark"] .martyr-share-row {
+    border-top-color: rgba(148, 163, 184, 0.3);
+}
+
+html[data-theme="dark"] .martyr-share-icon {
+    background: rgba(15, 23, 42, 0.8);
+    border-color: rgba(148, 163, 184, 0.35);
+    color: #e2e8f0;
+    box-shadow: 0 6px 14px rgba(2, 6, 23, 0.6);
+}
+
+html[data-theme="dark"] .martyr-share-icon:hover,
+html[data-theme="dark"] .martyr-share-icon:focus-visible {
+    border-color: rgba(148, 210, 189, 0.6);
+    box-shadow: 0 14px 24px rgba(2, 6, 23, 0.65);
+    background: rgba(15, 23, 42, 0.95);
+    color: #86efac;
 }
 
 /* Filter bar */
