@@ -2247,16 +2247,22 @@ section {
     }
     
     .anniversary-card .martyr-image {
-        width: min(65vw, 200px);
-        height: min(65vw, 200px);
-        margin-right: 0;
-        margin-bottom: 1.25rem;
-        margin-left: auto;
-        margin-right: auto;
-        padding: 0.35rem;
-        background: #fdf9f0;
-        border-radius: 16px;
-        box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+        width: min(72vw, 240px);
+        height: min(72vw, 240px);
+        margin: 0 auto 1.35rem auto;
+        padding: 0.45rem;
+        background: linear-gradient(160deg, #fefaf2, #f2faed);
+        border-radius: 18px;
+        box-shadow: 0 16px 38px rgba(15, 23, 42, 0.18);
+        border: 1px solid rgba(44, 85, 48, 0.08);
+        position: relative;
+    }
+    
+    .anniversary-card .martyr-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 14px;
     }
     
     .anniversary-card .martyr-info {
@@ -2334,11 +2340,11 @@ section {
     }
     
     .anniversary-card .martyr-image {
-        width: min(70vw, 170px);
-        height: min(70vw, 170px);
-        margin-bottom: 1rem;
-        padding: 0.3rem;
-        border-radius: 14px;
+        width: min(78vw, 210px);
+        height: min(78vw, 210px);
+        margin-bottom: 1.1rem;
+        padding: 0.4rem;
+        border-radius: 18px;
     }
     
     .anniversary-card .martyr-info {
