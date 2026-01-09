@@ -60,6 +60,14 @@ function initTheme() {
     });
 }
 
+// Auto-update footer year (no yearly manual edits)
+function initCopyrightYear() {
+    const year = String(new Date().getFullYear());
+    document.querySelectorAll('.js-current-year').forEach((node) => {
+        node.textContent = year;
+    });
+}
+
 // Initialize Firebase if not already available
 if (!window.firebaseDB) {
     import('./firebase-config.js').then(async (module) => {
@@ -95,6 +103,7 @@ if (!window.firebaseDB) {
 // DOM Content Loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize components
+    initCopyrightYear();
     initTheme();
     initMobileMenu();
     initSmoothScroll();
