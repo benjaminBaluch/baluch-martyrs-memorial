@@ -1484,12 +1484,27 @@ function renderGallery(martyrsData) {
         console.error('❌ Gallery grid element not found!');
         return;
     }
-    
-    console.log(`🎨 Rendering ${martyrsData.length} martyrs to gallery...`);
+
+    const list = Array.isArray(martyrsData) ? martyrsData : [];
+
+    // Frontend-only: always show martyrs in alphabetical order by name
+    const sortedMartyrs = [...list].sort((a, b) => {
+        const aName = ((a && a.fullName) ? String(a.fullName) : '').trim();
+        const bName = ((b && b.fullName) ? String(b.fullName) : '').trim();
+
+        // Put empty/unknown names at the end
+        if (!aName && !bName) return 0;
+        if (!aName) return 1;
+        if (!bName) return -1;
+
+        return aName.localeCompare(bName, undefined, { sensitivity: 'base' });
+    });
+
+    console.log(`🎨 Rendering ${sortedMartyrs.length} martyrs to gallery (alphabetical)...`);
     galleryGrid.innerHTML = '';
-    
+
     let renderedCount = 0;
-    martyrsData.forEach((martyr, index) => {
+    sortedMartyrs.forEach((martyr, index) => {
         try {
             const card = createGalleryCard(martyr);
             galleryGrid.appendChild(card);
@@ -1498,9 +1513,9 @@ function renderGallery(martyrsData) {
             console.error(`❌ Error rendering martyr ${index}:`, error, martyr);
         }
     });
-    
-    console.log(`✅ Successfully rendered ${renderedCount} out of ${martyrsData.length} martyrs`);
-    updateSearchResultsInfo(martyrsData.length);
+
+    console.log(`✅ Successfully rendered ${renderedCount} out of ${sortedMartyrs.length} martyrs`);
+    updateSearchResultsInfo(sortedMartyrs.length);
 }
 
 // Create gallery card (front of gallery)
