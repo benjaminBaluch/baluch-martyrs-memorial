@@ -9,6 +9,9 @@
     // Chart instances
     let timelineChart = null;
     let monthlyChart = null;
+    
+    // Store martyrs data for PDF generation
+    let allMartyrsData = [];
 
     // Month names
     const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -129,6 +132,9 @@
             if (contentEl) contentEl.style.display = 'block';
             updateStatus(statusEl, `${martyrs.length} records from ${source}`, false);
 
+            // Store martyrs for PDF generation
+            allMartyrsData = martyrs;
+            
             // Process and render
             const stats = processData(martyrs);
             renderKeyNumbers(stats);
@@ -136,6 +142,15 @@
             renderRegions(stats);
             renderMonthly(stats);
             renderInsights(stats);
+            
+            // Setup PDF download button
+            setupPdfDownload();
+            
+            // Update download info
+            const downloadInfo = document.getElementById('downloadInfo');
+            if (downloadInfo) {
+                downloadInfo.textContent = `PDF includes ${martyrs.length} profiles with photos and biographies`;
+            }
 
             console.log('✅ Statistics rendered');
 
@@ -574,5 +589,304 @@
         });
     });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+    // ============================================
+    // PDF GENERATION
+    // ============================================
+    
+    function setupPdfDownload() {
+        const btn = document.getElementById('downloadPdfBtn');
+        if (!btn) return;
+        
+        btn.addEventListener('click', generatePdf);
+    }
+    
+    async function generatePdf() {
+        const btn = document.getElementById('downloadPdfBtn');
+        const progress = document.getElementById('downloadProgress');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        
+        if (!allMartyrsData || allMartyrsData.length === 0) {
+            alert('No data available to download.');
+            return;
+        }
+        
+        // Check if jsPDF is loaded
+        if (typeof window.jspdf === 'undefined') {
+            alert('PDF library not loaded. Please refresh and try again.');
+            return;
+        }
+        
+        const { jsPDF } = window.jspdf;
+        
+        // Disable button, show progress
+        btn.disabled = true;
+        btn.innerHTML = '<div class="spinner"></div><span>Generating...</span>';
+        if (progress) progress.style.display = 'block';
+        
+        try {
+            // Sort martyrs alphabetically
+            const sortedMartyrs = [...allMartyrsData].sort((a, b) => 
+                (a.fullName || '').localeCompare(b.fullName || '')
+            );
+            
+            // Create PDF (A4 size)
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+            
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 15;
+            const contentWidth = pageWidth - (margin * 2);
+            
+            // Colors
+            const primaryColor = [44, 85, 48];
+            const accentColor = [212, 175, 55];
+            const textColor = [51, 65, 85];
+            const lightGray = [148, 163, 184];
+            
+            // ---- COVER PAGE ----
+            updateProgress(progressFill, progressText, 5, 'Creating cover page...');
+            
+            // Green header bar
+            doc.setFillColor(...primaryColor);
+            doc.rect(0, 0, pageWidth, 80, 'F');
+            
+            // Gold accent line
+            doc.setFillColor(...accentColor);
+            doc.rect(0, 80, pageWidth, 3, 'F');
+            
+            // Title
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(28);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Baluch Martyrs Memorial', pageWidth / 2, 40, { align: 'center' });
+            
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'normal');
+            doc.text('A Digital Archive of Heroes', pageWidth / 2, 52, { align: 'center' });
+            
+            // Memorial info box
+            doc.setFillColor(248, 250, 252);
+            doc.roundedRect(margin, 100, contentWidth, 60, 3, 3, 'F');
+            
+            doc.setTextColor(...textColor);
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Memorial Archive', pageWidth / 2, 115, { align: 'center' });
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(11);
+            const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            doc.text(`Generated: ${date}`, pageWidth / 2, 128, { align: 'center' });
+            doc.text(`Total Profiles: ${sortedMartyrs.length}`, pageWidth / 2, 140, { align: 'center' });
+            
+            // Dedication
+            doc.setFontSize(10);
+            doc.setTextColor(...lightGray);
+            doc.text('Preserving the memory of those who sacrificed for freedom', pageWidth / 2, 180, { align: 'center' });
+            
+            // Footer
+            doc.setFontSize(9);
+            doc.text('baluchmartyrs.site', pageWidth / 2, pageHeight - 20, { align: 'center' });
+            
+            // ---- MARTYR PROFILES ----
+            let currentPage = 1;
+            let yPosition = margin;
+            const profilesPerPage = 3;
+            const profileHeight = 75;
+            
+            for (let i = 0; i < sortedMartyrs.length; i++) {
+                const martyr = sortedMartyrs[i];
+                const progress = Math.round(10 + ((i / sortedMartyrs.length) * 85));
+                updateProgress(progressFill, progressText, progress, `Processing ${i + 1} of ${sortedMartyrs.length}...`);
+                
+                // New page check
+                if (i % profilesPerPage === 0) {
+                    doc.addPage();
+                    currentPage++;
+                    yPosition = margin;
+                    
+                    // Page header
+                    doc.setFillColor(...primaryColor);
+                    doc.rect(0, 0, pageWidth, 12, 'F');
+                    doc.setFontSize(8);
+                    doc.setTextColor(255, 255, 255);
+                    doc.text('Baluch Martyrs Memorial', margin, 8);
+                    doc.text(`Page ${currentPage}`, pageWidth - margin, 8, { align: 'right' });
+                    
+                    yPosition = 20;
+                }
+                
+                // Profile card background
+                doc.setFillColor(255, 255, 255);
+                doc.setDrawColor(226, 232, 240);
+                doc.roundedRect(margin, yPosition, contentWidth, profileHeight, 2, 2, 'FD');
+                
+                // Left border accent
+                doc.setFillColor(...accentColor);
+                doc.rect(margin, yPosition, 2, profileHeight, 'F');
+                
+                const cardX = margin + 8;
+                const cardY = yPosition + 8;
+                
+                // Photo placeholder or image
+                const photoSize = 25;
+                if (martyr.photo && martyr.photo.startsWith('data:image')) {
+                    try {
+                        doc.addImage(martyr.photo, 'JPEG', cardX, cardY, photoSize, photoSize);
+                    } catch (e) {
+                        // Draw placeholder
+                        doc.setFillColor(241, 245, 249);
+                        doc.rect(cardX, cardY, photoSize, photoSize, 'F');
+                        doc.setFontSize(16);
+                        doc.setTextColor(...lightGray);
+                        doc.text('📷', cardX + 8, cardY + 17);
+                    }
+                } else {
+                    doc.setFillColor(241, 245, 249);
+                    doc.rect(cardX, cardY, photoSize, photoSize, 'F');
+                    doc.setFontSize(16);
+                    doc.setTextColor(...lightGray);
+                    doc.text('📷', cardX + 8, cardY + 17);
+                }
+                
+                // Name
+                const textX = cardX + photoSize + 8;
+                doc.setTextColor(...primaryColor);
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                const name = martyr.fullName || 'Unknown';
+                doc.text(name.substring(0, 40), textX, cardY + 6);
+                
+                // Dates
+                doc.setTextColor(...textColor);
+                doc.setFontSize(9);
+                doc.setFont('helvetica', 'normal');
+                const birthYear = formatDateForPdf(martyr.birthDate);
+                const martyrdomDate = formatDateForPdf(martyr.martyrdomDate);
+                if (birthYear || martyrdomDate) {
+                    doc.text(`${birthYear || '?'} — ${martyrdomDate || '?'}`, textX, cardY + 13);
+                }
+                
+                // Location
+                const location = martyr.martyrdomPlace || martyr.birthPlace || '';
+                if (location) {
+                    doc.setTextColor(...lightGray);
+                    doc.text(`📍 ${location.substring(0, 35)}`, textX, cardY + 20);
+                }
+                
+                // Biography (truncated)
+                if (martyr.biography && martyr.biography.trim().length > 0) {
+                    doc.setTextColor(...textColor);
+                    doc.setFontSize(8);
+                    const bio = martyr.biography.trim().substring(0, 200);
+                    const bioLines = doc.splitTextToSize(bio + (martyr.biography.length > 200 ? '...' : ''), contentWidth - photoSize - 20);
+                    doc.text(bioLines.slice(0, 3), cardX, cardY + 35);
+                }
+                
+                yPosition += profileHeight + 5;
+            }
+            
+            // ---- FINAL PAGE ----
+            updateProgress(progressFill, progressText, 98, 'Finalizing...');
+            
+            doc.addPage();
+            
+            // Green footer bar
+            doc.setFillColor(...primaryColor);
+            doc.rect(0, pageHeight - 50, pageWidth, 50, 'F');
+            
+            // Thank you message
+            doc.setTextColor(...textColor);
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('In Eternal Memory', pageWidth / 2, 60, { align: 'center' });
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor(...lightGray);
+            const closingText = [
+                'This document preserves the memory of Baluch martyrs',
+                'who sacrificed their lives for freedom and justice.',
+                '',
+                'Their courage and dedication will never be forgotten.'
+            ];
+            closingText.forEach((line, idx) => {
+                doc.text(line, pageWidth / 2, 80 + (idx * 7), { align: 'center' });
+            });
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(9);
+            doc.text('baluchmartyrs.site', pageWidth / 2, pageHeight - 25, { align: 'center' });
+            doc.text(`© ${new Date().getFullYear()} Baluch Martyrs Memorial`, pageWidth / 2, pageHeight - 18, { align: 'center' });
+            
+            // Save PDF
+            updateProgress(progressFill, progressText, 100, 'Complete!');
+            
+            const filename = `Baluch_Martyrs_Memorial_${new Date().toISOString().split('T')[0]}.pdf`;
+            doc.save(filename);
+            
+            // Reset UI
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = `
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span>Download PDF</span>
+                `;
+                if (progress) progress.style.display = 'none';
+                if (progressFill) progressFill.style.width = '0%';
+            }, 1500);
+            
+        } catch (error) {
+            console.error('PDF generation failed:', error);
+            alert('Failed to generate PDF. Please try again.');
+            
+            btn.disabled = false;
+            btn.innerHTML = `
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <span>Download PDF</span>
+            `;
+            if (progress) progress.style.display = 'none';
+        }
+    }
+    
+    function updateProgress(fillEl, textEl, percent, text) {
+        if (fillEl) fillEl.style.width = `${percent}%`;
+        if (textEl) textEl.textContent = text;
+    }
+    
+    function formatDateForPdf(dateStr) {
+        if (!dateStr) return null;
+        
+        // Firestore Timestamp
+        if (dateStr && typeof dateStr === 'object' && dateStr.seconds) {
+            const d = new Date(dateStr.seconds * 1000);
+            return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+        
+        const s = String(dateStr).trim();
+        
+        // Try to parse as date
+        try {
+            const d = new Date(s);
+            if (!isNaN(d.getTime())) {
+                return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            }
+        } catch (e) {}
+        
+        // Return as-is if it looks like a year
+        if (/^\d{4}$/.test(s)) return s;
+        
+        return s;
+    }
 
 })();
