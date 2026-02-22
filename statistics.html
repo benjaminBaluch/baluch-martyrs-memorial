@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Statistics Dashboard - Baluch Martyrs Memorial data visualization">
+    <meta name="theme-color" content="#2c5530">
+    <meta name="msapplication-TileColor" content="#2c5530">
+    
+    <meta property="og:title" content="Statistics - Baluch Martyrs Memorial">
+    <meta property="og:image" content="https://baluchmartyrs.site/baluch-flag-logo.png">
+    
+    <title>Statistics Dashboard - Baluch Martyrs Memorial</title>
+    
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="512x512" href="/baluch-flag-logo.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/baluch-flag-logo.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="shortcut icon" href="/favicon.svg">
+    
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/chatbot.css">
+    
+    <!-- Chart.js for professional charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
+    <style>
+        /* Statistics Dashboard Styles */
+        .stats-dashboard {
+            padding: 3rem 0;
+            background: linear-gradient(135deg, #f8fafc 0%, #f0f9ff 50%, #fef9e7 100%);
+            min-height: calc(100vh - 200px);
+        }
+
+        .dashboard-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .dashboard-header h2 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.02em;
+        }
+
+        .dashboard-header p {
+            color: #64748b;
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Summary Cards */
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 1.75rem;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .summary-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+        }
+
+        .summary-card:hover::before {
+            opacity: 1;
+        }
+
+        .summary-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .summary-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-label {
+            font-size: 0.95rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        /* Charts Grid */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-card {
+            background: white;
+            padding: 1.75rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+        }
+
+        .chart-card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .chart-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .chart-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chart-title-icon {
+            font-size: 1.5rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .chart-container.tall {
+            height: 400px;
+        }
+
+        /* Data Table */
+        .data-table-card {
+            background: white;
+            padding: 1.75rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            margin-top: 2rem;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 0.875rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .data-table th {
+            background: #f8fafc;
+            color: var(--primary-color);
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .data-table tr:hover td {
+            background: #fef9e7;
+        }
+
+        .data-table td {
+            color: #475569;
+        }
+
+        .region-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: linear-gradient(135deg, var(--primary-color), #1a3d20);
+            color: white;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        /* Loading State */
+        .stats-loading {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .stats-loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e2e8f0;
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .stats-loading-text {
+            color: #64748b;
+            font-size: 1.1rem;
+        }
+
+        /* Empty State */
+        .stats-empty {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+        }
+
+        .stats-empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .stats-empty h3 {
+            color: var(--primary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .stats-empty p {
+            color: #64748b;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Insights Section */
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .insight-card {
+            background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border-left: 4px solid var(--accent-color);
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+        }
+
+        .insight-card h4 {
+            color: var(--primary-color);
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .insight-card p {
+            color: #475569;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .insight-highlight {
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats-dashboard {
+                padding: 2rem 0;
+            }
+
+            .dashboard-header h2 {
+                font-size: 2rem;
+            }
+
+            .stats-summary {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+
+            .summary-card {
+                padding: 1.25rem;
+            }
+
+            .summary-value {
+                font-size: 2rem;
+            }
+
+            .chart-card {
+                padding: 1.25rem;
+            }
+
+            .chart-container {
+                height: 250px;
+            }
+
+            .data-table {
+                font-size: 0.9rem;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 0.625rem 0.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-summary {
+                grid-template-columns: 1fr;
+            }
+
+            .summary-icon {
+                font-size: 2rem;
+            }
+
+            .summary-value {
+                font-size: 1.75rem;
+            }
+
+            .chart-container {
+                height: 220px;
+            }
+
+            .insights-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Dark mode support */
+        [data-theme="dark"] .stats-dashboard {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #1a1a2e 100%);
+        }
+
+        [data-theme="dark"] .summary-card,
+        [data-theme="dark"] .chart-card,
+        [data-theme="dark"] .data-table-card,
+        [data-theme="dark"] .stats-empty {
+            background: #1e293b;
+            border-color: rgba(148, 163, 184, 0.1);
+        }
+
+        [data-theme="dark"] .summary-label,
+        [data-theme="dark"] .dashboard-header p {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .data-table th {
+            background: #0f172a;
+        }
+
+        [data-theme="dark"] .data-table td {
+            color: #cbd5e1;
+        }
+
+        [data-theme="dark"] .data-table tr:hover td {
+            background: rgba(212, 175, 55, 0.1);
+        }
+
+        [data-theme="dark"] .chart-header {
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .insight-card {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        }
+
+        [data-theme="dark"] .insight-card p {
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <header class="site-header">
+        <nav class="navbar">
+            <div class="container">
+                <div class="nav-brand">
+                    <h1>Baluch Martyrs Memorial</h1>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="add-martyr.html">Add Martyr</a></li>
+                    <li><a href="gallery.html">Gallery</a></li>
+                    <li><a href="statistics.html" class="active">Statistics</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li><button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle dark mode">🌙</button></li>
+                </ul>
+                <div class="hamburger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <section class="stats-dashboard">
+            <div class="container">
+                <div class="dashboard-header">
+                    <h2>📊 Memorial Statistics</h2>
+                    <p>Visual insights into our memorial database, honoring the sacrifices of Baluch martyrs through data</p>
+                </div>
+
+                <!-- Loading State -->
+                <div id="statsLoading" class="stats-loading">
+                    <div class="stats-loading-spinner"></div>
+                    <p class="stats-loading-text">Loading statistics...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div id="statsEmpty" class="stats-empty" style="display: none;">
+                    <div class="stats-empty-icon">📭</div>
+                    <h3>No Data Available</h3>
+                    <p>Statistics will appear once martyrs are added to the memorial.</p>
+                    <a href="add-martyr.html" class="btn btn-primary">Add First Martyr</a>
+                </div>
+
+                <!-- Dashboard Content (hidden until data loads) -->
+                <div id="dashboardContent" style="display: none;">
+                    <!-- Summary Cards -->
+                    <div class="stats-summary">
+                        <div class="summary-card">
+                            <div class="summary-icon">🏛️</div>
+                            <div class="summary-value" id="totalMartyrs">0</div>
+                            <div class="summary-label">Total Martyrs</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon">📅</div>
+                            <div class="summary-value" id="yearSpan">--</div>
+                            <div class="summary-label">Years Documented</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon">🗺️</div>
+                            <div class="summary-value" id="totalRegions">0</div>
+                            <div class="summary-label">Regions</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="summary-icon">📚</div>
+                            <div class="summary-value" id="withBiographies">0</div>
+                            <div class="summary-label">With Biographies</div>
+                        </div>
+                    </div>
+
+                    <!-- Charts -->
+                    <div class="charts-grid">
+                        <!-- Timeline Chart -->
+                        <div class="chart-card full-width">
+                            <div class="chart-header">
+                                <h3 class="chart-title">
+                                    <span class="chart-title-icon">📈</span>
+                                    Martyrdoms by Year
+                                </h3>
+                            </div>
+                            <div class="chart-container tall">
+                                <canvas id="timelineChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Regions Chart -->
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3 class="chart-title">
+                                    <span class="chart-title-icon">🗺️</span>
+                                    By Region
+                                </h3>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="regionsChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Organizations Chart -->
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3 class="chart-title">
+                                    <span class="chart-title-icon">🏢</span>
+                                    By Organization
+                                </h3>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="organizationsChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Monthly Distribution -->
+                        <div class="chart-card full-width">
+                            <div class="chart-header">
+                                <h3 class="chart-title">
+                                    <span class="chart-title-icon">📅</span>
+                                    Monthly Distribution
+                                </h3>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="monthlyChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Key Insights -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">
+                                <span class="chart-title-icon">💡</span>
+                                Key Insights
+                            </h3>
+                        </div>
+                        <div class="insights-grid" id="insightsGrid">
+                            <!-- Insights will be dynamically populated -->
+                        </div>
+                    </div>
+
+                    <!-- Top Regions Table -->
+                    <div class="data-table-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">
+                                <span class="chart-title-icon">📋</span>
+                                Regional Breakdown
+                            </h3>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Region</th>
+                                    <th>Martyrs</th>
+                                    <th>Percentage</th>
+                                    <th>Year Range</th>
+                                </tr>
+                            </thead>
+                            <tbody id="regionsTableBody">
+                                <!-- Data will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Baluch Martyrs Memorial</h3>
+                    <p>Preserving the memory of our heroes who gave their lives for freedom.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul>
+                        <li><a href="index.html">Home</a></li>
+                        <li><a href="add-martyr.html">Add Martyr</a></li>
+                        <li><a href="gallery.html">Gallery</a></li>
+                        <li><a href="statistics.html">Statistics</a></li>
+                        <li><a href="about.html">About</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Contact</h3>
+                    <p>Email: info@baluchmemorial.org</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; <span class="js-current-year">2026</span> Baluch Martyrs Memorial. All rights reserved.</p>
+                <p>Data managed by <strong>Baloch Martyrs Committee</strong> • Powered by <strong>Benjamin Baluch</strong></p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/main.js"></script>
+    <script src="js/mobile-menu.js"></script>
+    <script src="js/chatbot.js"></script>
+    <script src="js/statistics.js"></script>
+</body>
+</html>
