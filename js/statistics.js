@@ -65,7 +65,7 @@
                 
                 if (result && result.success && Array.isArray(result.data) && result.data.length > 0) {
                     martyrs = result.data;
-                    source = 'Firebase';
+                    source = 'database';
                     console.log(`✅ Firebase: ${martyrs.length} martyrs`);
                 }
             }
@@ -86,7 +86,7 @@
                         const data = await response.json();
                         if (Array.isArray(data) && data.length > 0) {
                             martyrs = data;
-                            source = 'API';
+                            source = 'database';
                             console.log(`✅ API: ${martyrs.length} martyrs`);
                         }
                     }
@@ -106,7 +106,7 @@
                         const parsed = JSON.parse(saved);
                         if (Array.isArray(parsed)) {
                             martyrs = parsed.filter(m => !m.status || m.status === 'approved');
-                            source = 'Cache';
+                            source = 'cache';
                             console.log(`✅ Cache: ${martyrs.length} martyrs`);
                         }
                     }
