@@ -2,6 +2,7 @@
 
 // Import authentication module
 import { adminAuth } from './auth.js';
+import { escapeHTML, sanitizeInput, checkRateLimit, logSecurityEvent } from './security.js';
 
 // Use auth.js module for authentication validation
 function validateAdminAuth(actionName = 'admin action') {
@@ -466,11 +467,11 @@ async function loadPendingSubmissions() {
     console.log(`✅ Successfully rendered ${pendingData.length} pending submissions in UI`);
 }
 
-// Create a pending item element
+// Create a pending item element (with XSS protection)
 function createPendingItem(martyr) {
     const item = document.createElement('div');
     item.className = 'pending-item';
-    item.dataset.martyrId = martyr.id;
+    item.dataset.martyrId = escapeHTML(martyr.id);
     item.dataset.martyrName = toSearchString(martyr.fullName);
     item.dataset.submitterName = toSearchString(martyr.submitterName);
     item.dataset.submitterEmail = toSearchString(martyr.submitterEmail);
@@ -483,65 +484,85 @@ function createPendingItem(martyr) {
         minute: '2-digit'
     });
 
+    // Sanitize all user-provided data before rendering
+    const safeId = escapeHTML(martyr.id);
+    const safeName = escapeHTML(martyr.fullName);
+    const safeFatherName = escapeHTML(martyr.fatherName || 'Not provided');
+    const safeBirthPlace = escapeHTML(martyr.birthPlace || 'Unknown');
+    const safeMartydomPlace = escapeHTML(martyr.martyrdomPlace || 'Unknown');
+    const safeOrg = escapeHTML(martyr.organization || 'Not specified');
+    const safeRank = escapeHTML(martyr.rank || 'Not specified');
+    const safeBio = escapeHTML(martyr.biography || '');
+    const safeFamily = escapeHTML(martyr.familyDetails || '');
+    const safeSubmitter = escapeHTML(martyr.submitterName);
+    const safeEmail = escapeHTML(martyr.submitterEmail);
+    const safeRelation = escapeHTML(martyr.submitterRelation || '');
+    
+    // Validate photo URL (only allow data: URLs for base64 images)
+    let safePhoto = '';
+    if (martyr.photo && martyr.photo.startsWith('data:image/')) {
+        safePhoto = martyr.photo;
+    }
+
     item.innerHTML = `
         <div class="pending-header">
-            <strong>Submission ID:</strong> ${martyr.id}
-            <span style="float: right; color: #666;">Submitted: ${submittedDate}</span>
+            <strong>Submission ID:</strong> ${safeId}
+            <span style="float: right; color: #666;">Submitted: ${escapeHTML(submittedDate)}</span>
         </div>
         <div class="pending-content">
             <div class="pending-image">
-                ${martyr.photo ? 
-                    `<img src="${martyr.photo}" alt="${martyr.fullName}">` :
+                ${safePhoto ? 
+                    `<img src="${safePhoto}" alt="${safeName}">` :
                     '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #999;">No Photo</div>'
                 }
             </div>
             <div class="pending-details">
-                <h3>${martyr.fullName}</h3>
+                <h3>${safeName}</h3>
                 <div class="detail-row">
-                    <span class="detail-label">Father's Name:</span> ${martyr.fatherName || 'Not provided'}
+                    <span class="detail-label">Father's Name:</span> ${safeFatherName}
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">Birth:</span> ${formatDate(martyr.birthDate)} in ${martyr.birthPlace || 'Unknown'}
+                    <span class="detail-label">Birth:</span> ${escapeHTML(formatDate(martyr.birthDate))} in ${safeBirthPlace}
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">Martyrdom:</span> ${formatDate(martyr.martyrdomDate)} in ${martyr.martyrdomPlace || 'Unknown'}
+                    <span class="detail-label">Martyrdom:</span> ${escapeHTML(formatDate(martyr.martyrdomDate))} in ${safeMartydomPlace}
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">Organization:</span> ${martyr.organization || 'Not specified'}
+                    <span class="detail-label">Organization:</span> ${safeOrg}
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">Rank:</span> ${martyr.rank || 'Not specified'}
+                    <span class="detail-label">Rank:</span> ${safeRank}
                 </div>
-                ${martyr.biography ? `
+                ${safeBio ? `
                     <div class="detail-row">
                         <span class="detail-label">Biography:</span>
-                        <div class="biography-text">${martyr.biography}</div>
+                        <div class="biography-text">${safeBio}</div>
                     </div>
                 ` : ''}
-                ${martyr.familyDetails ? `
+                ${safeFamily ? `
                     <div class="detail-row">
                         <span class="detail-label">Family Details:</span>
-                        <div class="family-text">${martyr.familyDetails}</div>
+                        <div class="family-text">${safeFamily}</div>
                     </div>
                 ` : ''}
                 <div class="detail-row">
-                    <span class="detail-label">Submitted by:</span> ${martyr.submitterName} (${martyr.submitterEmail})
+                    <span class="detail-label">Submitted by:</span> ${safeSubmitter} (${safeEmail})
                 </div>
-                ${martyr.submitterRelation ? `
+                ${safeRelation ? `
                     <div class="detail-row">
-                        <span class="detail-label">Relationship:</span> ${martyr.submitterRelation}
+                        <span class="detail-label">Relationship:</span> ${safeRelation}
                     </div>
                 ` : ''}
             </div>
         </div>
         <div class="pending-actions">
-            <button data-action="approve" data-martyr-id="${martyr.id}" class="btn btn-approve">
+            <button data-action="approve" data-martyr-id="${safeId}" class="btn btn-approve">
                 ✓ Approve & Publish
             </button>
-            <button data-action="reject" data-martyr-id="${martyr.id}" class="btn btn-reject">
+            <button data-action="reject" data-martyr-id="${safeId}" class="btn btn-reject">
                 ✗ Reject & Delete
             </button>
-            <button data-action="preview" data-martyr-id="${martyr.id}" class="btn btn-secondary" style="margin-left: auto;">
+            <button data-action="preview" data-martyr-id="${safeId}" class="btn btn-secondary" style="margin-left: auto;">
                 👁 Preview as Visitor
             </button>
         </div>

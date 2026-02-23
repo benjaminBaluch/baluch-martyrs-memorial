@@ -1,5 +1,8 @@
 // Add Martyr Form JavaScript
 
+// Import security utilities
+import { sanitizeInput, validateEmail, checkRateLimit, validateFile, validateBase64Image, logSecurityEvent, sanitizeFormData } from './security.js';
+
 // Global variables for Firebase (will be loaded conditionally)
 let firebaseDB = null;
 let storageHelper = null;
@@ -248,10 +251,18 @@ function handlePhotoUpload(event, previewContainer, multiple) {
     }
 }
 
-// Handle form submission
+// Handle form submission with security validation
 function handleFormSubmit(event) {
     event.preventDefault();
     console.log('📋 Form submission started');
+    
+    // Rate limiting check (max 3 submissions per 5 minutes)
+    const rateCheck = checkRateLimit('martyr_submission', 3, 300000);
+    if (!rateCheck.allowed) {
+        logSecurityEvent('rate_limit_exceeded', { action: 'martyr_submission' });
+        alert(`⚠️ Too many submissions. Please wait ${rateCheck.waitSeconds} seconds before trying again.`);
+        return;
+    }
     
     try {
         const form = event.target;
@@ -268,6 +279,15 @@ function handleFormSubmit(event) {
                 if (fieldElement) fieldElement.focus();
                 return; // Stop submission
             }
+        }
+        
+        // Validate email format
+        const emailValidation = validateEmail(formData.get('submitterEmail'));
+        if (!emailValidation.valid) {
+            alert(`❌ ${emailValidation.error}`);
+            const emailField = form.querySelector('[name="submitterEmail"]');
+            if (emailField) emailField.focus();
+            return;
         }
         
         console.log('✅ Form validation passed');
@@ -322,22 +342,25 @@ function handleFormSubmit(event) {
         // Show loading immediately
         showLoadingState();
         
-        // Create martyr object
+        // Create martyr object with sanitized inputs
         const martyrData = {
-            fullName: formData.get('fullName').trim(),
+            fullName: sanitizeInput(formData.get('fullName'), { maxLength: 200 }),
             birthDate: normalizedBirth,
             martyrdomDate: normalizedMartyrdom,
-            birthPlace: formData.get('birthPlace')?.trim() || '',
-            martyrdomPlace: formData.get('martyrdomPlace')?.trim() || '',
-            biography: formData.get('biography')?.trim() || '',
-            organization: formData.get('organization')?.trim() || '',
-            rank: formData.get('rank')?.trim() || '',
-            fatherName: formData.get('fatherName')?.trim() || '',
-            submitterName: formData.get('submitterName').trim(),
-            submitterEmail: formData.get('submitterEmail').trim(),
-            submitterRelation: formData.get('submitterRelation')?.trim() || '',
+            birthPlace: sanitizeInput(formData.get('birthPlace') || '', { maxLength: 200 }),
+            martyrdomPlace: sanitizeInput(formData.get('martyrdomPlace') || '', { maxLength: 200 }),
+            biography: sanitizeInput(formData.get('biography') || '', { maxLength: 5000, allowNewlines: true }),
+            organization: sanitizeInput(formData.get('organization') || '', { maxLength: 200 }),
+            rank: sanitizeInput(formData.get('rank') || '', { maxLength: 100 }),
+            fatherName: sanitizeInput(formData.get('fatherName') || '', { maxLength: 200 }),
+            submitterName: sanitizeInput(formData.get('submitterName'), { maxLength: 200 }),
+            submitterEmail: emailValidation.sanitized,
+            submitterRelation: sanitizeInput(formData.get('submitterRelation') || '', { maxLength: 200 }),
             submittedAt: new Date().toISOString()
         };
+        
+        // Log submission attempt for security monitoring
+        logSecurityEvent('form_submission', { name: martyrData.fullName, hasPhoto: !!formData.get('martyrPhoto') });
         
         console.log('📋 Martyr data prepared:', { name: martyrData.fullName, fields: Object.keys(martyrData).length });
         

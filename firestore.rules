@@ -1,10 +1,115 @@
+// Firestore Security Rules for Baluch Martyrs Memorial
+// Deploy these rules via Firebase Console: Firestore Database > Rules
+// 
+// IMPORTANT: These rules should be deployed to Firebase to secure the database
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Temporary: Allow all operations for debugging
-    // TODO: Restore proper security after Firebase connection is fixed
-    match /{document=**} {
-      allow read, write: if true;
+    
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    
+    // Check if the request has valid martyr data
+    function hasValidMartyrData() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['fullName', 'submitterName', 'submitterEmail']) &&
+             data.fullName is string &&
+             data.fullName.size() > 0 &&
+             data.fullName.size() <= 200 &&
+             data.submitterName is string &&
+             data.submitterEmail is string &&
+             data.submitterEmail.matches('.*@.*\\..*');
     }
+    
+    // Check for reasonable field lengths (prevent DoS via huge data)
+    function hasReasonableSizes() {
+      let data = request.resource.data;
+      return (!data.keys().hasAny(['biography']) || data.biography.size() <= 5000) &&
+             (!data.keys().hasAny(['familyDetails']) || data.familyDetails.size() <= 3000) &&
+             (!data.keys().hasAny(['birthPlace']) || data.birthPlace.size() <= 200) &&
+             (!data.keys().hasAny(['martyrdomPlace']) || data.martyrdomPlace.size() <= 200);
+    }
+    
+    // ============================================
+    // APPROVED MARTYRS COLLECTION (Public Read)
+    // ============================================
+    
+    match /martyrs/{martyrId} {
+      // Anyone can read approved martyrs (public gallery)
+      allow read: if true;
+      
+      // Only allow writes from authenticated sources
+      // For now, allow writes (admin panel handles auth)
+      // TODO: Implement Firebase Auth for proper admin authentication
+      allow create, update, delete: if true;
+    }
+    
+    // ============================================
+    // PENDING MARTYRS COLLECTION (Submissions)
+    // ============================================
+    
+    match /pendingMartyrs/{submissionId} {
+      // Public can submit new martyrs (create only)
+      allow create: if hasValidMartyrData() && 
+                       hasReasonableSizes() &&
+                       request.resource.data.status == 'pending';
+      
+      // Allow reads for admin panel (admin auth is handled client-side)
+      // TODO: Implement Firebase Auth and restrict to authenticated admins
+      allow read: if true;
+      
+      // Allow updates/deletes for admin moderation
+      allow update, delete: if true;
+    }
+    
+    // ============================================
+    // TEST COLLECTION (Development only)
+    // ============================================
+    
+    match /test/{docId} {
+      // Allow read for connection testing
+      allow read: if true;
+      
+      // No writes to test collection
+      allow write: if false;
+    }
+    
+    // ============================================
+    // ADMIN AUDIT LOG (Optional)
+    // ============================================
+    
+    match /adminAuditLog/{logId} {
+      // Allow writes for audit logging
+      allow create: if true;
+      
+      // No reads or updates/deletes of audit logs
+      allow read, update, delete: if false;
+    }
+    
+    // ============================================
+    // DEFAULT DENY for other collections
+    // ============================================
+    
+    // Note: This catch-all won't override specific rules above
+    // It only affects collections not explicitly matched
   }
 }
+
+// ============================================
+// DEPLOYMENT INSTRUCTIONS
+// ============================================
+// 
+// 1. Go to Firebase Console: https://console.firebase.google.com
+// 2. Select your project: baluch-martyrs-memorial
+// 3. Navigate to Firestore Database > Rules
+// 4. Copy and paste these rules
+// 5. Click "Publish"
+//
+// SECURITY NOTE:
+// For full production security, implement Firebase Authentication:
+// - Create admin users in Firebase Auth
+// - Use custom claims to identify admin users
+// - Replace client-side auth with token verification
+// - Update rules to check: request.auth != null && request.auth.token.admin == true

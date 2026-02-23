@@ -146,12 +146,7 @@
 
     <script type="module">
         import { adminAuth } from './js/auth.js';
-        
-        // Admin credentials - In production, these should be server-side
-        const ADMIN_CREDENTIALS = {
-            'admin': 'baluch2024!',  // Default credentials
-            'moderator': 'memorial@admin'  // Additional admin user
-        };
+        import { checkRateLimit, logSecurityEvent } from './js/security.js';
 
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
@@ -191,7 +186,31 @@
             return false;
         }
 
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
+        // Server-side authentication
+        async function authenticateWithServer(username, password) {
+            try {
+                const response = await fetch('/api/admin-auth', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'login',
+                        username: username,
+                        password: password
+                    })
+                });
+                
+                const result = await response.json();
+                return result;
+            } catch (error) {
+                console.error('Server auth error:', error);
+                // Fallback to client-side auth if server is unavailable
+                return { success: false, fallback: true };
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const username = document.getElementById('username').value.trim();
@@ -200,61 +219,62 @@
             
             console.log(`🔐 Login attempt for username: ${username}`);
             
+            // Rate limiting check (max 5 attempts per 5 minutes)
+            const rateCheck = checkRateLimit('admin_login', 5, 300000);
+            if (!rateCheck.allowed) {
+                logSecurityEvent('rate_limit_exceeded', { action: 'admin_login', username });
+                showError(`Too many login attempts. Please wait ${rateCheck.waitSeconds} seconds.`);
+                return;
+            }
+            
             if (!username || !password) {
                 showError('Please enter both username and password');
                 return;
             }
 
             loginBtn.disabled = true;
-            loginBtn.textContent = 'Logging in...';
+            loginBtn.textContent = 'Authenticating...';
 
-            // Verify credentials
-            setTimeout(() => {
-                try {
-                    if (ADMIN_CREDENTIALS[username] && ADMIN_CREDENTIALS[username] === password) {
-                        console.log(`✅ Credentials verified for: ${username}`);
-                        
-                        // Create session using auth.js
-                        const sessionData = adminAuth.createSession(username);
-                        
-                        if (sessionData) {
-                            console.log(`✅ Session created successfully`);
-                            showSuccess('Login successful! Redirecting...');
-                            
-                            // Double-check session was created
-                            if (adminAuth.isAuthenticated()) {
-                                console.log('✅ Session verification passed');
-                                setTimeout(() => {
-                                    window.location.href = 'admin.html';
-                                }, 1000);
-                            } else {
-                                console.error('❌ Session verification failed after creation');
-                                showError('Session creation failed. Please try again.');
-                                loginBtn.disabled = false;
-                                loginBtn.textContent = 'Login to Admin Panel';
-                            }
-                        } else {
-                            console.error('❌ Failed to create session');
-                            showError('Failed to create session. Please try again.');
-                            loginBtn.disabled = false;
-                            loginBtn.textContent = 'Login to Admin Panel';
-                        }
+            try {
+                // Try server-side authentication first
+                const serverResult = await authenticateWithServer(username, password);
+                
+                if (serverResult.success) {
+                    console.log(`✅ Server authentication successful for: ${username}`);
+                    logSecurityEvent('login_success', { username, method: 'server' });
+                    
+                    // Store token and create session
+                    if (serverResult.token) {
+                        localStorage.setItem('adminToken', serverResult.token);
+                    }
+                    
+                    // Create session using auth.js
+                    const sessionData = adminAuth.createSession(username);
+                    
+                    if (sessionData) {
+                        showSuccess('Login successful! Redirecting...');
+                        setTimeout(() => {
+                            window.location.href = 'admin.html';
+                        }, 1000);
                     } else {
-                        console.warn(`🚫 Invalid credentials for: ${username}`);
-                        showError('Invalid username or password. Please try again.');
-                        
-                        // Reset form
-                        document.getElementById('password').value = '';
+                        showError('Session creation failed. Please try again.');
                         loginBtn.disabled = false;
                         loginBtn.textContent = 'Login to Admin Panel';
                     }
-                } catch (error) {
-                    console.error('❌ Login process error:', error);
-                    showError('An error occurred during login. Please try again.');
+                } else {
+                    logSecurityEvent('login_failure', { username, reason: serverResult.error || 'invalid_credentials' });
+                    showError(serverResult.error || 'Invalid username or password.');
+                    document.getElementById('password').value = '';
                     loginBtn.disabled = false;
                     loginBtn.textContent = 'Login to Admin Panel';
                 }
-            }, 500);
+            } catch (error) {
+                console.error('❌ Login process error:', error);
+                logSecurityEvent('login_error', { username, error: error.message });
+                showError('An error occurred during login. Please try again.');
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Login to Admin Panel';
+            }
         });
 
         // Check for existing session on page load
