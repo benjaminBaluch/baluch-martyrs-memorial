@@ -1,6 +1,95 @@
 /* Global Styles */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
+/* ============================================
+   BACK TO TOP BUTTON
+   ============================================ */
+.back-to-top {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, #1a3d20 100%);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 15px rgba(44, 85, 48, 0.3);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1000;
+}
+
+.back-to-top.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.back-to-top:hover {
+    background: linear-gradient(135deg, #3a6f3e 0%, var(--primary-color) 100%);
+    box-shadow: 0 6px 20px rgba(44, 85, 48, 0.4);
+    transform: translateY(-3px);
+}
+
+.back-to-top:active {
+    transform: translateY(-1px);
+}
+
+.back-to-top svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Pulse animation on first appearance */
+@keyframes backToTopPulse {
+    0% { box-shadow: 0 4px 15px rgba(44, 85, 48, 0.3); }
+    50% { box-shadow: 0 4px 25px rgba(44, 85, 48, 0.5); }
+    100% { box-shadow: 0 4px 15px rgba(44, 85, 48, 0.3); }
+}
+
+.back-to-top.pulse {
+    animation: backToTopPulse 1s ease-in-out;
+}
+
+/* Dark mode */
+html[data-theme="dark"] .back-to-top {
+    background: linear-gradient(135deg, #2d5a32 0%, #1a3d20 100%);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+html[data-theme="dark"] .back-to-top:hover {
+    background: linear-gradient(135deg, #3a7040 0%, #2d5a32 100%);
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.6);
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .back-to-top {
+        bottom: 20px;
+        right: 20px;
+        width: 45px;
+        height: 45px;
+    }
+    
+    .back-to-top svg {
+        width: 20px;
+        height: 20px;
+    }
+}
+
 :root {
     --primary-color: #2c5530;
     --secondary-color: #d4af37;

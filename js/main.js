@@ -107,9 +107,77 @@ document.addEventListener('DOMContentLoaded', function() {
     initTheme();
     initMobileMenu();
     initSmoothScroll();
+    initBackToTop();
     loadRecentMartyrs();
     initAnniversarySlider();
 });
+
+// ============================================
+// BACK TO TOP BUTTON
+// ============================================
+function initBackToTop() {
+    // Create button element
+    const button = document.createElement('button');
+    button.className = 'back-to-top';
+    button.setAttribute('aria-label', 'Back to top');
+    button.setAttribute('title', 'Back to top');
+    button.innerHTML = `
+        <svg viewBox="0 0 24 24">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    `;
+    document.body.appendChild(button);
+    
+    // Track if we've shown the pulse animation
+    let hasShownPulse = false;
+    
+    // Show/hide button based on scroll position
+    function toggleButtonVisibility() {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const shouldShow = scrollTop > 300;
+        
+        if (shouldShow) {
+            button.classList.add('visible');
+            
+            // Add pulse animation only on first appearance
+            if (!hasShownPulse) {
+                button.classList.add('pulse');
+                hasShownPulse = true;
+                setTimeout(() => button.classList.remove('pulse'), 1000);
+            }
+        } else {
+            button.classList.remove('visible');
+        }
+    }
+    
+    // Scroll to top with smooth animation
+    function scrollToTop() {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    }
+    
+    // Event listeners
+    button.addEventListener('click', scrollToTop);
+    
+    // Throttled scroll listener for performance
+    let ticking = false;
+    window.addEventListener('scroll', function() {
+        if (!ticking) {
+            window.requestAnimationFrame(function() {
+                toggleButtonVisibility();
+                ticking = false;
+            });
+            ticking = true;
+        }
+    }, { passive: true });
+    
+    // Initial check
+    toggleButtonVisibility();
+    
+    console.log('⬆️ Back to top button initialized');
+}
 
 // Mobile Menu Toggle
 function initMobileMenu() {
