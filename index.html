@@ -350,71 +350,121 @@
         }
         .martyrs-showcase {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 2rem;
             margin-bottom: 3rem;
         }
+        /* Martyr cards matching gallery design */
         .featured-martyrs .martyr-card {
-            background: white;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 6px 25px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
-            border: 1px solid #eee;
-            display: flex;
-            flex-direction: column;
-            min-height: 500px;
             position: relative;
+            background: #ffffff;
+            border-radius: 16px;
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+            overflow: hidden;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
         }
         .featured-martyrs .martyr-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 35px rgba(0,0,0,0.15);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.16);
+            border-color: rgba(44, 85, 48, 0.2);
         }
-        .featured-martyrs .martyr-image {
-            height: 250px;
-            background: linear-gradient(135deg, var(--primary-color), #1a3d20);
+        .featured-martyrs .martyr-card-inner {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        .featured-martyrs .martyr-photo-wrapper {
+            position: relative;
+            overflow: hidden;
+            border-radius: 16px 16px 0 0;
+            background: linear-gradient(135deg, #dfe7e9, #cfd9df);
+        }
+        .featured-martyrs .martyr-photo-wrapper img {
+            display: block;
+            width: 100%;
+            height: 220px;
+            object-fit: cover;
+            filter: saturate(1.05);
+        }
+        .featured-martyrs .martyr-photo-placeholder {
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
-        }
-        .featured-martyrs .martyr-image img {
             width: 100%;
-            height: 100%;
-            object-fit: cover;
+            height: 220px;
+            font-size: 2.5rem;
+            color: #9ca3af;
+        }
+        .featured-martyrs .martyr-photo-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, rgba(15, 23, 42, 0.18), rgba(15, 23, 42, 0.02));
+            mix-blend-mode: multiply;
+            pointer-events: none;
         }
         .featured-martyrs .martyr-info {
-            padding: 2rem;
-            text-align: left;
-            flex: 1;
+            padding: 1.25rem 1.4rem 1.3rem;
+        }
+        .featured-martyrs .martyr-name-row {
             display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            align-items: center;
+            gap: 0.35rem;
+            margin-bottom: 0.4rem;
         }
-        .featured-martyrs .martyr-info-content {
-            flex: 1;
+        .featured-martyrs .martyr-symbol {
+            font-size: 1.05rem;
+            color: var(--secondary-color);
         }
-        .featured-martyrs .martyr-info h3 {
-            font-size: 1.4rem;
-            color: var(--primary-color);
-            margin-bottom: 0.75rem;
-            font-weight: 700;
-            line-height: 1.3;
-        }
-        .featured-martyrs .martyr-info p {
-            color: #666;
-            line-height: 1.6;
-            margin-bottom: 0.75rem;
-            font-size: 0.95rem;
-        }
-        .featured-martyrs .martyr-info-actions {
-            margin-top: auto;
-            padding-top: 1rem;
-        }
-        .featured-martyrs .btn-small {
+        .featured-martyrs .martyr-name {
             margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            color: var(--primary-color);
+        }
+        .featured-martyrs .martyr-meta {
+            margin: 0.15rem 0;
+            font-size: 0.9rem;
+            color: #555555;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .featured-martyrs .martyr-meta-icon {
+            font-size: 0.95rem;
+            opacity: 0.85;
+        }
+        .featured-martyrs .martyr-organization {
+            margin-top: 0.3rem;
+            font-size: 0.88rem;
+            color: #666666;
+        }
+        .featured-martyrs .martyr-card-button {
+            margin-top: 0.95rem;
             align-self: flex-start;
+            border-radius: 999px;
+            padding: 0.5rem 1.25rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid rgba(44, 85, 48, 0.35);
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--primary-color);
             display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+            cursor: pointer;
+        }
+        .featured-martyrs .martyr-card-button::after {
+            content: '↗';
+            font-size: 0.9rem;
+        }
+        .featured-martyrs .martyr-card-button:hover {
+            background: #f0f5f1;
+            box-shadow: 0 0 0 3px rgba(44, 85, 48, 0.12);
+            border-color: rgba(44, 85, 48, 0.6);
+            transform: translateY(-1px);
         }
         .featured-martyrs .placeholder {
             grid-column: 1 / -1;
@@ -451,6 +501,16 @@
         .section-footer {
             text-align: center;
             margin-top: 2rem;
+        }
+        /* Mobile responsive for homepage cards */
+        @media (max-width: 600px) {
+            .featured-martyrs .martyr-photo-wrapper img,
+            .featured-martyrs .martyr-photo-placeholder {
+                height: 200px;
+            }
+            .featured-martyrs .martyr-info {
+                padding: 1.1rem 1.2rem 1.2rem;
+            }
         }
 
         /* Community Action Section */

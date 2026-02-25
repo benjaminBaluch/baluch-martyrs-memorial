@@ -335,23 +335,24 @@ function createMartyrCard(martyr) {
     const photoWrapper = document.createElement('div');
     photoWrapper.className = 'martyr-photo-wrapper';
     
+    // Photo overlay (placed before img for proper layering)
+    const overlay = document.createElement('div');
+    overlay.className = 'martyr-photo-overlay';
+    
     if (martyr.photo) {
         const img = document.createElement('img');
         img.src = martyr.photo;
-        img.alt = martyr.fullName;
+        img.alt = martyr.fullName || 'Martyr portrait';
         img.loading = 'lazy';
         photoWrapper.appendChild(img);
-        
-        // Add photo overlay
-        const overlay = document.createElement('div');
-        overlay.className = 'martyr-photo-overlay';
-        photoWrapper.appendChild(overlay);
     } else {
+        // Fallback placeholder when no photo is provided
         const placeholder = document.createElement('div');
         placeholder.className = 'martyr-photo-placeholder';
-        placeholder.textContent = '🕊️';
+        placeholder.textContent = '📷';
         photoWrapper.appendChild(placeholder);
     }
+    photoWrapper.appendChild(overlay);
     
     // Info section
     const infoDiv = document.createElement('div');
@@ -363,44 +364,66 @@ function createMartyrCard(martyr) {
     
     const symbol = document.createElement('span');
     symbol.className = 'martyr-symbol';
-    symbol.textContent = '🕊️';
+    symbol.textContent = '✦';
     
     const name = document.createElement('h3');
     name.className = 'martyr-name';
-    name.textContent = martyr.fullName;
+    name.textContent = martyr.fullName || 'Unknown martyr';
     
     nameRow.appendChild(symbol);
     nameRow.appendChild(name);
     infoDiv.appendChild(nameRow);
     
-    // Key details (martyrdom date & place)
-    const detailList = document.createElement('div');
-    detailList.className = 'martyr-detail-list';
+    // Location line (icon + text format matching gallery)
+    const locationLine = document.createElement('p');
+    locationLine.className = 'martyr-meta martyr-location';
+    const locIcon = document.createElement('span');
+    locIcon.className = 'martyr-meta-icon';
+    locIcon.textContent = '📍';
+    const locText = document.createElement('span');
+    locText.textContent = martyr.martyrdomPlace || martyr.birthPlace || 'Location unknown';
+    locationLine.appendChild(locIcon);
+    locationLine.appendChild(locText);
+    infoDiv.appendChild(locationLine);
     
-    const martyrdomDate = formatDate(martyr.martyrdomDate);
-    const martyrdomPlace = martyr.martyrdomPlace || 'Location not recorded';
+    // Date line (martyrdom date with icon)
+    const dateLine = document.createElement('p');
+    dateLine.className = 'martyr-meta martyr-date';
+    const dateIcon = document.createElement('span');
+    dateIcon.className = 'martyr-meta-icon';
+    dateIcon.textContent = '🕊️';
+    const dateText = document.createElement('span');
+    const martyrdomPretty = formatDate(martyr.martyrdomDate);
+    const martyrdomYear = formatDateYear(martyr.martyrdomDate);
+    if (martyrdomPretty && martyrdomPretty !== 'Unknown') {
+        dateText.textContent = martyrdomPretty;
+    } else if (martyrdomYear && martyrdomYear !== '?') {
+        dateText.textContent = `Year of martyrdom: ${martyrdomYear}`;
+    } else {
+        dateText.textContent = 'Date of martyrdom unknown';
+    }
+    dateLine.appendChild(dateIcon);
+    dateLine.appendChild(dateText);
+    infoDiv.appendChild(dateLine);
     
-    const dateRow = document.createElement('div');
-    dateRow.className = 'martyr-detail-row';
-    dateRow.innerHTML = `
-        <span class=\"martyr-detail-label\">Martyred</span>
-        <span class=\"martyr-detail-value\">${martyrdomDate && martyrdomDate !== 'Unknown' ? martyrdomDate : 'Date not recorded'}</span>
-    `;
+    // Organization line (optional, matching gallery)
+    if (martyr.organization) {
+        const orgLine = document.createElement('p');
+        orgLine.className = 'martyr-meta martyr-organization';
+        const orgIcon = document.createElement('span');
+        orgIcon.className = 'martyr-meta-icon';
+        orgIcon.textContent = '🏳️';
+        const orgText = document.createElement('span');
+        orgText.textContent = martyr.organization;
+        orgLine.appendChild(orgIcon);
+        orgLine.appendChild(orgText);
+        infoDiv.appendChild(orgLine);
+    }
     
-    const placeRow = document.createElement('div');
-    placeRow.className = 'martyr-detail-row';
-    placeRow.innerHTML = `
-        <span class=\"martyr-detail-label\">Place</span>
-        <span class=\"martyr-detail-value\">${martyrdomPlace}</span>
-    `;
-    
-    detailList.appendChild(dateRow);
-    detailList.appendChild(placeRow);
-    infoDiv.appendChild(detailList);
-    
-    // View details button
+    // View details button (matching gallery button style)
     const viewBtn = document.createElement('button');
-    viewBtn.className = 'btn martyr-card-button';
+    viewBtn.className = 'btn btn-small martyr-card-button';
+    viewBtn.type = 'button';
     viewBtn.textContent = 'View Details';
     viewBtn.onclick = function(e) {
         e.preventDefault();
