@@ -2121,6 +2121,7 @@ function initFilterDropdowns() {
 function populateFilterDropdowns() {
     populateRegionDropdown();
     populateYearDropdown();
+    populateOrgDropdown();
 }
 
 function populateRegionDropdown() {
@@ -2190,6 +2191,37 @@ function populateYearDropdown() {
     });
 }
 
+function populateOrgDropdown() {
+    const orgList = document.getElementById('orgList');
+    if (!orgList || !allMartyrs) return;
+    
+    // Collect unique organizations
+    const orgs = new Map();
+    allMartyrs.forEach(m => {
+        const org = (m.organization || '').trim();
+        if (org) {
+            const count = orgs.get(org) || 0;
+            orgs.set(org, count + 1);
+        }
+    });
+    
+    // Sort by count (most common first)
+    const sortedOrgs = [...orgs.entries()]
+        .sort((a, b) => b[1] - a[1]);
+    
+    orgList.innerHTML = '';
+    sortedOrgs.forEach(([org, count]) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = `${org} (${count})`;
+        btn.addEventListener('click', () => {
+            filterByOrganization(org);
+            closeAllDropdowns();
+        });
+        orgList.appendChild(btn);
+    });
+}
+
 function toggleFilterDropdown(dropdownId, tabElement) {
     const dropdown = document.getElementById(dropdownId);
     if (!dropdown) return;
@@ -2253,12 +2285,37 @@ function filterByYear(year) {
     // Show active filter badge
     const resultsInfo = document.getElementById('searchResultsInfo');
     if (resultsInfo) {
-        resultsInfo.style.display = 'flex';
+        resultsInfo.classList.add('show');
         const filtersSpan = document.getElementById('resultsFilters');
         if (filtersSpan) filtersSpan.textContent = ` | Year: ${year}`;
     }
     
     discoveryState.activeQuickFilter = 'year:' + year;
+}
+
+function filterByOrganization(org) {
+    // Update tabs
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    const orgTab = document.querySelector('[data-filter="organization"]');
+    if (orgTab) orgTab.classList.add('active');
+    
+    // Filter martyrs
+    const filtered = allMartyrs.filter(m => {
+        return (m.organization || '').toLowerCase() === org.toLowerCase();
+    });
+    
+    renderGallery(filtered);
+    updateSearchResultsInfo(filtered.length);
+    
+    // Show active filter badge
+    const resultsInfo = document.getElementById('searchResultsInfo');
+    if (resultsInfo) {
+        resultsInfo.classList.add('show');
+        const filtersSpan = document.getElementById('resultsFilters');
+        if (filtersSpan) filtersSpan.textContent = ` | Organization: ${org}`;
+    }
+    
+    discoveryState.activeQuickFilter = 'organization:' + org;
 }
 
 // ========== ALPHABET NAVIGATION ==========
