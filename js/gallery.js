@@ -1949,3 +1949,631 @@ function getActiveFiltersText() {
 }
 
 // (old modal implementation removed – replaced by print‑enabled modal above)
+
+// ============================================
+// SEARCH & DISCOVERY EXPERIENCE
+// ============================================
+
+// State for discovery features
+let discoveryState = {
+    activeQuickFilter: 'all',
+    activeLetter: null,
+    autocompleteIndex: -1
+};
+
+// Initialize Search & Discovery Experience
+function initSearchDiscovery() {
+    console.log('🔍 Initializing Search & Discovery Experience...');
+    
+    initDiscoverHero();
+    initQuickFilters();
+    initAlphabetNav();
+    initAutocomplete();
+    initFilterDropdowns();
+    
+    console.log('✅ Search & Discovery Experience initialized');
+}
+
+// ========== DISCOVER HERO (Random) ==========
+function initDiscoverHero() {
+    const discoverBtn = document.getElementById('discoverHero');
+    if (!discoverBtn) return;
+    
+    discoverBtn.addEventListener('click', function() {
+        discoverRandomHero();
+    });
+}
+
+function discoverRandomHero() {
+    if (!allMartyrs || allMartyrs.length === 0) {
+        console.warn('No martyrs available to discover');
+        return;
+    }
+    
+    // Get a random martyr
+    const randomIndex = Math.floor(Math.random() * allMartyrs.length);
+    const randomMartyr = allMartyrs[randomIndex];
+    
+    // Add a subtle animation to the button
+    const btn = document.getElementById('discoverHero');
+    if (btn) {
+        btn.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            btn.style.transform = '';
+        }, 150);
+    }
+    
+    // Show the modal for this martyr
+    showMartyrModal(randomMartyr);
+    
+    console.log(`🎲 Discovered random hero: ${randomMartyr.fullName}`);
+}
+
+// ========== QUICK FILTERS ==========
+function initQuickFilters() {
+    const filterPills = document.querySelectorAll('.filter-pill');
+    
+    filterPills.forEach(pill => {
+        pill.addEventListener('click', function() {
+            const filterType = this.dataset.filter;
+            const dropdownId = this.dataset.dropdown;
+            
+            // Handle dropdown pills
+            if (dropdownId) {
+                toggleFilterDropdown(dropdownId, this);
+                return;
+            }
+            
+            // Handle direct filter pills
+            handleQuickFilter(filterType, this);
+        });
+    });
+}
+
+function handleQuickFilter(filterType, pillElement) {
+    // Update active state
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active-pill'));
+    pillElement.classList.add('active-pill');
+    
+    // Close any open dropdowns
+    closeAllDropdowns();
+    
+    // Reset alphabet navigation
+    resetAlphabetNav();
+    
+    discoveryState.activeQuickFilter = filterType;
+    
+    switch(filterType) {
+        case 'all':
+            clearAllFilters();
+            break;
+        case 'recent':
+            filterByRecent();
+            break;
+    }
+}
+
+function filterByRecent() {
+    if (!allMartyrs || allMartyrs.length === 0) return;
+    
+    // Sort by submission date (most recent first) and take top 10
+    const sortedByRecent = [...allMartyrs].sort((a, b) => {
+        const dateA = getTimestamp(a.submittedAt || a.martyrdomDate);
+        const dateB = getTimestamp(b.submittedAt || b.martyrdomDate);
+        return dateB - dateA;
+    });
+    
+    const recentMartyrs = sortedByRecent.slice(0, 12);
+    
+    renderGallery(recentMartyrs);
+    updateSearchResultsInfo(recentMartyrs.length);
+    
+    // Show results info
+    const resultsInfo = document.getElementById('searchResultsInfo');
+    if (resultsInfo) {
+        resultsInfo.style.display = 'flex';
+        const filtersSpan = document.getElementById('resultsFilters');
+        if (filtersSpan) filtersSpan.textContent = ' | Recent additions';
+    }
+}
+
+function getTimestamp(dateValue) {
+    if (!dateValue) return 0;
+    
+    try {
+        if (dateValue && typeof dateValue.toDate === 'function') {
+            return dateValue.toDate().getTime();
+        }
+        if (dateValue && typeof dateValue.seconds === 'number') {
+            return dateValue.seconds * 1000;
+        }
+        if (dateValue instanceof Date) {
+            return dateValue.getTime();
+        }
+        if (typeof dateValue === 'string') {
+            return new Date(dateValue).getTime() || 0;
+        }
+    } catch (e) {
+        return 0;
+    }
+    return 0;
+}
+
+// ========== FILTER DROPDOWNS ==========
+function initFilterDropdowns() {
+    // Populate dropdowns when data is ready
+    window.addEventListener('martyrsDataReady', populateFilterDropdowns);
+    
+    // Also try immediately if data already exists
+    if (allMartyrs && allMartyrs.length > 0) {
+        populateFilterDropdowns();
+    }
+    
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.filter-pill') && !e.target.closest('.filter-dropdown')) {
+            closeAllDropdowns();
+        }
+    });
+}
+
+function populateFilterDropdowns() {
+    populateRegionDropdown();
+    populateYearDropdown();
+}
+
+function populateRegionDropdown() {
+    const regionList = document.getElementById('regionList');
+    if (!regionList || !allMartyrs) return;
+    
+    // Collect unique regions (martyrdom places)
+    const regions = new Map();
+    allMartyrs.forEach(m => {
+        const place = (m.martyrdomPlace || m.birthPlace || '').trim();
+        if (place) {
+            // Extract main region/city name
+            const mainPlace = place.split(',')[0].trim();
+            if (mainPlace) {
+                const count = regions.get(mainPlace) || 0;
+                regions.set(mainPlace, count + 1);
+            }
+        }
+    });
+    
+    // Sort by count (most common first)
+    const sortedRegions = [...regions.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 15); // Top 15 regions
+    
+    regionList.innerHTML = '';
+    sortedRegions.forEach(([region, count]) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = `${region} (${count})`;
+        btn.addEventListener('click', () => {
+            filterByRegion(region);
+            closeAllDropdowns();
+        });
+        regionList.appendChild(btn);
+    });
+}
+
+function populateYearDropdown() {
+    const yearList = document.getElementById('yearList');
+    if (!yearList || !allMartyrs) return;
+    
+    // Collect unique years
+    const years = new Map();
+    allMartyrs.forEach(m => {
+        const year = getYear(m.martyrdomDate);
+        if (year) {
+            const count = years.get(year) || 0;
+            years.set(year, count + 1);
+        }
+    });
+    
+    // Sort by year (most recent first)
+    const sortedYears = [...years.entries()]
+        .sort((a, b) => parseInt(b[0]) - parseInt(a[0]));
+    
+    yearList.innerHTML = '';
+    sortedYears.forEach(([year, count]) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = `${year} (${count})`;
+        btn.addEventListener('click', () => {
+            filterByYear(year);
+            closeAllDropdowns();
+        });
+        yearList.appendChild(btn);
+    });
+}
+
+function toggleFilterDropdown(dropdownId, pillElement) {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+    
+    const isVisible = dropdown.style.display !== 'none';
+    
+    // Close all dropdowns first
+    closeAllDropdowns();
+    
+    if (!isVisible) {
+        // Position dropdown below the pill
+        const pillRect = pillElement.getBoundingClientRect();
+        const container = pillElement.closest('.quick-filters');
+        const containerRect = container.getBoundingClientRect();
+        
+        dropdown.style.display = 'block';
+        dropdown.style.left = (pillRect.left - containerRect.left) + 'px';
+    }
+}
+
+function closeAllDropdowns() {
+    document.querySelectorAll('.filter-dropdown').forEach(d => {
+        d.style.display = 'none';
+    });
+}
+
+function filterByRegion(region) {
+    // Update pills
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active-pill'));
+    const regionPill = document.querySelector('[data-filter="region"]');
+    if (regionPill) regionPill.classList.add('active-pill');
+    
+    // Filter martyrs
+    const filtered = allMartyrs.filter(m => {
+        const place = (m.martyrdomPlace || m.birthPlace || '').toLowerCase();
+        return place.includes(region.toLowerCase());
+    });
+    
+    renderGallery(filtered);
+    updateSearchResultsInfo(filtered.length);
+    
+    // Show active filter badge
+    const resultsInfo = document.getElementById('searchResultsInfo');
+    if (resultsInfo) {
+        resultsInfo.style.display = 'flex';
+        const filtersSpan = document.getElementById('resultsFilters');
+        if (filtersSpan) filtersSpan.textContent = ` | Region: ${region}`;
+    }
+    
+    discoveryState.activeQuickFilter = 'region:' + region;
+}
+
+function filterByYear(year) {
+    // Update pills
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active-pill'));
+    const yearPill = document.querySelector('[data-filter="year"]');
+    if (yearPill) yearPill.classList.add('active-pill');
+    
+    // Filter martyrs
+    const filtered = allMartyrs.filter(m => {
+        return getYear(m.martyrdomDate) === year;
+    });
+    
+    renderGallery(filtered);
+    updateSearchResultsInfo(filtered.length);
+    
+    // Show active filter badge
+    const resultsInfo = document.getElementById('searchResultsInfo');
+    if (resultsInfo) {
+        resultsInfo.style.display = 'flex';
+        const filtersSpan = document.getElementById('resultsFilters');
+        if (filtersSpan) filtersSpan.textContent = ` | Year: ${year}`;
+    }
+    
+    discoveryState.activeQuickFilter = 'year:' + year;
+}
+
+// ========== ALPHABET NAVIGATION ==========
+function initAlphabetNav() {
+    const alphabetNav = document.getElementById('alphabetNav');
+    if (!alphabetNav) return;
+    
+    // Generate A-Z buttons
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    alphabetNav.innerHTML = '';
+    
+    letters.forEach(letter => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'alphabet-letter';
+        btn.textContent = letter;
+        btn.dataset.letter = letter;
+        btn.addEventListener('click', () => handleAlphabetClick(letter, btn));
+        alphabetNav.appendChild(btn);
+    });
+    
+    // Add "All" button at the end
+    const allBtn = document.createElement('button');
+    allBtn.type = 'button';
+    allBtn.className = 'alphabet-letter active';
+    allBtn.textContent = '✕';
+    allBtn.title = 'Clear alphabet filter';
+    allBtn.dataset.letter = 'all';
+    allBtn.addEventListener('click', () => {
+        resetAlphabetNav();
+        clearAllFilters();
+    });
+    alphabetNav.appendChild(allBtn);
+    
+    // Update letter availability when data loads
+    window.addEventListener('martyrsDataReady', updateAlphabetAvailability);
+    if (allMartyrs && allMartyrs.length > 0) {
+        updateAlphabetAvailability();
+    }
+}
+
+function updateAlphabetAvailability() {
+    if (!allMartyrs) return;
+    
+    // Find which letters have martyrs
+    const availableLetters = new Set();
+    allMartyrs.forEach(m => {
+        const name = (m.fullName || '').trim();
+        if (name) {
+            const firstLetter = name.charAt(0).toUpperCase();
+            if (/[A-Z]/.test(firstLetter)) {
+                availableLetters.add(firstLetter);
+            }
+        }
+    });
+    
+    // Update button states
+    document.querySelectorAll('.alphabet-letter').forEach(btn => {
+        const letter = btn.dataset.letter;
+        if (letter && letter !== 'all') {
+            if (availableLetters.has(letter)) {
+                btn.classList.remove('disabled');
+            } else {
+                btn.classList.add('disabled');
+            }
+        }
+    });
+}
+
+function handleAlphabetClick(letter, btnElement) {
+    if (btnElement.classList.contains('disabled')) return;
+    
+    // Update active state
+    document.querySelectorAll('.alphabet-letter').forEach(b => b.classList.remove('active'));
+    btnElement.classList.add('active');
+    
+    // Reset quick filters
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active-pill'));
+    
+    discoveryState.activeLetter = letter;
+    
+    // Filter martyrs by letter
+    const filtered = allMartyrs.filter(m => {
+        const name = (m.fullName || '').trim();
+        return name && name.charAt(0).toUpperCase() === letter;
+    });
+    
+    renderGallery(filtered);
+    updateSearchResultsInfo(filtered.length);
+    
+    // Show results info
+    const resultsInfo = document.getElementById('searchResultsInfo');
+    if (resultsInfo) {
+        resultsInfo.style.display = 'flex';
+        const filtersSpan = document.getElementById('resultsFilters');
+        if (filtersSpan) filtersSpan.textContent = ` | Names starting with "${letter}"`;
+    }
+}
+
+function resetAlphabetNav() {
+    document.querySelectorAll('.alphabet-letter').forEach(b => {
+        b.classList.remove('active');
+        if (b.dataset.letter === 'all') {
+            b.classList.add('active');
+        }
+    });
+    discoveryState.activeLetter = null;
+}
+
+// ========== AUTOCOMPLETE ==========
+function initAutocomplete() {
+    const searchInput = document.getElementById('searchMartyrs');
+    const dropdown = document.getElementById('autocompleteDropdown');
+    
+    if (!searchInput || !dropdown) return;
+    
+    let debounceTimer = null;
+    
+    searchInput.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            const query = this.value.trim().toLowerCase();
+            if (query.length >= 2) {
+                showAutocompleteSuggestions(query);
+            } else {
+                hideAutocomplete();
+            }
+        }, 150);
+    });
+    
+    searchInput.addEventListener('focus', function() {
+        const query = this.value.trim().toLowerCase();
+        if (query.length >= 2) {
+            showAutocompleteSuggestions(query);
+        }
+    });
+    
+    searchInput.addEventListener('blur', function() {
+        // Delay hiding to allow click on suggestions
+        setTimeout(hideAutocomplete, 200);
+    });
+    
+    // Keyboard navigation
+    searchInput.addEventListener('keydown', function(e) {
+        handleAutocompleteKeyboard(e);
+    });
+}
+
+function showAutocompleteSuggestions(query) {
+    const dropdown = document.getElementById('autocompleteDropdown');
+    if (!dropdown || !allMartyrs) return;
+    
+    // Find matching martyrs
+    const matchingMartyrs = allMartyrs.filter(m => {
+        const searchText = `${m.fullName} ${m.birthPlace || ''} ${m.martyrdomPlace || ''} ${m.organization || ''}`.toLowerCase();
+        return searchText.includes(query);
+    }).slice(0, 5);
+    
+    // Find matching locations
+    const locations = new Set();
+    allMartyrs.forEach(m => {
+        const places = [m.birthPlace, m.martyrdomPlace].filter(Boolean);
+        places.forEach(place => {
+            if (place.toLowerCase().includes(query)) {
+                locations.add(place.split(',')[0].trim());
+            }
+        });
+    });
+    const matchingLocations = [...locations].slice(0, 3);
+    
+    if (matchingMartyrs.length === 0 && matchingLocations.length === 0) {
+        hideAutocomplete();
+        return;
+    }
+    
+    dropdown.innerHTML = '';
+    
+    // Martyrs section
+    if (matchingMartyrs.length > 0) {
+        const section = document.createElement('div');
+        section.className = 'autocomplete-section';
+        
+        const title = document.createElement('div');
+        title.className = 'autocomplete-section-title';
+        title.textContent = 'Heroes';
+        section.appendChild(title);
+        
+        matchingMartyrs.forEach((martyr, index) => {
+            const item = createAutocompleteItem(martyr, index);
+            section.appendChild(item);
+        });
+        
+        dropdown.appendChild(section);
+    }
+    
+    // Locations section
+    if (matchingLocations.length > 0) {
+        const section = document.createElement('div');
+        section.className = 'autocomplete-section';
+        
+        const title = document.createElement('div');
+        title.className = 'autocomplete-section-title';
+        title.textContent = 'Locations';
+        section.appendChild(title);
+        
+        matchingLocations.forEach(location => {
+            const item = document.createElement('div');
+            item.className = 'autocomplete-item';
+            item.innerHTML = `
+                <div class="autocomplete-item-icon">📍</div>
+                <div class="autocomplete-item-text">
+                    <div class="autocomplete-item-name">${escapeHTML(location)}</div>
+                </div>
+                <span class="autocomplete-item-type">Location</span>
+            `;
+            item.addEventListener('click', () => {
+                filterByRegion(location);
+                hideAutocomplete();
+                document.getElementById('searchMartyrs').value = '';
+            });
+            section.appendChild(item);
+        });
+        
+        dropdown.appendChild(section);
+    }
+    
+    dropdown.style.display = 'block';
+    discoveryState.autocompleteIndex = -1;
+}
+
+function createAutocompleteItem(martyr, index) {
+    const item = document.createElement('div');
+    item.className = 'autocomplete-item';
+    item.dataset.index = index;
+    
+    const iconHtml = martyr.photo 
+        ? `<img src="${martyr.photo}" alt="">` 
+        : '👤';
+    
+    const location = martyr.martyrdomPlace || martyr.birthPlace || 'Unknown';
+    
+    item.innerHTML = `
+        <div class="autocomplete-item-icon">${iconHtml}</div>
+        <div class="autocomplete-item-text">
+            <div class="autocomplete-item-name">${escapeHTML(martyr.fullName || 'Unknown')}</div>
+            <div class="autocomplete-item-meta">${escapeHTML(location)}</div>
+        </div>
+        <span class="autocomplete-item-type">Hero</span>
+    `;
+    
+    item.addEventListener('click', () => {
+        showMartyrModal(martyr);
+        hideAutocomplete();
+        document.getElementById('searchMartyrs').value = '';
+    });
+    
+    return item;
+}
+
+function hideAutocomplete() {
+    const dropdown = document.getElementById('autocompleteDropdown');
+    if (dropdown) {
+        dropdown.style.display = 'none';
+    }
+    discoveryState.autocompleteIndex = -1;
+}
+
+function handleAutocompleteKeyboard(e) {
+    const dropdown = document.getElementById('autocompleteDropdown');
+    if (!dropdown || dropdown.style.display === 'none') return;
+    
+    const items = dropdown.querySelectorAll('.autocomplete-item');
+    if (items.length === 0) return;
+    
+    switch(e.key) {
+        case 'ArrowDown':
+            e.preventDefault();
+            discoveryState.autocompleteIndex = Math.min(discoveryState.autocompleteIndex + 1, items.length - 1);
+            updateAutocompleteHighlight(items);
+            break;
+        case 'ArrowUp':
+            e.preventDefault();
+            discoveryState.autocompleteIndex = Math.max(discoveryState.autocompleteIndex - 1, 0);
+            updateAutocompleteHighlight(items);
+            break;
+        case 'Enter':
+            e.preventDefault();
+            if (discoveryState.autocompleteIndex >= 0 && items[discoveryState.autocompleteIndex]) {
+                items[discoveryState.autocompleteIndex].click();
+            }
+            break;
+        case 'Escape':
+            hideAutocomplete();
+            break;
+    }
+}
+
+function updateAutocompleteHighlight(items) {
+    items.forEach((item, i) => {
+        if (i === discoveryState.autocompleteIndex) {
+            item.classList.add('highlighted');
+            item.scrollIntoView({ block: 'nearest' });
+        } else {
+            item.classList.remove('highlighted');
+        }
+    });
+}
+
+// Initialize Search & Discovery on DOM ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait a bit for gallery data to be ready
+    setTimeout(initSearchDiscovery, 200);
+});

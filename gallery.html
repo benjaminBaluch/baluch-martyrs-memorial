@@ -59,14 +59,59 @@
                     <p>Browse through our memorial database to honor and remember our heroes</p>
                 </div>
 
-                <!-- Search/Filter Bar -->
+                <!-- Search & Discovery Experience -->
                 <div class="filter-bar">
+                    <!-- Search Controls with Autocomplete -->
                     <div class="search-controls">
                         <div class="search-input-group">
-                            <input type="text" id="searchMartyrs" placeholder="Search by name, location, or organization...">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" id="searchMartyrs" placeholder="Search by name, location, or organization..." autocomplete="off">
                             <button type="button" id="clearSearch" title="Clear search">×</button>
+                            <!-- Autocomplete Dropdown -->
+                            <div id="autocompleteDropdown" class="autocomplete-dropdown" style="display: none;"></div>
                         </div>
-                        <button type="button" id="toggleAdvancedSearch" class="btn btn-small">Advanced Search</button>
+                        <button type="button" id="discoverHero" class="btn btn-discover" title="Discover a random hero">
+                            <span class="discover-icon">✨</span>
+                            <span class="discover-text">Discover Hero</span>
+                        </button>
+                        <button type="button" id="toggleAdvancedSearch" class="btn btn-small">Advanced</button>
+                    </div>
+                    
+                    <!-- Quick Filter Pills -->
+                    <div class="quick-filters">
+                        <span class="quick-filters-label">Quick Filters:</span>
+                        <div class="filter-pills">
+                            <button type="button" class="filter-pill" data-filter="recent">
+                                <span class="pill-icon">🕐</span> Recent
+                            </button>
+                            <button type="button" class="filter-pill" data-filter="region" data-dropdown="regionDropdown">
+                                <span class="pill-icon">📍</span> By Region <span class="pill-arrow">▾</span>
+                            </button>
+                            <button type="button" class="filter-pill" data-filter="year" data-dropdown="yearDropdown">
+                                <span class="pill-icon">📅</span> By Year <span class="pill-arrow">▾</span>
+                            </button>
+                            <button type="button" class="filter-pill active-pill" data-filter="all">
+                                <span class="pill-icon">👁️</span> View All
+                            </button>
+                        </div>
+                        
+                        <!-- Region Dropdown -->
+                        <div id="regionDropdown" class="filter-dropdown" style="display: none;">
+                            <div class="dropdown-header">Select Region</div>
+                            <div id="regionList" class="dropdown-list"></div>
+                        </div>
+                        
+                        <!-- Year Dropdown -->
+                        <div id="yearDropdown" class="filter-dropdown" style="display: none;">
+                            <div class="dropdown-header">Select Year</div>
+                            <div id="yearList" class="dropdown-list"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- A-Z Alphabet Navigation -->
+                    <div class="alphabet-nav">
+                        <span class="alphabet-label">Jump to:</span>
+                        <div class="alphabet-letters" id="alphabetNav"></div>
                     </div>
                     
                     <!-- Advanced Search Panel -->

@@ -1682,6 +1682,568 @@ html[data-theme="dark"] .file-upload-text {
     font-size: 1rem;
 }
 
+/* ============================================
+   SEARCH & DISCOVERY EXPERIENCE
+   ============================================ */
+
+/* Search Icon in Input */
+.search-input-group {
+    position: relative;
+}
+
+.search-input-group .search-icon {
+    position: absolute;
+    left: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1rem;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.6;
+}
+
+.search-input-group input {
+    padding-left: 2.5rem !important;
+}
+
+/* Discover Hero Button */
+.btn-discover {
+    background: linear-gradient(135deg, #2c5530, #3a7040) !important;
+    color: white !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+    border-radius: 50px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(44, 85, 48, 0.25);
+    white-space: nowrap;
+}
+
+.btn-discover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(44, 85, 48, 0.35);
+}
+
+.btn-discover .discover-icon {
+    font-size: 1.1rem;
+    animation: sparkle 2s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+    0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+    50% { transform: scale(1.2) rotate(10deg); opacity: 0.8; }
+}
+
+/* Quick Filter Pills */
+.quick-filters {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    position: relative;
+}
+
+.quick-filters-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-right: 0.75rem;
+}
+
+.filter-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 0.9rem;
+    background: #f8f9fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 50px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #4b5563;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.filter-pill:hover {
+    background: #f0f5f1;
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.filter-pill.active-pill {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.filter-pill.active-pill:hover {
+    background: #1a3d20;
+    border-color: #1a3d20;
+    color: white;
+}
+
+.pill-icon {
+    font-size: 0.95rem;
+}
+
+.pill-arrow {
+    font-size: 0.7rem;
+    margin-left: 0.15rem;
+    opacity: 0.7;
+}
+
+/* Filter Dropdowns */
+.filter-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 200px;
+    max-width: 300px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.dropdown-header {
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #374151;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.dropdown-list {
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.dropdown-list button {
+    display: block;
+    width: 100%;
+    padding: 0.65rem 1rem;
+    text-align: left;
+    background: none;
+    border: none;
+    font-size: 0.9rem;
+    color: #374151;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.dropdown-list button:hover {
+    background: #f0f5f1;
+    color: var(--primary-color);
+}
+
+.dropdown-list button.active {
+    background: #e8f4e8;
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Alphabet Navigation */
+.alphabet-nav {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.alphabet-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-right: 0.5rem;
+}
+
+.alphabet-letters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.alphabet-letter {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #4b5563;
+    background: #f3f4f6;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.alphabet-letter:hover:not(.disabled) {
+    background: #e8f4e8;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.alphabet-letter.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.alphabet-letter.disabled {
+    color: #ccc;
+    background: #fafafa;
+    cursor: not-allowed;
+}
+
+.alphabet-letter.has-results::after {
+    content: '';
+    position: absolute;
+    bottom: 2px;
+    width: 4px;
+    height: 4px;
+    background: var(--primary-color);
+    border-radius: 50%;
+}
+
+/* Autocomplete Dropdown */
+.autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+    z-index: 100;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.autocomplete-section {
+    padding: 0.5rem 0;
+}
+
+.autocomplete-section:not(:last-child) {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.autocomplete-section-title {
+    padding: 0.4rem 1rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.autocomplete-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 1rem;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.highlighted {
+    background: #f0f5f1;
+}
+
+.autocomplete-item-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #f3f4f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.autocomplete-item-icon img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.autocomplete-item-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.autocomplete-item-name {
+    font-weight: 500;
+    color: #1f2937;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.autocomplete-item-meta {
+    font-size: 0.75rem;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.autocomplete-item-type {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    background: #e5e7eb;
+    color: #4b5563;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+/* Active Filter Badge */
+.active-filter-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.7rem;
+    background: #e8f4e8;
+    color: var(--primary-color);
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-left: 0.5rem;
+}
+
+.active-filter-badge .remove-filter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    background: rgba(44, 85, 48, 0.15);
+    border-radius: 50%;
+    font-size: 0.65rem;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.active-filter-badge .remove-filter:hover {
+    background: rgba(44, 85, 48, 0.3);
+}
+
+/* Mobile Responsive - Search & Discovery */
+@media (max-width: 768px) {
+    .search-controls {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+    
+    .search-input-group {
+        flex: 1 1 100%;
+        order: 1;
+    }
+    
+    .btn-discover {
+        flex: 1;
+        justify-content: center;
+        order: 2;
+    }
+    
+    .btn-discover .discover-text {
+        display: inline;
+    }
+    
+    #toggleAdvancedSearch {
+        order: 3;
+    }
+    
+    .quick-filters-label {
+        display: block;
+        width: 100%;
+        margin-bottom: 0.25rem;
+    }
+    
+    .filter-pills {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 0.5rem;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    
+    .filter-pills::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .alphabet-nav {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 0.5rem;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .alphabet-letters {
+        flex-wrap: nowrap;
+    }
+    
+    .alphabet-letter {
+        width: 28px;
+        height: 28px;
+        font-size: 0.75rem;
+        flex-shrink: 0;
+    }
+    
+    .filter-dropdown {
+        left: 0;
+        right: 0;
+        max-width: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .btn-discover {
+        padding: 0.6rem 0.85rem;
+        font-size: 0.85rem;
+    }
+    
+    .filter-pill {
+        padding: 0.4rem 0.7rem;
+        font-size: 0.8rem;
+    }
+    
+    .alphabet-letter {
+        width: 26px;
+        height: 26px;
+    }
+}
+
+/* Dark Mode - Search & Discovery */
+html[data-theme="dark"] .quick-filters {
+    border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="dark"] .filter-pill {
+    background: #1f2937;
+    border-color: #374151;
+    color: #d1d5db;
+}
+
+html[data-theme="dark"] .filter-pill:hover {
+    background: #374151;
+    border-color: #4ade80;
+    color: #4ade80;
+}
+
+html[data-theme="dark"] .filter-pill.active-pill {
+    background: #166534;
+    border-color: #166534;
+    color: white;
+}
+
+html[data-theme="dark"] .filter-dropdown {
+    background: #111827;
+    border-color: #374151;
+}
+
+html[data-theme="dark"] .dropdown-header {
+    background: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
+}
+
+html[data-theme="dark"] .dropdown-list button {
+    color: #d1d5db;
+}
+
+html[data-theme="dark"] .dropdown-list button:hover {
+    background: #1f2937;
+    color: #4ade80;
+}
+
+html[data-theme="dark"] .alphabet-nav {
+    border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="dark"] .alphabet-letter {
+    background: #1f2937;
+    color: #9ca3af;
+}
+
+html[data-theme="dark"] .alphabet-letter:hover:not(.disabled) {
+    background: #166534;
+    color: white;
+    border-color: #166534;
+}
+
+html[data-theme="dark"] .alphabet-letter.active {
+    background: #166534;
+    color: white;
+}
+
+html[data-theme="dark"] .alphabet-letter.disabled {
+    background: #111827;
+    color: #4b5563;
+}
+
+html[data-theme="dark"] .autocomplete-dropdown {
+    background: #111827;
+    border-color: #374151;
+}
+
+html[data-theme="dark"] .autocomplete-section-title {
+    color: #6b7280;
+}
+
+html[data-theme="dark"] .autocomplete-item:hover,
+html[data-theme="dark"] .autocomplete-item.highlighted {
+    background: #1f2937;
+}
+
+html[data-theme="dark"] .autocomplete-item-icon {
+    background: #1f2937;
+}
+
+html[data-theme="dark"] .autocomplete-item-name {
+    color: #f3f4f6;
+}
+
+html[data-theme="dark"] .autocomplete-item-type {
+    background: #374151;
+    color: #d1d5db;
+}
+
+html[data-theme="dark"] .btn-discover {
+    background: linear-gradient(135deg, #166534, #15803d) !important;
+}
+
 .gallery-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
