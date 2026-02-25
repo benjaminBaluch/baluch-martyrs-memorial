@@ -1674,9 +1674,9 @@ function initAdvancedSearch() {
     // Toggle advanced search panel
     if (toggleBtn && panel) {
         toggleBtn.addEventListener('click', function() {
-            const isVisible = panel.style.display !== 'none';
-            panel.style.display = isVisible ? 'none' : 'block';
-            toggleBtn.textContent = isVisible ? 'Advanced Search' : 'Hide Advanced';
+            const isVisible = panel.classList.contains('show');
+            panel.classList.toggle('show');
+            toggleBtn.classList.toggle('active');
         });
     }
     
@@ -1747,9 +1747,9 @@ function applyFilters() {
         updateSearchResultsInfo(allMartyrs.length);
         const resultsInfo = document.getElementById('searchResultsInfo');
         if (resultsInfo && allMartyrs.length > 0) {
-            resultsInfo.style.display = 'flex';
+            resultsInfo.classList.add('show');
         } else if (resultsInfo) {
-            resultsInfo.style.display = 'none';
+            resultsInfo.classList.remove('show');
         }
         
         hideNoResultsMessage();
@@ -2011,29 +2011,30 @@ function discoverRandomHero() {
 
 // ========== QUICK FILTERS ==========
 function initQuickFilters() {
-    const filterPills = document.querySelectorAll('.filter-pill');
+    const filterTabs = document.querySelectorAll('.filter-tab');
     
-    filterPills.forEach(pill => {
-        pill.addEventListener('click', function() {
+    filterTabs.forEach(tab => {
+        tab.addEventListener('click', function(e) {
             const filterType = this.dataset.filter;
             const dropdownId = this.dataset.dropdown;
             
-            // Handle dropdown pills
+            // Handle dropdown tabs
             if (dropdownId) {
+                e.stopPropagation();
                 toggleFilterDropdown(dropdownId, this);
                 return;
             }
             
-            // Handle direct filter pills
+            // Handle direct filter tabs
             handleQuickFilter(filterType, this);
         });
     });
 }
 
-function handleQuickFilter(filterType, pillElement) {
+function handleQuickFilter(filterType, tabElement) {
     // Update active state
-    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active-pill'));
-    pillElement.classList.add('active-pill');
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    tabElement.classList.add('active');
     
     // Close any open dropdowns
     closeAllDropdowns();
@@ -2189,37 +2190,31 @@ function populateYearDropdown() {
     });
 }
 
-function toggleFilterDropdown(dropdownId, pillElement) {
+function toggleFilterDropdown(dropdownId, tabElement) {
     const dropdown = document.getElementById(dropdownId);
     if (!dropdown) return;
     
-    const isVisible = dropdown.style.display !== 'none';
+    const isVisible = dropdown.classList.contains('show');
     
     // Close all dropdowns first
     closeAllDropdowns();
     
     if (!isVisible) {
-        // Position dropdown below the pill
-        const pillRect = pillElement.getBoundingClientRect();
-        const container = pillElement.closest('.quick-filters');
-        const containerRect = container.getBoundingClientRect();
-        
-        dropdown.style.display = 'block';
-        dropdown.style.left = (pillRect.left - containerRect.left) + 'px';
+        dropdown.classList.add('show');
     }
 }
 
 function closeAllDropdowns() {
-    document.querySelectorAll('.filter-dropdown').forEach(d => {
-        d.style.display = 'none';
+    document.querySelectorAll('.filter-dropdown-menu').forEach(d => {
+        d.classList.remove('show');
     });
 }
 
 function filterByRegion(region) {
-    // Update pills
-    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active-pill'));
-    const regionPill = document.querySelector('[data-filter="region"]');
-    if (regionPill) regionPill.classList.add('active-pill');
+    // Update tabs
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    const regionTab = document.querySelector('[data-filter="region"]');
+    if (regionTab) regionTab.classList.add('active');
     
     // Filter martyrs
     const filtered = allMartyrs.filter(m => {
@@ -2242,10 +2237,10 @@ function filterByRegion(region) {
 }
 
 function filterByYear(year) {
-    // Update pills
-    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active-pill'));
-    const yearPill = document.querySelector('[data-filter="year"]');
-    if (yearPill) yearPill.classList.add('active-pill');
+    // Update tabs
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    const yearTab = document.querySelector('[data-filter="year"]');
+    if (yearTab) yearTab.classList.add('active');
     
     // Filter martyrs
     const filtered = allMartyrs.filter(m => {
@@ -2278,25 +2273,25 @@ function initAlphabetNav() {
     letters.forEach(letter => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'alphabet-letter';
+        btn.className = 'letter-btn';
         btn.textContent = letter;
         btn.dataset.letter = letter;
         btn.addEventListener('click', () => handleAlphabetClick(letter, btn));
         alphabetNav.appendChild(btn);
     });
     
-    // Add "All" button at the end
-    const allBtn = document.createElement('button');
-    allBtn.type = 'button';
-    allBtn.className = 'alphabet-letter active';
-    allBtn.textContent = '✕';
-    allBtn.title = 'Clear alphabet filter';
-    allBtn.dataset.letter = 'all';
-    allBtn.addEventListener('click', () => {
+    // Add "Clear" button at the end
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'letter-btn clear-btn';
+    clearBtn.textContent = 'Clear';
+    clearBtn.title = 'Show all';
+    clearBtn.dataset.letter = 'all';
+    clearBtn.addEventListener('click', () => {
         resetAlphabetNav();
         clearAllFilters();
     });
-    alphabetNav.appendChild(allBtn);
+    alphabetNav.appendChild(clearBtn);
     
     // Update letter availability when data loads
     window.addEventListener('martyrsDataReady', updateAlphabetAvailability);
@@ -2321,7 +2316,7 @@ function updateAlphabetAvailability() {
     });
     
     // Update button states
-    document.querySelectorAll('.alphabet-letter').forEach(btn => {
+    document.querySelectorAll('.letter-btn').forEach(btn => {
         const letter = btn.dataset.letter;
         if (letter && letter !== 'all') {
             if (availableLetters.has(letter)) {
@@ -2337,11 +2332,11 @@ function handleAlphabetClick(letter, btnElement) {
     if (btnElement.classList.contains('disabled')) return;
     
     // Update active state
-    document.querySelectorAll('.alphabet-letter').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.letter-btn').forEach(b => b.classList.remove('active'));
     btnElement.classList.add('active');
     
     // Reset quick filters
-    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active-pill'));
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
     
     discoveryState.activeLetter = letter;
     
@@ -2364,12 +2359,13 @@ function handleAlphabetClick(letter, btnElement) {
 }
 
 function resetAlphabetNav() {
-    document.querySelectorAll('.alphabet-letter').forEach(b => {
+    document.querySelectorAll('.letter-btn').forEach(b => {
         b.classList.remove('active');
-        if (b.dataset.letter === 'all') {
-            b.classList.add('active');
-        }
     });
+    // Reset filter tabs to "All"
+    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    const allTab = document.querySelector('.filter-tab[data-filter="all"]');
+    if (allTab) allTab.classList.add('active');
     discoveryState.activeLetter = null;
 }
 
@@ -2490,7 +2486,7 @@ function showAutocompleteSuggestions(query) {
         dropdown.appendChild(section);
     }
     
-    dropdown.style.display = 'block';
+    dropdown.classList.add('show');
     discoveryState.autocompleteIndex = -1;
 }
 
@@ -2526,14 +2522,14 @@ function createAutocompleteItem(martyr, index) {
 function hideAutocomplete() {
     const dropdown = document.getElementById('autocompleteDropdown');
     if (dropdown) {
-        dropdown.style.display = 'none';
+        dropdown.classList.remove('show');
     }
     discoveryState.autocompleteIndex = -1;
 }
 
 function handleAutocompleteKeyboard(e) {
     const dropdown = document.getElementById('autocompleteDropdown');
-    if (!dropdown || dropdown.style.display === 'none') return;
+    if (!dropdown || !dropdown.classList.contains('show')) return;
     
     const items = dropdown.querySelectorAll('.autocomplete-item');
     if (items.length === 0) return;

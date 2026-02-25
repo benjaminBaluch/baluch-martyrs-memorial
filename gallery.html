@@ -59,100 +59,101 @@
                     <p>Browse through our memorial database to honor and remember our heroes</p>
                 </div>
 
-                <!-- Search & Discovery Experience -->
-                <div class="filter-bar">
-                    <!-- Search Controls with Autocomplete -->
-                    <div class="search-controls">
-                        <div class="search-input-group">
-                            <span class="search-icon">🔍</span>
-                            <input type="text" id="searchMartyrs" placeholder="Search by name, location, or organization..." autocomplete="off">
-                            <button type="button" id="clearSearch" title="Clear search">×</button>
-                            <!-- Autocomplete Dropdown -->
-                            <div id="autocompleteDropdown" class="autocomplete-dropdown" style="display: none;"></div>
+                <!-- Search & Discovery -->
+                <div class="discovery-bar">
+                    <!-- Primary Search -->
+                    <div class="discovery-search">
+                        <div class="search-wrapper">
+                            <svg class="search-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                            </svg>
+                            <input type="text" id="searchMartyrs" placeholder="Search heroes by name, location..." autocomplete="off">
+                            <button type="button" id="clearSearch" class="search-clear" title="Clear">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                            </button>
+                            <div id="autocompleteDropdown" class="autocomplete-dropdown"></div>
                         </div>
-                        <button type="button" id="discoverHero" class="btn btn-discover" title="Discover a random hero">
-                            <span class="discover-icon">✨</span>
-                            <span class="discover-text">Discover Hero</span>
+                        <button type="button" id="discoverHero" class="discover-btn" title="Discover a random hero">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                            </svg>
+                            <span>Discover</span>
                         </button>
-                        <button type="button" id="toggleAdvancedSearch" class="btn btn-small">Advanced</button>
                     </div>
-                    
-                    <!-- Quick Filter Pills -->
-                    <div class="quick-filters">
-                        <span class="quick-filters-label">Quick Filters:</span>
-                        <div class="filter-pills">
-                            <button type="button" class="filter-pill" data-filter="recent">
-                                <span class="pill-icon">🕐</span> Recent
-                            </button>
-                            <button type="button" class="filter-pill" data-filter="region" data-dropdown="regionDropdown">
-                                <span class="pill-icon">📍</span> By Region <span class="pill-arrow">▾</span>
-                            </button>
-                            <button type="button" class="filter-pill" data-filter="year" data-dropdown="yearDropdown">
-                                <span class="pill-icon">📅</span> By Year <span class="pill-arrow">▾</span>
-                            </button>
-                            <button type="button" class="filter-pill active-pill" data-filter="all">
-                                <span class="pill-icon">👁️</span> View All
-                            </button>
-                        </div>
-                        
-                        <!-- Region Dropdown -->
-                        <div id="regionDropdown" class="filter-dropdown" style="display: none;">
-                            <div class="dropdown-header">Select Region</div>
-                            <div id="regionList" class="dropdown-list"></div>
-                        </div>
-                        
-                        <!-- Year Dropdown -->
-                        <div id="yearDropdown" class="filter-dropdown" style="display: none;">
-                            <div class="dropdown-header">Select Year</div>
-                            <div id="yearList" class="dropdown-list"></div>
-                        </div>
-                    </div>
-                    
-                    <!-- A-Z Alphabet Navigation -->
-                    <div class="alphabet-nav">
-                        <span class="alphabet-label">Jump to:</span>
-                        <div class="alphabet-letters" id="alphabetNav"></div>
-                    </div>
-                    
-                    <!-- Advanced Search Panel -->
-                    <div id="advancedSearchPanel" class="advanced-search-panel" style="display: none;">
-                        <div class="search-row">
-                            <div class="search-field">
-                                <label for="searchByName">Name:</label>
-                                <input type="text" id="searchByName" placeholder="Search by martyr name...">
+
+                    <!-- Filter Toolbar -->
+                    <div class="discovery-filters">
+                        <div class="filter-tabs">
+                            <button type="button" class="filter-tab active" data-filter="all">All</button>
+                            <button type="button" class="filter-tab" data-filter="recent">Recent</button>
+                            <div class="filter-tab-dropdown">
+                                <button type="button" class="filter-tab" data-filter="region" data-dropdown="regionDropdown">
+                                    Region
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                                </button>
+                                <div id="regionDropdown" class="filter-dropdown-menu">
+                                    <div class="dropdown-scroll" id="regionList"></div>
+                                </div>
                             </div>
-                            <div class="search-field">
-                                <label for="searchByFather">Father's Name:</label>
+                            <div class="filter-tab-dropdown">
+                                <button type="button" class="filter-tab" data-filter="year" data-dropdown="yearDropdown">
+                                    Year
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                                </button>
+                                <div id="yearDropdown" class="filter-dropdown-menu">
+                                    <div class="dropdown-scroll" id="yearList"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" id="toggleAdvancedSearch" class="advanced-toggle">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 3v18m-6-6l6 6 6-6M3 6h18M6 12h12M9 18h6"/>
+                            </svg>
+                            Filters
+                        </button>
+                    </div>
+
+                    <!-- Alphabet Bar -->
+                    <div class="alphabet-bar" id="alphabetNav"></div>
+
+                    <!-- Advanced Search Panel -->
+                    <div id="advancedSearchPanel" class="advanced-panel">
+                        <div class="advanced-grid">
+                            <div class="advanced-field">
+                                <label for="searchByName">Name</label>
+                                <input type="text" id="searchByName" placeholder="Martyr name...">
+                            </div>
+                            <div class="advanced-field">
+                                <label for="searchByFather">Father's Name</label>
                                 <input type="text" id="searchByFather" placeholder="Father's name...">
                             </div>
-                        </div>
-                        <div class="search-row">
-                            <div class="search-field">
-                                <label for="searchByLocation">Location:</label>
-                                <input type="text" id="searchByLocation" placeholder="Birth or martyrdom place...">
+                            <div class="advanced-field">
+                                <label for="searchByLocation">Location</label>
+                                <input type="text" id="searchByLocation" placeholder="City or region...">
                             </div>
-                            <div class="search-field">
-                                <label for="searchByOrganization">Organization:</label>
-                                <input type="text" id="searchByOrganization" placeholder="Organization or group...">
+                            <div class="advanced-field">
+                                <label for="searchByOrganization">Organization</label>
+                                <input type="text" id="searchByOrganization" placeholder="Organization...">
                             </div>
-                        </div>
-                        <div class="search-row">
-                            <div class="search-field">
-                                <label for="searchByYear">Year:</label>
-                                <input type="number" id="searchByYear" placeholder="Martyrdom year" min="1900" max="2030">
+                            <div class="advanced-field">
+                                <label for="searchByYear">Year</label>
+                                <input type="number" id="searchByYear" placeholder="Year" min="1900" max="2030">
                             </div>
                         </div>
-                        <div class="search-actions">
-                            <button type="button" id="applyAdvancedSearch" class="btn btn-small">Apply Filters</button>
-                            <button type="button" id="clearAdvancedSearch" class="btn btn-small btn-outline">Clear All</button>
+                        <div class="advanced-actions">
+                            <button type="button" id="clearAdvancedSearch" class="btn-reset">Reset</button>
+                            <button type="button" id="applyAdvancedSearch" class="btn-apply">Apply Filters</button>
                         </div>
                     </div>
-                    
-                    <!-- Search Results Info -->
-                    <div id="searchResultsInfo" class="search-results-info" style="display: none;">
-                        <span id="resultsCount">0</span> <span id="resultsLabel">martyrs found</span>
-                        <span id="resultsFilters" class="results-filters"></span>
-                        <button type="button" id="clearAllFilters" class="btn btn-outline clear-filters-btn">Clear filters</button>
+
+                    <!-- Results Summary -->
+                    <div id="searchResultsInfo" class="results-bar">
+                        <div class="results-text">
+                            <strong id="resultsCount">0</strong>
+                            <span id="resultsLabel">heroes found</span>
+                            <span id="resultsFilters" class="results-filter-tag"></span>
+                        </div>
+                        <button type="button" id="clearAllFilters" class="results-clear">Clear all</button>
                     </div>
                 </div>
 
