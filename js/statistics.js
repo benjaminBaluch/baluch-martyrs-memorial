@@ -587,11 +587,16 @@
     
     function render3DTimelineRibbon(stats) {
         const ribbon = document.getElementById('timelineRibbon');
-        if (!ribbon) return;
+        if (!ribbon) {
+            console.log('Timeline ribbon element not found');
+            return;
+        }
+        
+        console.log('Rendering 3D timeline with stats:', stats.years, stats.byYear);
         
         // Check if we have year data
         if (!stats.years || stats.years.length === 0) {
-            ribbon.innerHTML = '<div class="timeline-empty">No timeline data available</div>';
+            ribbon.innerHTML = '<div class="timeline-empty">No timeline data available yet. Add martyrs with dates to see the timeline.</div>';
             return;
         }
         
@@ -773,15 +778,36 @@
     function animateTimelineEntrance(ribbon) {
         const cards = ribbon.querySelectorAll('.timeline-year');
         
-        cards.forEach((card, index) => {
-            card.style.opacity = '0';
-            card.style.transform = 'translateZ(-50px) rotateY(15deg)';
-            
-            setTimeout(() => {
-                card.style.transition = 'all 0.6s cubic-bezier(0.23, 1, 0.32, 1)';
+        // If no cards or reduced motion preference, skip animation
+        if (cards.length === 0) return;
+        
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        
+        if (prefersReducedMotion) {
+            // No animation for users who prefer reduced motion
+            cards.forEach(card => {
                 card.style.opacity = '1';
-                card.style.transform = 'translateZ(0) rotateY(0deg)';
-            }, 50 + (index * 40)); // Staggered animation
+            });
+            return;
+        }
+        
+        // Limit animation to first 20 cards to avoid performance issues
+        const maxAnimatedCards = Math.min(cards.length, 20);
+        
+        cards.forEach((card, index) => {
+            if (index < maxAnimatedCards) {
+                card.style.opacity = '0';
+                card.style.transform = 'translateZ(-50px) rotateY(15deg)';
+                
+                setTimeout(() => {
+                    card.style.transition = 'all 0.6s cubic-bezier(0.23, 1, 0.32, 1)';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateZ(0) rotateY(0deg)';
+                }, 50 + (index * 40)); // Staggered animation
+            } else {
+                // Cards beyond limit show immediately
+                card.style.opacity = '1';
+            }
         });
     }
 
