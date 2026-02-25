@@ -138,6 +138,7 @@
             // Process and render
             const stats = processData(martyrs);
             renderKeyNumbers(stats);
+            render3DTimelineRibbon(stats);
             renderTimeline(stats);
             renderRegions(stats);
             renderMonthly(stats);
@@ -578,6 +579,210 @@
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;');
+    }
+
+    // ============================================
+    // 3D TIMELINE RIBBON
+    // ============================================
+    
+    function render3DTimelineRibbon(stats) {
+        const ribbon = document.getElementById('timelineRibbon');
+        if (!ribbon) return;
+        
+        // Check if we have year data
+        if (!stats.years || stats.years.length === 0) {
+            ribbon.innerHTML = '<div class="timeline-empty">No timeline data available</div>';
+            return;
+        }
+        
+        // Find max count for scaling
+        const maxCount = Math.max(...Object.values(stats.byYear));
+        
+        // Find peak year
+        const peakYear = Object.entries(stats.byYear)
+            .sort((a, b) => b[1] - a[1])[0][0];
+        
+        // Build complete year range (fill gaps)
+        const yearCards = [];
+        for (let year = stats.minYear; year <= stats.maxYear; year++) {
+            const count = stats.byYear[year] || 0;
+            const barScale = maxCount > 0 ? (count / maxCount) : 0;
+            const isHighlight = year.toString() === peakYear;
+            
+            yearCards.push(`
+                <div class="timeline-year${isHighlight ? ' highlight' : ''}" data-year="${year}" data-count="${count}">
+                    <div class="year-label">${year}</div>
+                    <div class="year-count">${count}</div>
+                    <div class="year-subtitle">${count === 1 ? 'martyr' : 'martyrs'}</div>
+                    <div class="year-bar" style="transform: scaleX(${barScale})"></div>
+                </div>
+            `);
+        }
+        
+        ribbon.innerHTML = yearCards.join('');
+        
+        // Initialize drag/scroll interaction
+        initTimelineInteraction(ribbon);
+        
+        // Initialize navigation buttons
+        initTimelineNavigation(ribbon);
+        
+        // Add entrance animation
+        animateTimelineEntrance(ribbon);
+    }
+    
+    // Initialize drag-to-scroll interaction
+    function initTimelineInteraction(ribbon) {
+        let isDown = false;
+        let startX;
+        let scrollLeft;
+        let velocity = 0;
+        let animationId = null;
+        
+        // Mouse events
+        ribbon.addEventListener('mousedown', (e) => {
+            isDown = true;
+            ribbon.classList.add('dragging');
+            startX = e.pageX - ribbon.offsetLeft;
+            scrollLeft = ribbon.scrollLeft;
+            velocity = 0;
+            if (animationId) cancelAnimationFrame(animationId);
+        });
+        
+        ribbon.addEventListener('mouseleave', () => {
+            if (isDown) {
+                isDown = false;
+                ribbon.classList.remove('dragging');
+                applyMomentum(ribbon, velocity);
+            }
+        });
+        
+        ribbon.addEventListener('mouseup', () => {
+            isDown = false;
+            ribbon.classList.remove('dragging');
+            applyMomentum(ribbon, velocity);
+        });
+        
+        ribbon.addEventListener('mousemove', (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - ribbon.offsetLeft;
+            const walk = (x - startX) * 1.5; // Scroll speed multiplier
+            const newScrollLeft = scrollLeft - walk;
+            velocity = ribbon.scrollLeft - newScrollLeft;
+            ribbon.scrollLeft = newScrollLeft;
+        });
+        
+        // Touch events for mobile
+        let touchStartX;
+        let touchScrollLeft;
+        let lastTouchX;
+        let lastTouchTime;
+        
+        ribbon.addEventListener('touchstart', (e) => {
+            touchStartX = e.touches[0].pageX;
+            touchScrollLeft = ribbon.scrollLeft;
+            lastTouchX = touchStartX;
+            lastTouchTime = Date.now();
+            velocity = 0;
+            if (animationId) cancelAnimationFrame(animationId);
+        }, { passive: true });
+        
+        ribbon.addEventListener('touchmove', (e) => {
+            if (!touchStartX) return;
+            const touchX = e.touches[0].pageX;
+            const walk = touchStartX - touchX;
+            ribbon.scrollLeft = touchScrollLeft + walk;
+            
+            // Calculate velocity
+            const now = Date.now();
+            const dt = now - lastTouchTime;
+            if (dt > 0) {
+                velocity = (lastTouchX - touchX) / dt * 16; // Normalize to ~60fps
+            }
+            lastTouchX = touchX;
+            lastTouchTime = now;
+        }, { passive: true });
+        
+        ribbon.addEventListener('touchend', () => {
+            applyMomentum(ribbon, velocity);
+            touchStartX = null;
+        }, { passive: true });
+        
+        // Apply momentum scrolling
+        function applyMomentum(element, initialVelocity) {
+            let vel = initialVelocity * 0.95;
+            
+            function step() {
+                if (Math.abs(vel) < 0.5) return;
+                
+                element.scrollLeft += vel;
+                vel *= 0.95; // Friction
+                animationId = requestAnimationFrame(step);
+            }
+            
+            animationId = requestAnimationFrame(step);
+        }
+        
+        // Mouse wheel horizontal scroll
+        ribbon.addEventListener('wheel', (e) => {
+            if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // Natural horizontal scroll
+            e.preventDefault();
+            ribbon.scrollLeft += e.deltaY;
+        }, { passive: false });
+    }
+    
+    // Initialize navigation buttons
+    function initTimelineNavigation(ribbon) {
+        const prevBtn = document.getElementById('timelinePrev');
+        const nextBtn = document.getElementById('timelineNext');
+        
+        if (!prevBtn || !nextBtn) return;
+        
+        const scrollAmount = 300; // Pixels to scroll per click
+        
+        prevBtn.addEventListener('click', () => {
+            ribbon.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+        });
+        
+        nextBtn.addEventListener('click', () => {
+            ribbon.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        });
+        
+        // Update button states
+        function updateButtonStates() {
+            prevBtn.disabled = ribbon.scrollLeft <= 0;
+            nextBtn.disabled = ribbon.scrollLeft >= ribbon.scrollWidth - ribbon.clientWidth - 10;
+        }
+        
+        ribbon.addEventListener('scroll', updateButtonStates);
+        updateButtonStates();
+        
+        // Keyboard navigation
+        ribbon.setAttribute('tabindex', '0');
+        ribbon.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                ribbon.scrollBy({ left: -150, behavior: 'smooth' });
+            } else if (e.key === 'ArrowRight') {
+                ribbon.scrollBy({ left: 150, behavior: 'smooth' });
+            }
+        });
+    }
+    
+    // Animate entrance of timeline cards
+    function animateTimelineEntrance(ribbon) {
+        const cards = ribbon.querySelectorAll('.timeline-year');
+        
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateZ(-50px) rotateY(15deg)';
+            
+            setTimeout(() => {
+                card.style.transition = 'all 0.6s cubic-bezier(0.23, 1, 0.32, 1)';
+                card.style.opacity = '1';
+                card.style.transform = 'translateZ(0) rotateY(0deg)';
+            }, 50 + (index * 40)); // Staggered animation
+        });
     }
 
     // Re-render on theme change

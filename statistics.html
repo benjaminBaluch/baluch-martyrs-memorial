@@ -628,6 +628,382 @@
                 justify-content: center;
             }
         }
+
+        /* ============================================
+           3D TIMELINE RIBBON
+           ============================================ */
+        .timeline-ribbon-section {
+            margin-bottom: 2rem;
+        }
+
+        .timeline-ribbon-wrapper {
+            perspective: 1200px;
+            perspective-origin: 50% 50%;
+            overflow: hidden;
+            padding: 2rem 0;
+        }
+
+        .timeline-ribbon {
+            display: flex;
+            gap: 0;
+            transform-style: preserve-3d;
+            transform: rotateX(10deg);
+            padding: 1rem 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-behavior: smooth;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            cursor: grab;
+            user-select: none;
+            min-height: 320px;
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+
+        .timeline-ribbon::-webkit-scrollbar {
+            display: none;
+        }
+
+        .timeline-ribbon.dragging {
+            cursor: grabbing;
+            scroll-behavior: auto;
+        }
+
+        .timeline-year {
+            flex: 0 0 auto;
+            width: 120px;
+            min-width: 120px;
+            height: 200px;
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 12px;
+            box-shadow: 
+                0 4px 20px rgba(0, 0, 0, 0.08),
+                0 1px 3px rgba(0, 0, 0, 0.06),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1.25rem 1rem;
+            transform-style: preserve-3d;
+            transform: translateZ(0) rotateY(0deg);
+            transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+            position: relative;
+            margin: 0 6px;
+            border: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        [data-theme="dark"] .timeline-year {
+            background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+            box-shadow: 
+                0 4px 20px rgba(0, 0, 0, 0.3),
+                0 1px 3px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .timeline-year::before {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            width: 2px;
+            height: 20px;
+            background: linear-gradient(to bottom, var(--primary-color), transparent);
+            transform: translateX(-50%);
+        }
+
+        [data-theme="dark"] .timeline-year::before {
+            background: linear-gradient(to bottom, #86efac, transparent);
+        }
+
+        .timeline-year::after {
+            content: '';
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 0 10px rgba(44, 85, 48, 0.4);
+        }
+
+        [data-theme="dark"] .timeline-year::after {
+            background: #86efac;
+            box-shadow: 0 0 15px rgba(134, 239, 172, 0.5);
+        }
+
+        .timeline-year:hover {
+            transform: translateZ(40px) rotateY(-5deg) scale(1.05);
+            box-shadow: 
+                0 20px 40px rgba(44, 85, 48, 0.15),
+                0 8px 16px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.9);
+            z-index: 10;
+        }
+
+        [data-theme="dark"] .timeline-year:hover {
+            box-shadow: 
+                0 20px 40px rgba(134, 239, 172, 0.1),
+                0 8px 16px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .timeline-year.highlight {
+            background: linear-gradient(145deg, var(--primary-color) 0%, #1a3d20 100%);
+            transform: translateZ(30px) scale(1.08);
+        }
+
+        .timeline-year.highlight .year-label,
+        .timeline-year.highlight .year-count,
+        .timeline-year.highlight .year-subtitle {
+            color: white;
+        }
+
+        .year-label {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 0.75rem;
+            letter-spacing: -0.02em;
+        }
+
+        [data-theme="dark"] .year-label {
+            color: #86efac;
+        }
+
+        .year-count {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #1e293b;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        [data-theme="dark"] .year-count {
+            color: #f1f5f9;
+        }
+
+        .year-subtitle {
+            font-size: 0.75rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+        }
+
+        [data-theme="dark"] .year-subtitle {
+            color: #94a3b8;
+        }
+
+        .year-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            border-radius: 0 0 12px 12px;
+            transform-origin: left;
+            transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        [data-theme="dark"] .year-bar {
+            background: linear-gradient(90deg, #86efac, #fbbf24);
+        }
+
+        /* Timeline track/rail */
+        .timeline-track {
+            position: relative;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            margin: 0 2rem 1.5rem;
+            transform: translateY(-30px);
+        }
+
+        [data-theme="dark"] .timeline-track {
+            background: #334155;
+        }
+
+        .timeline-track::before,
+        .timeline-track::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            background: var(--primary-color);
+            border-radius: 50%;
+        }
+
+        .timeline-track::before {
+            left: -6px;
+        }
+
+        .timeline-track::after {
+            right: -6px;
+        }
+
+        [data-theme="dark"] .timeline-track::before,
+        [data-theme="dark"] .timeline-track::after {
+            background: #86efac;
+        }
+
+        /* Navigation arrows */
+        .timeline-nav {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .timeline-nav-btn {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: linear-gradient(145deg, #f8fafc, #e2e8f0);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            color: #475569;
+        }
+
+        [data-theme="dark"] .timeline-nav-btn {
+            background: linear-gradient(145deg, #334155, #1e293b);
+            color: #94a3b8;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .timeline-nav-btn:hover {
+            background: var(--primary-color);
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 4px 16px rgba(44, 85, 48, 0.3);
+        }
+
+        [data-theme="dark"] .timeline-nav-btn:hover {
+            background: #86efac;
+            color: #0f172a;
+        }
+
+        .timeline-nav-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .timeline-nav-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Scroll hint indicator */
+        .timeline-hint {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .timeline-hint svg {
+            width: 16px;
+            height: 16px;
+            animation: swipeHint 2s ease-in-out infinite;
+        }
+
+        @keyframes swipeHint {
+            0%, 100% { transform: translateX(-5px); opacity: 0.5; }
+            50% { transform: translateX(5px); opacity: 1; }
+        }
+
+        /* Empty state for timeline */
+        .timeline-empty {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .timeline-empty {
+            color: #94a3b8;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .timeline-ribbon-wrapper {
+                padding: 1rem 0;
+            }
+
+            .timeline-ribbon {
+                transform: rotateX(5deg);
+                min-height: 280px;
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+
+            .timeline-year {
+                width: 100px;
+                min-width: 100px;
+                height: 170px;
+                padding: 1rem 0.75rem;
+                margin: 0 4px;
+            }
+
+            .year-label {
+                font-size: 1.4rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .year-count {
+                font-size: 2rem;
+            }
+
+            .year-subtitle {
+                font-size: 0.65rem;
+            }
+
+            .timeline-track {
+                margin: 0 1rem 1rem;
+                transform: translateY(-25px);
+            }
+
+            .timeline-nav-btn {
+                width: 40px;
+                height: 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .timeline-year {
+                width: 85px;
+                min-width: 85px;
+                height: 150px;
+            }
+
+            .year-label {
+                font-size: 1.2rem;
+            }
+
+            .year-count {
+                font-size: 1.75rem;
+            }
+
+            .timeline-hint {
+                font-size: 0.75rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -705,6 +1081,40 @@
                         <div class="key-number">
                             <div class="key-number-value" id="withStories">0%</div>
                             <div class="key-number-label">With Stories</div>
+                        </div>
+                    </div>
+
+                    <!-- 3D Timeline Ribbon -->
+                    <div class="stats-section full-width timeline-ribbon-section">
+                        <h3 class="section-title">
+                            <svg class="section-title-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Journey Through Time
+                        </h3>
+                        <div class="timeline-ribbon-wrapper">
+                            <div class="timeline-ribbon" id="timelineRibbon">
+                                <!-- Populated by JS -->
+                            </div>
+                            <div class="timeline-track"></div>
+                        </div>
+                        <div class="timeline-nav">
+                            <button type="button" class="timeline-nav-btn" id="timelinePrev" aria-label="Scroll left">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                                </svg>
+                            </button>
+                            <button type="button" class="timeline-nav-btn" id="timelineNext" aria-label="Scroll right">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="timeline-hint">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"/>
+                            </svg>
+                            <span>Drag or swipe to explore • Hover for details</span>
                         </div>
                     </div>
 
