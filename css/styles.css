@@ -1849,68 +1849,95 @@ html[data-theme="dark"] .file-upload-text {
     background: rgba(255,255,255,0.6);
 }
 
-.filter-tab.active {
+.filter-tab.active,
+.filter-tab.dropdown-open {
     background: #fff;
     color: var(--primary-color);
     box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
+.filter-tab.dropdown-open svg {
+    transform: rotate(180deg);
+}
+
 /* Filter Tab Dropdowns */
 .filter-tab-dropdown {
     position: relative;
+    display: flex;
 }
 
 .filter-dropdown-menu {
     display: none;
     position: absolute;
-    top: calc(100% + 8px);
-    left: 0;
-    min-width: 180px;
+    top: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 200px;
+    max-width: 280px;
     background: #fff;
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04);
-    z-index: 200;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+    z-index: 1000;
     overflow: hidden;
 }
 
 .filter-dropdown-menu.show {
     display: block;
-    animation: dropdownFade 0.15s ease;
+    animation: dropdownFade 0.2s ease;
 }
 
 @keyframes dropdownFade {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
 .dropdown-scroll {
-    max-height: 280px;
+    max-height: 300px;
     overflow-y: auto;
     padding: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+}
+
+.dropdown-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dropdown-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.dropdown-scroll::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
 }
 
 .dropdown-scroll button {
     display: block;
     width: 100%;
-    padding: 0.6rem 0.75rem;
+    padding: 0.7rem 0.875rem;
     text-align: left;
     background: none;
     border: none;
     border-radius: 8px;
-    font-size: 0.875rem;
+    font-size: 0.9rem;
     color: #374151;
     cursor: pointer;
-    transition: background 0.1s ease;
+    transition: all 0.15s ease;
 }
 
 .dropdown-scroll button:hover {
-    background: #f5f5f5;
+    background: #f0f5f1;
+    color: var(--primary-color);
+}
+
+.dropdown-scroll button:active {
+    background: #e8f4e8;
 }
 
 .dropdown-scroll button.active {
-    background: rgba(44, 85, 48, 0.08);
+    background: rgba(44, 85, 48, 0.1);
     color: var(--primary-color);
-    font-weight: 500;
+    font-weight: 600;
 }
 
 /* Advanced Toggle */
@@ -2320,16 +2347,36 @@ html[data-theme="dark"] .file-upload-text {
         left: 1rem !important;
         right: 1rem !important;
         top: auto !important;
-        bottom: 1rem;
-        max-height: 50vh;
-        border-radius: 16px;
+        bottom: 0;
+        max-height: 60vh;
+        border-radius: 20px 20px 0 0;
+        transform: none !important;
+        animation: mobileDropdownSlide 0.25s ease !important;
     }
     
-    .results-bar {
-        flex-direction: column;
-        gap: 0.5rem;
-        text-align: center;
+    .filter-dropdown-menu.show::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: -1;
     }
+    
+    .dropdown-scroll {
+        max-height: calc(60vh - 20px);
+        padding: 0.75rem;
+        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
+    }
+    
+    .dropdown-scroll button {
+        padding: 0.875rem 1rem;
+        font-size: 1rem;
+    }
+}
+
+@keyframes mobileDropdownSlide {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
 
 @media (max-width: 480px) {
@@ -2402,7 +2449,8 @@ html[data-theme="dark"] .filter-tab:hover {
     background: rgba(255,255,255,0.05);
 }
 
-html[data-theme="dark"] .filter-tab.active {
+html[data-theme="dark"] .filter-tab.active,
+html[data-theme="dark"] .filter-tab.dropdown-open {
     background: #0f172a;
     color: #22c55e;
     box-shadow: 0 1px 3px rgba(0,0,0,0.3);

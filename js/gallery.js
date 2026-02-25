@@ -2112,7 +2112,14 @@ function initFilterDropdowns() {
     
     // Close dropdowns when clicking outside
     document.addEventListener('click', function(e) {
-        if (!e.target.closest('.filter-pill') && !e.target.closest('.filter-dropdown')) {
+        if (!e.target.closest('.filter-tab-dropdown')) {
+            closeAllDropdowns();
+        }
+    });
+    
+    // Handle escape key to close dropdowns
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
             closeAllDropdowns();
         }
     });
@@ -2224,7 +2231,10 @@ function populateOrgDropdown() {
 
 function toggleFilterDropdown(dropdownId, tabElement) {
     const dropdown = document.getElementById(dropdownId);
-    if (!dropdown) return;
+    if (!dropdown) {
+        console.warn('Dropdown not found:', dropdownId);
+        return;
+    }
     
     const isVisible = dropdown.classList.contains('show');
     
@@ -2233,12 +2243,19 @@ function toggleFilterDropdown(dropdownId, tabElement) {
     
     if (!isVisible) {
         dropdown.classList.add('show');
+        // Add active state to the tab
+        if (tabElement) {
+            tabElement.classList.add('dropdown-open');
+        }
     }
 }
 
 function closeAllDropdowns() {
     document.querySelectorAll('.filter-dropdown-menu').forEach(d => {
         d.classList.remove('show');
+    });
+    document.querySelectorAll('.filter-tab').forEach(t => {
+        t.classList.remove('dropdown-open');
     });
 }
 
