@@ -437,6 +437,375 @@
         [data-theme="dark"] .no-pending {
             border-color: #334155;
         }
+
+        /* ============================================
+           Analytics Dashboard Bar
+           ============================================ */
+        .analytics-dashboard {
+            background: var(--admin-card);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--admin-border);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
+        .analytics-header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .analytics-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .analytics-header h3::before {
+            content: '📊';
+        }
+
+        .analytics-live-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            background: rgba(16, 185, 129, 0.2);
+            padding: 0.3rem 0.75rem;
+            border-radius: 20px;
+            color: #6ee7b7;
+        }
+
+        .analytics-live-badge::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse-live 2s infinite;
+        }
+
+        @keyframes pulse-live {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+        }
+
+        .analytics-body {
+            padding: 1.5rem;
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .analytics-metric {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 12px;
+            padding: 1.25rem;
+            border: 1px solid var(--admin-border);
+            transition: all 0.3s ease;
+        }
+
+        .analytics-metric:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+
+        .metric-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .metric-icon.visitors { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); }
+        .metric-icon.countries { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); }
+        .metric-icon.pageviews { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }
+        .metric-icon.active { background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%); }
+
+        .metric-trend {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .metric-trend.up {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .metric-trend.down {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--admin-primary);
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: var(--admin-text-muted);
+            font-weight: 500;
+        }
+
+        /* Countries List */
+        .analytics-countries {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--admin-border);
+        }
+
+        .countries-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .countries-header h4 {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--admin-text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .countries-header h4::before {
+            content: '🌍';
+        }
+
+        .countries-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .country-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: white;
+            border-radius: 10px;
+            border: 1px solid var(--admin-border);
+            transition: all 0.2s ease;
+        }
+
+        .country-item:hover {
+            background: #f8fafc;
+            transform: translateX(4px);
+        }
+
+        .country-flag {
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        .country-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .country-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--admin-text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .country-visits {
+            font-size: 0.75rem;
+            color: var(--admin-text-muted);
+        }
+
+        .country-bar {
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 0.25rem;
+        }
+
+        .country-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--admin-primary) 0%, var(--admin-primary-light) 100%);
+            border-radius: 2px;
+            transition: width 0.5s ease;
+        }
+
+        /* Recent Activity */
+        .analytics-activity {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--admin-border);
+        }
+
+        .activity-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .activity-header h4 {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--admin-text);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .activity-header h4::before {
+            content: '⚡';
+        }
+
+        .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0.75rem;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid var(--admin-border);
+            font-size: 0.8rem;
+        }
+
+        .activity-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .activity-icon.visit { background: #dbeafe; }
+        .activity-icon.submission { background: #dcfce7; }
+        .activity-icon.view { background: #fef3c7; }
+
+        .activity-text {
+            flex: 1;
+            color: var(--admin-text);
+        }
+
+        .activity-text strong {
+            color: var(--admin-primary);
+        }
+
+        .activity-time {
+            font-size: 0.7rem;
+            color: var(--admin-text-muted);
+            white-space: nowrap;
+        }
+
+        /* Analytics Loading State */
+        .analytics-loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--admin-text-muted);
+        }
+
+        .analytics-loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e2e8f0;
+            border-top-color: var(--admin-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Dark Mode Analytics */
+        [data-theme="dark"] .analytics-dashboard {
+            background: var(--admin-card);
+        }
+
+        [data-theme="dark"] .analytics-metric {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        }
+
+        [data-theme="dark"] .metric-value {
+            color: #86efac;
+        }
+
+        [data-theme="dark"] .country-item,
+        [data-theme="dark"] .activity-item {
+            background: #0f172a;
+        }
+
+        [data-theme="dark"] .country-bar {
+            background: #334155;
+        }
+
+        /* Responsive Analytics */
+        @media (max-width: 768px) {
+            .analytics-header {
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: flex-start;
+            }
+
+            .analytics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .countries-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .metric-value {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .analytics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -474,6 +843,75 @@
                 <button onclick="window.location.href='index.html'" class="btn btn-secondary">Back to Website</button>
             </div>
             
+            <!-- Analytics Dashboard -->
+            <div class="analytics-dashboard" id="analyticsDashboard">
+                <div class="analytics-header">
+                    <h3>Visitor Analytics</h3>
+                    <div class="analytics-live-badge">Live Data</div>
+                </div>
+                <div class="analytics-body">
+                    <div class="analytics-loading" id="analyticsLoading">
+                        <div class="analytics-loading-spinner"></div>
+                        <p>Loading analytics data...</p>
+                    </div>
+                    <div id="analyticsContent" style="display: none;">
+                        <div class="analytics-grid">
+                            <div class="analytics-metric">
+                                <div class="metric-header">
+                                    <div class="metric-icon visitors">👥</div>
+                                    <span class="metric-trend up" id="visitorsTrend">+12%</span>
+                                </div>
+                                <div class="metric-value" id="totalVisitors">0</div>
+                                <div class="metric-label">Total Visitors</div>
+                            </div>
+                            <div class="analytics-metric">
+                                <div class="metric-header">
+                                    <div class="metric-icon countries">🌍</div>
+                                </div>
+                                <div class="metric-value" id="uniqueCountries">0</div>
+                                <div class="metric-label">Countries</div>
+                            </div>
+                            <div class="analytics-metric">
+                                <div class="metric-header">
+                                    <div class="metric-icon pageviews">📄</div>
+                                    <span class="metric-trend up" id="pageviewsTrend">+8%</span>
+                                </div>
+                                <div class="metric-value" id="totalPageviews">0</div>
+                                <div class="metric-label">Page Views</div>
+                            </div>
+                            <div class="analytics-metric">
+                                <div class="metric-header">
+                                    <div class="metric-icon active">⚡</div>
+                                </div>
+                                <div class="metric-value" id="todayVisitors">0</div>
+                                <div class="metric-label">Today's Visitors</div>
+                            </div>
+                        </div>
+
+                        <div class="analytics-countries">
+                            <div class="countries-header">
+                                <h4>Visitors by Country</h4>
+                                <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;" onclick="refreshAnalytics()">
+                                    🔄 Refresh
+                                </button>
+                            </div>
+                            <div class="countries-grid" id="countriesGrid">
+                                <!-- Countries will be populated here -->
+                            </div>
+                        </div>
+
+                        <div class="analytics-activity">
+                            <div class="activity-header">
+                                <h4>Recent Activity</h4>
+                            </div>
+                            <div class="activity-list" id="activityList">
+                                <!-- Activities will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Firebase Debug Panel (initially hidden) -->
             <div id="firebaseDebugPanel" style="display: none; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
                 <h4 style="margin: 0 0 0.5rem 0; color: #495057;">🔧 Firebase Debug Information</h4>
@@ -1007,7 +1445,8 @@ Please refresh the page or try again later.
         }
     </script>
     <script src="js/mobile-menu.js"></script>
-<script src="js/chatbot.js"></script>
+    <script src="js/chatbot.js"></script>
+    <script src="js/analytics.js"></script>
     <script type="module" src="js/admin.js"></script>
 </body>
 </html>
