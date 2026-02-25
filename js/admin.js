@@ -968,13 +968,83 @@ async function updateStats() {
     }
 }
 
-// Format date helper function
-function formatDate(dateString) {
+// Format date helper function - handles multiple formats
+function formatDate(dateInput) {
+    if (!dateInput) return 'Unknown';
+    
+    // Handle Firestore Timestamp objects
+    if (dateInput && typeof dateInput === 'object') {
+        // Firestore Timestamp with toDate method
+        if (typeof dateInput.toDate === 'function') {
+            const date = dateInput.toDate();
+            if (!isNaN(date.getTime())) {
+                return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            }
+        }
+        // Firestore Timestamp with seconds field
+        if (dateInput.seconds) {
+            const date = new Date(dateInput.seconds * 1000);
+            if (!isNaN(date.getTime())) {
+                return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            }
+        }
+    }
+    
+    const dateString = String(dateInput).trim();
     if (!dateString) return 'Unknown';
     
+    // Try parsing as ISO date first (YYYY-MM-DD or YYYY-MM-DDTHH:mm:ss)
+    if (/^\d{4}-\d{2}-\d{2}/.test(dateString)) {
+        const date = new Date(dateString);
+        if (!isNaN(date.getTime())) {
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+    }
+    
+    // Try parsing as DD/MM/YYYY
+    const ddmmyyyy = dateString.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (ddmmyyyy) {
+        const day = parseInt(ddmmyyyy[1], 10);
+        const month = parseInt(ddmmyyyy[2], 10) - 1;
+        const year = parseInt(ddmmyyyy[3], 10);
+        const date = new Date(year, month, day);
+        if (!isNaN(date.getTime())) {
+            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+    }
+    
+    // Try parsing as MM/DD/YYYY
+    const mmddyyyy = dateString.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (mmddyyyy) {
+        const month = parseInt(mmddyyyy[1], 10) - 1;
+        const day = parseInt(mmddyyyy[2], 10);
+        const year = parseInt(mmddyyyy[3], 10);
+        // Only accept if month <= 12 and day <= 31
+        if (month < 12 && day <= 31) {
+            const date = new Date(year, month, day);
+            if (!isNaN(date.getTime())) {
+                return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            }
+        }
+    }
+    
+    // Try just year (e.g., "2020")
+    if (/^\d{4}$/.test(dateString)) {
+        return dateString;
+    }
+    
+    // Try standard Date parsing as last resort
     const date = new Date(dateString);
-    const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return date.toLocaleDateString('en-US', options);
+    if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    }
+    
+    // If all parsing fails, return the original string if it has meaningful content
+    if (dateString.length > 0 && dateString !== 'undefined' && dateString !== 'null') {
+        return dateString;
+    }
+    
+    return 'Unknown';
 }
 
 // Refresh all data
