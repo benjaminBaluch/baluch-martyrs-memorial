@@ -25,8 +25,8 @@ class NLUEngine {
         return {
             // Martyr-specific queries
             SEARCH_MARTYR: {
-                patterns: ['who is', 'tell me about', 'find', 'search', 'martyr named', 'information about', 'details of', 'know about'],
-                priority: 25
+                patterns: ['who is', 'tell me about', 'find martyr', 'search martyr', 'martyr named', 'information about', 'details of', 'know about', 'biography of'],
+                priority: 22
             },
             COUNT_MARTYRS: {
                 patterns: ['how many', 'total', 'count', 'number of', 'statistics'],
@@ -81,8 +81,8 @@ class NLUEngine {
 
             // Memorial-specific
             HOW_TO_ADD: {
-                patterns: ['how to add', 'submit', 'contribute', 'add martyr', 'honor someone'],
-                priority: 20
+                patterns: ['how to add', 'how do i add', 'how can i add', 'submit', 'contribute', 'add martyr', 'add a martyr', 'honor someone', 'honor a martyr', 'want to add'],
+                priority: 30
             },
             ABOUT_MEMORIAL: {
                 patterns: ['about this', 'what is this', 'purpose', 'mission', 'memorial'],
