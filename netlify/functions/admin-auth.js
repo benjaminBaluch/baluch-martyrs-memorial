@@ -73,7 +73,7 @@ async function handleLogin(username, password, clientIP) {
     // Simple password comparison (in production, use bcrypt)
     // For now, we use a hash comparison
     const providedHash = crypto.createHash('sha256').update(password).digest('hex');
-    const storedHash = validPasswordHash || crypto.createHash('sha256').update('baluch2024!').digest('hex');
+    const storedHash = validPasswordHash || '9cb85a2ea01352cf5b3a9991a5c58410d90ca4797721f1e5614df006a1816a3a';
 
     if (username !== validUsername || providedHash !== storedHash) {
         // Log failed attempt
