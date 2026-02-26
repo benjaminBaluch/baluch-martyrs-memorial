@@ -186,6 +186,30 @@
             return false;
         }
 
+        // Client-side fallback credentials (hashed)
+        // In production, these should be environment variables on the server
+        const FALLBACK_USERNAME = 'admin';
+        const FALLBACK_PASSWORD_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'; // SHA-256 of 'admin'
+        
+        // Simple SHA-256 hash function for client-side
+        async function sha256(message) {
+            const msgBuffer = new TextEncoder().encode(message);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        
+        // Client-side authentication fallback
+        async function authenticateClientSide(username, password) {
+            const passwordHash = await sha256(password);
+            
+            // Check against fallback credentials
+            if (username === FALLBACK_USERNAME && passwordHash === FALLBACK_PASSWORD_HASH) {
+                return { success: true, method: 'client-fallback' };
+            }
+            return { success: false, error: 'Invalid username or password' };
+        }
+
         // Server-side authentication
         async function authenticateWithServer(username, password) {
             try {
@@ -200,6 +224,11 @@
                         password: password
                     })
                 });
+                
+                if (!response.ok) {
+                    console.warn('Server auth returned non-OK status:', response.status);
+                    return { success: false, fallback: true };
+                }
                 
                 const result = await response.json();
                 return result;
@@ -237,11 +266,17 @@
 
             try {
                 // Try server-side authentication first
-                const serverResult = await authenticateWithServer(username, password);
+                let serverResult = await authenticateWithServer(username, password);
+                
+                // If server auth fails or is unavailable, try client-side fallback
+                if (!serverResult.success && serverResult.fallback) {
+                    console.log('⚠️ Server unavailable, trying client-side authentication...');
+                    serverResult = await authenticateClientSide(username, password);
+                }
                 
                 if (serverResult.success) {
-                    console.log(`✅ Server authentication successful for: ${username}`);
-                    logSecurityEvent('login_success', { username, method: 'server' });
+                    console.log(`✅ Authentication successful for: ${username} (method: ${serverResult.method || 'server'})`);
+                    logSecurityEvent('login_success', { username, method: serverResult.method || 'server' });
                     
                     // Store token and create session
                     if (serverResult.token) {
