@@ -230,6 +230,13 @@
                     return { success: false, fallback: true };
                 }
                 
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    console.warn('Server returned non-JSON response');
+                    return { success: false, fallback: true };
+                }
+                
                 const result = await response.json();
                 return result;
             } catch (error) {
