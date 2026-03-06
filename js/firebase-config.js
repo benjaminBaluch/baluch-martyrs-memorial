@@ -300,6 +300,40 @@ export const firebaseDB = {
         }
     },
     
+    // Update an approved martyr (admin function)
+    async updateApprovedMartyr(martyrId, updatedData) {
+        try {
+            console.log(`✏️ Updating approved martyr: ${martyrId}`);
+            
+            // Process date fields to convert to Timestamps
+            const processedData = { ...updatedData };
+            
+            // Remove id field if present (shouldn't be updated)
+            delete processedData.id;
+            
+            // Convert date strings to Timestamp objects
+            if (processedData.birthDate && typeof processedData.birthDate === 'string') {
+                processedData.birthDate = Timestamp.fromDate(new Date(processedData.birthDate));
+            }
+            if (processedData.martyrdomDate && typeof processedData.martyrdomDate === 'string') {
+                processedData.martyrdomDate = Timestamp.fromDate(new Date(processedData.martyrdomDate));
+            }
+            
+            // Add updatedAt timestamp
+            processedData.updatedAt = serverTimestamp();
+            
+            // Update the document
+            const martyrRef = doc(db, 'martyrs', martyrId);
+            await updateDoc(martyrRef, processedData);
+            
+            console.log(`✅ Approved martyr updated: ${martyrId}`);
+            return { success: true, id: martyrId };
+        } catch (error) {
+            console.error('❌ Error updating approved martyr: ', error);
+            return { success: false, error: error.message };
+        }
+    },
+
     // Delete an approved martyr (admin function)
     async deleteApprovedMartyr(martyrId) {
         try {

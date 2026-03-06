@@ -1331,44 +1331,58 @@ function createApprovedMartyrItem(martyr) {
     item.dataset.martyrId = martyr.id;
     
     const approvedDate = martyr.approvedAt ? new Date(martyr.approvedAt.toDate ? martyr.approvedAt.toDate() : martyr.approvedAt).toLocaleDateString() : 'Unknown';
+    const updatedDate = martyr.updatedAt ? new Date(martyr.updatedAt.toDate ? martyr.updatedAt.toDate() : martyr.updatedAt).toLocaleDateString() : null;
     
     item.innerHTML = `
         <div class="pending-header" style="background: #d4edda; border-color: #c3e6cb;">
-            <strong>✅ PUBLISHED Martyr ID:</strong> ${martyr.id}
-            <span style="float: right; color: #155724;">Approved: ${approvedDate}</span>
+            <strong>✅ PUBLISHED Martyr ID:</strong> ${escapeHTML(martyr.id)}
+            <span style="float: right; color: #155724;">Approved: ${approvedDate}${updatedDate ? ` | Updated: ${updatedDate}` : ''}</span>
         </div>
         <div class="pending-content">
             <div class="pending-image">
                 ${martyr.photo ? 
-                    `<img src="${martyr.photo}" alt="${martyr.fullName}">` :
+                    `<img src="${martyr.photo}" alt="${escapeHTML(martyr.fullName)}">` :
                     '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #999;">No Photo</div>'
                 }
             </div>
             <div class="pending-details">
-                <h3>${martyr.fullName}</h3>
+                <h3>${escapeHTML(martyr.fullName)}</h3>
                 <div class="detail-row">
-                    <span class="detail-label">Birth:</span> ${formatDate(martyr.birthDate)} in ${martyr.birthPlace || 'Unknown'}
+                    <span class="detail-label">Birth:</span> ${formatDate(martyr.birthDate)} in ${escapeHTML(martyr.birthPlace || 'Unknown')}
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">Martyrdom:</span> ${formatDate(martyr.martyrdomDate)} in ${martyr.martyrdomPlace || 'Unknown'}
+                    <span class="detail-label">Martyrdom:</span> ${formatDate(martyr.martyrdomDate)} in ${escapeHTML(martyr.martyrdomPlace || 'Unknown')}
                 </div>
                 <div class="detail-row">
-                    <span class="detail-label">Organization:</span> ${martyr.organization || 'Not specified'}
+                    <span class="detail-label">Organization:</span> ${escapeHTML(martyr.organization || 'Not specified')}
                 </div>
+                ${martyr.rank ? `
+                    <div class="detail-row">
+                        <span class="detail-label">Rank:</span> ${escapeHTML(martyr.rank)}
+                    </div>
+                ` : ''}
                 ${martyr.submitterName ? `
                     <div class="detail-row">
-                        <span class="detail-label">Submitted by:</span> ${martyr.submitterName}
+                        <span class="detail-label">Submitted by:</span> ${escapeHTML(martyr.submitterName)}
                     </div>
                 ` : ''}
             </div>
         </div>
-        <div class="pending-actions" style="background: #f8d7da;">
-            <button data-action="delete" data-martyr-id="${martyr.id}" class="btn btn-outline" style="color: #dc3545; border-color: #dc3545;">
-                🗑️ Delete from Firebase
+        <div class="pending-actions" style="background: #e3f2fd; justify-content: flex-start; gap: 0.75rem;">
+            <button data-action="edit" data-martyr-id="${escapeHTML(martyr.id)}" class="btn btn-primary" style="background: #1976d2; border-color: #1976d2;">
+                ✏️ Edit Profile
             </button>
-            <span style="color: #666; font-size: 0.9rem; align-self: center;">⚠️ This will permanently remove the martyr from the website</span>
+            <button data-action="delete" data-martyr-id="${escapeHTML(martyr.id)}" class="btn btn-outline" style="color: #dc3545; border-color: #dc3545;">
+                🗑️ Delete
+            </button>
         </div>
     `;
+    
+    // Add event listener to edit button
+    const editBtn = item.querySelector('[data-action="edit"]');
+    if (editBtn) {
+        editBtn.addEventListener('click', () => openEditMartyrModal(martyr));
+    }
     
     // Add event listener to delete button
     const deleteBtn = item.querySelector('[data-action="delete"]');
@@ -1427,6 +1441,250 @@ async function deleteApprovedMartyr(martyrId, martyrName) {
         alert('Error deleting martyr. Please try again.');
     }
 }
+
+// ============================================
+// EDIT MARTYR FUNCTIONALITY
+// ============================================
+
+// Store the current martyr being edited
+let currentEditingMartyr = null;
+
+// Open edit modal with martyr data
+function openEditMartyrModal(martyr) {
+    // Validate admin authentication
+    if (!validateAdminAuth('edit martyr')) {
+        return;
+    }
+    
+    console.log('✏️ Opening edit modal for:', martyr.fullName);
+    currentEditingMartyr = martyr;
+    
+    // Remove existing modal if present
+    const existingModal = document.getElementById('editMartyrModal');
+    if (existingModal) existingModal.remove();
+    
+    // Helper function to convert Firestore Timestamp or date string to YYYY-MM-DD
+    const toDateInputValue = (dateValue) => {
+        if (!dateValue) return '';
+        try {
+            let date;
+            if (dateValue.toDate && typeof dateValue.toDate === 'function') {
+                date = dateValue.toDate();
+            } else if (dateValue instanceof Date) {
+                date = dateValue;
+            } else if (typeof dateValue === 'string') {
+                date = new Date(dateValue);
+            } else {
+                return '';
+            }
+            if (isNaN(date.getTime())) return '';
+            return date.toISOString().split('T')[0];
+        } catch (e) {
+            console.warn('Date conversion error:', e);
+            return '';
+        }
+    };
+    
+    // Create modal
+    const modal = document.createElement('div');
+    modal.id = 'editMartyrModal';
+    modal.className = 'edit-modal-overlay';
+    modal.innerHTML = `
+        <div class="edit-modal-content">
+            <div class="edit-modal-header">
+                <h2>✏️ Edit Martyr Profile</h2>
+                <button type="button" class="edit-modal-close" aria-label="Close">&times;</button>
+            </div>
+            <form id="editMartyrForm" class="edit-modal-body">
+                <div class="edit-form-grid">
+                    <div class="edit-form-group full-width">
+                        <label for="editFullName">Full Name *</label>
+                        <input type="text" id="editFullName" name="fullName" value="${escapeHTML(martyr.fullName || '')}" required>
+                    </div>
+                    
+                    <div class="edit-form-group">
+                        <label for="editBirthDate">Birth Date</label>
+                        <input type="date" id="editBirthDate" name="birthDate" value="${toDateInputValue(martyr.birthDate)}">
+                    </div>
+                    
+                    <div class="edit-form-group">
+                        <label for="editBirthPlace">Birth Place</label>
+                        <input type="text" id="editBirthPlace" name="birthPlace" value="${escapeHTML(martyr.birthPlace || '')}">
+                    </div>
+                    
+                    <div class="edit-form-group">
+                        <label for="editMartyrdomDate">Martyrdom Date</label>
+                        <input type="date" id="editMartyrdomDate" name="martyrdomDate" value="${toDateInputValue(martyr.martyrdomDate)}">
+                    </div>
+                    
+                    <div class="edit-form-group">
+                        <label for="editMartyrdomPlace">Martyrdom Place</label>
+                        <input type="text" id="editMartyrdomPlace" name="martyrdomPlace" value="${escapeHTML(martyr.martyrdomPlace || '')}">
+                    </div>
+                    
+                    <div class="edit-form-group">
+                        <label for="editOrganization">Organization</label>
+                        <input type="text" id="editOrganization" name="organization" value="${escapeHTML(martyr.organization || '')}">
+                    </div>
+                    
+                    <div class="edit-form-group">
+                        <label for="editRank">Rank / Role</label>
+                        <input type="text" id="editRank" name="rank" value="${escapeHTML(martyr.rank || '')}">
+                    </div>
+                    
+                    <div class="edit-form-group">
+                        <label for="editFatherName">Father's Name</label>
+                        <input type="text" id="editFatherName" name="fatherName" value="${escapeHTML(martyr.fatherName || '')}">
+                    </div>
+                    
+                    <div class="edit-form-group full-width">
+                        <label for="editBiography">Biography</label>
+                        <textarea id="editBiography" name="biography" rows="4">${escapeHTML(martyr.biography || '')}</textarea>
+                    </div>
+                    
+                    <div class="edit-form-group full-width">
+                        <label for="editFamilyDetails">Family Details</label>
+                        <textarea id="editFamilyDetails" name="familyDetails" rows="3">${escapeHTML(martyr.familyDetails || '')}</textarea>
+                    </div>
+                    
+                    <div class="edit-form-group full-width">
+                        <label>Current Photo</label>
+                        <div class="edit-photo-preview">
+                            ${martyr.photo ? 
+                                `<img src="${martyr.photo}" alt="Current photo" style="max-width: 150px; max-height: 150px; border-radius: 8px;">` :
+                                '<span style="color: #666;">No photo uploaded</span>'
+                            }
+                        </div>
+                        <small style="color: #666; margin-top: 0.5rem; display: block;">To change the photo, you'll need to re-submit the martyr profile or contact support.</small>
+                    </div>
+                </div>
+                
+                <div class="edit-modal-footer">
+                    <button type="button" class="btn btn-outline edit-cancel-btn">Cancel</button>
+                    <button type="submit" class="btn btn-primary edit-save-btn">
+                        💾 Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+    
+    // Close handlers
+    const closeModal = () => {
+        modal.remove();
+        document.body.style.overflow = 'auto';
+        currentEditingMartyr = null;
+    };
+    
+    modal.querySelector('.edit-modal-close').addEventListener('click', closeModal);
+    modal.querySelector('.edit-cancel-btn').addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    
+    // Escape key to close
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+    
+    // Form submit handler
+    modal.querySelector('#editMartyrForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await saveEditedMartyr();
+    });
+    
+    // Focus first input
+    setTimeout(() => {
+        modal.querySelector('#editFullName').focus();
+    }, 100);
+}
+
+// Save edited martyr data
+async function saveEditedMartyr() {
+    if (!currentEditingMartyr) {
+        console.error('No martyr being edited');
+        return;
+    }
+    
+    // Validate admin authentication
+    if (!validateAdminAuth('save edited martyr')) {
+        return;
+    }
+    
+    const form = document.getElementById('editMartyrForm');
+    const saveBtn = form.querySelector('.edit-save-btn');
+    
+    // Disable save button and show loading
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '⏳ Saving...';
+    
+    try {
+        // Collect form data
+        const formData = new FormData(form);
+        const updatedData = {};
+        
+        // Process form fields
+        for (const [key, value] of formData.entries()) {
+            // Sanitize input
+            updatedData[key] = sanitizeInput(value.trim());
+        }
+        
+        // Validate required fields
+        if (!updatedData.fullName) {
+            alert('Full name is required.');
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '💾 Save Changes';
+            return;
+        }
+        
+        console.log('💾 Saving updated martyr data:', updatedData);
+        
+        // Call Firebase update function
+        const result = await window.firebaseDB.updateApprovedMartyr(currentEditingMartyr.id, updatedData);
+        
+        if (result.success) {
+            console.log('✅ Martyr updated successfully');
+            
+            // Close modal
+            const modal = document.getElementById('editMartyrModal');
+            if (modal) {
+                modal.remove();
+                document.body.style.overflow = 'auto';
+            }
+            
+            // Refresh the approved martyrs list
+            await loadApprovedMartyrs();
+            
+            alert(`"${updatedData.fullName}" has been updated successfully!`);
+        } else {
+            console.error('❌ Update failed:', result.error);
+            alert(`Failed to update martyr: ${result.error}`);
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '💾 Save Changes';
+        }
+        
+    } catch (error) {
+        console.error('❌ Error saving martyr:', error);
+        alert('An error occurred while saving. Please try again.');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '💾 Save Changes';
+    }
+}
+
+// Make edit functions globally available
+window.openEditMartyrModal = openEditMartyrModal;
+window.saveEditedMartyr = saveEditedMartyr;
+
+// ============================================
+// END EDIT MARTYR FUNCTIONALITY
+// ============================================
 
 // Clear all approved martyrs (DANGER!)
 async function clearAllApproved() {
