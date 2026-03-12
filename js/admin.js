@@ -9,6 +9,338 @@ function validateAdminAuth(actionName = 'admin action') {
     return adminAuth.validateAdminAction(actionName);
 }
 
+// ============================================
+// DUPLICATE DETECTION SYSTEM
+// ============================================
+
+// Calculate similarity between two strings (Levenshtein distance based)
+function calculateStringSimilarity(str1, str2) {
+    if (!str1 || !str2) return 0;
+    
+    const s1 = str1.toString().toLowerCase().trim();
+    const s2 = str2.toString().toLowerCase().trim();
+    
+    if (s1 === s2) return 1.0;
+    if (s1.length === 0 || s2.length === 0) return 0;
+    
+    // Check if one contains the other
+    if (s1.includes(s2) || s2.includes(s1)) {
+        return 0.85;
+    }
+    
+    // Calculate Levenshtein distance
+    const matrix = [];
+    for (let i = 0; i <= s1.length; i++) {
+        matrix[i] = [i];
+    }
+    for (let j = 0; j <= s2.length; j++) {
+        matrix[0][j] = j;
+    }
+    for (let i = 1; i <= s1.length; i++) {
+        for (let j = 1; j <= s2.length; j++) {
+            const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+            matrix[i][j] = Math.min(
+                matrix[i - 1][j] + 1,
+                matrix[i][j - 1] + 1,
+                matrix[i - 1][j - 1] + cost
+            );
+        }
+    }
+    
+    const maxLen = Math.max(s1.length, s2.length);
+    return 1 - (matrix[s1.length][s2.length] / maxLen);
+}
+
+// Normalize name for comparison (remove titles, common prefixes)
+function normalizeName(name) {
+    if (!name) return '';
+    return name.toString().toLowerCase()
+        .replace(/^(shaheed|martyr|shahid|dr\.?|mr\.?|ms\.?|mrs\.?)\s*/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+// Calculate overall similarity score between two martyrs
+function calculateMartyrSimilarity(martyr1, martyr2) {
+    const scores = {
+        name: 0,
+        fatherName: 0,
+        birthPlace: 0,
+        martyrdomPlace: 0,
+        martyrdomDate: 0,
+        birthDate: 0
+    };
+    
+    // Name similarity (most important - weight: 50%)
+    const name1 = normalizeName(martyr1.fullName);
+    const name2 = normalizeName(martyr2.fullName);
+    scores.name = calculateStringSimilarity(name1, name2);
+    
+    // Father name similarity (weight: 15%)
+    if (martyr1.fatherName && martyr2.fatherName) {
+        scores.fatherName = calculateStringSimilarity(
+            normalizeName(martyr1.fatherName),
+            normalizeName(martyr2.fatherName)
+        );
+    }
+    
+    // Birth place similarity (weight: 10%)
+    if (martyr1.birthPlace && martyr2.birthPlace) {
+        scores.birthPlace = calculateStringSimilarity(
+            martyr1.birthPlace.toLowerCase(),
+            martyr2.birthPlace.toLowerCase()
+        );
+    }
+    
+    // Martyrdom place similarity (weight: 10%)
+    if (martyr1.martyrdomPlace && martyr2.martyrdomPlace) {
+        scores.martyrdomPlace = calculateStringSimilarity(
+            martyr1.martyrdomPlace.toLowerCase(),
+            martyr2.martyrdomPlace.toLowerCase()
+        );
+    }
+    
+    // Date comparisons (weight: 7.5% each)
+    const getDateString = (dateVal) => {
+        if (!dateVal) return '';
+        if (dateVal.toDate && typeof dateVal.toDate === 'function') {
+            return dateVal.toDate().toISOString().split('T')[0];
+        }
+        if (typeof dateVal === 'string') return dateVal.split('T')[0];
+        if (dateVal instanceof Date) return dateVal.toISOString().split('T')[0];
+        return '';
+    };
+    
+    const date1_martyrdom = getDateString(martyr1.martyrdomDate);
+    const date2_martyrdom = getDateString(martyr2.martyrdomDate);
+    if (date1_martyrdom && date2_martyrdom) {
+        scores.martyrdomDate = date1_martyrdom === date2_martyrdom ? 1.0 : 0;
+    }
+    
+    const date1_birth = getDateString(martyr1.birthDate);
+    const date2_birth = getDateString(martyr2.birthDate);
+    if (date1_birth && date2_birth) {
+        scores.birthDate = date1_birth === date2_birth ? 1.0 : 0;
+    }
+    
+    // Calculate weighted total
+    const totalScore = 
+        (scores.name * 0.50) +
+        (scores.fatherName * 0.15) +
+        (scores.birthPlace * 0.10) +
+        (scores.martyrdomPlace * 0.10) +
+        (scores.martyrdomDate * 0.075) +
+        (scores.birthDate * 0.075);
+    
+    return {
+        total: totalScore,
+        breakdown: scores
+    };
+}
+
+// Find potential duplicates for a martyr being approved
+async function findPotentialDuplicates(martyrToCheck, threshold = 0.65) {
+    console.log('🔍 Checking for potential duplicates for:', martyrToCheck.fullName);
+    
+    const duplicates = [];
+    
+    try {
+        // Get all approved martyrs from Firebase
+        if (!window.firebaseDB) {
+            console.warn('⚠️ Firebase not available for duplicate check');
+            return duplicates;
+        }
+        
+        const result = await window.firebaseDB.getApprovedMartyrs();
+        if (!result.success || !result.data) {
+            console.warn('⚠️ Could not fetch approved martyrs for duplicate check');
+            return duplicates;
+        }
+        
+        const approvedMartyrs = result.data;
+        console.log(`📊 Checking against ${approvedMartyrs.length} approved martyrs`);
+        
+        for (const approved of approvedMartyrs) {
+            const similarity = calculateMartyrSimilarity(martyrToCheck, approved);
+            
+            if (similarity.total >= threshold) {
+                duplicates.push({
+                    martyr: approved,
+                    similarity: similarity.total,
+                    breakdown: similarity.breakdown
+                });
+                console.log(`⚠️ Potential duplicate found: ${approved.fullName} (${(similarity.total * 100).toFixed(1)}% match)`);
+            }
+        }
+        
+        // Sort by similarity (highest first)
+        duplicates.sort((a, b) => b.similarity - a.similarity);
+        
+    } catch (error) {
+        console.error('❌ Error checking for duplicates:', error);
+    }
+    
+    return duplicates;
+}
+
+// Show duplicate warning modal
+function showDuplicateWarningModal(martyrToApprove, duplicates, onConfirm, onCancel) {
+    // Remove existing modal if present
+    const existing = document.getElementById('duplicateWarningModal');
+    if (existing) existing.remove();
+    
+    const modal = document.createElement('div');
+    modal.id = 'duplicateWarningModal';
+    modal.className = 'duplicate-modal-overlay';
+    
+    // Build duplicate cards HTML
+    const duplicateCardsHtml = duplicates.map((dup, index) => {
+        const similarity = (dup.similarity * 100).toFixed(0);
+        const matchClass = similarity >= 90 ? 'match-high' : similarity >= 75 ? 'match-medium' : 'match-low';
+        
+        return `
+            <div class="duplicate-card ${matchClass}">
+                <div class="duplicate-card-header">
+                    <span class="match-badge ${matchClass}">${similarity}% Match</span>
+                    <span class="duplicate-status">✅ Already Published</span>
+                </div>
+                <div class="duplicate-card-body">
+                    <div class="duplicate-photo">
+                        ${dup.martyr.photo ? 
+                            `<img src="${dup.martyr.photo}" alt="${escapeHTML(dup.martyr.fullName)}">` :
+                            '<div class="no-photo">📷</div>'
+                        }
+                    </div>
+                    <div class="duplicate-info">
+                        <h4>${escapeHTML(dup.martyr.fullName)}</h4>
+                        ${dup.martyr.fatherName ? `<p><strong>Father:</strong> ${escapeHTML(dup.martyr.fatherName)}</p>` : ''}
+                        ${dup.martyr.birthPlace ? `<p><strong>Birth Place:</strong> ${escapeHTML(dup.martyr.birthPlace)}</p>` : ''}
+                        ${dup.martyr.martyrdomPlace ? `<p><strong>Martyrdom Place:</strong> ${escapeHTML(dup.martyr.martyrdomPlace)}</p>` : ''}
+                        ${dup.martyr.martyrdomDate ? `<p><strong>Martyrdom Date:</strong> ${formatDate(dup.martyr.martyrdomDate)}</p>` : ''}
+                        ${dup.martyr.organization ? `<p><strong>Organization:</strong> ${escapeHTML(dup.martyr.organization)}</p>` : ''}
+                    </div>
+                </div>
+                <div class="similarity-breakdown">
+                    <small>
+                        <strong>Match Details:</strong>
+                        Name: ${(dup.breakdown.name * 100).toFixed(0)}%
+                        ${dup.breakdown.fatherName > 0 ? `, Father: ${(dup.breakdown.fatherName * 100).toFixed(0)}%` : ''}
+                        ${dup.breakdown.birthPlace > 0 ? `, Birth Place: ${(dup.breakdown.birthPlace * 100).toFixed(0)}%` : ''}
+                        ${dup.breakdown.martyrdomPlace > 0 ? `, Martyrdom Place: ${(dup.breakdown.martyrdomPlace * 100).toFixed(0)}%` : ''}
+                    </small>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    modal.innerHTML = `
+        <div class="duplicate-modal-content">
+            <div class="duplicate-modal-header">
+                <h2>⚠️ Potential Duplicate${duplicates.length > 1 ? 's' : ''} Found</h2>
+                <button type="button" class="duplicate-modal-close" aria-label="Close">&times;</button>
+            </div>
+            <div class="duplicate-modal-body">
+                <div class="duplicate-warning-message">
+                    <p>
+                        <strong>The submission you're about to approve may already exist in the database.</strong>
+                    </p>
+                    <p>
+                        We found <strong>${duplicates.length}</strong> similar profile${duplicates.length > 1 ? 's' : ''} 
+                        that ${duplicates.length > 1 ? 'are' : 'is'} already published on the website.
+                    </p>
+                </div>
+                
+                <div class="duplicate-comparison">
+                    <div class="submission-to-approve">
+                        <h3>📝 Submission Being Approved</h3>
+                        <div class="submission-card">
+                            <div class="duplicate-photo">
+                                ${martyrToApprove.photo ? 
+                                    `<img src="${martyrToApprove.photo}" alt="${escapeHTML(martyrToApprove.fullName)}">` :
+                                    '<div class="no-photo">📷</div>'
+                                }
+                            </div>
+                            <div class="duplicate-info">
+                                <h4>${escapeHTML(martyrToApprove.fullName)}</h4>
+                                ${martyrToApprove.fatherName ? `<p><strong>Father:</strong> ${escapeHTML(martyrToApprove.fatherName)}</p>` : ''}
+                                ${martyrToApprove.birthPlace ? `<p><strong>Birth Place:</strong> ${escapeHTML(martyrToApprove.birthPlace)}</p>` : ''}
+                                ${martyrToApprove.martyrdomPlace ? `<p><strong>Martyrdom Place:</strong> ${escapeHTML(martyrToApprove.martyrdomPlace)}</p>` : ''}
+                                ${martyrToApprove.martyrdomDate ? `<p><strong>Martyrdom Date:</strong> ${formatDate(martyrToApprove.martyrdomDate)}</p>` : ''}
+                                ${martyrToApprove.organization ? `<p><strong>Organization:</strong> ${escapeHTML(martyrToApprove.organization)}</p>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="existing-duplicates">
+                        <h3>✅ Existing Profile${duplicates.length > 1 ? 's' : ''} (Already Published)</h3>
+                        <div class="duplicates-list">
+                            ${duplicateCardsHtml}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="duplicate-modal-footer">
+                <button type="button" class="btn btn-outline duplicate-cancel-btn">
+                    ✖ Cancel (Don't Approve)
+                </button>
+                <button type="button" class="btn btn-warning duplicate-approve-btn">
+                    ⚠️ Approve Anyway (Not a Duplicate)
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+    
+    // Event handlers
+    const closeModal = () => {
+        modal.remove();
+        document.body.style.overflow = 'auto';
+    };
+    
+    modal.querySelector('.duplicate-modal-close').addEventListener('click', () => {
+        closeModal();
+        if (onCancel) onCancel();
+    });
+    
+    modal.querySelector('.duplicate-cancel-btn').addEventListener('click', () => {
+        closeModal();
+        if (onCancel) onCancel();
+    });
+    
+    modal.querySelector('.duplicate-approve-btn').addEventListener('click', () => {
+        closeModal();
+        if (onConfirm) onConfirm();
+    });
+    
+    // Close on background click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+            if (onCancel) onCancel();
+        }
+    });
+    
+    // Escape key to close
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+            if (onCancel) onCancel();
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
+}
+
+// Make duplicate functions globally available
+window.findPotentialDuplicates = findPotentialDuplicates;
+window.showDuplicateWarningModal = showDuplicateWarningModal;
+
+// ============================================
+// END DUPLICATE DETECTION SYSTEM
+// ============================================
+
 // Use global Firebase instance instead of direct import
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -708,87 +1040,25 @@ function openPendingPreview(martyr) {
     document.body.appendChild(overlay);
 }
 
-// Approve a martyr submission
-async function approveMartyr(martyrId) {
-    // Validate admin authentication
-    if (!validateAdminAuth('approve martyr')) {
-        return;
+// Helper function to reset approve button state
+function resetApproveButton(martyrId) {
+    const approveBtn = document.querySelector(`[data-martyr-id="${martyrId}"] .btn-approve`);
+    if (approveBtn) {
+        approveBtn.disabled = false;
+        approveBtn.innerHTML = '✓ Approve & Publish';
     }
-    
-    console.log('🚀 Starting approval process for ID:', martyrId);
-    
-    if (!confirm('Are you sure you want to approve this submission? It will be published on the website.')) {
-        console.log('❌ Approval cancelled by user');
-        return;
-    }
-    
-    console.log('✅ User confirmed approval, proceeding...');
-    
-    // Check if Firebase is available
-    if (!window.firebaseDB) {
-        console.error('❌ Firebase not available!');
-        alert('Firebase database not available. Please check your internet connection and refresh the page.');
-        return;
-    }
-    
-    console.log('✅ Firebase available, continuing with approval...');
+}
 
+// Execute the actual approval process
+async function executeApproval(martyrId, martyrToApprove, foundInLocalStorage, martyrIndex, pendingData) {
+    console.log('🚀 Executing approval for:', martyrToApprove.fullName);
+    
+    const approveBtn = document.querySelector(`[data-martyr-id="${martyrId}"] .btn-approve`);
+    if (approveBtn) {
+        approveBtn.innerHTML = '⏳ Approving...';
+    }
+    
     try {
-        // Show loading state
-        const approveBtn = document.querySelector(`[data-martyr-id="${martyrId}"] .btn-approve`);
-        if (approveBtn) {
-            approveBtn.disabled = true;
-            approveBtn.innerHTML = '⏳ Approving...';
-        }
-
-        // Get martyr data - try from currently loaded data first
-        let martyrToApprove = null;
-        let foundInLocalStorage = false;
-        
-        // First check localStorage
-        const pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
-        const martyrIndex = pendingData.findIndex(m => m.id === martyrId);
-        
-        if (martyrIndex !== -1) {
-            martyrToApprove = pendingData[martyrIndex];
-            foundInLocalStorage = true;
-            console.log('✅ Found martyr in localStorage:', martyrToApprove);
-        } else {
-            // If not in localStorage, try to get from Firebase directly
-            console.log('🔍 Martyr not in localStorage, fetching from Firebase...');
-            
-            try {
-                console.log('🔄 Fetching pending martyrs from Firebase...');
-                const firebaseResult = await window.firebaseDB.getPendingMartyrs();
-                console.log('📊 Firebase getPendingMartyrs result:', firebaseResult);
-                
-                if (firebaseResult.success) {
-                    console.log(`📁 Found ${firebaseResult.data.length} pending martyrs in Firebase`);
-                    const firebaseMartyr = firebaseResult.data.find(m => m.id === martyrId);
-                    if (firebaseMartyr) {
-                        martyrToApprove = firebaseMartyr;
-                        console.log('✅ Found martyr in Firebase:', martyrToApprove);
-                    } else {
-                        console.log('❌ Martyr ID not found in Firebase pending list');
-                        console.log('📁 Available IDs in Firebase:', firebaseResult.data.map(m => m.id));
-                    }
-                } else {
-                    console.error('❌ Firebase getPendingMartyrs failed:', firebaseResult.error);
-                }
-            } catch (error) {
-                console.error('❌ Error fetching from Firebase:', error);
-                console.error('❌ Error details:', error.stack);
-            }
-        }
-        
-        // If still not found, show error
-        if (!martyrToApprove) {
-            console.error('❌ Martyr not found anywhere:', martyrId);
-            alert('Submission not found in database. Please refresh and try again.');
-            await refreshData();
-            return;
-        }
-
         // Update the martyr status
         martyrToApprove.status = 'approved';
         martyrToApprove.approvedAt = new Date().toISOString();
@@ -838,6 +1108,121 @@ async function approveMartyr(martyrId) {
             : 'Submission approved and published to local storage (Firebase sync failed, but martyr is still approved)!';
         
         alert(successMessage);
+        
+    } catch (error) {
+        console.error('Error during approval execution:', error);
+        alert('Error approving submission. Please try again.');
+        resetApproveButton(martyrId);
+    }
+}
+
+// Approve a martyr submission
+async function approveMartyr(martyrId) {
+    // Validate admin authentication
+    if (!validateAdminAuth('approve martyr')) {
+        return;
+    }
+    
+    console.log('🚀 Starting approval process for ID:', martyrId);
+    
+    // Check if Firebase is available
+    if (!window.firebaseDB) {
+        console.error('❌ Firebase not available!');
+        alert('Firebase database not available. Please check your internet connection and refresh the page.');
+        return;
+    }
+    
+    // Show loading state immediately
+    const approveBtn = document.querySelector(`[data-martyr-id="${martyrId}"] .btn-approve`);
+    if (approveBtn) {
+        approveBtn.disabled = true;
+        approveBtn.innerHTML = '🔍 Checking...';
+    }
+
+    try {
+        // Get martyr data first
+        let martyrToApprove = null;
+        let foundInLocalStorage = false;
+        
+        // First check localStorage
+        const pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
+        const martyrIndex = pendingData.findIndex(m => m.id === martyrId);
+        
+        if (martyrIndex !== -1) {
+            martyrToApprove = pendingData[martyrIndex];
+            foundInLocalStorage = true;
+            console.log('✅ Found martyr in localStorage:', martyrToApprove);
+        } else {
+            // If not in localStorage, try to get from Firebase directly
+            console.log('🔍 Martyr not in localStorage, fetching from Firebase...');
+            
+            try {
+                const firebaseResult = await window.firebaseDB.getPendingMartyrs();
+                if (firebaseResult.success) {
+                    const firebaseMartyr = firebaseResult.data.find(m => m.id === martyrId);
+                    if (firebaseMartyr) {
+                        martyrToApprove = firebaseMartyr;
+                        console.log('✅ Found martyr in Firebase:', martyrToApprove);
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error fetching from Firebase:', error);
+            }
+        }
+        
+        // If not found, show error
+        if (!martyrToApprove) {
+            console.error('❌ Martyr not found anywhere:', martyrId);
+            alert('Submission not found in database. Please refresh and try again.');
+            resetApproveButton(martyrId);
+            await refreshData();
+            return;
+        }
+        
+        // ============================================
+        // DUPLICATE DETECTION CHECK
+        // ============================================
+        console.log('🔍 Checking for potential duplicates...');
+        if (approveBtn) {
+            approveBtn.innerHTML = '🔍 Checking duplicates...';
+        }
+        
+        const duplicates = await findPotentialDuplicates(martyrToApprove);
+        
+        if (duplicates.length > 0) {
+            console.log(`⚠️ Found ${duplicates.length} potential duplicate(s)`);
+            
+            // Show duplicate warning modal and wait for user decision
+            showDuplicateWarningModal(
+                martyrToApprove,
+                duplicates,
+                // onConfirm - user wants to approve anyway
+                async () => {
+                    console.log('✅ User confirmed approval despite duplicates');
+                    await executeApproval(martyrId, martyrToApprove, foundInLocalStorage, martyrIndex, pendingData);
+                },
+                // onCancel - user decided not to approve
+                () => {
+                    console.log('❌ User cancelled approval due to duplicates');
+                    resetApproveButton(martyrId);
+                }
+            );
+            return; // Exit here - the modal callbacks will handle the rest
+        }
+        
+        // ============================================
+        // NO DUPLICATES - PROCEED WITH NORMAL APPROVAL
+        // ============================================
+        console.log('✅ No duplicates found, proceeding with approval...');
+        
+        // Ask for confirmation
+        if (!confirm('Are you sure you want to approve this submission? It will be published on the website.')) {
+            console.log('❌ Approval cancelled by user');
+            resetApproveButton(martyrId);
+            return;
+        }
+        
+        await executeApproval(martyrId, martyrToApprove, foundInLocalStorage, martyrIndex, pendingData);
 
     } catch (error) {
         console.error('Error approving martyr:', error);
