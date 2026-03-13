@@ -93,14 +93,14 @@ export class AdminAuth {
     }
 
     // Logout and redirect
-    logout(redirectUrl = 'admin-login.html') {
+    logout(redirectUrl = '/admin-login') {
         console.log('🔐 Admin logout:', this.getCurrentAdmin()?.username);
         this.clearSession();
         window.location.href = redirectUrl;
     }
 
     // Redirect to login if not authenticated
-    requireAuth(redirectUrl = 'admin-login.html') {
+    requireAuth(redirectUrl = '/admin-login') {
         if (!this.isAuthenticated()) {
             console.warn('🚫 Unauthorized access attempt to admin area');
             window.location.href = redirectUrl;

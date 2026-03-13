@@ -5,6 +5,106 @@
 [functions]
   directory = "netlify/functions"
 
+# ============================================
+# CLEAN URLs (Remove .html extension)
+# ============================================
+# These redirects allow accessing pages without .html extension
+# e.g., /add-martyr instead of /add-martyr.html
+
+# Main pages - Clean URL redirects
+[[redirects]]
+  from = "/about"
+  to = "/about.html"
+  status = 200
+
+[[redirects]]
+  from = "/add-martyr"
+  to = "/add-martyr.html"
+  status = 200
+
+[[redirects]]
+  from = "/gallery"
+  to = "/gallery.html"
+  status = 200
+
+[[redirects]]
+  from = "/contact"
+  to = "/contact.html"
+  status = 200
+
+[[redirects]]
+  from = "/statistics"
+  to = "/statistics.html"
+  status = 200
+
+[[redirects]]
+  from = "/confirmation"
+  to = "/confirmation.html"
+  status = 200
+
+# Admin pages - Clean URL redirects
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin-login"
+  to = "/admin-login.html"
+  status = 200
+
+# Redirect .html URLs to clean URLs (SEO - avoid duplicate content)
+[[redirects]]
+  from = "/about.html"
+  to = "/about"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/add-martyr.html"
+  to = "/add-martyr"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/gallery.html"
+  to = "/gallery"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/contact.html"
+  to = "/contact"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/statistics.html"
+  to = "/statistics"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/confirmation.html"
+  to = "/confirmation"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/admin.html"
+  to = "/admin"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/admin-login.html"
+  to = "/admin-login"
+  status = 301
+  force = true
+
+# ============================================
+# API REDIRECTS
+# ============================================
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"

@@ -135,7 +135,7 @@
             </button>
         </form>
 
-        <a href="index.html" class="back-link">
+        <a href="/" class="back-link">
             ← Back to Website
         </a>
 
@@ -178,7 +178,7 @@
                 console.log('✅ Valid session found, redirecting to admin panel');
                 const admin = adminAuth.getCurrentAdmin();
                 console.log(`Session for: ${admin.username}, expires: ${admin.expires.toLocaleString()}`);
-                window.location.href = 'admin.html';
+                window.location.href = '/admin';
                 return true;
             }
             
@@ -296,7 +296,7 @@
                     if (sessionData) {
                         showSuccess('Login successful! Redirecting...');
                         setTimeout(() => {
-                            window.location.href = 'admin.html';
+                        window.location.href = '/admin';
                         }, 1000);
                     } else {
                         showError('Session creation failed. Please try again.');
