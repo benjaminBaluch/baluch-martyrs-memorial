@@ -56,7 +56,49 @@ function initializeFormHandlers() {
 
         // Initialize helper text for date fields
         initDateHelpers();
+        
+        // Initialize organization dropdown handler
+        initOrganizationDropdown();
     }
+}
+
+// Initialize organization dropdown to show/hide "Other" input field
+function initOrganizationDropdown() {
+    const orgSelect = document.getElementById('organization');
+    const otherOrgGroup = document.getElementById('otherOrgGroup');
+    const otherOrgInput = document.getElementById('organizationOther');
+    
+    if (orgSelect && otherOrgGroup) {
+        orgSelect.addEventListener('change', function() {
+            if (this.value === 'Other') {
+                otherOrgGroup.style.display = 'block';
+                if (otherOrgInput) {
+                    otherOrgInput.focus();
+                }
+            } else {
+                otherOrgGroup.style.display = 'none';
+                if (otherOrgInput) {
+                    otherOrgInput.value = ''; // Clear the field when not "Other"
+                }
+            }
+        });
+    }
+}
+
+// Get the final organization value (handles dropdown + "Other" input)
+function getOrganizationValue() {
+    const orgSelect = document.getElementById('organization');
+    const otherOrgInput = document.getElementById('organizationOther');
+    
+    if (!orgSelect) return '';
+    
+    const selectedValue = orgSelect.value;
+    
+    if (selectedValue === 'Other' && otherOrgInput && otherOrgInput.value.trim()) {
+        return otherOrgInput.value.trim();
+    }
+    
+    return selectedValue;
 }
 
 // Initialize helper text for date fields so users can verify their selections
@@ -350,7 +392,7 @@ function handleFormSubmit(event) {
             birthPlace: sanitizeInput(formData.get('birthPlace') || '', { maxLength: 200 }),
             martyrdomPlace: sanitizeInput(formData.get('martyrdomPlace') || '', { maxLength: 200 }),
             biography: sanitizeInput(formData.get('biography') || '', { maxLength: 5000, allowNewlines: true }),
-            organization: sanitizeInput(formData.get('organization') || '', { maxLength: 200 }),
+            organization: sanitizeInput(getOrganizationValue() || '', { maxLength: 200 }),
             rank: sanitizeInput(formData.get('rank') || '', { maxLength: 100 }),
             fatherName: sanitizeInput(formData.get('fatherName') || '', { maxLength: 200 }),
             submitterName: sanitizeInput(formData.get('submitterName'), { maxLength: 200 }),

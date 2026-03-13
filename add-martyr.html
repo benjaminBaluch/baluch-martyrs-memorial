@@ -665,9 +665,31 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="organization">Organization/Movement</label>
-                            <input type="text" id="organization" name="organization" 
-                                placeholder="Name of organization or movement they were associated with">
+                            <label for="organization">Affiliation</label>
+                            <select id="organization" name="organization">
+                                <option value="">-- Select Affiliation --</option>
+                                <option value="Civilian">Civilian (No Armed Affiliation)</option>
+                                <option value="BLA">Balochistan Liberation Army (BLA)</option>
+                                <option value="BLF">Balochistan Liberation Front (BLF)</option>
+                                <option value="BRAS">Baloch Raaji Aajoi Sangar (BRAS)</option>
+                                <option value="BRA">Balochistan Republican Army (BRA)</option>
+                                <option value="LeB">Lashkar-e-Balochistan (LeB)</option>
+                                <option value="UBA">United Baloch Army (UBA)</option>
+                                <option value="BSO">Baloch Students Organization (BSO)</option>
+                                <option value="BNM">Baloch National Movement (BNM)</option>
+                                <option value="BNP">Balochistan National Party (BNP)</option>
+                                <option value="Student">Student / Academic</option>
+                                <option value="Journalist">Journalist / Media</option>
+                                <option value="Human Rights">Human Rights Activist</option>
+                                <option value="Political Activist">Political Activist</option>
+                                <option value="Other">Other (specify below)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" id="otherOrgGroup" style="display: none;">
+                            <label for="organizationOther">Specify Organization</label>
+                            <input type="text" id="organizationOther" name="organizationOther" 
+                                placeholder="Enter the organization or movement name">
                         </div>
 
                         <div class="form-group">
@@ -927,8 +949,22 @@
                 previewLocation.classList.toggle('empty', !location);
             }
 
-            // Organization
-            const organization = document.getElementById('organization')?.value.trim();
+            // Organization (handles dropdown + Other input)
+            const orgSelect = document.getElementById('organization');
+            const orgOtherInput = document.getElementById('organizationOther');
+            let organization = '';
+            
+            if (orgSelect) {
+                const selectedValue = orgSelect.value;
+                if (selectedValue === 'Other' && orgOtherInput && orgOtherInput.value.trim()) {
+                    organization = orgOtherInput.value.trim();
+                } else if (selectedValue && selectedValue !== 'Other') {
+                    // Use the display text (option text) for the preview
+                    const selectedOption = orgSelect.options[orgSelect.selectedIndex];
+                    organization = selectedOption ? selectedOption.text : selectedValue;
+                }
+            }
+            
             const previewOrgContainer = document.getElementById('previewOrgContainer');
             const previewOrganization = document.getElementById('previewOrganization');
             if (previewOrgContainer && previewOrganization) {
@@ -1036,7 +1072,7 @@
             // Fields to watch
             const fields = [
                 'fullName', 'fatherName', 'birthDate', 'martyrdomDate',
-                'birthPlace', 'martyrdomPlace', 'organization', 'biography'
+                'birthPlace', 'martyrdomPlace', 'organization', 'organizationOther', 'biography'
             ];
 
             // Add input listeners
