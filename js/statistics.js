@@ -822,7 +822,7 @@
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
     // ============================================
-    // PDF GENERATION
+    // PDF GENERATION - Professional Multi-Page Layout
     // ============================================
     
     function setupPdfDownload() {
@@ -873,12 +873,41 @@
             const pageHeight = doc.internal.pageSize.getHeight();
             const margin = 15;
             const contentWidth = pageWidth - (margin * 2);
+            const footerHeight = 18;
+            const headerHeight = 17;
+            const maxContentY = pageHeight - footerHeight - 5; // Bottom boundary for content
             
             // Colors
             const primaryColor = [44, 85, 48];
             const accentColor = [212, 175, 55];
             const textColor = [51, 65, 85];
             const lightGray = [148, 163, 184];
+            
+            // Helper: Draw page header for continuation pages
+            function drawContinuationHeader(martyrName, profileNum, totalProfiles) {
+                doc.setFillColor(...primaryColor);
+                doc.rect(0, 0, pageWidth, 12, 'F');
+                doc.setFillColor(...accentColor);
+                doc.rect(0, 12, pageWidth, 1.5, 'F');
+                
+                doc.setFontSize(8);
+                doc.setTextColor(255, 255, 255);
+                doc.setFont('helvetica', 'normal');
+                doc.text('Baluch Martyrs Memorial', margin, 8);
+                doc.text(`${martyrName} (continued)`, pageWidth / 2, 8, { align: 'center' });
+                doc.text(`${profileNum} of ${totalProfiles}`, pageWidth - margin, 8, { align: 'right' });
+            }
+            
+            // Helper: Draw page footer
+            function drawPageFooter() {
+                doc.setFillColor(...primaryColor);
+                doc.rect(0, pageHeight - footerHeight, pageWidth, footerHeight, 'F');
+                
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(7);
+                doc.setFont('helvetica', 'italic');
+                doc.text('Forever remembered. Forever honored.', pageWidth / 2, pageHeight - 8, { align: 'center' });
+            }
             
             // ---- COVER PAGE ----
             updateProgress(progressFill, progressText, 5, 'Creating cover page...');
@@ -925,17 +954,18 @@
             doc.setFontSize(9);
             doc.text('baluchmartyrs.site', pageWidth / 2, pageHeight - 20, { align: 'center' });
             
-            // ---- MARTYR PROFILES (One per page, professional layout) ----
-            let currentPage = 1;
+            // ---- MARTYR PROFILES ----
             
             for (let i = 0; i < sortedMartyrs.length; i++) {
                 const martyr = sortedMartyrs[i];
                 const progressPercent = Math.round(10 + ((i / sortedMartyrs.length) * 85));
                 updateProgress(progressFill, progressText, progressPercent, `Processing ${i + 1} of ${sortedMartyrs.length}...`);
                 
+                const martyrName = martyr.fullName || 'Unnamed Martyr';
+                const profileNum = i + 1;
+                
                 // New page for each martyr
                 doc.addPage();
-                currentPage++;
                 
                 // Page header bar
                 doc.setFillColor(...primaryColor);
@@ -943,26 +973,26 @@
                 doc.setFontSize(9);
                 doc.setTextColor(255, 255, 255);
                 doc.text('Baluch Martyrs Memorial', margin, 10);
-                doc.text(`${i + 1} of ${sortedMartyrs.length}`, pageWidth - margin, 10, { align: 'right' });
+                doc.text(`${profileNum} of ${sortedMartyrs.length}`, pageWidth - margin, 10, { align: 'right' });
                 
                 // Gold accent line under header
                 doc.setFillColor(...accentColor);
                 doc.rect(0, 15, pageWidth, 2, 'F');
                 
-                let yPos = 30;
+                let yPos = 28;
                 
                 // Profile layout with photo on left
-                const photoSize = 50;
+                const photoSize = 45;
                 const photoX = margin;
                 const photoY = yPos;
-                const textStartX = margin + photoSize + 15;
-                const textWidth = contentWidth - photoSize - 15;
+                const textStartX = margin + photoSize + 12;
+                const textWidth = contentWidth - photoSize - 12;
                 
                 // Photo (only if available)
                 let hasPhoto = false;
                 if (martyr.photo && martyr.photo.startsWith('data:image')) {
                     try {
-                        doc.addImage(martyr.photo, 'JPEG', photoX, photoY, photoSize, photoSize * 1.2);
+                        doc.addImage(martyr.photo, 'JPEG', photoX, photoY, photoSize, photoSize * 1.25);
                         hasPhoto = true;
                     } catch (e) {
                         hasPhoto = false;
@@ -975,17 +1005,22 @@
                 
                 // Name (large, prominent)
                 doc.setTextColor(...primaryColor);
-                doc.setFontSize(20);
+                doc.setFontSize(18);
                 doc.setFont('helvetica', 'bold');
-                const name = martyr.fullName || 'Unnamed Martyr';
-                doc.text(name, actualTextX, yPos + 8);
+                
+                // Handle long names
+                const nameLines = doc.splitTextToSize(martyrName, actualTextWidth);
+                nameLines.forEach((line, idx) => {
+                    doc.text(line, actualTextX, yPos + 6 + (idx * 7));
+                });
                 
                 // Decorative line under name
+                const nameEndY = yPos + 6 + ((nameLines.length - 1) * 7) + 4;
                 doc.setDrawColor(...accentColor);
                 doc.setLineWidth(0.5);
-                doc.line(actualTextX, yPos + 12, actualTextX + 60, yPos + 12);
+                doc.line(actualTextX, nameEndY, actualTextX + 50, nameEndY);
                 
-                yPos += 22;
+                yPos = nameEndY + 6;
                 
                 // Build details section dynamically (only show what exists)
                 const details = [];
@@ -996,9 +1031,13 @@
                 if (birthDate && martyrdomDate) {
                     details.push({ label: 'Lived', value: `${birthDate} — ${martyrdomDate}` });
                 } else if (martyrdomDate) {
-                    details.push({ label: 'Martyrdom Date', value: martyrdomDate });
+                    details.push({ label: 'Martyrdom', value: martyrdomDate });
                 } else if (birthDate) {
-                    details.push({ label: 'Birth Date', value: birthDate });
+                    details.push({ label: 'Born', value: birthDate });
+                }
+                
+                if (martyr.fatherName) {
+                    details.push({ label: 'Father', value: martyr.fatherName });
                 }
                 
                 if (martyr.birthPlace) {
@@ -1017,8 +1056,10 @@
                     details.push({ label: 'Rank', value: martyr.rank });
                 }
                 
-                // Render details
-                doc.setFontSize(10);
+                // Render details in a clean grid
+                doc.setFontSize(9);
+                const detailLineHeight = 5.5;
+                
                 details.forEach(detail => {
                     doc.setFont('helvetica', 'bold');
                     doc.setTextColor(...lightGray);
@@ -1026,56 +1067,84 @@
                     
                     doc.setFont('helvetica', 'normal');
                     doc.setTextColor(...textColor);
-                    const valueX = actualTextX + 40;
-                    const valueLines = doc.splitTextToSize(detail.value, actualTextWidth - 45);
-                    doc.text(valueLines[0], valueX, yPos);
-                    yPos += 7;
+                    const valueX = actualTextX + 32;
+                    const valueMaxWidth = actualTextWidth - 35;
+                    const valueLines = doc.splitTextToSize(String(detail.value), valueMaxWidth);
+                    valueLines.forEach((vLine, vIdx) => {
+                        doc.text(vLine, valueX, yPos + (vIdx * detailLineHeight));
+                    });
+                    yPos += Math.max(valueLines.length * detailLineHeight, detailLineHeight);
                 });
                 
-                // Biography section (full, below the header info)
-                const bioStartY = hasPhoto ? Math.max(yPos + 10, photoY + photoSize * 1.2 + 15) : yPos + 10;
+                // Biography section - starts after details or photo, whichever is lower
+                const photoBottomY = hasPhoto ? photoY + photoSize * 1.25 + 8 : 0;
+                let bioStartY = Math.max(yPos + 8, photoBottomY);
                 
                 if (martyr.biography && martyr.biography.trim().length > 0) {
-                    // Biography heading
+                    const bioText = martyr.biography.trim();
+                    
+                    // Biography heading with background
                     doc.setFillColor(248, 250, 252);
-                    doc.roundedRect(margin, bioStartY - 5, contentWidth, 10, 2, 2, 'F');
+                    doc.roundedRect(margin, bioStartY - 3, contentWidth, 9, 2, 2, 'F');
                     
                     doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(11);
-                    doc.setTextColor(...primaryColor);
-                    doc.text('Biography', margin + 5, bioStartY + 2);
-                    
-                    // Biography text
-                    doc.setFont('helvetica', 'normal');
                     doc.setFontSize(10);
+                    doc.setTextColor(...primaryColor);
+                    doc.text('Biography', margin + 4, bioStartY + 3);
+                    
+                    bioStartY += 12;
+                    
+                    // Biography text with multi-page support
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(9.5);
                     doc.setTextColor(...textColor);
                     
-                    const bioText = martyr.biography.trim();
+                    const lineHeight = 4.8;
                     const bioLines = doc.splitTextToSize(bioText, contentWidth);
-                    const maxBioLines = 25; // Allow more lines for full biography
-                    const displayLines = bioLines.slice(0, maxBioLines);
                     
-                    let bioY = bioStartY + 15;
-                    displayLines.forEach(line => {
-                        doc.text(line, margin, bioY);
-                        bioY += 5;
-                    });
+                    let currentY = bioStartY;
+                    let lineIndex = 0;
+                    let isFirstBioPage = true;
                     
-                    if (bioLines.length > maxBioLines) {
-                        doc.setTextColor(...lightGray);
-                        doc.setFontSize(9);
-                        doc.text('[Biography continues...]', margin, bioY + 2);
+                    while (lineIndex < bioLines.length) {
+                        // Check if we need a new page
+                        if (currentY + lineHeight > maxContentY) {
+                            // Draw footer on current page
+                            drawPageFooter();
+                            
+                            // Add new page
+                            doc.addPage();
+                            
+                            // Draw header for continuation
+                            drawContinuationHeader(martyrName, profileNum, sortedMartyrs.length);
+                            
+                            // Reset Y position for new page
+                            currentY = headerHeight + 8;
+                            
+                            // Add "Biography continued" label
+                            doc.setFont('helvetica', 'italic');
+                            doc.setFontSize(8);
+                            doc.setTextColor(...lightGray);
+                            doc.text('Biography (continued)', margin, currentY);
+                            currentY += 6;
+                            
+                            // Reset to normal bio formatting
+                            doc.setFont('helvetica', 'normal');
+                            doc.setFontSize(9.5);
+                            doc.setTextColor(...textColor);
+                            
+                            isFirstBioPage = false;
+                        }
+                        
+                        // Draw the line
+                        doc.text(bioLines[lineIndex], margin, currentY);
+                        currentY += lineHeight;
+                        lineIndex++;
                     }
                 }
                 
-                // Footer with memorial message
-                doc.setFillColor(...primaryColor);
-                doc.rect(0, pageHeight - 20, pageWidth, 20, 'F');
-                
-                doc.setTextColor(255, 255, 255);
-                doc.setFontSize(8);
-                doc.setFont('helvetica', 'italic');
-                doc.text('Forever remembered. Forever honored.', pageWidth / 2, pageHeight - 10, { align: 'center' });
+                // Draw footer on the last page of this profile
+                drawPageFooter();
             }
             
             // ---- FINAL PAGE ----
@@ -1083,33 +1152,67 @@
             
             doc.addPage();
             
-            // Green footer bar
-            doc.setFillColor(...primaryColor);
-            doc.rect(0, pageHeight - 50, pageWidth, 50, 'F');
+            // Elegant closing page
+            doc.setFillColor(248, 250, 252);
+            doc.rect(0, 0, pageWidth, pageHeight, 'F');
             
-            // Thank you message
-            doc.setTextColor(...textColor);
+            // Green accent at top
+            doc.setFillColor(...primaryColor);
+            doc.rect(0, 0, pageWidth, 40, 'F');
+            doc.setFillColor(...accentColor);
+            doc.rect(0, 40, pageWidth, 2, 'F');
+            
+            // Title in header
+            doc.setTextColor(255, 255, 255);
             doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
-            doc.text('In Eternal Memory', pageWidth / 2, 60, { align: 'center' });
+            doc.text('In Eternal Memory', pageWidth / 2, 25, { align: 'center' });
             
+            // Center content
+            doc.setTextColor(...textColor);
+            doc.setFontSize(11);
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(10);
-            doc.setTextColor(...lightGray);
-            const closingText = [
+            
+            const closingLines = [
                 'This document preserves the memory of Baluch martyrs',
                 'who sacrificed their lives for freedom and justice.',
                 '',
-                'Their courage and dedication will never be forgotten.'
+                'Their courage and dedication inspire generations.',
+                'Their names will never be forgotten.',
+                '',
+                `Total Profiles Documented: ${sortedMartyrs.length}`,
             ];
-            closingText.forEach((line, idx) => {
-                doc.text(line, pageWidth / 2, 80 + (idx * 7), { align: 'center' });
+            
+            let closingY = 80;
+            closingLines.forEach(line => {
+                if (line === '') {
+                    closingY += 6;
+                } else {
+                    doc.text(line, pageWidth / 2, closingY, { align: 'center' });
+                    closingY += 8;
+                }
             });
             
+            // Decorative element
+            doc.setDrawColor(...accentColor);
+            doc.setLineWidth(0.5);
+            doc.line(pageWidth / 2 - 30, closingY + 10, pageWidth / 2 + 30, closingY + 10);
+            
+            // Website
+            doc.setFontSize(10);
+            doc.setTextColor(...primaryColor);
+            doc.setFont('helvetica', 'bold');
+            doc.text('baluchmartyrs.site', pageWidth / 2, closingY + 25, { align: 'center' });
+            
+            // Green footer bar
+            doc.setFillColor(...primaryColor);
+            doc.rect(0, pageHeight - 30, pageWidth, 30, 'F');
+            
             doc.setTextColor(255, 255, 255);
-            doc.setFontSize(9);
-            doc.text('baluchmartyrs.site', pageWidth / 2, pageHeight - 25, { align: 'center' });
-            doc.text(`© ${new Date().getFullYear()} Baluch Martyrs Memorial`, pageWidth / 2, pageHeight - 18, { align: 'center' });
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Generated on ${date}`, pageWidth / 2, pageHeight - 18, { align: 'center' });
+            doc.text(`© ${new Date().getFullYear()} Baluch Martyrs Memorial. All rights reserved.`, pageWidth / 2, pageHeight - 12, { align: 'center' });
             
             // Save PDF
             updateProgress(progressFill, progressText, 100, 'Complete!');
