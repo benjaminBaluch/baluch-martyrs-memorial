@@ -649,21 +649,6 @@ function initializeApprovedManagement() {
         console.error('❌ Load approved button not found!');
     }
     
-    // Clear All Approved button
-    const clearAllApprovedBtn = document.getElementById('clearAllApprovedBtn');
-    console.log('Clear all approved button found:', !!clearAllApprovedBtn);
-    if (clearAllApprovedBtn) {
-        // Remove any existing listeners
-        clearAllApprovedBtn.replaceWith(clearAllApprovedBtn.cloneNode(true));
-        const newClearBtn = document.getElementById('clearAllApprovedBtn');
-        newClearBtn.addEventListener('click', function() {
-            console.log('🧹 Clear all approved martyrs button clicked');
-            clearAllApproved();
-        });
-        console.log('✅ Clear all approved button event listener added');
-    } else {
-        console.error('❌ Clear all approved button not found!');
-    }
 }
 
 // Load and display pending submissions
@@ -2101,51 +2086,4 @@ window.saveEditedMartyr = saveEditedMartyr;
 // END EDIT MARTYR FUNCTIONALITY
 // ============================================
 
-// Clear all approved martyrs (DANGER!)
-async function clearAllApproved() {
-    // Validate admin authentication
-    if (!validateAdminAuth('clear all approved martyrs')) {
-        return;
-    }
-    
-    console.log('🧹 clearAllApproved function called');
-    
-    if (!confirm('⚠️ DANGER: This will DELETE ALL approved martyrs from Firebase!\n\nThis will remove ALL martyrs from the website permanently. Are you absolutely sure?')) {
-        console.log('❌ User cancelled deletion at first confirmation');
-        return;
-    }
-    
-    console.log('✅ User confirmed first deletion prompt');
-    
-    if (!confirm('This is your FINAL warning. ALL martyrs will be deleted from the website. This cannot be undone!\n\nType "DELETE ALL" to confirm (case sensitive).')) {
-        return;
-    }
-    
-    const confirmation = prompt('Type "DELETE ALL" to confirm deletion of all martyrs:');
-    if (confirmation !== 'DELETE ALL') {
-        alert('Cancelled. Confirmation text did not match.');
-        return;
-    }
-    
-    try {
-        console.log('Clearing all approved martyrs...');
-        const result = await window.firebaseDB.clearAllApprovedMartyrs();
-        
-        if (result.success) {
-            alert(`Successfully deleted ${result.deletedCount} approved martyrs from Firebase.`);
-            
-            // Reload the approved list
-            const approvedList = document.getElementById('approvedList');
-            approvedList.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">All approved martyrs have been deleted</p>';
-            
-            // Update stats
-            await updateStats();
-        } else {
-            alert('Failed to clear approved martyrs: ' + result.error);
-        }
-    } catch (error) {
-        console.error('Error clearing approved martyrs:', error);
-        alert('Error clearing approved martyrs. Check console for details.');
-    }
-}
 
