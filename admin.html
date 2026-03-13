@@ -646,6 +646,7 @@
 
         /* ==========================================
            DUPLICATE DETECTION MODAL STYLES
+           Professional Side-by-Side Comparison
            ========================================== */
         .duplicate-modal-overlay {
             position: fixed;
@@ -653,8 +654,8 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.75);
-            backdrop-filter: blur(4px);
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
             display: flex;
             justify-content: center;
             align-items: flex-start;
@@ -664,347 +665,566 @@
         }
 
         .duplicate-modal-content {
-            background: var(--admin-bg);
-            border-radius: 16px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            max-width: 900px;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 25px 80px -12px rgba(0, 0, 0, 0.4);
+            max-width: 1100px;
             width: 100%;
             max-height: calc(100vh - 4rem);
-            overflow-y: auto;
-            animation: duplicateModalSlide 0.3s ease-out;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: dupModalSlide 0.35s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        @keyframes duplicateModalSlide {
+        @keyframes dupModalSlide {
             from {
                 opacity: 0;
-                transform: translateY(-20px);
+                transform: translateY(-30px) scale(0.97);
             }
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: translateY(0) scale(1);
             }
         }
 
+        /* Header */
         .duplicate-modal-header {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
             color: white;
-            padding: 1.5rem;
-            border-radius: 16px 16px 0 0;
+            padding: 1.25rem 1.5rem;
             display: flex;
             align-items: center;
             gap: 1rem;
+            flex-shrink: 0;
         }
 
-        .duplicate-modal-header .warning-icon {
+        .dup-header-icon {
             font-size: 2.5rem;
-            flex-shrink: 0;
+            line-height: 1;
         }
 
-        .duplicate-modal-header h2 {
+        .dup-header-text {
+            flex: 1;
+        }
+
+        .dup-header-text h2 {
             margin: 0;
-            font-size: 1.5rem;
+            font-size: 1.35rem;
             font-weight: 700;
+            letter-spacing: -0.02em;
         }
 
-        .duplicate-modal-header p {
+        .dup-header-text p {
             margin: 0.25rem 0 0;
+            font-size: 0.9rem;
             opacity: 0.9;
-            font-size: 0.95rem;
         }
 
-        .duplicate-modal-body {
-            padding: 1.5rem;
-        }
-
-        .duplicate-section-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--admin-text);
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--admin-border);
-        }
-
-        .duplicate-cards-container {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-
-        .duplicate-card {
-            border: 2px solid var(--admin-border);
-            border-radius: 12px;
-            overflow: hidden;
-            background: var(--admin-card);
-            transition: all 0.2s ease;
-        }
-
-        .duplicate-card:hover {
-            border-color: var(--admin-primary);
-            box-shadow: 0 4px 12px rgba(44, 85, 48, 0.1);
-        }
-
-        .duplicate-card.current-submission {
-            border-color: var(--admin-primary);
-            background: linear-gradient(135deg, rgba(44, 85, 48, 0.05) 0%, rgba(44, 85, 48, 0.02) 100%);
-        }
-
-        .duplicate-card-header {
-            padding: 0.75rem 1rem;
-            background: var(--admin-bg);
-            border-bottom: 1px solid var(--admin-border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .duplicate-card-header h4 {
-            margin: 0;
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: var(--admin-text);
-        }
-
-        .match-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-            padding: 0.35rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 700;
-        }
-
-        .match-high {
-            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+        .duplicate-modal-close {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
             color: white;
-        }
-
-        .match-medium {
-            background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
-            color: #1c1917;
-        }
-
-        .match-low {
-            background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
-            color: white;
-        }
-
-        .duplicate-card-body {
-            display: flex;
-            gap: 1rem;
-            padding: 1rem;
-        }
-
-        .duplicate-photo {
-            width: 120px;
-            height: 150px;
-            border-radius: 8px;
-            object-fit: cover;
-            border: 2px solid var(--admin-border);
-            flex-shrink: 0;
-            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-        }
-
-        .duplicate-photo-placeholder {
-            width: 120px;
-            height: 150px;
-            border-radius: 8px;
-            border: 2px dashed var(--admin-border);
-            flex-shrink: 0;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            color: #94a3b8;
-            font-size: 0.85rem;
+            transition: all 0.2s;
+            flex-shrink: 0;
         }
 
-        .duplicate-info {
+        .duplicate-modal-close:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.1);
+        }
+
+        /* Body */
+        .duplicate-modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
             flex: 1;
+        }
+
+        /* Alert Banner */
+        .dup-alert-banner {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 1px solid #f59e0b;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .dup-alert-icon {
+            font-size: 1.75rem;
+        }
+
+        .dup-alert-text {
+            font-size: 0.95rem;
+            color: #92400e;
+        }
+
+        .dup-alert-text strong {
+            color: #78350f;
+        }
+
+        /* Comparison Container */
+        .dup-comparisons-container {
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 2rem;
         }
 
-        .duplicate-info h3 {
-            margin: 0;
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: var(--admin-text);
+        /* Each Comparison Row */
+        .dup-comparison-row {
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #f8fafc;
         }
 
-        .duplicate-info-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 0.5rem;
-        }
-
-        .duplicate-info-item {
+        /* Match Indicator Bar */
+        .dup-match-indicator {
+            padding: 0.75rem 1.25rem;
             display: flex;
-            align-items: flex-start;
-            gap: 0.5rem;
-            font-size: 0.85rem;
-        }
-
-        .duplicate-info-item .label {
-            color: #64748b;
-            font-weight: 500;
-            min-width: 60px;
-        }
-
-        .duplicate-info-item .value {
-            color: var(--admin-text);
-            font-weight: 600;
-        }
-
-        .similarity-breakdown {
-            margin-top: 0.75rem;
-            padding-top: 0.75rem;
-            border-top: 1px dashed var(--admin-border);
-        }
-
-        .similarity-breakdown-title {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #64748b;
-            margin-bottom: 0.5rem;
-        }
-
-        .similarity-breakdown-items {
-            display: flex;
+            align-items: center;
+            gap: 1rem;
             flex-wrap: wrap;
-            gap: 0.5rem;
         }
 
-        .similarity-breakdown-item {
+        .dup-match-indicator.match-critical {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            color: white;
+        }
+
+        .dup-match-indicator.match-high {
+            background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+            color: white;
+        }
+
+        .dup-match-indicator.match-medium {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: #1c1917;
+        }
+
+        .dup-match-indicator.match-low {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+
+        .dup-match-percent {
+            font-size: 1.75rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .dup-match-label {
+            font-size: 0.95rem;
+            font-weight: 600;
+            opacity: 0.9;
+        }
+
+        .dup-match-details {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-left: auto;
+        }
+
+        .dup-match-tag {
             display: inline-flex;
             align-items: center;
             gap: 0.25rem;
-            padding: 0.25rem 0.5rem;
-            background: var(--admin-bg);
-            border-radius: 6px;
+            padding: 0.3rem 0.6rem;
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 20px;
             font-size: 0.75rem;
+            font-weight: 600;
         }
 
-        .similarity-breakdown-item.match-true {
-            background: rgba(34, 197, 94, 0.15);
-            color: #15803d;
+        /* Side by Side Container */
+        .dup-side-by-side {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 0;
+            padding: 1.25rem;
+            background: white;
         }
 
-        .similarity-breakdown-item.match-false {
-            background: rgba(239, 68, 68, 0.1);
-            color: #b91c1c;
+        /* VS Divider */
+        .dup-vs-divider {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 1rem;
         }
 
+        .dup-vs-divider span {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            color: white;
+            font-weight: 800;
+            font-size: 0.85rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            letter-spacing: 0.05em;
+        }
+
+        /* Profile Card */
+        .dup-profile-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #ffffff;
+            transition: all 0.2s;
+        }
+
+        .dup-profile-card:hover {
+            box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .dup-profile-card.dup-new-submission {
+            border-color: #3b82f6;
+        }
+
+        .dup-profile-card.dup-existing {
+            border-color: #22c55e;
+        }
+
+        /* Card Header */
+        .dup-card-header {
+            padding: 0.6rem 1rem;
+        }
+
+        .dup-new-submission .dup-card-header {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        }
+
+        .dup-existing .dup-card-header {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        }
+
+        .dup-card-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+        }
+
+        .dup-card-badge.new {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .dup-card-badge.existing {
+            background: #22c55e;
+            color: white;
+        }
+
+        /* Card Body */
+        .dup-card-body {
+            padding: 1rem;
+            display: flex;
+            gap: 1rem;
+        }
+
+        /* Profile Photo */
+        .dup-profile-photo {
+            width: 100px;
+            height: 130px;
+            flex-shrink: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #e2e8f0;
+            background: #f1f5f9;
+        }
+
+        .dup-profile-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .dup-no-photo {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            color: #94a3b8;
+        }
+
+        .dup-no-photo span {
+            font-size: 2rem;
+        }
+
+        .dup-no-photo small {
+            font-size: 0.7rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Profile Details */
+        .dup-profile-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .dup-profile-name {
+            margin: 0 0 0.75rem 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1e293b;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+
+        .dup-profile-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .dup-field {
+            display: grid;
+            grid-template-columns: 1.5rem 5.5rem 1fr;
+            gap: 0.35rem;
+            font-size: 0.8rem;
+            align-items: start;
+        }
+
+        .dup-field-icon {
+            font-size: 0.9rem;
+        }
+
+        .dup-field-label {
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .dup-field-value {
+            color: #1e293b;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .dup-field-value em {
+            color: #94a3b8;
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        /* Footer */
         .duplicate-modal-footer {
-            padding: 1.25rem 1.5rem;
-            background: var(--admin-bg);
-            border-top: 1px solid var(--admin-border);
+            padding: 1rem 1.5rem;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
             display: flex;
             justify-content: flex-end;
             gap: 1rem;
-            border-radius: 0 0 16px 16px;
+            flex-shrink: 0;
         }
 
-        .duplicate-modal-footer .btn {
-            padding: 0.75rem 1.5rem;
-            font-weight: 600;
+        .dup-btn-cancel,
+        .dup-btn-approve {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.85rem 1.5rem;
             font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
         }
 
-        .btn-cancel-duplicate {
-            background: #f1f5f9 !important;
-            color: #475569 !important;
-            border: 1px solid #cbd5e1 !important;
+        .dup-btn-cancel {
+            background: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
         }
 
-        .btn-cancel-duplicate:hover {
-            background: #e2e8f0 !important;
+        .dup-btn-cancel:hover {
+            background: #e2e8f0;
+            color: #1e293b;
         }
 
-        .btn-approve-anyway {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
-            color: white !important;
-            border: none !important;
+        .dup-btn-approve {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
         }
 
-        .btn-approve-anyway:hover {
-            background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+        .dup-btn-approve:hover {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
             transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
         }
 
-        /* Duplicate modal responsive */
-        @media (max-width: 768px) {
+        .btn-icon {
+            font-size: 1.1rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 900px) {
+            .dup-side-by-side {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .dup-vs-divider {
+                padding: 0.5rem 0;
+            }
+
+            .dup-vs-divider span {
+                padding: 0.35rem 1rem;
+            }
+        }
+
+        @media (max-width: 600px) {
             .duplicate-modal-overlay {
-                padding: 1rem;
+                padding: 0.75rem;
             }
 
             .duplicate-modal-content {
-                max-height: calc(100vh - 2rem);
+                border-radius: 16px;
+                max-height: calc(100vh - 1.5rem);
             }
 
             .duplicate-modal-header {
                 padding: 1rem;
             }
 
-            .duplicate-modal-header h2 {
-                font-size: 1.15rem;
+            .dup-header-text h2 {
+                font-size: 1.1rem;
             }
 
-            .duplicate-card-body {
+            .dup-header-text p {
+                font-size: 0.8rem;
+            }
+
+            .dup-header-icon {
+                font-size: 2rem;
+            }
+
+            .duplicate-modal-body {
+                padding: 1rem;
+            }
+
+            .dup-alert-banner {
+                padding: 0.75rem 1rem;
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .dup-match-indicator {
+                flex-direction: column;
+                text-align: center;
+                gap: 0.5rem;
+            }
+
+            .dup-match-details {
+                margin-left: 0;
+                justify-content: center;
+            }
+
+            .dup-card-body {
                 flex-direction: column;
                 align-items: center;
+                text-align: center;
             }
 
-            .duplicate-photo,
-            .duplicate-photo-placeholder {
-                width: 100px;
-                height: 125px;
+            .dup-profile-photo {
+                width: 90px;
+                height: 115px;
             }
 
-            .duplicate-info-grid {
-                grid-template-columns: 1fr;
+            .dup-field {
+                grid-template-columns: 1.25rem auto 1fr;
+                text-align: left;
             }
 
             .duplicate-modal-footer {
                 flex-direction: column;
+                padding: 1rem;
             }
 
-            .duplicate-modal-footer .btn {
+            .dup-btn-cancel,
+            .dup-btn-approve {
                 width: 100%;
+                justify-content: center;
             }
         }
 
-        /* Dark mode for duplicate modal */
+        /* Dark Mode */
         [data-theme="dark"] .duplicate-modal-content {
-            background: var(--admin-card);
-        }
-
-        [data-theme="dark"] .duplicate-modal-header {
-            background: linear-gradient(135deg, #b45309 0%, #92400e 100%);
-        }
-
-        [data-theme="dark"] .duplicate-card {
-            border-color: #334155;
             background: #1e293b;
         }
 
-        [data-theme="dark"] .duplicate-card-header {
+        [data-theme="dark"] .duplicate-modal-header {
+            background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+        }
+
+        [data-theme="dark"] .dup-alert-banner {
+            background: linear-gradient(135deg, #422006 0%, #451a03 100%);
+            border-color: #92400e;
+        }
+
+        [data-theme="dark"] .dup-alert-text {
+            color: #fde68a;
+        }
+
+        [data-theme="dark"] .dup-alert-text strong {
+            color: #fef3c7;
+        }
+
+        [data-theme="dark"] .dup-comparison-row {
             background: #0f172a;
             border-color: #334155;
         }
 
-        [data-theme="dark"] .duplicate-card-header h4 {
+        [data-theme="dark"] .dup-side-by-side {
+            background: #1e293b;
+        }
+
+        [data-theme="dark"] .dup-profile-card {
+            background: #0f172a;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .dup-new-submission .dup-card-header {
+            background: linear-gradient(135deg, #1e3a5f 0%, #172554 100%);
+        }
+
+        [data-theme="dark"] .dup-existing .dup-card-header {
+            background: linear-gradient(135deg, #14532d 0%, #166534 100%);
+        }
+
+        [data-theme="dark"] .dup-profile-name {
             color: #e2e8f0;
         }
 
-        [data-theme="dark"] .duplicate-info h3 {
+        [data-theme="dark"] .dup-field-value {
             color: #e2e8f0;
         }
 
-        [data-theme="dark"] .duplicate-info-item .value {
-            color: #e2e8f0;
+        [data-theme="dark"] .dup-profile-photo {
+            background: #334155;
+            border-color: #475569;
+        }
+
+        [data-theme="dark"] .dup-no-photo {
+            background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+            color: #64748b;
         }
 
         [data-theme="dark"] .duplicate-modal-footer {
@@ -1012,18 +1232,14 @@
             border-color: #334155;
         }
 
-        [data-theme="dark"] .btn-cancel-duplicate {
-            background: #334155 !important;
-            color: #e2e8f0 !important;
-            border-color: #475569 !important;
-        }
-
-        [data-theme="dark"] .btn-cancel-duplicate:hover {
-            background: #475569 !important;
-        }
-
-        [data-theme="dark"] .similarity-breakdown-item {
+        [data-theme="dark"] .dup-btn-cancel {
             background: #334155;
+            border-color: #475569;
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .dup-btn-cancel:hover {
+            background: #475569;
         }
     </style>
 </head>

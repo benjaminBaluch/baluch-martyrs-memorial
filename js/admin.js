@@ -183,7 +183,7 @@ async function findPotentialDuplicates(martyrToCheck, threshold = 0.65) {
     return duplicates;
 }
 
-// Show duplicate warning modal
+// Show duplicate warning modal - Side-by-side comparison view
 function showDuplicateWarningModal(martyrToApprove, duplicates, onConfirm, onCancel) {
     // Remove existing modal if present
     const existing = document.getElementById('duplicateWarningModal');
@@ -193,41 +193,90 @@ function showDuplicateWarningModal(martyrToApprove, duplicates, onConfirm, onCan
     modal.id = 'duplicateWarningModal';
     modal.className = 'duplicate-modal-overlay';
     
-    // Build duplicate cards HTML
-    const duplicateCardsHtml = duplicates.map((dup, index) => {
+    // Helper to create profile card HTML
+    const createProfileCard = (martyr, isNew = false) => {
+        return `
+            <div class="dup-profile-photo">
+                ${martyr.photo ? 
+                    `<img src="${martyr.photo}" alt="${escapeHTML(martyr.fullName)}">` :
+                    '<div class="dup-no-photo"><span>📷</span><small>No Photo</small></div>'
+                }
+            </div>
+            <div class="dup-profile-details">
+                <h4 class="dup-profile-name">${escapeHTML(martyr.fullName)}</h4>
+                <div class="dup-profile-fields">
+                    <div class="dup-field">
+                        <span class="dup-field-icon">👨</span>
+                        <span class="dup-field-label">Father</span>
+                        <span class="dup-field-value">${martyr.fatherName ? escapeHTML(martyr.fatherName) : '<em>Not provided</em>'}</span>
+                    </div>
+                    <div class="dup-field">
+                        <span class="dup-field-icon">📍</span>
+                        <span class="dup-field-label">Birth Place</span>
+                        <span class="dup-field-value">${martyr.birthPlace ? escapeHTML(martyr.birthPlace) : '<em>Not provided</em>'}</span>
+                    </div>
+                    <div class="dup-field">
+                        <span class="dup-field-icon">🌹</span>
+                        <span class="dup-field-label">Martyrdom Place</span>
+                        <span class="dup-field-value">${martyr.martyrdomPlace ? escapeHTML(martyr.martyrdomPlace) : '<em>Not provided</em>'}</span>
+                    </div>
+                    <div class="dup-field">
+                        <span class="dup-field-icon">📅</span>
+                        <span class="dup-field-label">Martyrdom Date</span>
+                        <span class="dup-field-value">${martyr.martyrdomDate ? formatDate(martyr.martyrdomDate) : '<em>Not provided</em>'}</span>
+                    </div>
+                    <div class="dup-field">
+                        <span class="dup-field-icon">🏢</span>
+                        <span class="dup-field-label">Organization</span>
+                        <span class="dup-field-value">${martyr.organization ? escapeHTML(martyr.organization) : '<em>Not provided</em>'}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    };
+    
+    // Build comparison rows for each duplicate
+    const comparisonRowsHtml = duplicates.map((dup, index) => {
         const similarity = (dup.similarity * 100).toFixed(0);
-        const matchClass = similarity >= 90 ? 'match-high' : similarity >= 75 ? 'match-medium' : 'match-low';
+        const matchClass = similarity >= 90 ? 'match-critical' : similarity >= 80 ? 'match-high' : similarity >= 70 ? 'match-medium' : 'match-low';
+        const matchLabel = similarity >= 90 ? 'Very High Match' : similarity >= 80 ? 'High Match' : similarity >= 70 ? 'Medium Match' : 'Possible Match';
         
         return `
-            <div class="duplicate-card ${matchClass}">
-                <div class="duplicate-card-header">
-                    <span class="match-badge ${matchClass}">${similarity}% Match</span>
-                    <span class="duplicate-status">✅ Already Published</span>
-                </div>
-                <div class="duplicate-card-body">
-                    <div class="duplicate-photo">
-                        ${dup.martyr.photo ? 
-                            `<img src="${dup.martyr.photo}" alt="${escapeHTML(dup.martyr.fullName)}">` :
-                            '<div class="no-photo">📷</div>'
-                        }
-                    </div>
-                    <div class="duplicate-info">
-                        <h4>${escapeHTML(dup.martyr.fullName)}</h4>
-                        ${dup.martyr.fatherName ? `<p><strong>Father:</strong> ${escapeHTML(dup.martyr.fatherName)}</p>` : ''}
-                        ${dup.martyr.birthPlace ? `<p><strong>Birth Place:</strong> ${escapeHTML(dup.martyr.birthPlace)}</p>` : ''}
-                        ${dup.martyr.martyrdomPlace ? `<p><strong>Martyrdom Place:</strong> ${escapeHTML(dup.martyr.martyrdomPlace)}</p>` : ''}
-                        ${dup.martyr.martyrdomDate ? `<p><strong>Martyrdom Date:</strong> ${formatDate(dup.martyr.martyrdomDate)}</p>` : ''}
-                        ${dup.martyr.organization ? `<p><strong>Organization:</strong> ${escapeHTML(dup.martyr.organization)}</p>` : ''}
+            <div class="dup-comparison-row">
+                <div class="dup-match-indicator ${matchClass}">
+                    <div class="dup-match-percent">${similarity}%</div>
+                    <div class="dup-match-label">${matchLabel}</div>
+                    <div class="dup-match-details">
+                        ${dup.breakdown.name > 0.7 ? '<span class="dup-match-tag match-name">✓ Name</span>' : ''}
+                        ${dup.breakdown.fatherName > 0.7 ? '<span class="dup-match-tag match-father">✓ Father</span>' : ''}
+                        ${dup.breakdown.birthPlace > 0.7 ? '<span class="dup-match-tag match-place">✓ Birth Place</span>' : ''}
+                        ${dup.breakdown.martyrdomPlace > 0.7 ? '<span class="dup-match-tag match-place">✓ Martyrdom Place</span>' : ''}
+                        ${dup.breakdown.martyrdomDate > 0.8 ? '<span class="dup-match-tag match-date">✓ Date</span>' : ''}
                     </div>
                 </div>
-                <div class="similarity-breakdown">
-                    <small>
-                        <strong>Match Details:</strong>
-                        Name: ${(dup.breakdown.name * 100).toFixed(0)}%
-                        ${dup.breakdown.fatherName > 0 ? `, Father: ${(dup.breakdown.fatherName * 100).toFixed(0)}%` : ''}
-                        ${dup.breakdown.birthPlace > 0 ? `, Birth Place: ${(dup.breakdown.birthPlace * 100).toFixed(0)}%` : ''}
-                        ${dup.breakdown.martyrdomPlace > 0 ? `, Martyrdom Place: ${(dup.breakdown.martyrdomPlace * 100).toFixed(0)}%` : ''}
-                    </small>
+                
+                <div class="dup-side-by-side">
+                    <div class="dup-profile-card dup-new-submission">
+                        <div class="dup-card-header">
+                            <span class="dup-card-badge new">📝 New Submission</span>
+                        </div>
+                        <div class="dup-card-body">
+                            ${createProfileCard(martyrToApprove, true)}
+                        </div>
+                    </div>
+                    
+                    <div class="dup-vs-divider">
+                        <span>VS</span>
+                    </div>
+                    
+                    <div class="dup-profile-card dup-existing">
+                        <div class="dup-card-header">
+                            <span class="dup-card-badge existing">✅ Published</span>
+                        </div>
+                        <div class="dup-card-body">
+                            ${createProfileCard(dup.martyr, false)}
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
@@ -236,55 +285,36 @@ function showDuplicateWarningModal(martyrToApprove, duplicates, onConfirm, onCan
     modal.innerHTML = `
         <div class="duplicate-modal-content">
             <div class="duplicate-modal-header">
-                <h2>⚠️ Potential Duplicate${duplicates.length > 1 ? 's' : ''} Found</h2>
+                <div class="dup-header-icon">⚠️</div>
+                <div class="dup-header-text">
+                    <h2>Potential Duplicate Detected</h2>
+                    <p>This submission closely matches ${duplicates.length} existing profile${duplicates.length > 1 ? 's' : ''} in your database</p>
+                </div>
                 <button type="button" class="duplicate-modal-close" aria-label="Close">&times;</button>
             </div>
+            
             <div class="duplicate-modal-body">
-                <div class="duplicate-warning-message">
-                    <p>
-                        <strong>The submission you're about to approve may already exist in the database.</strong>
-                    </p>
-                    <p>
-                        We found <strong>${duplicates.length}</strong> similar profile${duplicates.length > 1 ? 's' : ''} 
-                        that ${duplicates.length > 1 ? 'are' : 'is'} already published on the website.
-                    </p>
+                <div class="dup-alert-banner">
+                    <div class="dup-alert-icon">🔍</div>
+                    <div class="dup-alert-text">
+                        <strong>Review carefully before approving.</strong>
+                        Compare the profiles below to determine if this is a duplicate entry.
+                    </div>
                 </div>
                 
-                <div class="duplicate-comparison">
-                    <div class="submission-to-approve">
-                        <h3>📝 Submission Being Approved</h3>
-                        <div class="submission-card">
-                            <div class="duplicate-photo">
-                                ${martyrToApprove.photo ? 
-                                    `<img src="${martyrToApprove.photo}" alt="${escapeHTML(martyrToApprove.fullName)}">` :
-                                    '<div class="no-photo">📷</div>'
-                                }
-                            </div>
-                            <div class="duplicate-info">
-                                <h4>${escapeHTML(martyrToApprove.fullName)}</h4>
-                                ${martyrToApprove.fatherName ? `<p><strong>Father:</strong> ${escapeHTML(martyrToApprove.fatherName)}</p>` : ''}
-                                ${martyrToApprove.birthPlace ? `<p><strong>Birth Place:</strong> ${escapeHTML(martyrToApprove.birthPlace)}</p>` : ''}
-                                ${martyrToApprove.martyrdomPlace ? `<p><strong>Martyrdom Place:</strong> ${escapeHTML(martyrToApprove.martyrdomPlace)}</p>` : ''}
-                                ${martyrToApprove.martyrdomDate ? `<p><strong>Martyrdom Date:</strong> ${formatDate(martyrToApprove.martyrdomDate)}</p>` : ''}
-                                ${martyrToApprove.organization ? `<p><strong>Organization:</strong> ${escapeHTML(martyrToApprove.organization)}</p>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="existing-duplicates">
-                        <h3>✅ Existing Profile${duplicates.length > 1 ? 's' : ''} (Already Published)</h3>
-                        <div class="duplicates-list">
-                            ${duplicateCardsHtml}
-                        </div>
-                    </div>
+                <div class="dup-comparisons-container">
+                    ${comparisonRowsHtml}
                 </div>
             </div>
+            
             <div class="duplicate-modal-footer">
-                <button type="button" class="btn btn-outline duplicate-cancel-btn">
-                    ✖ Cancel (Don't Approve)
+                <button type="button" class="btn dup-btn-cancel">
+                    <span class="btn-icon">✖</span>
+                    <span class="btn-text">Cancel Approval</span>
                 </button>
-                <button type="button" class="btn btn-warning duplicate-approve-btn">
-                    ⚠️ Approve Anyway (Not a Duplicate)
+                <button type="button" class="btn dup-btn-approve">
+                    <span class="btn-icon">✓</span>
+                    <span class="btn-text">Not a Duplicate - Approve</span>
                 </button>
             </div>
         </div>
@@ -304,12 +334,12 @@ function showDuplicateWarningModal(martyrToApprove, duplicates, onConfirm, onCan
         if (onCancel) onCancel();
     });
     
-    modal.querySelector('.duplicate-cancel-btn').addEventListener('click', () => {
+    modal.querySelector('.dup-btn-cancel').addEventListener('click', () => {
         closeModal();
         if (onCancel) onCancel();
     });
     
-    modal.querySelector('.duplicate-approve-btn').addEventListener('click', () => {
+    modal.querySelector('.dup-btn-approve').addEventListener('click', () => {
         closeModal();
         if (onConfirm) onConfirm();
     });
