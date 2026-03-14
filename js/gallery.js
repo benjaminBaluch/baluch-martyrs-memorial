@@ -418,6 +418,13 @@ function createGalleryCard(martyr) {
         infoDiv.appendChild(org);
     }
     
+    if (martyr.rank) {
+        const rank = document.createElement('p');
+        rank.textContent = `Rank: ${martyr.rank}`;
+        rank.style.cssText = 'margin: 0 0 0.5rem 0; font-size: 0.85rem; color: #777; font-style: italic;';
+        infoDiv.appendChild(rank);
+    }
+    
     infoDiv.appendChild(viewBtn);
     infoDiv.appendChild(createShareRow(martyr, 'card'));
     
