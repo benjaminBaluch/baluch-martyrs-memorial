@@ -355,6 +355,14 @@ function renderGallery() {
 }
 // Create individual martyr card
 function createGalleryCard(martyr) {
+    // Debug: log martyr data to verify organization and rank fields
+    console.log(`📋 Creating card for ${martyr.fullName}:`, {
+        organization: martyr.organization || '(not set)',
+        rank: martyr.rank || '(not set)',
+        hasOrg: !!martyr.organization,
+        hasRank: !!martyr.rank
+    });
+    
     const card = document.createElement('div');
     card.className = 'martyr-card';
     
