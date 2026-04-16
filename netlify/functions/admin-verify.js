@@ -1,7 +1,7 @@
 // Admin Token Verification Netlify Function
 // Validates JWT tokens for protected admin operations
 
-const crypto = require('crypto');
+import crypto from 'crypto';
 
 // Verify token
 function verifyToken(token, secret) {
@@ -29,7 +29,7 @@ function verifyToken(token, secret) {
     }
 }
 
-exports.handler = async (event, context) => {
+export const handler = async (event, context) => {
     // CORS headers
     const headers = {
         'Access-Control-Allow-Origin': '*',

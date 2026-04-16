@@ -1,7 +1,7 @@
 // Admin Login Netlify Function
 // Handles secure server-side authentication
 
-const crypto = require('crypto');
+import crypto from 'crypto';
 
 // JWT-like token generation (simple implementation)
 function generateToken(payload, secret, expiresIn = '4h') {
@@ -50,7 +50,7 @@ function hashPassword(password) {
     return crypto.createHash('sha256').update(password).digest('hex');
 }
 
-exports.handler = async (event, context) => {
+export const handler = async (event, context) => {
     // CORS headers
     const headers = {
         'Access-Control-Allow-Origin': '*',
@@ -136,4 +136,4 @@ exports.handler = async (event, context) => {
 };
 
 // Export verifyToken for use by other functions
-exports.verifyToken = verifyToken;
+export { verifyToken };
