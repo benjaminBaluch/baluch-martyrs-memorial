@@ -8,6 +8,7 @@ let firebaseDB = null;
 let storageHelper = null;
 let firebaseAvailable = false;
 let formInitialized = false;
+let existingMartyrs = []; // Cache of approved martyrs for duplicate detection
 
 // Attempt to load Firebase modules (with fallback for Gulf regions)
 async function loadFirebaseModules() {
@@ -18,11 +19,625 @@ async function loadFirebaseModules() {
         storageHelper = firebaseModule.storageHelper;
         firebaseAvailable = true;
         console.log('✅ Firebase modules loaded successfully');
+        
+        // Pre-fetch existing martyrs for duplicate detection
+        await loadExistingMartyrsForDuplicateCheck();
     } catch (error) {
         console.warn('🌍 Firebase modules failed to load (common in Gulf region):', error.message);
         console.log('💾 Firebase not available - submissions will fail gracefully');
         firebaseAvailable = false;
     }
+}
+
+// Load existing martyrs for duplicate detection (runs in background)
+async function loadExistingMartyrsForDuplicateCheck() {
+    try {
+        if (!firebaseDB) return;
+        const result = await firebaseDB.getApprovedMartyrs();
+        if (result.success && result.data) {
+            existingMartyrs = result.data;
+            console.log(`📊 Loaded ${existingMartyrs.length} existing martyrs for duplicate detection`);
+        }
+    } catch (error) {
+        console.warn('⚠️ Could not load existing martyrs for duplicate check:', error.message);
+    }
+}
+
+// ============================================
+// DUPLICATE DETECTION SYSTEM
+// ============================================
+
+// Calculate similarity between two strings using Levenshtein distance
+function calculateStringSimilarity(str1, str2) {
+    if (!str1 || !str2) return 0;
+    
+    const s1 = str1.toString().toLowerCase().trim();
+    const s2 = str2.toString().toLowerCase().trim();
+    
+    if (s1 === s2) return 1.0;
+    if (s1.length === 0 || s2.length === 0) return 0;
+    
+    // Check if one contains the other
+    if (s1.includes(s2) || s2.includes(s1)) {
+        return 0.85;
+    }
+    
+    // Calculate Levenshtein distance
+    const matrix = [];
+    for (let i = 0; i <= s1.length; i++) {
+        matrix[i] = [i];
+    }
+    for (let j = 0; j <= s2.length; j++) {
+        matrix[0][j] = j;
+    }
+    for (let i = 1; i <= s1.length; i++) {
+        for (let j = 1; j <= s2.length; j++) {
+            const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+            matrix[i][j] = Math.min(
+                matrix[i - 1][j] + 1,
+                matrix[i][j - 1] + 1,
+                matrix[i - 1][j - 1] + cost
+            );
+        }
+    }
+    
+    const maxLen = Math.max(s1.length, s2.length);
+    return 1 - (matrix[s1.length][s2.length] / maxLen);
+}
+
+// Normalize name for comparison
+function normalizeName(name) {
+    if (!name) return '';
+    return name.toString().toLowerCase()
+        .replace(/^(shaheed|martyr|shahid|dr\.?|mr\.?|ms\.?|mrs\.?)\s*/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+// Calculate similarity score between two martyrs
+function calculateMartyrSimilarity(martyr1, martyr2) {
+    const scores = {
+        name: 0,
+        fatherName: 0,
+        birthPlace: 0,
+        martyrdomPlace: 0,
+        martyrdomDate: 0
+    };
+    
+    // Name similarity (weight: 50%)
+    scores.name = calculateStringSimilarity(
+        normalizeName(martyr1.fullName),
+        normalizeName(martyr2.fullName)
+    );
+    
+    // Father name similarity (weight: 20%)
+    if (martyr1.fatherName && martyr2.fatherName) {
+        scores.fatherName = calculateStringSimilarity(
+            normalizeName(martyr1.fatherName),
+            normalizeName(martyr2.fatherName)
+        );
+    }
+    
+    // Birth place similarity (weight: 10%)
+    if (martyr1.birthPlace && martyr2.birthPlace) {
+        scores.birthPlace = calculateStringSimilarity(
+            martyr1.birthPlace.toLowerCase(),
+            martyr2.birthPlace.toLowerCase()
+        );
+    }
+    
+    // Martyrdom place similarity (weight: 10%)
+    if (martyr1.martyrdomPlace && martyr2.martyrdomPlace) {
+        scores.martyrdomPlace = calculateStringSimilarity(
+            martyr1.martyrdomPlace.toLowerCase(),
+            martyr2.martyrdomPlace.toLowerCase()
+        );
+    }
+    
+    // Martyrdom date comparison (weight: 10%)
+    const getDateString = (dateVal) => {
+        if (!dateVal) return '';
+        if (dateVal.toDate && typeof dateVal.toDate === 'function') {
+            return dateVal.toDate().toISOString().split('T')[0];
+        }
+        if (typeof dateVal === 'string') return dateVal.split('T')[0];
+        if (dateVal instanceof Date) return dateVal.toISOString().split('T')[0];
+        return '';
+    };
+    
+    const date1 = getDateString(martyr1.martyrdomDate);
+    const date2 = getDateString(martyr2.martyrdomDate);
+    if (date1 && date2) {
+        scores.martyrdomDate = date1 === date2 ? 1.0 : 0;
+    }
+    
+    // Calculate weighted total
+    const totalScore = 
+        (scores.name * 0.50) +
+        (scores.fatherName * 0.20) +
+        (scores.birthPlace * 0.10) +
+        (scores.martyrdomPlace * 0.10) +
+        (scores.martyrdomDate * 0.10);
+    
+    return { total: totalScore, breakdown: scores };
+}
+
+// Find potential duplicates
+function findPotentialDuplicates(martyrData, threshold = 0.60) {
+    const duplicates = [];
+    
+    for (const existing of existingMartyrs) {
+        const similarity = calculateMartyrSimilarity(martyrData, existing);
+        
+        if (similarity.total >= threshold) {
+            duplicates.push({
+                martyr: existing,
+                similarity: similarity.total,
+                breakdown: similarity.breakdown
+            });
+        }
+    }
+    
+    // Sort by similarity (highest first)
+    duplicates.sort((a, b) => b.similarity - a.similarity);
+    return duplicates;
+}
+
+// Escape HTML for safe display
+function escapeHTMLSafe(str) {
+    if (!str) return '';
+    return str.toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+// Format date for display
+function formatDateDisplay(dateVal) {
+    if (!dateVal) return 'Unknown';
+    try {
+        let date;
+        if (dateVal.toDate && typeof dateVal.toDate === 'function') {
+            date = dateVal.toDate();
+        } else if (typeof dateVal === 'string') {
+            date = new Date(dateVal);
+        } else if (dateVal instanceof Date) {
+            date = dateVal;
+        } else {
+            return 'Unknown';
+        }
+        if (isNaN(date.getTime())) return 'Unknown';
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    } catch (e) {
+        return 'Unknown';
+    }
+}
+
+// Show duplicate warning modal
+function showDuplicateModal(newMartyr, duplicates, onProceed, onCancel) {
+    // Remove existing modal
+    const existing = document.getElementById('duplicateCheckModal');
+    if (existing) existing.remove();
+    
+    const modal = document.createElement('div');
+    modal.id = 'duplicateCheckModal';
+    
+    // Create comparison cards for duplicates
+    const duplicateCards = duplicates.slice(0, 3).map((dup, index) => {
+        const similarity = (dup.similarity * 100).toFixed(0);
+        const matchLevel = similarity >= 85 ? 'critical' : similarity >= 70 ? 'high' : 'medium';
+        const matchLabel = similarity >= 85 ? 'Very High Match' : similarity >= 70 ? 'High Match' : 'Possible Match';
+        
+        return `
+            <div class="dup-match-card">
+                <div class="dup-match-header ${matchLevel}">
+                    <span class="dup-match-percent">${similarity}%</span>
+                    <span class="dup-match-label">${matchLabel}</span>
+                </div>
+                <div class="dup-match-content">
+                    <div class="dup-match-photo">
+                        ${dup.martyr.photo ? 
+                            `<img src="${dup.martyr.photo}" alt="${escapeHTMLSafe(dup.martyr.fullName)}">` :
+                            '<div class="dup-no-photo">📷</div>'
+                        }
+                    </div>
+                    <div class="dup-match-info">
+                        <h4>${escapeHTMLSafe(dup.martyr.fullName)}</h4>
+                        ${dup.martyr.fatherName ? `<p><strong>Father:</strong> ${escapeHTMLSafe(dup.martyr.fatherName)}</p>` : ''}
+                        <p><strong>Martyrdom:</strong> ${formatDateDisplay(dup.martyr.martyrdomDate)}</p>
+                        ${dup.martyr.martyrdomPlace ? `<p><strong>Place:</strong> ${escapeHTMLSafe(dup.martyr.martyrdomPlace)}</p>` : ''}
+                        ${dup.martyr.organization ? `<p><strong>Affiliation:</strong> ${escapeHTMLSafe(dup.martyr.organization)}</p>` : ''}
+                    </div>
+                </div>
+                <div class="dup-match-tags">
+                    ${dup.breakdown.name > 0.7 ? '<span class="tag tag-name">Name Match</span>' : ''}
+                    ${dup.breakdown.fatherName > 0.7 ? '<span class="tag tag-father">Father Match</span>' : ''}
+                    ${dup.breakdown.martyrdomPlace > 0.7 ? '<span class="tag tag-place">Place Match</span>' : ''}
+                    ${dup.breakdown.martyrdomDate > 0.8 ? '<span class="tag tag-date">Date Match</span>' : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    modal.innerHTML = `
+        <div class="dup-modal-overlay">
+            <div class="dup-modal-container">
+                <div class="dup-modal-header">
+                    <div class="dup-modal-icon">⚠️</div>
+                    <div class="dup-modal-title">
+                        <h2>Possible Duplicate Detected</h2>
+                        <p>This submission may already exist in our memorial</p>
+                    </div>
+                    <button type="button" class="dup-modal-close" aria-label="Close">&times;</button>
+                </div>
+                
+                <div class="dup-modal-body">
+                    <div class="dup-alert">
+                        <strong>Please review carefully.</strong> We found ${duplicates.length} existing profile${duplicates.length > 1 ? 's' : ''} 
+                        that closely match${duplicates.length === 1 ? 'es' : ''} your submission.
+                    </div>
+                    
+                    <div class="dup-comparison">
+                        <div class="dup-new-submission">
+                            <div class="dup-section-label">Your Submission</div>
+                            <div class="dup-new-card">
+                                <h4>${escapeHTMLSafe(newMartyr.fullName)}</h4>
+                                ${newMartyr.fatherName ? `<p><strong>Father:</strong> ${escapeHTMLSafe(newMartyr.fatherName)}</p>` : ''}
+                                <p><strong>Martyrdom:</strong> ${formatDateDisplay(newMartyr.martyrdomDate)}</p>
+                                ${newMartyr.martyrdomPlace ? `<p><strong>Place:</strong> ${escapeHTMLSafe(newMartyr.martyrdomPlace)}</p>` : ''}
+                                ${newMartyr.organization ? `<p><strong>Affiliation:</strong> ${escapeHTMLSafe(newMartyr.organization)}</p>` : ''}
+                            </div>
+                        </div>
+                        
+                        <div class="dup-existing-profiles">
+                            <div class="dup-section-label">Existing Profile${duplicates.length > 1 ? 's' : ''} in Memorial</div>
+                            <div class="dup-matches-list">
+                                ${duplicateCards}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="dup-modal-footer">
+                    <p class="dup-footer-note">If this is a duplicate, please do not submit. If this is a different person with a similar name, you may proceed.</p>
+                    <div class="dup-modal-actions">
+                        <button type="button" class="btn dup-btn-cancel">
+                            <span>✕</span> Cancel Submission
+                        </button>
+                        <button type="button" class="btn dup-btn-proceed">
+                            <span>✓</span> Not a Duplicate - Submit Anyway
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add styles
+    const style = document.createElement('style');
+    style.id = 'duplicateModalStyles';
+    style.textContent = `
+        #duplicateCheckModal .dup-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            animation: dupFadeIn 0.3s ease;
+        }
+        @keyframes dupFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        #duplicateCheckModal .dup-modal-container {
+            background: #fff;
+            border-radius: 16px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+            animation: dupSlideIn 0.3s ease;
+        }
+        @keyframes dupSlideIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        #duplicateCheckModal .dup-modal-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.25rem 1.5rem;
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: #fff;
+        }
+        #duplicateCheckModal .dup-modal-icon {
+            font-size: 2.5rem;
+        }
+        #duplicateCheckModal .dup-modal-title h2 {
+            margin: 0;
+            font-size: 1.35rem;
+            font-weight: 600;
+        }
+        #duplicateCheckModal .dup-modal-title p {
+            margin: 0.25rem 0 0;
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+        #duplicateCheckModal .dup-modal-close {
+            margin-left: auto;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: #fff;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
+        }
+        #duplicateCheckModal .dup-modal-close:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        #duplicateCheckModal .dup-modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+        #duplicateCheckModal .dup-alert {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            color: #856404;
+            font-size: 0.95rem;
+        }
+        #duplicateCheckModal .dup-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 1.5rem;
+        }
+        @media (max-width: 700px) {
+            #duplicateCheckModal .dup-comparison {
+                grid-template-columns: 1fr;
+            }
+        }
+        #duplicateCheckModal .dup-section-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #6c757d;
+            margin-bottom: 0.75rem;
+        }
+        #duplicateCheckModal .dup-new-card {
+            background: #f8f9fa;
+            border: 2px solid #2c5530;
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+        #duplicateCheckModal .dup-new-card h4 {
+            margin: 0 0 0.75rem;
+            color: #2c5530;
+            font-size: 1.1rem;
+        }
+        #duplicateCheckModal .dup-new-card p {
+            margin: 0.35rem 0;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+        #duplicateCheckModal .dup-matches-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        #duplicateCheckModal .dup-match-card {
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #fff;
+        }
+        #duplicateCheckModal .dup-match-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 1rem;
+            color: #fff;
+            font-weight: 600;
+        }
+        #duplicateCheckModal .dup-match-header.critical {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+        }
+        #duplicateCheckModal .dup-match-header.high {
+            background: linear-gradient(135deg, #fd7e14, #e8590c);
+        }
+        #duplicateCheckModal .dup-match-header.medium {
+            background: linear-gradient(135deg, #ffc107, #e0a800);
+            color: #212529;
+        }
+        #duplicateCheckModal .dup-match-percent {
+            font-size: 1.25rem;
+        }
+        #duplicateCheckModal .dup-match-label {
+            font-size: 0.85rem;
+        }
+        #duplicateCheckModal .dup-match-content {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+        }
+        #duplicateCheckModal .dup-match-photo {
+            flex: 0 0 80px;
+        }
+        #duplicateCheckModal .dup-match-photo img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+        #duplicateCheckModal .dup-no-photo {
+            width: 80px;
+            height: 80px;
+            background: #e9ecef;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: #adb5bd;
+        }
+        #duplicateCheckModal .dup-match-info h4 {
+            margin: 0 0 0.5rem;
+            font-size: 1rem;
+            color: #212529;
+        }
+        #duplicateCheckModal .dup-match-info p {
+            margin: 0.25rem 0;
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        #duplicateCheckModal .dup-match-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding: 0 1rem 1rem;
+        }
+        #duplicateCheckModal .tag {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        #duplicateCheckModal .tag-name {
+            background: #dc354520;
+            color: #dc3545;
+        }
+        #duplicateCheckModal .tag-father {
+            background: #6f42c120;
+            color: #6f42c1;
+        }
+        #duplicateCheckModal .tag-place {
+            background: #0d6efd20;
+            color: #0d6efd;
+        }
+        #duplicateCheckModal .tag-date {
+            background: #20c99720;
+            color: #198754;
+        }
+        #duplicateCheckModal .dup-modal-footer {
+            padding: 1.25rem 1.5rem;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+        }
+        #duplicateCheckModal .dup-footer-note {
+            margin: 0 0 1rem;
+            font-size: 0.85rem;
+            color: #6c757d;
+            text-align: center;
+        }
+        #duplicateCheckModal .dup-modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        @media (max-width: 500px) {
+            #duplicateCheckModal .dup-modal-actions {
+                flex-direction: column;
+            }
+        }
+        #duplicateCheckModal .dup-btn-cancel {
+            background: #6c757d;
+            color: #fff;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background 0.2s;
+        }
+        #duplicateCheckModal .dup-btn-cancel:hover {
+            background: #5a6268;
+        }
+        #duplicateCheckModal .dup-btn-proceed {
+            background: #2c5530;
+            color: #fff;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background 0.2s;
+        }
+        #duplicateCheckModal .dup-btn-proceed:hover {
+            background: #1e3d22;
+        }
+    `;
+    
+    // Remove existing styles if any
+    const existingStyle = document.getElementById('duplicateModalStyles');
+    if (existingStyle) existingStyle.remove();
+    
+    document.head.appendChild(style);
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+    
+    // Event handlers
+    const closeModal = () => {
+        modal.remove();
+        document.body.style.overflow = '';
+    };
+    
+    modal.querySelector('.dup-modal-close').addEventListener('click', () => {
+        closeModal();
+        if (onCancel) onCancel();
+    });
+    
+    modal.querySelector('.dup-btn-cancel').addEventListener('click', () => {
+        closeModal();
+        if (onCancel) onCancel();
+    });
+    
+    modal.querySelector('.dup-btn-proceed').addEventListener('click', () => {
+        closeModal();
+        if (onProceed) onProceed();
+    });
+    
+    // Close on overlay click
+    modal.querySelector('.dup-modal-overlay').addEventListener('click', (e) => {
+        if (e.target.classList.contains('dup-modal-overlay')) {
+            closeModal();
+            if (onCancel) onCancel();
+        }
+    });
+    
+    // Close on Escape key
+    const escHandler = (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+            if (onCancel) onCancel();
+            document.removeEventListener('keydown', escHandler);
+        }
+    };
+    document.addEventListener('keydown', escHandler);
 }
 
 // Initialize everything once DOM is loaded
@@ -442,10 +1057,38 @@ function handleFormSubmit(event) {
 }
 
 // Save martyr data permanently to Firebase database only
-async function saveMartyrData(martyrData) {
+async function saveMartyrData(martyrData, skipDuplicateCheck = false) {
     console.log('💾 Starting to save martyr data permanently to Firebase...', { name: martyrData.fullName });
     
     try {
+        // Check for duplicates before saving (unless explicitly skipped)
+        if (!skipDuplicateCheck && existingMartyrs.length > 0) {
+            console.log('🔍 Checking for potential duplicates...');
+            const duplicates = findPotentialDuplicates(martyrData);
+            
+            if (duplicates.length > 0) {
+                console.log(`⚠️ Found ${duplicates.length} potential duplicate(s)`);
+                hideLoadingState();
+                
+                // Show duplicate warning modal and wait for user decision
+                showDuplicateModal(
+                    martyrData,
+                    duplicates,
+                    // On proceed (user confirms it's not a duplicate)
+                    () => {
+                        console.log('✅ User confirmed submission is not a duplicate');
+                        showLoadingState();
+                        saveMartyrData(martyrData, true); // Skip duplicate check on retry
+                    },
+                    // On cancel
+                    () => {
+                        console.log('❌ User cancelled submission due to duplicate warning');
+                    }
+                );
+                return; // Stop here and wait for user decision
+            }
+        }
+        
         // Ensure loading state is shown
         showLoadingState();
         
