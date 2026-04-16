@@ -1,0 +1,34 @@
+# Robots.txt for Baluch Martyrs Memorial
+# https://baluchmartyrs.site
+
+User-agent: *
+
+# Allow public pages
+Allow: /
+Allow: /gallery
+Allow: /about
+Allow: /contact
+Allow: /statistics
+
+# Block admin and sensitive pages
+Disallow: /admin
+Disallow: /admin-login
+Disallow: /admin.html
+Disallow: /admin-login.html
+Disallow: /api/
+Disallow: /netlify/
+Disallow: /debug-*
+Disallow: /test-*
+Disallow: /simple-admin*
+Disallow: /firebase-test*
+
+# Block JS files from being indexed (contains config)
+Disallow: /js/firebase-config.js
+Disallow: /js/auth.js
+Disallow: /js/admin.js
+
+# Crawl-delay for respectful crawling
+Crawl-delay: 1
+
+# Sitemap (if you create one)
+# Sitemap: https://baluchmartyrs.site/sitemap.xml

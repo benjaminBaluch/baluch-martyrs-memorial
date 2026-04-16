@@ -160,20 +160,49 @@
     # Referrer policy for privacy
     Referrer-Policy = "strict-origin-when-cross-origin"
     
-    # Permissions policy (disable unnecessary features)
-    Permissions-Policy = "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
+    # HTTP Strict Transport Security (force HTTPS)
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
     
-    # Content Security Policy
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebasestorage.app wss://*.firebaseio.com; frame-ancestors 'self';"
+    # Permissions policy (disable unnecessary features)
+    Permissions-Policy = "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+    
+    # Content Security Policy - stricter but functional
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebasestorage.app wss://*.firebaseio.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self';"
 
 # Strict headers for admin pages
 [[headers]]
   for = "/admin*"
   [headers.values]
     X-Frame-Options = "DENY"
-    Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate"
+    X-Robots-Tag = "noindex, nofollow, noarchive"
+    Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate, private"
     Pragma = "no-cache"
     Expires = "0"
+
+# Strict headers for API endpoints
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Cache-Control = "no-store, no-cache, must-revalidate"
+    Content-Type = "application/json"
+
+# Protect sensitive JS files
+[[headers]]
+  for = "/js/firebase-config.js"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/js/auth.js"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+[[headers]]
+  for = "/js/admin.js"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
 
 # Block access to debug files in production
 [[headers]]

@@ -40,10 +40,10 @@ service cloud.firestore {
       // Anyone can read approved martyrs (public gallery)
       allow read: if true;
       
-      // Only allow writes from authenticated sources
-      // For now, allow writes (admin panel handles auth)
-      // TODO: Implement Firebase Auth for proper admin authentication
-      allow create, update, delete: if true;
+      // SECURITY: No direct client-side writes allowed
+      // All write operations should go through authenticated server functions
+      // This prevents unauthorized modifications to approved martyrs
+      allow create, update, delete: if false;
     }
     
     // ============================================
@@ -56,12 +56,11 @@ service cloud.firestore {
                        hasReasonableSizes() &&
                        request.resource.data.status == 'pending';
       
-      // Allow reads for admin panel (admin auth is handled client-side)
-      // TODO: Implement Firebase Auth and restrict to authenticated admins
-      allow read: if true;
-      
-      // Allow updates/deletes for admin moderation
-      allow update, delete: if true;
+      // SECURITY: No direct client-side read/modify allowed
+      // Admin operations should go through authenticated server functions
+      // This hides pending submissions from unauthorized users
+      allow read: if false;
+      allow update, delete: if false;
     }
     
     // ============================================
