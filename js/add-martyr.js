@@ -331,6 +331,13 @@ function showDuplicateModal(newMartyr, duplicates, onProceed, onCancel) {
             justify-content: center;
             padding: 1rem;
             animation: dupFadeIn 0.3s ease;
+            -webkit-overflow-scrolling: touch;
+        }
+        @media (max-width: 600px) {
+            #duplicateCheckModal .dup-modal-overlay {
+                padding: 0;
+                align-items: flex-start;
+            }
         }
         @keyframes dupFadeIn {
             from { opacity: 0; }
@@ -348,6 +355,13 @@ function showDuplicateModal(newMartyr, duplicates, onProceed, onCancel) {
             box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
             animation: dupSlideIn 0.3s ease;
         }
+        @media (max-width: 600px) {
+            #duplicateCheckModal .dup-modal-container {
+                border-radius: 0;
+                max-height: 100vh;
+                min-height: 100vh;
+            }
+        }
         @keyframes dupSlideIn {
             from { transform: translateY(-20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
@@ -360,18 +374,39 @@ function showDuplicateModal(newMartyr, duplicates, onProceed, onCancel) {
             background: linear-gradient(135deg, #dc3545, #c82333);
             color: #fff;
         }
+        @media (max-width: 600px) {
+            #duplicateCheckModal .dup-modal-header {
+                padding: 1rem;
+                gap: 0.75rem;
+            }
+        }
         #duplicateCheckModal .dup-modal-icon {
             font-size: 2.5rem;
+        }
+        @media (max-width: 600px) {
+            #duplicateCheckModal .dup-modal-icon {
+                font-size: 1.75rem;
+            }
         }
         #duplicateCheckModal .dup-modal-title h2 {
             margin: 0;
             font-size: 1.35rem;
             font-weight: 600;
         }
+        @media (max-width: 600px) {
+            #duplicateCheckModal .dup-modal-title h2 {
+                font-size: 1.1rem;
+            }
+        }
         #duplicateCheckModal .dup-modal-title p {
             margin: 0.25rem 0 0;
             opacity: 0.9;
             font-size: 0.95rem;
+        }
+        @media (max-width: 600px) {
+            #duplicateCheckModal .dup-modal-title p {
+                font-size: 0.8rem;
+            }
         }
         #duplicateCheckModal .dup-modal-close {
             margin-left: auto;
@@ -395,6 +430,12 @@ function showDuplicateModal(newMartyr, duplicates, onProceed, onCancel) {
             padding: 1.5rem;
             overflow-y: auto;
             flex: 1;
+            -webkit-overflow-scrolling: touch;
+        }
+        @media (max-width: 600px) {
+            #duplicateCheckModal .dup-modal-body {
+                padding: 1rem;
+            }
         }
         #duplicateCheckModal .dup-alert {
             background: #fff3cd;
@@ -405,6 +446,13 @@ function showDuplicateModal(newMartyr, duplicates, onProceed, onCancel) {
             color: #856404;
             font-size: 0.95rem;
         }
+        @media (max-width: 600px) {
+            #duplicateCheckModal .dup-alert {
+                font-size: 0.85rem;
+                padding: 0.75rem;
+                margin-bottom: 1rem;
+            }
+        }
         #duplicateCheckModal .dup-comparison {
             display: grid;
             grid-template-columns: 1fr 1.5fr;
@@ -413,6 +461,7 @@ function showDuplicateModal(newMartyr, duplicates, onProceed, onCancel) {
         @media (max-width: 700px) {
             #duplicateCheckModal .dup-comparison {
                 grid-template-columns: 1fr;
+                gap: 1rem;
             }
         }
         #duplicateCheckModal .dup-section-label {
@@ -479,8 +528,20 @@ function showDuplicateModal(newMartyr, duplicates, onProceed, onCancel) {
             gap: 1rem;
             padding: 1rem;
         }
+        @media (max-width: 400px) {
+            #duplicateCheckModal .dup-match-content {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+        }
         #duplicateCheckModal .dup-match-photo {
             flex: 0 0 80px;
+        }
+        @media (max-width: 400px) {
+            #duplicateCheckModal .dup-match-photo {
+                flex: 0 0 auto;
+            }
         }
         #duplicateCheckModal .dup-match-photo img {
             width: 80px;
@@ -542,11 +603,24 @@ function showDuplicateModal(newMartyr, duplicates, onProceed, onCancel) {
             background: #f8f9fa;
             border-top: 1px solid #dee2e6;
         }
+        @media (max-width: 600px) {
+            #duplicateCheckModal .dup-modal-footer {
+                padding: 1rem;
+                position: sticky;
+                bottom: 0;
+            }
+        }
         #duplicateCheckModal .dup-footer-note {
             margin: 0 0 1rem;
             font-size: 0.85rem;
             color: #6c757d;
             text-align: center;
+        }
+        @media (max-width: 600px) {
+            #duplicateCheckModal .dup-footer-note {
+                font-size: 0.75rem;
+                margin-bottom: 0.75rem;
+            }
         }
         #duplicateCheckModal .dup-modal-actions {
             display: flex;
@@ -556,39 +630,50 @@ function showDuplicateModal(newMartyr, duplicates, onProceed, onCancel) {
         @media (max-width: 500px) {
             #duplicateCheckModal .dup-modal-actions {
                 flex-direction: column;
+                gap: 0.75rem;
+            }
+        }
+        #duplicateCheckModal .dup-btn-cancel,
+        #duplicateCheckModal .dup-btn-proceed {
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: background 0.2s, transform 0.1s;
+            font-size: 0.95rem;
+            min-height: 48px;
+        }
+        @media (max-width: 500px) {
+            #duplicateCheckModal .dup-btn-cancel,
+            #duplicateCheckModal .dup-btn-proceed {
+                width: 100%;
+                padding: 1rem;
             }
         }
         #duplicateCheckModal .dup-btn-cancel {
             background: #6c757d;
             color: #fff;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: background 0.2s;
         }
         #duplicateCheckModal .dup-btn-cancel:hover {
             background: #5a6268;
         }
+        #duplicateCheckModal .dup-btn-cancel:active {
+            transform: scale(0.98);
+        }
         #duplicateCheckModal .dup-btn-proceed {
             background: #2c5530;
             color: #fff;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: background 0.2s;
         }
         #duplicateCheckModal .dup-btn-proceed:hover {
             background: #1e3d22;
+        }
+        #duplicateCheckModal .dup-btn-proceed:active {
+            transform: scale(0.98);
         }
     `;
     
