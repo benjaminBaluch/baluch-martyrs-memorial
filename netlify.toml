@@ -2,8 +2,12 @@
   publish = "."
   command = ""
 
+[build.environment]
+  NODE_VERSION = "18"
+
 [functions]
   directory = "netlify/functions"
+  node_bundler = "esbuild"
 
 # ============================================
 # CLEAN URLs (Remove .html extension)
