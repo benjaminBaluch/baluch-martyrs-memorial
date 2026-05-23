@@ -537,19 +537,49 @@
 
 @media (max-width: 480px) {
     .chatbot-container {
-        right: 8px;
-        bottom: 8px;
-        width: calc(100vw - 16px);
-        height: calc(100vh - 80px);
-        max-height: none;
-        border-radius: 20px;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 80vh !important;
+        max-height: 80vh !important;
+        border-radius: 24px 24px 0 0 !important;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25) !important;
+        border: 1px solid rgba(26, 95, 42, 0.15) !important;
+        border-bottom: none !important;
+        transform: translateY(0) !important;
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
 
     .chatbot-container.minimized {
-        width: 52px;
-        height: 52px;
-        right: 12px;
-        bottom: 12px;
+        width: 52px !important;
+        height: 52px !important;
+        right: 12px !important;
+        bottom: 12px !important;
+        border-radius: 50% !important;
+        transform: none !important;
+        box-shadow: 0 8px 30px rgba(26, 95, 42, 0.3) !important;
+    }
+
+    /* Grab bar / Drag Handle for bottom-sheet chatbot drawer */
+    .chatbot-container::before {
+        content: '';
+        position: absolute;
+        top: 6px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 36px;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.35);
+        border-radius: 2px;
+        z-index: 100;
+    }
+
+    .chatbot-container.minimized::before {
+        display: none;
+    }
+
+    .chatbot-header {
+        padding-top: 14px !important; /* Make room for drag handle */
     }
 
     .chatbot-container.minimized .chatbot-header::after {
@@ -563,8 +593,11 @@
     }
 
     .suggestion-btn {
-        padding: 6px 12px;
-        font-size: 11px;
+        padding: 8px 14px !important;
+        font-size: 12px !important;
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
     }
 }
 

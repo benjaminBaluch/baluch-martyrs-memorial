@@ -651,12 +651,14 @@ class BaluchistanChatbot {
         // Toggle chatbot
         header.addEventListener('click', (e) => {
             if (!e.target.closest('.chatbot-toggle')) {
+                if (typeof window.triggerTactileFeedback === 'function') window.triggerTactileFeedback(10);
                 this.toggleChatbot();
             }
         });
 
         toggle.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (typeof window.triggerTactileFeedback === 'function') window.triggerTactileFeedback(10);
             this.toggleChatbot();
         });
 
@@ -673,6 +675,7 @@ class BaluchistanChatbot {
         suggestions.addEventListener('click', (e) => {
             const btn = e.target.closest('.suggestion-btn');
             if (btn) {
+                if (typeof window.triggerTactileFeedback === 'function') window.triggerTactileFeedback(8);
                 input.value = btn.dataset.query;
                 this.handleUserMessage();
             }
@@ -786,6 +789,10 @@ class BaluchistanChatbot {
         
         if (!message) return;
         
+        if (typeof window.triggerTactileFeedback === 'function') {
+            window.triggerTactileFeedback(12);
+        }
+        
         this.isProcessing = true;
         this.addMessage('user', message);
         input.value = '';
@@ -801,6 +808,9 @@ class BaluchistanChatbot {
                 
                 setTimeout(() => {
                     this.hideTypingIndicator();
+                    if (typeof window.triggerTactileFeedback === 'function') {
+                        window.triggerTactileFeedback(15);
+                    }
                     this.addMessage('bot', response.text, response.isHtml);
                     
                     if (response.suggestions) {

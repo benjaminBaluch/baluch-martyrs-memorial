@@ -48,6 +48,7 @@ function initTheme() {
     const toggles = document.querySelectorAll('[data-theme-toggle]');
     toggles.forEach((btn) => {
         btn.addEventListener('click', () => {
+            triggerTactileFeedback(10);
             const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
             const next = current === 'dark' ? 'light' : 'dark';
             applyTheme(next);
@@ -59,6 +60,18 @@ function initTheme() {
         });
     });
 }
+
+// Tactile Vibration Helper for mobile touch support
+function triggerTactileFeedback(duration = 10) {
+    if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+        try {
+            navigator.vibrate(duration);
+        } catch (e) {
+            // Ignore haptic errors on unsupported systems
+        }
+    }
+}
+window.triggerTactileFeedback = triggerTactileFeedback;
 
 // Auto-update footer year (no yearly manual edits)
 function initCopyrightYear() {
@@ -122,6 +135,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initBackToTop();
     loadRecentMartyrs();
     initAnniversarySlider();
+    initImageLightbox();
 });
 
 // ============================================
@@ -1480,3 +1494,88 @@ window.addEventListener('scroll', function() {
         }
     });
 });
+
+// Dynamic Fullscreen Haptic Image Lightbox Preview for Mobile & Desktop
+function initImageLightbox() {
+    document.addEventListener('click', function(e) {
+        // Target images inside profile detail panels
+        const modalImg = e.target.closest('#martyrModal img, #martyrDetailsModal img, .martyr-photo-wrapper img, .martyr-image img');
+        if (modalImg && !e.target.closest('.martyr-share-actions, .suggestion-btn')) {
+            e.preventDefault();
+            
+            // Add tactile feedback
+            if (typeof window.triggerTactileFeedback === 'function') {
+                window.triggerTactileFeedback(15);
+            }
+            
+            // Create Lightbox Overlay with glassmorphism blur
+            const lightbox = document.createElement('div');
+            lightbox.className = 'lightbox-overlay';
+            lightbox.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0, 0, 0, 0.95);
+                z-index: 20000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: zoom-out;
+                opacity: 0;
+                transition: opacity 0.22s ease;
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+            `;
+            
+            const img = document.createElement('img');
+            img.src = modalImg.src;
+            img.style.cssText = `
+                max-width: 92vw;
+                max-height: 90vh;
+                object-fit: contain;
+                border-radius: 12px;
+                box-shadow: 0 15px 45px rgba(0, 0, 0, 0.6);
+                transform: scale(0.92);
+                transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+                user-select: none;
+                -webkit-user-drag: none;
+                cursor: zoom-in;
+            `;
+            
+            let isZoomed = false;
+            img.addEventListener('click', function(evt) {
+                evt.stopPropagation();
+                if (typeof window.triggerTactileFeedback === 'function') {
+                    window.triggerTactileFeedback(10);
+                }
+                if (isZoomed) {
+                    img.style.transform = 'scale(1)';
+                    img.style.cursor = 'zoom-in';
+                    isZoomed = false;
+                } else {
+                    img.style.transform = 'scale(1.4)';
+                    img.style.cursor = 'zoom-out';
+                    isZoomed = true;
+                }
+            });
+            
+            // Smooth dismiss on back click
+            lightbox.addEventListener('click', function() {
+                lightbox.style.opacity = '0';
+                img.style.transform = 'scale(0.92)';
+                setTimeout(() => lightbox.remove(), 220);
+            });
+            
+            lightbox.appendChild(img);
+            document.body.appendChild(lightbox);
+            
+            // Trigger animation
+            requestAnimationFrame(() => {
+                lightbox.style.opacity = '1';
+                img.style.transform = 'scale(1)';
+            });
+        }
+    });
+}

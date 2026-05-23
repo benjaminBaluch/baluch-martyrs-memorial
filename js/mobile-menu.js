@@ -36,6 +36,10 @@ function initSimpleMobileMenu() {
         
         console.log('🍔 Hamburger clicked!');
         
+        if (typeof window.triggerTactileFeedback === 'function') {
+            window.triggerTactileFeedback(12);
+        }
+        
         const isActive = navMenu.classList.contains('active');
         console.log('Current menu state - Active:', isActive);
         

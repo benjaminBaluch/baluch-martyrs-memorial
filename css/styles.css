@@ -4500,3 +4500,21 @@ html[data-theme="dark"] .shimmer {
         padding-right: 12px !important;
     }
 }
+
+/* Phase 2: Narrow mobile spacing improvements */
+@media (max-width: 480px) {
+    .container {
+        padding: 0 12px !important;
+    }
+    .gallery-section {
+        padding: 2rem 0 !important;
+    }
+    .gallery-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1.25rem !important;
+    }
+    .gallery-grid .martyr-card {
+        border-radius: 14px !important;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+    }
+}
