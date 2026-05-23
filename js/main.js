@@ -100,8 +100,20 @@ if (!window.firebaseDB) {
     });
 }
 
+// Setup mobile viewport height custom property (--vh)
+function initViewportHeightFix() {
+    const setVh = () => {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+    setVh();
+    window.addEventListener('resize', setVh, { passive: true });
+    window.addEventListener('orientationchange', setVh);
+}
+
 // DOM Content Loaded
 document.addEventListener('DOMContentLoaded', function() {
+    initViewportHeightFix();
     // Initialize components
     initCopyrightYear();
     initTheme();

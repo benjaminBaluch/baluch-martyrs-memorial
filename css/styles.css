@@ -3383,7 +3383,7 @@ html[data-theme="dark"] .btn-discover {
         display: none !important;
     }
     
-    /* Mobile dropdown menu */
+    /* Mobile dropdown drawer with premium glassmorphism */
     .nav-menu.active {
         display: flex !important;
         visibility: visible !important;
@@ -3393,29 +3393,68 @@ html[data-theme="dark"] .btn-discover {
         left: 0 !important;
         right: 0 !important;
         width: 100% !important;
-        background: linear-gradient(135deg, 
+        background: rgba(255, 255, 255, 0.88) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        flex-direction: column !important;
+        padding: 1.25rem 1rem !important;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15) !important;
+        border-radius: 0 0 20px 20px !important;
+        border: 1px solid rgba(148, 163, 184, 0.2) !important;
+        border-top: none !important;
+        z-index: 9999 !important;
+        min-height: auto !important;
+        max-width: 100vw !important;
+        margin: 0 !important;
+        transform: translateY(0) !important;
+        box-sizing: border-box !important;
+    }
+
+    html[data-theme="dark"] .nav-menu.active {
+        background: rgba(15, 23, 42, 0.88) !important;
+        border-color: rgba(148, 163, 184, 0.15) !important;
+        box-shadow: 0 10px 40px rgba(2, 6, 23, 0.5) !important;
+    }
+
+    /* Elegant Baluch flag ribbon at top of drawer */
+    .nav-menu.active::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, 
             var(--baluch-blue) 0%, 
             var(--baluch-blue) 33%, 
             var(--baluch-red) 33%, 
             var(--baluch-red) 66%, 
             var(--baluch-green) 66%, 
             var(--baluch-green) 100%) !important;
-        flex-direction: column !important;
-        padding: 1rem !important;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
-        border-radius: 0 0 12px 12px !important;
-        z-index: 9999 !important;
-        min-height: 250px !important;
-        max-width: 100vw !important;
-        margin: 0 !important;
-        animation: slideDown 0.3s ease-out;
-        transform: translateY(0) !important;
+        z-index: 10;
+        border-radius: 0;
     }
     
-    @keyframes slideDown {
+    /* Staggered link animations */
+    .nav-menu.active li {
+        width: 100%;
+        margin: 0;
+        opacity: 0;
+        animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    
+    .nav-menu.active li:nth-child(1) { animation-delay: 0.04s; }
+    .nav-menu.active li:nth-child(2) { animation-delay: 0.08s; }
+    .nav-menu.active li:nth-child(3) { animation-delay: 0.12s; }
+    .nav-menu.active li:nth-child(4) { animation-delay: 0.16s; }
+    .nav-menu.active li:nth-child(5) { animation-delay: 0.20s; }
+    .nav-menu.active li:nth-child(6) { animation-delay: 0.24s; }
+    .nav-menu.active li:nth-child(7) { animation-delay: 0.28s; }
+    
+    @keyframes fadeInUp {
         from {
             opacity: 0;
-            transform: translateY(-20px);
+            transform: translateY(10px);
         }
         to {
             opacity: 1;
@@ -3423,35 +3462,44 @@ html[data-theme="dark"] .btn-discover {
         }
     }
     
-    .nav-menu li {
-        width: 100%;
-        margin: 0;
-    }
-    
     .nav-menu.active a {
         display: block !important;
         width: 100% !important;
-        padding: 1rem 1.5rem !important;
+        padding: 0.75rem 1.25rem !important;
         margin: 0.25rem 0 !important;
-        border-radius: 8px !important;
-        transition: all 0.3s ease !important;
+        border-radius: 10px !important;
+        transition: all 0.2s ease !important;
         text-align: center !important;
-        border: 1px solid rgba(255, 255, 255, 0.3) !important;
-        color: white !important;
+        border: 1px solid rgba(15, 23, 42, 0.06) !important;
+        color: var(--text-color, #1e293b) !important;
         text-decoration: none !important;
         font-weight: 600 !important;
-        background: rgba(255, 255, 255, 0.2) !important;
-        font-size: 1rem !important;
+        background: rgba(15, 23, 42, 0.03) !important;
+        font-size: 0.95rem !important;
         line-height: 1.5 !important;
         box-sizing: border-box !important;
+        text-shadow: none !important;
+    }
+
+    html[data-theme="dark"] .nav-menu.active a {
+        background: rgba(255, 255, 255, 0.04) !important;
+        border-color: rgba(255, 255, 255, 0.06) !important;
+        color: #f1f5f9 !important;
     }
     
     .nav-menu.active a:hover,
     .nav-menu.active a.active {
-        background: rgba(255, 255, 255, 0.4) !important;
-        transform: translateX(5px) !important;
-        border-color: rgba(255, 255, 255, 0.5) !important;
+        background: var(--primary-color) !important;
         color: white !important;
+        border-color: var(--primary-color) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    html[data-theme="dark"] .nav-menu.active a:hover,
+    html[data-theme="dark"] .nav-menu.active a.active {
+        background: var(--primary-color) !important;
+        color: white !important;
+        border-color: var(--primary-color) !important;
     }
     
     /* Adjust star position for mobile */
@@ -4145,9 +4193,39 @@ html[data-theme="dark"] .btn-discover {
 /* Responsive Modal Styles */
 @media (max-width: 768px) {
     .modal-container {
-        width: 95vw;
-        max-height: 95vh;
-        transform: translate(-50%, -50%);
+        width: 100vw !important;
+        max-width: 100vw !important;
+        max-height: 88vh !important;
+        top: auto !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        transform: translate(0, 0) !important;
+        border-radius: 24px 24px 0 0 !important;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.35) !important;
+        animation: bottomSheetSlide 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+
+    /* Grab bar / Drag Handle for iOS-like sheet */
+    .modal-container::before {
+        content: '';
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 44px;
+        height: 5px;
+        background: rgba(148, 163, 184, 0.35);
+        border-radius: 3px;
+        z-index: 100;
+    }
+    
+    .modal-header {
+        padding: 1.5rem 1.5rem 1rem !important; /* spacing adjustment */
+    }
+
+    .modal-body {
+        max-height: calc(88vh - 80px) !important;
     }
     
     .martyr-detail-layout {
@@ -4156,16 +4234,18 @@ html[data-theme="dark"] .btn-discover {
     }
     
     .martyr-detail-image {
-        flex: 0 0 320px;
+        flex: 0 0 auto;
         border-right: none;
         border-bottom: 1px solid #e9ecef;
-        padding: 8px;
+        padding: 12px;
+        background: transparent;
     }
     
     .martyr-detail-photo {
-        min-height: 250px;
-        width: calc(100% - 16px);
-        margin: 8px;
+        min-height: 220px;
+        max-height: 350px;
+        width: min(80vw, 260px) !important;
+        margin: 0 auto !important;
         border: 6px solid white;
         object-fit: contain;
     }
@@ -4182,14 +4262,6 @@ html[data-theme="dark"] .btn-discover {
     
     .martyr-name {
         font-size: 1.5rem;
-    }
-    
-    .modal-header {
-        padding: 1rem 1.5rem;
-    }
-    
-    .modal-header h2 {
-        font-size: 1.25rem;
     }
     
     .detail-row {
@@ -4209,22 +4281,21 @@ html[data-theme="dark"] .btn-discover {
 
 @media (max-width: 480px) {
     .modal-container {
-        width: 100vw;
-        max-height: 100vh;
-        border-radius: 0;
+        max-height: 92vh !important;
+    }
+    
+    .modal-body {
+        max-height: calc(92vh - 76px) !important;
     }
     
     .martyr-detail-image {
-        flex: 0 0 260px;
-        padding: 6px;
+        padding: 8px;
     }
     
     .martyr-detail-photo {
-        min-height: 200px;
-        width: calc(100% - 12px);
-        margin: 6px;
-        border: 4px solid white;
-        object-fit: contain;
+        min-height: 180px;
+        max-height: 280px;
+        width: min(85vw, 220px) !important;
     }
     
     .martyr-detail-placeholder {
@@ -4234,7 +4305,7 @@ html[data-theme="dark"] .btn-discover {
     }
     
     .martyr-detail-info {
-        padding: 1rem;
+        padding: 1.25rem 1rem;
     }
     
     .martyr-name {
@@ -4246,6 +4317,11 @@ html[data-theme="dark"] .btn-discover {
         padding: 1rem;
         font-size: 0.95rem;
     }
+}
+
+@keyframes bottomSheetSlide {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
 }
 
 html[data-theme="dark"] .modal-shell {
@@ -4383,4 +4459,44 @@ html[data-theme="dark"] .shimmer {
 @keyframes shimmer {
     0% { background-position: -300px 0; }
     100% { background-position: 300px 0; }
+}
+
+/* Tactile Touch Feedback for Interactive Mobile Elements */
+@media (max-width: 768px) {
+    .btn:active,
+    .filter-tab:active,
+    .letter-btn:active,
+    .hamburger:active,
+    .theme-toggle:active,
+    .close-martyr-modal:active,
+    .modal-close:active,
+    .slider-btn:active,
+    .back-to-top:active,
+    .martyr-card:active {
+        transform: scale(0.96) !important;
+        transition: transform 0.08s ease !important;
+    }
+}
+
+/* Premium scrollable overflow visual gradient cue for mobile horizontal scrollbars */
+@media (max-width: 768px) {
+    .filter-tabs,
+    .alphabet-bar {
+        mask-image: linear-gradient(to right, 
+            transparent 0%, 
+            rgba(0, 0, 0, 0.2) 2%, 
+            black 6%, 
+            black 94%, 
+            rgba(0, 0, 0, 0.2) 98%, 
+            transparent 100%) !important;
+        -webkit-mask-image: linear-gradient(to right, 
+            transparent 0%, 
+            rgba(0, 0, 0, 0.2) 2%, 
+            black 6%, 
+            black 94%, 
+            rgba(0, 0, 0, 0.2) 98%, 
+            transparent 100%) !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
 }

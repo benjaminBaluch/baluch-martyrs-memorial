@@ -42,10 +42,12 @@ function initSimpleMobileMenu() {
         if (isActive) {
             navMenu.classList.remove('active');
             newHamburger.classList.remove('active');
+            document.body.style.overflow = ''; // Unlock scrolling
             console.log('✅ Menu closed');
         } else {
             navMenu.classList.add('active');
             newHamburger.classList.add('active');
+            document.body.style.overflow = 'hidden'; // Lock scrolling
             console.log('✅ Menu opened');
         }
         
@@ -57,9 +59,12 @@ function initSimpleMobileMenu() {
     // Close menu when clicking outside
     document.addEventListener('click', function(e) {
         if (!newHamburger.contains(e.target) && !navMenu.contains(e.target)) {
-            navMenu.classList.remove('active');
-            newHamburger.classList.remove('active');
-            console.log('🔒 Menu closed (clicked outside)');
+            if (navMenu.classList.contains('active')) {
+                navMenu.classList.remove('active');
+                newHamburger.classList.remove('active');
+                document.body.style.overflow = ''; // Unlock scrolling
+                console.log('🔒 Menu closed (clicked outside)');
+            }
         }
     });
     
@@ -72,6 +77,7 @@ function initSimpleMobileMenu() {
             console.log(`🔗 Nav link ${index + 1} clicked, closing menu`);
             navMenu.classList.remove('active');
             newHamburger.classList.remove('active');
+            document.body.style.overflow = ''; // Unlock scrolling
         });
     });
     
