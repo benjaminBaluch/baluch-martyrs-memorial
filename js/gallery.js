@@ -352,6 +352,11 @@ function renderGallery() {
 
     // Apply current filters (this will update the result count text)
     applyFilters();
+    
+    // Trigger lazy scroll reveal setup for newly created cards
+    if (typeof window.initScrollReveal === 'function') {
+        window.initScrollReveal();
+    }
 }
 // Create individual martyr card
 function createGalleryCard(martyr) {
@@ -383,6 +388,10 @@ function createGalleryCard(martyr) {
         const img = document.createElement('img');
         img.src = martyr.photo;
         img.alt = martyr.fullName;
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        img.width = 300;
+        img.height = 200;
         img.style.cssText = 'width: 100%; height: 200px; object-fit: cover; border-radius: 8px 8px 0 0;';
         imageDiv.appendChild(img);
     } else {
@@ -1547,6 +1556,11 @@ function renderGallery(martyrsData) {
 
     console.log(`✅ Successfully rendered ${renderedCount} out of ${sortedMartyrs.length} martyrs`);
     updateSearchResultsInfo(sortedMartyrs.length);
+    
+    // Trigger lazy scroll reveal setup for newly created cards
+    if (typeof window.initScrollReveal === 'function') {
+        window.initScrollReveal();
+    }
 }
 
 // Create gallery card (front of gallery)
@@ -1577,6 +1591,10 @@ function createGalleryCard(martyr) {
         const img = document.createElement('img');
         img.src = martyr.photo;
         img.alt = martyr.fullName || 'Martyr portrait';
+        img.loading = 'lazy';
+        img.decoding = 'async';
+        img.width = 300;
+        img.height = 200;
         photoWrapper.appendChild(img);
     } else {
         // Fallback gradient with icon when no photo is provided
@@ -2601,7 +2619,7 @@ function createAutocompleteItem(martyr, index) {
     item.dataset.index = index;
     
     const iconHtml = martyr.photo 
-        ? `<img src="${martyr.photo}" alt="">` 
+        ? `<img src="${martyr.photo}" alt="" loading="lazy" decoding="async" width="32" height="32">` 
         : '👤';
     
     const location = martyr.martyrdomPlace || martyr.birthPlace || 'Unknown';

@@ -370,6 +370,9 @@ function createMartyrCard(martyr) {
         img.src = martyr.photo;
         img.alt = martyr.fullName || 'Martyr portrait';
         img.loading = 'lazy';
+        img.decoding = 'async';
+        img.width = 300;
+        img.height = 200;
         photoWrapper.appendChild(img);
     } else {
         // Fallback placeholder when no photo is provided
@@ -1272,6 +1275,9 @@ function createAnniversaryCard(martyr) {
         img.src = martyr.photo;
         img.alt = martyr.fullName;
         img.loading = 'lazy';
+        img.decoding = 'async';
+        img.width = 340;
+        img.height = 380;
         imageDiv.appendChild(img);
     } else {
         imageDiv.style.background = 'linear-gradient(135deg, #2c5530, #4a7c59)';
@@ -1480,20 +1486,58 @@ function showEmptyAnniversarySlider() {
     }
 }
 
-// Add animation on scroll
-window.addEventListener('scroll', function() {
+// High-performance asynchronous scroll-reveal animation using IntersectionObserver
+function initScrollReveal() {
     const elements = document.querySelectorAll('.feature-card, .martyr-card');
+    if (elements.length === 0) return;
     
-    elements.forEach(element => {
-        const rect = element.getBoundingClientRect();
-        const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
-        
-        if (isVisible) {
+    // Check for IntersectionObserver support
+    if (!('IntersectionObserver' in window)) {
+        elements.forEach(element => {
             element.style.opacity = '1';
             element.style.transform = 'translateY(0)';
+        });
+        return;
+    }
+    
+    // Set initial transition and layout properties programmatically to avoid layout jump
+    elements.forEach(element => {
+        if (!element.style.opacity) {
+            element.style.opacity = '0';
+            element.style.transform = 'translateY(15px)';
+            element.style.transition = 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)';
         }
     });
-});
+
+    const observerOptions = {
+        root: null,
+        rootMargin: '0px 0px -20px 0px', // trigger slightly inside viewport
+        threshold: 0.05
+    };
+
+    const observer = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const element = entry.target;
+                element.style.opacity = '1';
+                element.style.transform = 'translateY(0)';
+                obs.unobserve(element); // stop observing once reveal is triggered
+            }
+        });
+    }, observerOptions);
+
+    elements.forEach(element => observer.observe(element));
+}
+
+// Initialize on DOM ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initScrollReveal);
+} else {
+    initScrollReveal();
+}
+
+// Make it globally available so dynamic lists can call it after rendering
+window.initScrollReveal = initScrollReveal;
 
 // Dynamic Fullscreen Haptic Image Lightbox Preview for Mobile & Desktop
 function initImageLightbox() {
@@ -1525,6 +1569,7 @@ function initImageLightbox() {
                 cursor: zoom-out;
                 opacity: 0;
                 transition: opacity 0.22s ease;
+                will-change: opacity;
                 backdrop-filter: blur(10px);
                 -webkit-backdrop-filter: blur(10px);
             `;
@@ -1539,6 +1584,7 @@ function initImageLightbox() {
                 box-shadow: 0 15px 45px rgba(0, 0, 0, 0.6);
                 transform: scale(0.92);
                 transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+                will-change: transform;
                 user-select: none;
                 -webkit-user-drag: none;
                 cursor: zoom-in;
