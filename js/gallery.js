@@ -106,8 +106,8 @@ window.checkGalleryData = function() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎨 Gallery DOM loaded, initializing...');
     
-    // We no longer show a large loading panel; gallery will render
-    // martyrs as soon as data is available (from Firebase or cache).
+    // We show a professional skeleton loading state immediately
+    showLoadingState();
     
     // Setup interface
     initSearchFilter();
@@ -687,11 +687,27 @@ function hideNoResultsMessage() {
     if (msg) msg.remove();
 }
 
-// Previously this function showed a large loading panel.
-// To keep the experience clean, we now just log to console and
-// let the gallery cards appear directly when data is ready.
+// To keep the experience clean, we show skeleton loaders
 function showLoadingState() {
     console.log('🔄 Preparing gallery – waiting for data...');
+    const galleryGrid = document.getElementById('galleryGrid');
+    if (galleryGrid) {
+        let skeletonHTML = '';
+        for (let i = 0; i < 6; i++) {
+            skeletonHTML += `
+                <div class="skeleton-card">
+                    <div class="skeleton-img shimmer"></div>
+                    <div class="skeleton-info">
+                        <div class="skeleton-line title shimmer"></div>
+                        <div class="skeleton-line dates shimmer"></div>
+                        <div class="skeleton-line location shimmer"></div>
+                        <div class="skeleton-btn shimmer"></div>
+                    </div>
+                </div>
+            `;
+        }
+        galleryGrid.innerHTML = skeletonHTML;
+    }
 }
 
 function showEmptyMessage() {
