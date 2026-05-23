@@ -159,6 +159,7 @@ class NLUEngine {
             regions: [],
             organizations: [],
             years: [],
+            months: [],
             keywords: []
         };
 
@@ -180,6 +181,29 @@ class NLUEngine {
         const yearMatches = message.match(this.entities.yearPattern);
         if (yearMatches) {
             entities.years = yearMatches.map(y => parseInt(y));
+        }
+
+        // Extract months (word boundary checking)
+        const monthMapping = {
+            'january': 0, 'jan': 0,
+            'february': 1, 'feb': 1,
+            'march': 2, 'mar': 2,
+            'april': 3, 'apr': 3,
+            'may': 4,
+            'june': 5, 'jun': 5,
+            'july': 6, 'jul': 6,
+            'august': 7, 'aug': 7,
+            'september': 8, 'sep': 8, 'sept': 8,
+            'october': 9, 'oct': 9,
+            'november': 10, 'nov': 10,
+            'december': 11, 'dec': 11
+        };
+
+        for (const [monthName, monthIndex] of Object.entries(monthMapping)) {
+            const regex = new RegExp(`\\b${monthName}\\b`, 'i');
+            if (regex.test(lowerMessage)) {
+                entities.months.push(monthIndex);
+            }
         }
 
         // Extract potential names (words starting with capital letters)
@@ -275,6 +299,29 @@ class MartyrsDataService {
         return martyrs.filter(m => {
             const date = this.extractYear(m.martyrdomDate);
             return date === year;
+        });
+    }
+
+    async searchByMonthAndYear(month, year) {
+        const martyrs = await this.fetchMartyrs();
+        
+        return martyrs.filter(m => {
+            if (!m.martyrdomDate) return false;
+            let date;
+            try {
+                if (typeof m.martyrdomDate === 'object' && m.martyrdomDate.seconds) {
+                    date = new Date(m.martyrdomDate.seconds * 1000);
+                } else if (typeof m.martyrdomDate === 'object' && typeof m.martyrdomDate.toDate === 'function') {
+                    date = m.martyrdomDate.toDate();
+                } else {
+                    date = new Date(m.martyrdomDate);
+                }
+                
+                if (!date || isNaN(date.getTime())) return false;
+                return date.getFullYear() === year && date.getMonth() === month;
+            } catch (e) {
+                return false;
+            }
         });
     }
 
@@ -978,6 +1025,23 @@ class BaluchistanChatbot {
     async handleCountMartyrs(entities) {
         const stats = await this.dataService.getStatistics();
         
+        // Month and Year check
+        if (entities.months.length > 0 && entities.years.length > 0) {
+            const month = entities.months[0];
+            const year = entities.years[0];
+            const results = await this.dataService.searchByMonthAndYear(month, year);
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const monthName = monthNames[month];
+            
+            return {
+                text: `There are **${results.length}** martyrs documented from **${monthName} ${year}** in our memorial.`,
+                suggestions: [
+                    { text: `📋 List them`, query: `show martyrs from ${monthName} ${year}` },
+                    { text: '📊 Full stats', query: 'show statistics' }
+                ]
+            };
+        }
+
         if (entities.regions.length > 0) {
             const region = entities.regions[0];
             const results = await this.dataService.searchByRegion(region);
@@ -1076,6 +1140,33 @@ class BaluchistanChatbot {
             return {
                 text: "Which year are you interested in?",
                 suggestions: years.map(y => ({ text: `📅 ${y}`, query: `martyrs from ${y}` }))
+            };
+        }
+
+        // Check if month is also present
+        if (entities.months.length > 0) {
+            const month = entities.months[0];
+            const year = entities.years[0];
+            const results = await this.dataService.searchByMonthAndYear(month, year);
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const monthName = monthNames[month];
+            
+            if (results.length === 0) {
+                return {
+                    text: `No martyrs are currently documented for **${monthName} ${year}**.`,
+                    suggestions: [
+                        { text: '📊 Statistics', query: 'show statistics' }
+                    ]
+                };
+            }
+            
+            this.context.setLastSearchResults(results);
+            return {
+                text: `**Martyrs from ${monthName} ${year}:**\n\n${this.responseGenerator.formatMartyrsList(results)}`,
+                suggestions: results.slice(0, 3).map(m => ({
+                    text: `🕯️ ${m.fullName?.substring(0, 15)}...`,
+                    query: `tell me about ${m.fullName}`
+                }))
             };
         }
 
