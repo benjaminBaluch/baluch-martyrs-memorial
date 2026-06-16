@@ -34,25 +34,115 @@
     <style>
         /* Professional Homepage Styles */
         .hero-text {
-            max-width: 600px;
+            max-width: 640px;
             margin: 0 auto;
             text-align: center;
         }
-        .hero-subtitle {
-            display: inline-block;
-            background: rgba(255,255,255,0.9);
-            color: var(--primary-color);
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
+
+        /* Cinematic hero text reveal */
+        .hero-text > * {
+            opacity: 0;
+            transform: translateY(24px);
+            animation: heroReveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
+        .hero-text .hero-eyebrow { animation-delay: 0.1s; }
+        .hero-text h2               { animation-delay: 0.28s; }
+        .hero-text .hero-description { animation-delay: 0.44s; }
+        .hero-text .hero-buttons     { animation-delay: 0.6s; }
+        .hero-text .hero-live-count  { animation-delay: 0.8s; }
+        @keyframes heroReveal {
+            from { opacity: 0; transform: translateY(24px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Engraving-style eyebrow — replaces old white pill */
+        .hero-eyebrow {
+            display: block;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.65);
+            margin-bottom: 1.1rem;
+        }
+        .hero-eyebrow::before { content: '— '; }
+        .hero-eyebrow::after  { content: ' —'; }
+
+        /* Hero headline */
+        .hero-text h2 {
+            font-size: clamp(2.4rem, 6vw, 4.2rem);
+            font-weight: 700;
+            line-height: 1.1;
+            color: #fff;
+            text-shadow: 0 2px 24px rgba(0,0,0,0.4);
+            margin-bottom: 1.25rem;
+        }
+
         .hero-description {
-            font-size: 1.2rem;
-            line-height: 1.6;
+            font-size: 1.15rem;
+            line-height: 1.7;
             margin-bottom: 2rem;
-            color: rgba(255,255,255,0.95);
+            color: rgba(255,255,255,0.88);
+            max-width: 560px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Live martyr counter below CTAs */
+        .hero-live-count {
+            margin-top: 1.75rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.55);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .hero-live-count .hlc-dot {
+            width: 8px;
+            height: 8px;
+            background: #4ade80;
+            border-radius: 50%;
+            box-shadow: 0 0 0 3px rgba(74,222,128,0.25);
+            animation: pulse 2s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 3px rgba(74,222,128,0.25); }
+            50%       { box-shadow: 0 0 0 6px rgba(74,222,128,0.1); }
+        }
+        .hero-live-count strong {
+            color: rgba(255,255,255,0.8);
+            font-weight: 600;
+        }
+
+        /* Scroll-down indicator */
+        .hero-scroll-cue {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.4rem;
+            opacity: 0;
+            animation: heroReveal 1s ease forwards 1.2s;
+            cursor: pointer;
+            color: rgba(255,255,255,0.5);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.72rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .hero-scroll-cue svg {
+            animation: scrollBounce 2s ease-in-out infinite;
+        }
+        @keyframes scrollBounce {
+            0%, 100% { transform: translateY(0); }
+            50%       { transform: translateY(6px); }
         }
 
         /* Impact Section - Modern Living Memorial Design */
@@ -152,10 +242,17 @@
             opacity: 1;
         }
         .impact-icon {
-            font-size: 3.5rem;
-            margin-bottom: 1.25rem;
-            display: inline-block;
-            filter: drop-shadow(0 2px 8px rgba(44,85,48,0.15));
+            margin: 0 auto 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 72px;
+            height: 72px;
+            background: linear-gradient(135deg, rgba(44,85,48,0.08) 0%, rgba(44,85,48,0.04) 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(44,85,48,0.12);
+            color: var(--primary-color);
+            filter: drop-shadow(0 2px 8px rgba(44,85,48,0.12));
         }
         .impact-number {
             font-size: 3rem;
@@ -325,9 +422,16 @@
             opacity: 1;
         }
         .showcase-icon {
-            font-size: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, rgba(44,85,48,0.08) 0%, rgba(44,85,48,0.04) 100%);
+            border-radius: 14px;
             margin-bottom: 1rem;
-            display: inline-block;
+            color: var(--primary-color);
+            border: 1px solid rgba(44,85,48,0.1);
         }
         .showcase-title {
             font-weight: 700;
@@ -1323,14 +1427,22 @@
 
         <div class="hero-content">
             <div class="hero-text">
-                <span class="hero-subtitle">🕊️ In Memory of Freedom Fighters</span>
+                <span class="hero-eyebrow">In Memory of Freedom Fighters</span>
                 <h2>Baluch Martyrs Memorial</h2>
                 <p class="hero-description">A sacred digital sanctuary preserving the legacy of brave souls who made the ultimate sacrifice for freedom, justice, and the dignity of the Baluch nation.</p>
                 <div class="hero-buttons">
-                    <a href="/gallery" class="btn btn-primary">🏛️ Explore Memorial</a>
-                    <a href="/add-martyr" class="btn btn-secondary">➕ Honor a Hero</a>
+                    <a href="/gallery" class="btn btn-primary">Explore Memorial</a>
+                    <a href="/add-martyr" class="btn btn-secondary">Honor a Hero</a>
+                </div>
+                <div class="hero-live-count">
+                    <span class="hlc-dot"></span>
+                    Honoring <strong id="heroMartyrCount">...</strong> martyrs
                 </div>
             </div>
+        </div>
+        <div class="hero-scroll-cue" onclick="document.querySelector('.impact-section').scrollIntoView({behavior:'smooth'})">
+            scroll
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
         </div>
     </section>
 
@@ -1410,15 +1522,19 @@
                 </div>
                 <div class="impact-grid">
                     <div class="impact-card">
-                        <div class="impact-icon">🏛️</div>
+                        <div class="impact-icon" aria-hidden="true">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14"/><path d="M8 21v-5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v5"/><path d="M3 7l9-4 9 4"/></svg>
+                        </div>
                         <div class="impact-number" id="totalMartyrsCount">--</div>
                         <div class="impact-label">Martyrs Honored</div>
                         <div class="impact-description">Heroes whose sacrifices are preserved for eternity</div>
                     </div>
                     <div class="impact-card">
-                        <div class="impact-icon">📚</div>
+                        <div class="impact-icon" aria-hidden="true">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                        </div>
                         <div class="impact-number" id="totalStoriesCount">--</div>
-                        <div class="impact-label">Stories Shared</div>
+                        <div class="impact-label">Stories Documented</div>
                         <div class="impact-description">Biographical accounts that inspire generations</div>
                     </div>
                 </div>
@@ -1475,21 +1591,27 @@
                         </div>
                         <div class="purpose-features">
                             <div class="purpose-feature">
-                                <div class="purpose-feature-icon">🕰️</div>
+                                <div class="purpose-feature-icon" aria-hidden="true">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                </div>
                                 <div class="purpose-feature-content">
                                     <h4>Eternal Preservation</h4>
                                     <p>Digital archival ensures stories survive for generations to come.</p>
                                 </div>
                             </div>
                             <div class="purpose-feature">
-                                <div class="purpose-feature-icon">🎆</div>
+                                <div class="purpose-feature-icon" aria-hidden="true">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                                </div>
                                 <div class="purpose-feature-content">
                                     <h4>Global Recognition</h4>
                                     <p>Sharing heroic stories with the world, transcending borders.</p>
                                 </div>
                             </div>
                             <div class="purpose-feature">
-                                <div class="purpose-feature-icon">💫</div>
+                                <div class="purpose-feature-icon" aria-hidden="true">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                </div>
                                 <div class="purpose-feature-content">
                                     <h4>Inspiring Legacy</h4>
                                     <p>Stories of courage that inspire freedom through resilience and peaceful change.</p>
@@ -1501,17 +1623,23 @@
                     <div class="purpose-visual">
                         <div class="memorial-showcase">
                             <div class="showcase-card">
-                                <div class="showcase-icon">🎯</div>
+                                <div class="showcase-icon" aria-hidden="true">
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                </div>
                                 <div class="showcase-title">Our Vision</div>
                                 <div class="showcase-text">A world where every hero's sacrifice is remembered and honored with dignity.</div>
                             </div>
                             <div class="showcase-card">
-                                <div class="showcase-icon">🌏</div>
+                                <div class="showcase-icon" aria-hidden="true">
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                                </div>
                                 <div class="showcase-title">Our Impact</div>
                                 <div class="showcase-text">Creating lasting memorials that educate and inspire people worldwide.</div>
                             </div>
                             <div class="showcase-card">
-                                <div class="showcase-icon">🤝</div>
+                                <div class="showcase-icon" aria-hidden="true">
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                                </div>
                                 <div class="showcase-title">Our Community</div>
                                 <div class="showcase-text">Bringing together families, historians, and supporters in remembrance.</div>
                             </div>
@@ -1601,35 +1729,53 @@
                 }
                 
                 const total = martyrs.length;
-                const recent = martyrs.filter(m => {
-                    const submitted = new Date(m.submittedAt || Date.now());
-                    const monthAgo = new Date();
-                    monthAgo.setMonth(monthAgo.getMonth() - 1);
-                    return submitted > monthAgo;
-                }).length;
-                
-                
-                // Update impact section stats
-                const totalCount = document.getElementById('totalMartyrsCount');
+                const withStories = martyrs.filter(m => m.biography).length;
+
+                // Animated count-up helper
+                function animateCount(el, target) {
+                    if (!el) return;
+                    const duration = 1600;
+                    const start = performance.now();
+                    function step(now) {
+                        const p = Math.min((now - start) / duration, 1);
+                        const eased = 1 - Math.pow(1 - p, 3); // ease-out-cubic
+                        el.textContent = Math.floor(eased * target).toLocaleString();
+                        if (p < 1) requestAnimationFrame(step);
+                        else el.textContent = target.toLocaleString();
+                    }
+                    requestAnimationFrame(step);
+                }
+
+                // Count-up triggers on scroll (IntersectionObserver)
+                const impactSection = document.querySelector('.impact-section');
+                const totalCount   = document.getElementById('totalMartyrsCount');
                 const storiesCount = document.getElementById('totalStoriesCount');
-                const reachCount = document.getElementById('globalReachCount');
-                const activityCount = document.getElementById('recentActivityCount');
+
+                if (impactSection && (totalCount || storiesCount)) {
+                    const observer = new IntersectionObserver((entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                animateCount(totalCount, total);
+                                animateCount(storiesCount, withStories);
+                                observer.disconnect();
+                            }
+                        });
+                    }, { threshold: 0.3 });
+                    observer.observe(impactSection);
+                } else {
+                    if (totalCount) totalCount.textContent = total.toLocaleString();
+                    if (storiesCount) storiesCount.textContent = withStories.toLocaleString();
+                }
+
+                // Hero live counter (no animation — instant feels alive)
+                const heroCount = document.getElementById('heroMartyrCount');
+                if (heroCount) heroCount.textContent = total.toLocaleString();
                 
-                if (totalCount) totalCount.textContent = total;
-                if (storiesCount) storiesCount.textContent = martyrs.filter(m => m.biography).length;
-                if (reachCount) reachCount.textContent = Math.floor(total * 50) + '+'; // Estimated reach
-                if (activityCount) activityCount.textContent = recent;
-                
-                console.log(`✅ Homepage stats updated: ${total} total martyrs, ${recent} recent`);
+                console.log(`✅ Homepage stats updated: ${total} total martyrs`);
             } catch (error) {
                 console.error('❌ Error updating homepage stats:', error);
-                // Set fallback numbers
-                ['totalMartyrsCount', 'totalStoriesCount', 'recentActivityCount'].forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.textContent = '0';
-                });
-                const reachEl = document.getElementById('globalReachCount');
-                if (reachEl) reachEl.textContent = '100+';
+                const heroCount = document.getElementById('heroMartyrCount');
+                if (heroCount) heroCount.textContent = '—';
             }
         }
         
