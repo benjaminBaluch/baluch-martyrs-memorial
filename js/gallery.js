@@ -1156,16 +1156,18 @@ function showMartyrModal(martyr) {
     modal.id = 'martyrModal';
     modal.style.cssText = `
         position: fixed;
-        top: 72px; /* stay below sticky header */
+        top: 0;
         left: 0;
         width: 100%;
-        height: calc(100% - 72px);
-        background: rgba(0, 0, 0, 0.8);
-        z-index: 1500;
+        height: 100%;
+        background: rgba(15, 23, 42, 0.85);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        z-index: 10000;
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         justify-content: center;
-        padding: 16px;
+        padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
         overflow-y: auto;
     `;
     
