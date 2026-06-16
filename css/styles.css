@@ -5228,8 +5228,8 @@ html[data-theme="dark"] .bottom-nav-item.active {
     transform: scale(0.92);
 }
 
-/* Show only on mobile screens */
-@media (max-width: 768px) {
+/* Show only on true mobile touch screens */
+@media (max-width: 768px) and (pointer: coarse) {
     .mobile-bottom-nav {
         display: block;
     }
