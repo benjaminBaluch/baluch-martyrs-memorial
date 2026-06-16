@@ -546,6 +546,8 @@ body {
     background-color: var(--light-color);
     /* Phase 1.1 — Smooth page fade-in */
     animation: pageFadeIn 0.4s ease-out;
+    /* Smooth dark mode transition */
+    transition: background-color 0.35s ease, color 0.35s ease;
 }
 
 @keyframes pageFadeIn {
@@ -842,6 +844,42 @@ html[data-theme="dark"] .theme-toggle:hover {
     overflow: hidden;
 }
 
+/* Hero: full-viewport on mobile */
+@media (max-width: 768px) {
+    .hero {
+        height: 85vh;
+        min-height: 420px;
+    }
+    .hero-overlay {
+        background: rgba(0, 0, 0, 0.38);
+    }
+    .hero-content {
+        padding: 1.5rem;
+    }
+    .hero-buttons .btn {
+        padding: 0.85rem 2rem;
+        font-size: 1.02rem;
+        min-height: 48px;
+    }
+}
+
+/* Animated hero subtitle badge */
+.hero-subtitle {
+    display: inline-block;
+    animation: subtitleSlideUp 0.6s 0.2s ease-out both;
+}
+
+@keyframes subtitleSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Background hero video for Baluchistan flag */
 .hero-video {
     position: absolute;
@@ -946,6 +984,11 @@ html[data-theme="dark"] .theme-toggle:hover {
     isolation: isolate;
 }
 
+/* Button press feedback */
+.btn:active {
+    transform: scale(0.96);
+}
+
 /* Voice assistant button inside martyr details modal */
 .martyr-voice-btn {
     min-width: 240px;
@@ -992,6 +1035,16 @@ html[data-theme="dark"] .theme-toggle:hover {
 /* Section Styles */
 section {
     padding: 4rem 0;
+}
+
+/* Tighter mobile section spacing */
+@media (max-width: 768px) {
+    section {
+        padding: 2.5rem 0;
+    }
+    body {
+        font-size: 17px;
+    }
 }
 
 .about-section {
@@ -1166,7 +1219,7 @@ section {
 }
 
 .martyr-info p {
-    color: #555555;
+    color: #475569;
     margin-bottom: 0.5rem;
     font-size: 0.9rem;
 }
@@ -2699,6 +2752,51 @@ html[data-theme="dark"] .btn-discover {
 
 .gallery-grid .martyr-card:hover::before {
     opacity: 1;
+}
+
+/* Card touch feedback */
+.gallery-grid .martyr-card:active {
+    transform: scale(0.98);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
+}
+
+/* Gallery: 2-column grid on tablets */
+@media (min-width: 481px) and (max-width: 768px) {
+    .gallery-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+    }
+    .gallery-grid .martyr-photo-wrapper img,
+    .gallery-grid .martyr-photo-placeholder {
+        height: 180px;
+    }
+    .gallery-grid .martyr-info {
+        padding: 1rem 1.1rem 1.1rem;
+    }
+    .gallery-grid .martyr-name {
+        font-size: 0.95rem;
+    }
+}
+
+/* Card entrance animation */
+.gallery-grid .martyr-card {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: cardFadeUp 0.5s ease-out forwards;
+}
+
+.gallery-grid .martyr-card:nth-child(1) { animation-delay: 0s; }
+.gallery-grid .martyr-card:nth-child(2) { animation-delay: 0.05s; }
+.gallery-grid .martyr-card:nth-child(3) { animation-delay: 0.1s; }
+.gallery-grid .martyr-card:nth-child(4) { animation-delay: 0.15s; }
+.gallery-grid .martyr-card:nth-child(5) { animation-delay: 0.2s; }
+.gallery-grid .martyr-card:nth-child(6) { animation-delay: 0.25s; }
+
+@keyframes cardFadeUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .gallery-grid .martyr-card-inner {
