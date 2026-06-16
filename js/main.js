@@ -133,10 +133,39 @@ document.addEventListener('DOMContentLoaded', function() {
     initMobileMenu();
     initSmoothScroll();
     initBackToTop();
+    initStickyHeader();
     loadRecentMartyrs();
     initAnniversarySlider();
     initImageLightbox();
 });
+
+// ============================================
+// STICKY HEADER — Scroll-aware shrink effect
+// ============================================
+function initStickyHeader() {
+    const header = document.querySelector('.site-header');
+    if (!header) return;
+
+    let scrollTicking = false;
+    const SCROLL_THRESHOLD = 60;
+
+    function updateHeaderState() {
+        const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+        if (scrollY > SCROLL_THRESHOLD) {
+            header.classList.add('scrolled');
+        } else {
+            header.classList.remove('scrolled');
+        }
+        scrollTicking = false;
+    }
+
+    window.addEventListener('scroll', function() {
+        if (!scrollTicking) {
+            window.requestAnimationFrame(updateHeaderState);
+            scrollTicking = true;
+        }
+    }, { passive: true });
+}
 
 // ============================================
 // BACK TO TOP BUTTON

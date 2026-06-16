@@ -9,32 +9,7 @@
     <link rel="stylesheet" href="css/chatbot.css">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" sizes="any">
     <link rel="shortcut icon" type="image/svg+xml" href="/favicon.svg">
-    <style>
-        /* Responsive styles for about page */
-        @media (max-width: 768px) {
-            .about-section div[style*="grid-template-columns: 1fr 1fr"] {
-                display: block !important;
-            }
-            .about-section div[style*="grid-template-columns: 1fr 1fr"] > div {
-                margin-bottom: 1rem !important;
-            }
-            .about-section div[style*="display: flex"] {
-                flex-direction: column !important;
-                gap: 1rem !important;
-            }
-            .about-section div[style*="padding: 2rem"] {
-                padding: 1.5rem !important;
-            }
-            .about-section div[style*="padding: 2.5rem"] {
-                padding: 2rem !important;
-            }
-        }
-        @media (max-width: 480px) {
-            .about-section div[style*="padding: 1.5rem"] {
-                padding: 1rem !important;
-            }
-        }
-    </style>
+
 </head>
 <body>
     <!-- Header Section -->
@@ -72,106 +47,106 @@
                     <p>Preserving the legacy of Baluch heroes</p>
                 </div>
 
-                <div style="max-width: 900px; margin: 0 auto;">
+                <div class="about-content-wrapper">
                     <!-- Introduction -->
-                    <div style="background: #f8f9fa; padding: 2rem; border-radius: 12px; margin-bottom: 3rem; text-align: center;">
-                        <h3 style="color: var(--primary-color); margin-bottom: 1rem;">Honoring the Ultimate Sacrifice</h3>
-                        <p style="font-size: 1.1rem; line-height: 1.7; color: #555;">The Baluch Martyrs Memorial serves as a digital sanctuary where we preserve the stories, honor the courage, and celebrate the lives of those who made the ultimate sacrifice for freedom and justice.</p>
+                    <div class="about-intro">
+                        <h3>Honoring the Ultimate Sacrifice</h3>
+                        <p class="about-intro-text">The Baluch Martyrs Memorial serves as a digital sanctuary where we preserve the stories, honor the courage, and celebrate the lives of those who made the ultimate sacrifice for freedom and justice.</p>
                     </div>
 
                     <!-- Our Mission -->
-                    <section style="margin-bottom: 3rem;">
-                        <h3 style="color: var(--primary-color); border-bottom: 2px solid var(--accent-color); padding-bottom: 0.5rem; margin-bottom: 1.5rem;">Our Sacred Mission</h3>
-                        <p style="line-height: 1.8; margin-bottom: 1.5rem;">We are dedicated to preserving the memory and honoring the sacrifice of Baluch martyrs who gave their lives for the freedom and dignity of their people. Through this digital memorial, we ensure their heroic stories transcend time and continue to inspire generations to come.</p>
-                        <p style="line-height: 1.8;">Every martyr's story deserves to be told, remembered, and passed down through history with the reverence it deserves.</p>
+                    <section class="about-mission">
+                        <h3 class="about-section-title">Our Sacred Mission</h3>
+                        <p class="about-body-text">We are dedicated to preserving the memory and honoring the sacrifice of Baluch martyrs who gave their lives for the freedom and dignity of their people. Through this digital memorial, we ensure their heroic stories transcend time and continue to inspire generations to come.</p>
+                        <p class="about-body-text-last">Every martyr's story deserves to be told, remembered, and passed down through history with the reverence it deserves.</p>
                     </section>
 
                     <!-- Why This Memorial -->
-                    <section style="margin-bottom: 3rem;">
-                        <h3 style="color: var(--primary-color); border-bottom: 2px solid var(--accent-color); padding-bottom: 0.5rem; margin-bottom: 1.5rem;">Why This Memorial Matters</h3>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 1.5rem;">
-                            <div style="background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                                <h4 style="color: var(--primary-color); margin-bottom: 1rem;">🕊️ Preserving Legacy</h4>
-                                <p style="line-height: 1.6;">Each martyr represents unwavering courage, dedication, and commitment to justice. Their sacrifices must never be forgotten.</p>
+                    <section class="about-mission">
+                        <h3 class="about-section-title">Why This Memorial Matters</h3>
+                        <div class="about-why-grid">
+                            <div class="about-why-card">
+                                <h4>🕊️ Preserving Legacy</h4>
+                                <p>Each martyr represents unwavering courage, dedication, and commitment to justice. Their sacrifices must never be forgotten.</p>
                             </div>
-                            <div style="background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                                <h4 style="color: var(--primary-color); margin-bottom: 1rem;">📚 Historical Record</h4>
-                                <p style="line-height: 1.6;">This memorial serves as a permanent digital archive, ensuring accurate historical documentation for future research.</p>
+                            <div class="about-why-card">
+                                <h4>📚 Historical Record</h4>
+                                <p>This memorial serves as a permanent digital archive, ensuring accurate historical documentation for future research.</p>
                             </div>
                         </div>
-                        <p style="line-height: 1.8; text-align: center; font-style: italic; color: #666;">"A nation that forgets its heroes ceases to be worthy of them."</p>
+                        <p class="about-quote">"A nation that forgets its heroes ceases to be worthy of them."</p>
                     </section>
 
                     <!-- What We Do -->
-                    <section style="margin-bottom: 3rem;">
-                        <h3 style="color: var(--primary-color); border-bottom: 2px solid var(--accent-color); padding-bottom: 0.5rem; margin-bottom: 1.5rem;">Our Work & Services</h3>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
-                            <div style="background: #e8f4f8; padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--primary-color);">
-                                <h4 style="color: var(--primary-color); margin-bottom: 0.5rem;">🗂️ Documentation</h4>
-                                <p style="line-height: 1.6; font-size: 0.95rem;">Carefully document and preserve biographical information, photos, and stories of each martyr.</p>
+                    <section class="about-mission">
+                        <h3 class="about-section-title">Our Work & Services</h3>
+                        <div class="about-services-grid">
+                            <div class="about-service-card">
+                                <h4>🗂️ Documentation</h4>
+                                <p>Carefully document and preserve biographical information, photos, and stories of each martyr.</p>
                             </div>
-                            <div style="background: #e8f4f8; padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--primary-color);">
-                                <h4 style="color: var(--primary-color); margin-bottom: 0.5rem;">👨‍👩‍👧‍👦 Community Platform</h4>
-                                <p style="line-height: 1.6; font-size: 0.95rem;">Provide families and communities a space to share memories and honor their loved ones.</p>
+                            <div class="about-service-card">
+                                <h4>👨‍👩‍👧‍👦 Community Platform</h4>
+                                <p>Provide families and communities a space to share memories and honor their loved ones.</p>
                             </div>
-                            <div style="background: #e8f4f8; padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--primary-color);">
-                                <h4 style="color: var(--primary-color); margin-bottom: 0.5rem;">🎓 Educational Archive</h4>
-                                <p style="line-height: 1.6; font-size: 0.95rem;">Create an accessible digital resource for research, education, and historical study.</p>
+                            <div class="about-service-card">
+                                <h4>🎓 Educational Archive</h4>
+                                <p>Create an accessible digital resource for research, education, and historical study.</p>
                             </div>
-                            <div style="background: #e8f4f8; padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--primary-color);">
-                                <h4 style="color: var(--primary-color); margin-bottom: 0.5rem;">🌟 Inspiration</h4>
-                                <p style="line-height: 1.6; font-size: 0.95rem;">Share stories of courage and sacrifice to inspire current and future generations.</p>
+                            <div class="about-service-card">
+                                <h4>🌟 Inspiration</h4>
+                                <p>Share stories of courage and sacrifice to inspire current and future generations.</p>
                             </div>
                         </div>
                     </section>
 
                     <!-- How You Can Help -->
-                    <section style="margin-bottom: 3rem;">
-                        <h3 style="color: var(--primary-color); border-bottom: 2px solid var(--accent-color); padding-bottom: 0.5rem; margin-bottom: 1.5rem;">Join Our Mission</h3>
-                        <p style="line-height: 1.8; margin-bottom: 2rem; text-align: center;">This memorial grows through the collective effort of families, communities, and individuals who believe in preserving our heroes' legacy.</p>
-                        <div style="background: #fff; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
-                            <h4 style="color: var(--primary-color); margin-bottom: 1.5rem; text-align: center;">Ways to Contribute:</h4>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
-                                <div style="text-align: center; padding: 1rem;">
-                                    <div style="background: var(--accent-color); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem;">📝</div>
-                                    <h5 style="color: var(--primary-color); margin-bottom: 0.5rem;">Submit Information</h5>
-                                    <p style="font-size: 0.9rem; line-height: 1.6;">Add details about martyrs you know, including their stories and sacrifices.</p>
+                    <section class="about-mission">
+                        <h3 class="about-section-title">Join Our Mission</h3>
+                        <p class="about-join-text">This memorial grows through the collective effort of families, communities, and individuals who believe in preserving our heroes' legacy.</p>
+                        <div class="about-contribute-wrapper">
+                            <h4>Ways to Contribute:</h4>
+                            <div class="about-contribute-grid">
+                                <div class="about-contribute-item">
+                                    <div class="about-contribute-icon">📝</div>
+                                    <h5>Submit Information</h5>
+                                    <p>Add details about martyrs you know, including their stories and sacrifices.</p>
                                 </div>
-                                <div style="text-align: center; padding: 1rem;">
-                                    <div style="background: var(--accent-color); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem;">📸</div>
-                                    <h5 style="color: var(--primary-color); margin-bottom: 0.5rem;">Share Photos</h5>
-                                    <p style="font-size: 0.9rem; line-height: 1.6;">Contribute photographs and biographical materials to preserve their memory.</p>
+                                <div class="about-contribute-item">
+                                    <div class="about-contribute-icon">📸</div>
+                                    <h5>Share Photos</h5>
+                                    <p>Contribute photographs and biographical materials to preserve their memory.</p>
                                 </div>
-                                <div style="text-align: center; padding: 1rem;">
-                                    <div style="background: var(--accent-color); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem;">✅</div>
-                                    <h5 style="color: var(--primary-color); margin-bottom: 0.5rem;">Verify Information</h5>
-                                    <p style="font-size: 0.9rem; line-height: 1.6;">Help ensure accuracy by reviewing and updating existing memorial entries.</p>
+                                <div class="about-contribute-item">
+                                    <div class="about-contribute-icon">✅</div>
+                                    <h5>Verify Information</h5>
+                                    <p>Help ensure accuracy by reviewing and updating existing memorial entries.</p>
                                 </div>
-                                <div style="text-align: center; padding: 1rem;">
-                                    <div style="background: var(--accent-color); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; font-size: 1.5rem;">📢</div>
-                                    <h5 style="color: var(--primary-color); margin-bottom: 0.5rem;">Spread Awareness</h5>
-                                    <p style="font-size: 0.9rem; line-height: 1.6;">Share this memorial with others to help preserve our collective history.</p>
+                                <div class="about-contribute-item">
+                                    <div class="about-contribute-icon">📢</div>
+                                    <h5>Spread Awareness</h5>
+                                    <p>Share this memorial with others to help preserve our collective history.</p>
                                 </div>
                             </div>
                         </div>
                     </section>
 
                     <!-- Our Commitment -->
-                    <section style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); padding: 2.5rem; border-radius: 12px; text-align: center;">
-                        <h3 style="color: var(--primary-color); margin-bottom: 1.5rem;">Our Sacred Promise</h3>
-                        <p style="line-height: 1.8; font-size: 1.1rem; margin-bottom: 1.5rem;">We are committed to maintaining this memorial with the utmost respect, accuracy, and dignity. Every entry is handled with reverence, ensuring that each martyr's memory is preserved appropriately for current and future generations.</p>
-                        <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 2rem; flex-wrap: wrap;">
-                            <div style="text-align: center;">
-                                <div style="font-size: 2rem; color: var(--primary-color); margin-bottom: 0.5rem;">🛡️</div>
-                                <strong style="color: var(--primary-color);">Respect</strong>
+                    <section class="about-promise">
+                        <h3>Our Sacred Promise</h3>
+                        <p class="about-promise-text">We are committed to maintaining this memorial with the utmost respect, accuracy, and dignity. Every entry is handled with reverence, ensuring that each martyr's memory is preserved appropriately for current and future generations.</p>
+                        <div class="about-promise-values">
+                            <div class="about-promise-value">
+                                <div class="about-promise-value-icon">🛡️</div>
+                                <strong>Respect</strong>
                             </div>
-                            <div style="text-align: center;">
-                                <div style="font-size: 2rem; color: var(--primary-color); margin-bottom: 0.5rem;">📊</div>
-                                <strong style="color: var(--primary-color);">Accuracy</strong>
+                            <div class="about-promise-value">
+                                <div class="about-promise-value-icon">📊</div>
+                                <strong>Accuracy</strong>
                             </div>
-                            <div style="text-align: center;">
-                                <div style="font-size: 2rem; color: var(--primary-color); margin-bottom: 0.5rem;">💎</div>
-                                <strong style="color: var(--primary-color);">Dignity</strong>
+                            <div class="about-promise-value">
+                                <div class="about-promise-value-icon">💎</div>
+                                <strong>Dignity</strong>
                             </div>
                         </div>
                     </section>
