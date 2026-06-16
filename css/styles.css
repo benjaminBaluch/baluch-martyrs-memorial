@@ -348,13 +348,14 @@ html[data-theme="dark"] .showcase-card:hover {
 /* Featured martyrs cards */
 html[data-theme="dark"] .featured-martyrs .martyr-card {
     background: linear-gradient(145deg, #0f172a 0%, #0b1120 100%);
-    border-color: rgba(71, 85, 105, 0.45);
-    box-shadow: 0 25px 55px rgba(2, 6, 23, 0.75);
+    border: none;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 
+                0 25px 55px rgba(2, 6, 23, 0.75);
 }
 
 html[data-theme="dark"] .featured-martyrs .martyr-card:hover {
-    border-color: rgba(148, 210, 189, 0.4);
-    box-shadow: 0 35px 70px rgba(2, 6, 23, 0.85);
+    box-shadow: inset 0 0 0 1px rgba(148, 210, 189, 0.2), 
+                0 35px 70px rgba(2, 6, 23, 0.85);
 }
 
 html[data-theme="dark"] .featured-martyrs .placeholder {
@@ -365,13 +366,14 @@ html[data-theme="dark"] .featured-martyrs .placeholder {
 /* Gallery page dark mode */
 html[data-theme="dark"] .gallery-grid .martyr-card {
     background: linear-gradient(145deg, #0f172a 0%, #0a1220 100%);
-    border-color: rgba(71, 85, 105, 0.4);
-    box-shadow: 0 25px 55px rgba(2, 6, 23, 0.75);
+    border: none;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 
+                0 25px 55px rgba(2, 6, 23, 0.75);
 }
 
 html[data-theme="dark"] .gallery-grid .martyr-card:hover {
-    border-color: rgba(148, 210, 189, 0.4);
-    box-shadow: 0 35px 70px rgba(2, 6, 23, 0.85);
+    box-shadow: inset 0 0 0 1px rgba(148, 210, 189, 0.2), 
+                0 35px 70px rgba(2, 6, 23, 0.85);
 }
 
 html[data-theme="dark"] .martyr-image {
@@ -1120,17 +1122,20 @@ section {
 .martyr-card {
     position: relative;
     background: #ffffff;
-    border-radius: 16px;
-    border: 1px solid rgba(15, 23, 42, 0.06);
-    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+    border-radius: 20px;
+    border: none;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8), 
+                0 8px 30px rgba(15, 23, 42, 0.04), 
+                0 24px 60px rgba(15, 23, 42, 0.08);
     overflow: hidden;
-    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .martyr-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.16);
-    border-color: rgba(44, 85, 48, 0.2);
+    transform: translateY(-8px);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.95), 
+                0 12px 40px rgba(15, 23, 42, 0.06), 
+                0 32px 80px rgba(15, 23, 42, 0.12);
 }
 
 .martyr-card.placeholder {
@@ -1149,7 +1154,7 @@ section {
 .martyr-photo-wrapper {
     position: relative;
     overflow: hidden;
-    border-radius: 16px 16px 0 0;
+    border-radius: 20px 20px 0 0;
     background: linear-gradient(135deg, #dfe7e9, #cfd9df);
 }
 
@@ -1158,7 +1163,11 @@ section {
     width: 100%;
     height: 220px;
     object-fit: cover;
-    filter: saturate(1.05);
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.martyr-card:hover .martyr-photo-wrapper img {
+    transform: scale(1.04);
 }
 
 .martyr-photo-placeholder {
@@ -2720,11 +2729,13 @@ html[data-theme="dark"] .btn-discover {
 .gallery-grid .martyr-card {
     position: relative;
     background: #ffffff;
-    border-radius: 16px;
-    border: 1px solid rgba(15, 23, 42, 0.06);
-    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+    border-radius: 20px;
+    border: none;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8), 
+                0 8px 30px rgba(15, 23, 42, 0.04), 
+                0 24px 60px rgba(15, 23, 42, 0.08);
     overflow: hidden;
-    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     content-visibility: auto;
     contain-intrinsic-size: auto 380px;
     cursor: pointer;
@@ -2745,9 +2756,10 @@ html[data-theme="dark"] .btn-discover {
 }
 
 .gallery-grid .martyr-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.16);
-    border-color: rgba(44, 85, 48, 0.2);
+    transform: translateY(-8px);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.95), 
+                0 12px 40px rgba(15, 23, 42, 0.06), 
+                0 32px 80px rgba(15, 23, 42, 0.12);
 }
 
 .gallery-grid .martyr-card:hover::before {
@@ -2808,7 +2820,7 @@ html[data-theme="dark"] .btn-discover {
 .gallery-grid .martyr-photo-wrapper {
     position: relative;
     overflow: hidden;
-    border-radius: 16px 16px 0 0;
+    border-radius: 20px 20px 0 0;
     background: linear-gradient(135deg, #dfe7e9, #cfd9df);
 }
 
@@ -2817,7 +2829,11 @@ html[data-theme="dark"] .btn-discover {
     width: 100%;
     height: 220px;
     object-fit: cover;
-    filter: saturate(1.05);
+    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.gallery-grid .martyr-card:hover .martyr-photo-wrapper img {
+    transform: scale(1.04);
 }
 
 .gallery-grid .martyr-photo-placeholder {
