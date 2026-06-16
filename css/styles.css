@@ -4435,6 +4435,100 @@ html[data-theme="dark"] .about-promise {
     overflow: hidden;
     animation: modalSlideIn 0.3s ease-out;
 }
+/* Martyr Modal Custom Header */
+.martyr-modal-header {
+    padding: 1.25rem 1.75rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #111827, #1f2937);
+    color: #f9fafb;
+    gap: 1rem;
+    position: relative;
+}
+
+.martyr-modal-header-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.martyr-voice-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    border-radius: 99px;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+
+.close-martyr-modal {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    border: 1px solid rgba(148,163,184,0.5);
+    background: rgba(15,23,42,0.75);
+    color: #f9fafb;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.close-martyr-modal:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+@media (max-width: 500px) {
+    .martyr-modal-header {
+        padding: 1rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .martyr-modal-header-title {
+        padding-right: 2rem; /* Leave room for absolute close button */
+    }
+    
+    .martyr-modal-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .martyr-voice-btn {
+        padding: 0.35rem 0.6rem;
+        font-size: 0.8rem;
+    }
+    
+    .martyr-print-btn-header {
+        padding: 0.35rem 0.6rem !important;
+        font-size: 0.8rem !important;
+    }
+    
+    .close-martyr-modal {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        width: 32px;
+        height: 32px;
+        font-size: 1.2rem;
+    }
+}
 
 .modal-header {
     background: linear-gradient(135deg, var(--primary-color), var(--dark-color));

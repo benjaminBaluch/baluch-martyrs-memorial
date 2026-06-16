@@ -646,16 +646,8 @@ function showMartyrDetails(martyr) {
     
     content.innerHTML = `
         <div style="display: flex; flex-direction: column;">
-            <div style="
-                padding: 1.25rem 1.75rem;
-                border-bottom: 1px solid #e5e7eb;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                background: linear-gradient(135deg, #111827, #1f2937);
-                color: #f9fafb;
-            ">
-                <div>
+            <div class="martyr-modal-header">
+                <div class="martyr-modal-header-title">
                     <h2 style="margin: 0; font-size: 1.4rem; letter-spacing: 0.08em; text-transform: uppercase; color: #f9fafb;">
                         ${escapeHTMLMain(martyr.fullName || 'Unknown martyr')}
                     </h2>
@@ -663,15 +655,14 @@ function showMartyrDetails(martyr) {
                         ${escapeHTMLMain(headerDateLabel)}
                     </p>
                 </div>
-                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <button class="martyr-voice-btn" type="button" style="display: flex; align-items: center; gap: 0.3rem; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 99px; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: background 0.2s;">
+                <div class="martyr-modal-header-actions">
+                    <button class="martyr-voice-btn" type="button">
                         🔊 Listen
                     </button>
-                    <button class="btn btn-small btn-outline martyr-print-btn-header" type="button" style="color: #f9fafb; border-color: rgba(148,163,184,0.5);">
+                    <button class="btn btn-small btn-outline martyr-print-btn-header" type="button">
                         PDF
                     </button>
-                    <button class="close-martyr-modal"
-                            style="width: 36px; height: 36px; border-radius: 999px; border: 1px solid rgba(148,163,184,0.5); background: rgba(15,23,42,0.75); color: #f9fafb; font-size: 1.4rem; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <button class="close-martyr-modal" type="button">
                         &times;
                     </button>
                 </div>
