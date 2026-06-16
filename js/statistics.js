@@ -607,9 +607,9 @@
         const peakYear = Object.entries(stats.byYear)
             .sort((a, b) => b[1] - a[1])[0][0];
         
-        // Build complete year range (fill gaps)
+        // Build complete year range (fill gaps) backwards so newest year is on the left
         const yearCards = [];
-        for (let year = stats.minYear; year <= stats.maxYear; year++) {
+        for (let year = stats.maxYear; year >= stats.minYear; year--) {
             const count = stats.byYear[year] || 0;
             const barScale = maxCount > 0 ? (count / maxCount) : 0;
             const isHighlight = year.toString() === peakYear;
