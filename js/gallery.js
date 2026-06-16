@@ -196,6 +196,7 @@ async function loadGallery() {
             console.log(`✨ Using pre-loaded data: ${window.martyrsDataFromFirebase.length} martyrs`);
             allMartyrs = window.martyrsDataFromFirebase;
             renderGallery(allMartyrs);
+            window.dispatchEvent(new Event('martyrsDataReady'));
             galleryLoaded = true;
             galleryLoading = false;
             return;
@@ -219,6 +220,7 @@ async function loadGallery() {
 
                 renderGallery(allMartyrs);
                 hideOfflineWarning();
+                window.dispatchEvent(new Event('martyrsDataReady'));
                 galleryLoaded = true;
                 galleryLoading = false;
                 return;
@@ -253,6 +255,7 @@ async function loadGallery() {
 
                     renderGallery(allMartyrs);
                     hideOfflineWarning();
+                    window.dispatchEvent(new Event('martyrsDataReady'));
                     galleryLoaded = true;
                     galleryLoading = false;
                     return;
@@ -277,6 +280,7 @@ async function loadGallery() {
                     console.log(`💾 LocalStorage success: ${allMartyrs.length} martyrs`);
                     renderGallery(allMartyrs);
                     showOfflineWarning();
+                    window.dispatchEvent(new Event('martyrsDataReady'));
                     galleryLoaded = true;
                     galleryLoading = false;
                     return;
@@ -304,6 +308,7 @@ async function loadGallery() {
                 }
             ];
             renderGallery(allMartyrs);
+            window.dispatchEvent(new Event('martyrsDataReady'));
             galleryLoaded = true;
             galleryLoading = false;
             return;
