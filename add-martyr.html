@@ -3,559 +3,192 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Add a Baluch martyr to the memorial - Upload photos and details">
-    <title>Add Martyr - Baluch Martyrs Memorial</title>
+    <meta name="description" content="Honor a hero — preserve the legacy of a Baluch martyr by adding their story to the memorial">
+    <title>Honor a Hero — Baluch Martyrs Memorial</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" sizes="any">
     <link rel="shortcut icon" type="image/svg+xml" href="/favicon.svg">
-    <!-- Google Fonts for Calligraphy -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        /* ============================================
-           Real-time Memorial Card Preview
-           ============================================ */
-        
-        .add-martyr-section .container {
-            max-width: 1400px;
-        }
-
-        .form-preview-wrapper {
-            display: grid;
-            grid-template-columns: 1fr 380px;
-            gap: 3rem;
-            align-items: start;
-        }
-
-        .form-column {
-            min-width: 0;
-        }
-
-        /* Memorial Card Preview */
-        .memorial-preview-column {
-            position: sticky;
-            top: 100px;
-        }
-
-        .memorial-preview-container {
-            perspective: 1000px;
-        }
-
-        .memorial-preview-header {
-            text-align: center;
-            margin-bottom: 1.25rem;
-        }
-
-        .memorial-preview-header h4 {
-            font-size: 0.9rem;
-            color: var(--primary-color, #2c5530);
-            font-weight: 600;
-            margin: 0 0 0.25rem 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-
-        .memorial-preview-header p {
-            font-size: 0.75rem;
-            color: #666;
-            margin: 0;
-        }
-
-        .preview-live-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-size: 0.7rem;
-            color: #10b981;
-            background: rgba(16, 185, 129, 0.1);
-            padding: 0.2rem 0.6rem;
-            border-radius: 20px;
-            margin-top: 0.5rem;
-        }
-
-        .preview-live-indicator::before {
-            content: '';
-            width: 6px;
-            height: 6px;
-            background: #10b981;
-            border-radius: 50%;
-            animation: live-pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes live-pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(0.8); }
-        }
-
-        /* The Memorial Card */
-        .memorial-card-3d {
-            background: linear-gradient(145deg, #fafaf8 0%, #f0eeea 100%);
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 
-                0 25px 50px rgba(44, 85, 48, 0.12),
-                0 10px 20px rgba(0, 0, 0, 0.08),
-                inset 0 1px 0 rgba(255, 255, 255, 0.9);
-            transform: rotateY(-2deg) rotateX(1deg);
-            transform-style: preserve-3d;
-            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.5s ease;
-            border: 1px solid rgba(44, 85, 48, 0.12);
-            position: relative;
-        }
-
-        .memorial-card-3d:hover {
-            transform: rotateY(0deg) rotateX(0deg) translateY(-5px);
-            box-shadow: 
-                0 35px 60px rgba(44, 85, 48, 0.18),
-                0 15px 30px rgba(0, 0, 0, 0.12);
-        }
-
-        /* Top Border Accent - Sage Green Gradient */
-        .memorial-card-3d::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, 
-                transparent 0%, 
-                #5a8a5e 15%,
-                #2c5530 50%,
-                #5a8a5e 85%, 
-                transparent 100%);
-        }
-
-        /* Card Inner Content */
-        .memorial-card-inner {
-            padding: 0;
-        }
-
-        /* Photo Section */
-        .preview-photo-section {
-            position: relative;
-            width: 100%;
-            height: 280px;
-            background: linear-gradient(135deg, #e8e6e1 0%, #d4d2cd 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-
-        .preview-photo-placeholder {
-            text-align: center;
-            color: #999;
-        }
-
-        .preview-photo-placeholder svg {
-            width: 64px;
-            height: 64px;
-            opacity: 0.4;
-            margin-bottom: 0.75rem;
-        }
-
-        .preview-photo-placeholder p {
-            font-size: 0.8rem;
-            margin: 0;
-        }
-
-        .preview-photo-section img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.5s ease;
-        }
-
-        .memorial-card-3d:hover .preview-photo-section img {
-            transform: scale(1.03);
-        }
-
-        /* Photo Frame Overlay */
-        .preview-photo-frame {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            border: 6px solid transparent;
-            border-image: linear-gradient(135deg, 
-                rgba(44, 85, 48, 0.2) 0%, 
-                rgba(90, 138, 94, 0.1) 50%,
-                rgba(44, 85, 48, 0.2) 100%) 1;
-            pointer-events: none;
-        }
-
-        /* Candle Icon Overlay */
-        .preview-candle-icon {
-            position: absolute;
-            bottom: 12px;
-            right: 12px;
-            width: 36px;
-            height: 36px;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.1rem;
-            box-shadow: 0 2px 10px rgba(44, 85, 48, 0.2);
-            animation: candle-glow 3s ease-in-out infinite;
-        }
-
-        @keyframes candle-glow {
-            0%, 100% { box-shadow: 0 2px 10px rgba(44, 85, 48, 0.15); }
-            50% { box-shadow: 0 2px 20px rgba(44, 85, 48, 0.35); }
-        }
-
-        /* Content Section */
-        .preview-content-section {
-            padding: 1.5rem;
-        }
-
-        /* Name - Calligraphy Style */
-        .preview-name {
-            font-family: 'Playfair Display', 'Georgia', serif;
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: var(--primary-color, #2c5530);
-            text-align: center;
-            margin: 0 0 0.25rem 0;
-            line-height: 1.3;
-            letter-spacing: 0.02em;
-            min-height: 2rem;
-            transition: all 0.3s ease;
-        }
-
-        .preview-name.empty {
-            color: #ccc;
-            font-style: italic;
-            font-weight: 400;
-        }
-
-        /* Father's Name */
-        .preview-father-name {
-            font-family: 'Cormorant Garamond', 'Georgia', serif;
-            font-size: 0.9rem;
-            color: #666;
-            text-align: center;
-            margin: 0 0 1rem 0;
-            font-style: italic;
-            min-height: 1.2rem;
-        }
-
-        /* Dates Section */
-        .preview-dates {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 1.5rem;
-            margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid rgba(44, 85, 48, 0.15);
-        }
-
-        .preview-date-item {
-            text-align: center;
-        }
-
-        .preview-date-label {
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #999;
-            margin-bottom: 0.2rem;
-        }
-
-        .preview-date-value {
-            font-family: 'Cormorant Garamond', 'Georgia', serif;
-            font-size: 1rem;
-            color: #333;
-            font-weight: 500;
-        }
-
-        .preview-date-value.empty {
-            color: #ccc;
-        }
-
-        .preview-dates-separator {
-            color: #5a8a5e;
-            font-size: 1.25rem;
-            opacity: 0.7;
-        }
-
-        /* Location */
-        .preview-location {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.4rem;
-            margin-bottom: 1rem;
-            font-size: 0.85rem;
-            color: #666;
-        }
-
-        .preview-location svg {
-            width: 14px;
-            height: 14px;
-            opacity: 0.7;
-        }
-
-        .preview-location.empty {
-            color: #ccc;
-        }
-
-        /* Organization Badge */
-        .preview-organization {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 1rem;
-        }
-
-        .preview-org-badge {
-            background: linear-gradient(135deg, var(--primary-color, #2c5530) 0%, #1a3d20 100%);
-            color: white;
-            padding: 0.35rem 0.9rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            letter-spacing: 0.03em;
-        }
-
-        .preview-org-badge.empty {
-            background: #e5e5e5;
-            color: #999;
-        }
-
-        /* Biography */
-        .preview-biography {
-            font-family: 'Cormorant Garamond', 'Georgia', serif;
-            font-size: 0.9rem;
-            line-height: 1.7;
-            color: #555;
-            text-align: center;
-            max-height: 80px;
-            overflow: hidden;
-            position: relative;
-        }
-
-        .preview-biography.empty {
-            color: #ccc;
-            font-style: italic;
-        }
-
-        .preview-biography::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 30px;
-            background: linear-gradient(transparent, #fdfcfa);
-        }
-
-        /* Card Footer */
-        .preview-card-footer {
-            background: linear-gradient(135deg, rgba(44, 85, 48, 0.06) 0%, rgba(90, 138, 94, 0.04) 100%);
-            padding: 0.75rem 1.5rem;
-            text-align: center;
-            border-top: 1px solid rgba(44, 85, 48, 0.1);
-        }
-
-        .preview-card-footer p {
-            font-size: 0.7rem;
-            color: #888;
-            margin: 0;
-            font-style: italic;
-        }
-
-        /* Mobile Preview Toggle */
-        .mobile-preview-toggle {
-            display: none;
-            position: fixed;
-            bottom: 80px;
-            right: 20px;
-            z-index: 999;
-            background: linear-gradient(135deg, var(--primary-color, #2c5530) 0%, #1a3d20 100%);
-            color: white;
-            border: none;
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            font-size: 1.5rem;
-            cursor: pointer;
-            box-shadow: 0 4px 20px rgba(44, 85, 48, 0.4);
-            transition: all 0.3s ease;
-        }
-
-        .mobile-preview-toggle:hover {
-            transform: scale(1.1);
-        }
-
-        .mobile-preview-toggle .badge {
-            position: absolute;
-            top: -2px;
-            right: -2px;
-            width: 18px;
-            height: 18px;
-            background: #5a8a5e;
-            border-radius: 50%;
-            font-size: 0.65rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: badge-pulse 2s infinite;
-        }
-
-        @keyframes badge-pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
-        }
-
-        /* Mobile Preview Modal */
-        .mobile-preview-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.85);
-            z-index: 10000;
-            padding: 1rem;
-            overflow-y: auto;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .mobile-preview-modal.active {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            padding-top: 60px;
-        }
-
-        .mobile-preview-close {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            background: white;
-            border: none;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            font-size: 1.25rem;
-            cursor: pointer;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-            z-index: 10001;
-        }
-
-        .mobile-preview-content {
-            width: 100%;
-            max-width: 360px;
-        }
-
-        .mobile-preview-content .memorial-card-3d {
-            transform: none;
-        }
-
-        /* Responsive */
-        @media (max-width: 1024px) {
-            .form-preview-wrapper {
-                grid-template-columns: 1fr;
-            }
-
-            .memorial-preview-column {
-                display: none;
-            }
-
-            .mobile-preview-toggle {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .mobile-preview-toggle {
-                bottom: 90px;
-                width: 52px;
-                height: 52px;
-            }
-        }
-
-        /* Dark Mode Support */
-        [data-theme="dark"] .memorial-card-3d {
-            background: linear-gradient(145deg, #1e1e1e 0%, #141414 100%);
-            border-color: rgba(90, 138, 94, 0.25);
-        }
-
-        [data-theme="dark"] .memorial-card-3d::before {
-            background: linear-gradient(90deg, 
-                transparent 0%, 
-                #3d6b41 15%,
-                #5a8a5e 50%,
-                #3d6b41 85%, 
-                transparent 100%);
-        }
-
-        [data-theme="dark"] .preview-photo-section {
-            background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
-        }
-
-        [data-theme="dark"] .preview-name {
-            color: #e8ebe8;
-        }
-
-        [data-theme="dark"] .preview-name.empty {
-            color: #4a4a4a;
-        }
-
-        [data-theme="dark"] .preview-father-name,
-        [data-theme="dark"] .preview-date-value,
-        [data-theme="dark"] .preview-location,
-        [data-theme="dark"] .preview-biography {
-            color: #a8b0a8;
-        }
-
-        [data-theme="dark"] .preview-biography::after {
-            background: linear-gradient(transparent, #1e1e1e);
-        }
-
-        [data-theme="dark"] .preview-card-footer {
-            background: linear-gradient(135deg, rgba(44, 85, 48, 0.12) 0%, rgba(90, 138, 94, 0.08) 100%);
-            border-color: rgba(90, 138, 94, 0.15);
-        }
-
-        [data-theme="dark"] .preview-dates {
-            border-color: rgba(90, 138, 94, 0.2);
-        }
-
-        [data-theme="dark"] .preview-dates-separator {
-            color: #6b9b6f;
-        }
-
-        [data-theme="dark"] .mobile-preview-modal {
-            background: rgba(0, 0, 0, 0.95);
-        }
+        /* HERO BANNER */
+        .add-hero-banner{background:linear-gradient(160deg,#0f1f11 0%,#1a3220 40%,#2c5530 100%);padding:4rem 0 3rem;text-align:center;position:relative;overflow:hidden}
+        .add-hero-banner::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 120%,rgba(212,175,55,0.08) 0%,transparent 60%)}
+        .candle-row{display:flex;justify-content:center;gap:1rem;margin-bottom:1.5rem;font-size:1.6rem;opacity:0.75;animation:candleFlicker 3s ease-in-out infinite}
+        @keyframes candleFlicker{0%,100%{opacity:0.75}50%{opacity:0.55}}
+        .banner-eyebrow{font-family:'Inter',sans-serif;font-size:0.75rem;letter-spacing:0.22em;text-transform:uppercase;color:rgba(212,175,55,0.7);margin-bottom:0.75rem;display:block}
+        .add-hero-banner h1{font-family:'EB Garamond',serif;font-size:clamp(2.2rem,5vw,3.5rem);font-weight:700;color:#fff;margin-bottom:0.75rem;line-height:1.15}
+        .banner-subtitle{font-family:'EB Garamond',serif;font-size:1.2rem;color:rgba(255,255,255,0.65);font-style:italic;max-width:480px;margin:0 auto;line-height:1.6}
+
+        /* STEP PROGRESS */
+        .step-progress{display:flex;align-items:center;justify-content:center;gap:0;margin:2.5rem auto 2rem;max-width:480px;padding:0 1rem}
+        .step-item{display:flex;flex-direction:column;align-items:center;flex:1;position:relative}
+        .step-circle{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-size:0.8rem;font-weight:700;border:2px solid rgba(44,85,48,0.2);background:#fff;color:#999;transition:all 0.35s cubic-bezier(0.4,0,0.2,1);z-index:1;position:relative}
+        .step-item.active .step-circle{background:var(--primary-color,#2c5530);border-color:var(--primary-color,#2c5530);color:#fff;box-shadow:0 0 0 4px rgba(44,85,48,0.15)}
+        .step-item.completed .step-circle{background:#5a8a5e;border-color:#5a8a5e;color:#fff}
+        .step-label{font-family:'Inter',sans-serif;font-size:0.68rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#999;margin-top:0.4rem;text-align:center}
+        .step-item.active .step-label{color:var(--primary-color,#2c5530)}
+        .step-item.completed .step-label{color:#5a8a5e}
+        .step-connector{flex:1;height:2px;background:rgba(44,85,48,0.15);margin-bottom:1.4rem;transition:background 0.35s ease}
+        .step-connector.filled{background:#5a8a5e}
+
+        /* LAYOUT */
+        .add-martyr-section{padding:0 0 4rem}
+        .add-martyr-section .container{max-width:1400px}
+        .form-preview-wrapper{display:grid;grid-template-columns:1fr 380px;gap:3rem;align-items:start}
+        .form-column{min-width:0}
+
+        /* FORM STEPS */
+        .form-step{display:none}
+        .form-step.active{display:block}
+        .step-section-label{display:flex;align-items:center;gap:0.75rem;margin-bottom:1.75rem;padding-bottom:1rem;border-bottom:1px solid rgba(44,85,48,0.12)}
+        .step-section-number{font-family:'Inter',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--primary-color,#2c5530);opacity:0.6}
+        .step-section-icon{width:38px;height:38px;background:linear-gradient(135deg,rgba(44,85,48,0.08),rgba(44,85,48,0.04));border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--primary-color,#2c5530);border:1px solid rgba(44,85,48,0.1);flex-shrink:0}
+        .step-section-title{font-family:'EB Garamond',serif;font-size:1.4rem;font-weight:700;color:var(--primary-color,#2c5530);margin:0;line-height:1}
+
+        /* FIELD PILLS */
+        .form-group label{display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap}
+        .field-pill{font-family:'Inter',sans-serif;font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:0.15rem 0.45rem;border-radius:4px}
+        .field-pill.required{background:rgba(220,38,38,0.1);color:#dc2626}
+        .field-pill.optional{background:rgba(100,116,139,0.1);color:#64748b}
+        .age-display{margin-top:0.5rem;font-family:'EB Garamond',serif;font-size:0.95rem;font-style:italic;color:#64748b;min-height:1.2em;transition:all 0.3s ease}
+        .section-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(212,175,55,0.3),transparent);margin:2.5rem 0}
+
+        /* DRAG-DROP PHOTO */
+        .photo-drop-zone{border:2px dashed rgba(44,85,48,0.25);border-radius:16px;padding:3rem 2rem;text-align:center;background:linear-gradient(135deg,rgba(44,85,48,0.02),rgba(44,85,48,0.01));transition:all 0.3s cubic-bezier(0.4,0,0.2,1);cursor:pointer;position:relative;overflow:hidden}
+        .photo-drop-zone:hover,.photo-drop-zone.drag-over{border-color:var(--primary-color,#2c5530);background:rgba(44,85,48,0.04);transform:scale(1.01)}
+        .photo-drop-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+        .drop-zone-icon{width:56px;height:56px;background:linear-gradient(135deg,rgba(44,85,48,0.08),rgba(44,85,48,0.04));border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;color:var(--primary-color,#2c5530);transition:transform 0.3s ease}
+        .photo-drop-zone:hover .drop-zone-icon{transform:translateY(-4px)}
+        .drop-zone-title{font-family:'EB Garamond',serif;font-size:1.15rem;font-weight:600;color:var(--primary-color,#2c5530);margin-bottom:0.35rem}
+        .drop-zone-subtitle{font-size:0.85rem;color:#64748b;margin-bottom:0}
+        .drop-zone-hint{font-size:0.78rem;color:#94a3b8;font-style:italic;margin-top:0.5rem}
+        .photo-drop-zone.has-photo{padding:0;border-style:solid;border-color:rgba(44,85,48,0.3)}
+        .photo-drop-zone.has-photo .drop-zone-content{display:none}
+        .photo-drop-preview{display:none;position:relative;width:100%;height:280px}
+        .photo-drop-zone.has-photo .photo-drop-preview{display:block}
+        .photo-drop-preview img{width:100%;height:100%;object-fit:cover;border-radius:14px}
+        .photo-drop-preview .change-photo-btn{position:absolute;bottom:0.75rem;right:0.75rem;background:rgba(0,0,0,0.65);color:#fff;border:none;padding:0.4rem 0.9rem;border-radius:20px;font-size:0.78rem;font-weight:600;cursor:pointer;backdrop-filter:blur(8px);transition:background 0.2s ease}
+        .photo-drop-preview .change-photo-btn:hover{background:rgba(0,0,0,0.8)}
+
+        /* BIO PROMPTS */
+        .bio-prompts{background:linear-gradient(135deg,rgba(212,175,55,0.06),rgba(212,175,55,0.03));border:1px solid rgba(212,175,55,0.2);border-radius:12px;padding:1rem 1.25rem;margin-bottom:0.75rem}
+        .bio-prompts-toggle{display:flex;align-items:center;gap:0.5rem;font-family:'Inter',sans-serif;font-size:0.82rem;font-weight:600;color:#92400e;cursor:pointer;user-select:none;background:none;border:none;padding:0;width:100%;text-align:left}
+        .bio-prompts-toggle svg{transition:transform 0.25s ease;flex-shrink:0}
+        .bio-prompts-toggle.open svg:last-child{transform:rotate(180deg)}
+        .bio-prompts-list{display:none;margin-top:0.85rem;padding-top:0.85rem;border-top:1px solid rgba(212,175,55,0.2);list-style:none}
+        .bio-prompts-list.open{display:block}
+        .bio-prompts-list li{font-family:'EB Garamond',serif;font-size:0.95rem;font-style:italic;color:#78350f;padding:0.3rem 0 0.3rem 1rem;position:relative}
+        .bio-prompts-list li::before{content:'›';position:absolute;left:0;color:#d97706;font-style:normal}
+        .bio-counter{font-family:'Inter',sans-serif;font-size:0.78rem;color:#94a3b8;text-align:right;margin-top:0.4rem;transition:color 0.3s ease}
+        .bio-counter.has-words{color:#5a8a5e}
+        #biography{font-family:'EB Garamond',Georgia,serif;font-size:1.05rem;line-height:1.75;letter-spacing:0.01em}
+
+        /* STEP NAV BUTTONS */
+        .step-nav{display:flex;gap:1rem;margin-top:2rem;align-items:center}
+        .btn-back{background:none;border:1.5px solid rgba(44,85,48,0.25);color:var(--primary-color,#2c5530);padding:0.75rem 1.5rem;border-radius:8px;font-weight:600;font-size:0.9rem;cursor:pointer;transition:all 0.2s ease;display:flex;align-items:center;gap:0.4rem}
+        .btn-back:hover{background:rgba(44,85,48,0.04);border-color:rgba(44,85,48,0.4)}
+        .btn-next{background:linear-gradient(135deg,var(--primary-color,#2c5530),#1a3d20);color:#fff;border:none;padding:0.8rem 2rem;border-radius:8px;font-weight:700;font-size:0.95rem;cursor:pointer;transition:all 0.25s ease;display:flex;align-items:center;gap:0.5rem;flex:1;justify-content:center}
+        .btn-next:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(44,85,48,0.3)}
+        .btn-submit-legacy{background:linear-gradient(135deg,#1a3d20,#2c5530);color:#fff;border:none;padding:1rem 2.5rem;border-radius:10px;font-family:'EB Garamond',serif;font-size:1.25rem;font-weight:700;cursor:pointer;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);display:flex;align-items:center;gap:0.6rem;letter-spacing:0.01em;width:100%;justify-content:center}
+        .btn-submit-legacy:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(44,85,48,0.35)}
+        .btn-submit-legacy.loading{opacity:0.8;cursor:wait}
+        .btn-spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:none}
+        .btn-submit-legacy.loading .btn-spinner{display:block}
+        .btn-submit-legacy.loading .btn-text{display:none}
+        .btn-loading-text{display:none}
+        .btn-submit-legacy.loading .btn-loading-text{display:inline}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .submitter-note{background:linear-gradient(135deg,rgba(44,85,48,0.04),rgba(44,85,48,0.02));border:1px solid rgba(44,85,48,0.1);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:0.88rem;color:#64748b;line-height:1.6}
+        .submitter-note strong{color:var(--primary-color,#2c5530)}
+
+        /* SUCCESS SCREEN */
+        #successMessage{text-align:center;padding:3rem 2rem}
+        .success-candle{font-size:3.5rem;display:block;margin-bottom:1.5rem;animation:candleFlicker 3s ease-in-out infinite}
+        .success-title{font-family:'EB Garamond',serif;font-size:clamp(1.8rem,4vw,2.8rem);font-weight:700;color:var(--primary-color,#2c5530);margin-bottom:0.5rem;line-height:1.2}
+        .success-name-highlight{color:#5a8a5e;font-style:italic}
+        .success-subtitle{font-family:'EB Garamond',serif;font-size:1.15rem;font-style:italic;color:#64748b;margin-bottom:2.5rem;line-height:1.6}
+        .success-actions{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+        .success-divider{width:80px;height:2px;background:linear-gradient(90deg,transparent,rgba(212,175,55,0.5),transparent);margin:1.5rem auto}
+
+        /* PREVIEW CARD */
+        .memorial-preview-column{position:sticky;top:100px}
+        .memorial-preview-container{perspective:1000px}
+        .memorial-preview-header{text-align:center;margin-bottom:1.25rem}
+        .memorial-preview-header h4{font-size:0.9rem;color:var(--primary-color,#2c5530);font-weight:600;margin:0 0 0.25rem;display:flex;align-items:center;justify-content:center;gap:0.5rem}
+        .memorial-preview-header p{font-size:0.75rem;color:#666;margin:0}
+        .preview-live-indicator{display:inline-flex;align-items:center;gap:0.4rem;font-size:0.7rem;color:#10b981;background:rgba(16,185,129,0.1);padding:0.2rem 0.6rem;border-radius:20px;margin-top:0.5rem}
+        .preview-live-indicator::before{content:'';width:6px;height:6px;background:#10b981;border-radius:50%;animation:live-pulse 2s ease-in-out infinite}
+        @keyframes live-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+        .memorial-card-3d{background:linear-gradient(145deg,#fafaf8 0%,#f0eeea 100%);border-radius:16px;overflow:hidden;box-shadow:0 25px 50px rgba(44,85,48,0.12),0 10px 20px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);transform:rotateY(-2deg) rotateX(1deg);transform-style:preserve-3d;transition:transform 0.5s cubic-bezier(0.4,0,0.2,1),box-shadow 0.5s ease;border:1px solid rgba(44,85,48,0.12);position:relative}
+        .memorial-card-3d:hover{transform:rotateY(0deg) rotateX(0deg) translateY(-5px);box-shadow:0 35px 60px rgba(44,85,48,0.18),0 15px 30px rgba(0,0,0,0.12)}
+        .memorial-card-3d::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,transparent 0%,#5a8a5e 15%,#2c5530 50%,#5a8a5e 85%,transparent 100%)}
+        .memorial-card-inner{padding:0}
+        .preview-photo-section{position:relative;width:100%;height:280px;background:linear-gradient(135deg,#e8e6e1 0%,#d4d2cd 100%);display:flex;align-items:center;justify-content:center;overflow:hidden}
+        .preview-photo-placeholder{text-align:center;color:#999}
+        .preview-photo-placeholder svg{width:64px;height:64px;opacity:0.4;margin-bottom:0.75rem}
+        .preview-photo-placeholder p{font-size:0.8rem;margin:0;font-style:italic;color:#aaa}
+        .preview-photo-section img{width:100%;height:100%;object-fit:cover;transition:transform 0.5s ease}
+        .memorial-card-3d:hover .preview-photo-section img{transform:scale(1.03)}
+        .preview-photo-frame{position:absolute;inset:0;border:6px solid transparent;border-image:linear-gradient(135deg,rgba(44,85,48,0.2) 0%,rgba(90,138,94,0.1) 50%,rgba(44,85,48,0.2) 100%) 1;pointer-events:none}
+        .preview-candle-icon{position:absolute;bottom:12px;right:12px;width:36px;height:36px;background:rgba(255,255,255,0.95);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 2px 10px rgba(44,85,48,0.2);animation:candle-glow 3s ease-in-out infinite}
+        @keyframes candle-glow{0%,100%{box-shadow:0 2px 10px rgba(44,85,48,0.15)}50%{box-shadow:0 2px 20px rgba(44,85,48,0.35)}}
+        .preview-content-section{padding:1.5rem}
+        .preview-name{font-family:'Playfair Display','Georgia',serif;font-size:1.5rem;font-weight:600;color:var(--primary-color,#2c5530);text-align:center;margin:0 0 0.25rem;line-height:1.3;letter-spacing:0.02em;min-height:2rem;transition:all 0.3s ease}
+        .preview-name.empty{color:#ccc;font-style:italic;font-weight:400}
+        .preview-father-name{font-family:'Cormorant Garamond','Georgia',serif;font-size:0.9rem;color:#666;text-align:center;margin:0 0 1rem;font-style:italic;min-height:1.2rem}
+        .preview-dates{display:flex;justify-content:center;align-items:center;gap:1.5rem;margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid rgba(44,85,48,0.15)}
+        .preview-date-item{text-align:center}
+        .preview-date-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.1em;color:#999;margin-bottom:0.2rem}
+        .preview-date-value{font-family:'Cormorant Garamond','Georgia',serif;font-size:1rem;color:#333;font-weight:500}
+        .preview-date-value.empty{color:#ccc}
+        .preview-dates-separator{color:#5a8a5e;font-size:1.25rem;opacity:0.7}
+        .preview-location{display:flex;align-items:center;justify-content:center;gap:0.4rem;margin-bottom:1rem;font-size:0.85rem;color:#666}
+        .preview-location svg{width:14px;height:14px;opacity:0.7}
+        .preview-location.empty{color:#ccc}
+        .preview-organization{display:flex;justify-content:center;margin-bottom:1rem}
+        .preview-org-badge{background:linear-gradient(135deg,var(--primary-color,#2c5530) 0%,#1a3d20 100%);color:white;padding:0.35rem 0.9rem;border-radius:20px;font-size:0.75rem;font-weight:500;letter-spacing:0.03em}
+        .preview-org-badge.empty{background:#e5e5e5;color:#999}
+        .preview-biography{font-family:'Cormorant Garamond','Georgia',serif;font-size:0.9rem;line-height:1.7;color:#555;text-align:center;max-height:80px;overflow:hidden;position:relative}
+        .preview-biography.empty{color:#ccc;font-style:italic}
+        .preview-biography::after{content:'';position:absolute;bottom:0;left:0;right:0;height:30px;background:linear-gradient(transparent,#fdfcfa)}
+        .preview-card-footer{background:linear-gradient(135deg,rgba(44,85,48,0.06) 0%,rgba(90,138,94,0.04) 100%);padding:0.75rem 1.5rem;text-align:center;border-top:1px solid rgba(44,85,48,0.1)}
+        .preview-card-footer p{font-size:0.7rem;color:#888;margin:0;font-style:italic}
+
+        /* MOBILE PREVIEW */
+        .mobile-preview-toggle{display:none;position:fixed;bottom:80px;right:20px;z-index:999;background:linear-gradient(135deg,var(--primary-color,#2c5530) 0%,#1a3d20 100%);color:white;border:none;padding:0.6rem 1.1rem;border-radius:24px;font-family:'Inter',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;box-shadow:0 4px 20px rgba(44,85,48,0.4);transition:all 0.3s ease;align-items:center;gap:0.4rem}
+        .mobile-preview-toggle:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(44,85,48,0.45)}
+        .mobile-preview-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:10000;padding:1rem;overflow-y:auto;animation:fadeIn 0.3s ease}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        .mobile-preview-modal.active{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:60px}
+        .mobile-preview-close{position:fixed;top:15px;right:15px;background:white;border:none;width:40px;height:40px;border-radius:50%;font-size:1.25rem;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.2);z-index:10001}
+        .mobile-preview-content{width:100%;max-width:360px}
+        .mobile-preview-content .memorial-card-3d{transform:none}
+
+        @media(max-width:1024px){.form-preview-wrapper{grid-template-columns:1fr}.memorial-preview-column{display:none}.mobile-preview-toggle{display:flex}}
+        @media(max-width:768px){.add-hero-banner{padding:3rem 0 2.5rem}.step-progress{margin:1.75rem auto 1.5rem}.mobile-preview-toggle{bottom:90px}}
+
+        [data-theme="dark"] .memorial-card-3d{background:linear-gradient(145deg,#1e1e1e 0%,#141414 100%);border-color:rgba(90,138,94,0.25)}
+        [data-theme="dark"] .preview-photo-section{background:linear-gradient(135deg,#2a2a2a 0%,#1a1a1a 100%)}
+        [data-theme="dark"] .preview-name{color:#e8ebe8}
+        [data-theme="dark"] .preview-name.empty{color:#4a4a4a}
+        [data-theme="dark"] .preview-father-name,[data-theme="dark"] .preview-date-value,[data-theme="dark"] .preview-location,[data-theme="dark"] .preview-biography{color:#a8b0a8}
+        [data-theme="dark"] .preview-biography::after{background:linear-gradient(transparent,#1e1e1e)}
+        [data-theme="dark"] .preview-card-footer{background:linear-gradient(135deg,rgba(44,85,48,0.12) 0%,rgba(90,138,94,0.08) 100%);border-color:rgba(90,138,94,0.15)}
+        [data-theme="dark"] .preview-dates{border-color:rgba(90,138,94,0.2)}
+        [data-theme="dark"] .preview-dates-separator{color:#6b9b6f}
+        [data-theme="dark"] .add-hero-banner{background:linear-gradient(160deg,#060e07 0%,#0f1f11 40%,#1a3220 100%)}
+        [data-theme="dark"] .bio-prompts{background:rgba(212,175,55,0.04);border-color:rgba(212,175,55,0.15)}
+        [data-theme="dark"] .submitter-note{background:rgba(44,85,48,0.06)}
+        [data-theme="dark"] .step-circle{background:#1e1e1e;border-color:rgba(44,85,48,0.3)}
     </style>
 </head>
 <body>
-    <!-- Header Section -->
     <header class="site-header">
         <nav class="navbar">
             <div class="container">
-                <div class="nav-brand">
-                    <h1>Baluch Martyrs Memorial</h1>
-                </div>
+                <div class="nav-brand"><h1>Baluch Martyrs Memorial</h1></div>
                 <ul class="nav-menu">
                     <li><a href="/">Home</a></li>
                     <li><a href="/add-martyr" class="active">Add Martyr</a></li>
@@ -566,180 +199,279 @@
                     <li><div id="google_translate_element"></div></li>
                     <li><button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle dark mode">🌙</button></li>
                 </ul>
-                <div class="hamburger">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
+                <div class="hamburger"><span></span><span></span><span></span></div>
             </div>
         </nav>
     </header>
 
-    <!-- Main Content -->
+    <!-- Solemn Hero Banner -->
+    <div class="add-hero-banner">
+        <div class="container">
+            <div class="candle-row" aria-hidden="true">🕯️ 🕯️ 🕯️</div>
+            <span class="banner-eyebrow">Baluch Martyrs Memorial</span>
+            <h1>Honor a Hero</h1>
+            <p class="banner-subtitle">Every name you add becomes a flame that never goes out.</p>
+        </div>
+    </div>
+
     <main>
         <section class="add-martyr-section">
             <div class="container">
-                <div class="page-header">
-                    <h2>Add a Martyr to the Memorial</h2>
-                    <p>Honor a hero by adding their information to our memorial database</p>
+
+                <!-- Step Progress -->
+                <div class="step-progress" id="stepProgress">
+                    <div class="step-item active" id="step-indicator-1">
+                        <div class="step-circle">1</div>
+                        <div class="step-label">Identity</div>
+                    </div>
+                    <div class="step-connector" id="connector-1-2"></div>
+                    <div class="step-item" id="step-indicator-2">
+                        <div class="step-circle">2</div>
+                        <div class="step-label">Their Story</div>
+                    </div>
+                    <div class="step-connector" id="connector-2-3"></div>
+                    <div class="step-item" id="step-indicator-3">
+                        <div class="step-circle">3</div>
+                        <div class="step-label">Your Details</div>
+                    </div>
                 </div>
 
                 <div class="form-preview-wrapper">
-                    <!-- Form Column -->
                     <div class="form-column">
-                <form id="addMartyrForm" class="martyr-form">
-                    <!-- Personal Information Section -->
-                    <div class="form-section">
-                        <h3>Personal Information</h3>
-                        
-                        <div class="form-group">
-                            <label for="fullName">Full Name *</label>
-                            <input type="text" id="fullName" name="fullName" required>
-                        </div>
+                        <form id="addMartyrForm" class="martyr-form" novalidate>
 
-                        <div class="form-row">
-                        <div class="form-group">
-                            <label for="birthDate">Date of Birth</label>
-                            <input type="date" id="birthDate" name="birthDate">
-                            <small id="birthDateHelper" class="date-helper"></small>
-                        </div>
-                            
-                            <div class="form-group">
-                                <label for="martyrdomDate">Date of Martyrdom *</label>
-                                <input type="date" id="martyrdomDate" name="martyrdomDate" required>
-                                <small id="martyrdomDateHelper" class="date-helper"></small>
-                            </div>
-                        </div>
+                            <!-- STEP 1: IDENTITY -->
+                            <div class="form-step active" id="formStep1">
+                                <div class="step-section-label">
+                                    <div class="step-section-icon" aria-hidden="true">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                    </div>
+                                    <div>
+                                        <div class="step-section-number">Step 01</div>
+                                        <h2 class="step-section-title">Their Identity</h2>
+                                    </div>
+                                </div>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="birthPlace">Place of Birth</label>
-                                <input type="text" id="birthPlace" name="birthPlace" placeholder="City, Province">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="martyrdomPlace">Place of Martyrdom *</label>
-                                <input type="text" id="martyrdomPlace" name="martyrdomPlace" placeholder="City, Province" required>
-                            </div>
-                        </div>
-                    </div>
+                                <div class="form-group">
+                                    <label for="fullName">Full Name <span class="field-pill required">Required</span></label>
+                                    <input type="text" id="fullName" name="fullName" placeholder="Enter full name" required autocomplete="off">
+                                </div>
 
-                    <!-- Photo Upload Section -->
-                    <div class="form-section">
-                        <h3>Photo Upload</h3>
-                        
-                        <div class="form-group">
-                            <label for="martyrPhoto">Martyr's Photo *</label>
-                            <div class="file-upload-wrapper">
-                                <input type="file" id="martyrPhoto" name="martyrPhoto" accept="image/*" required>
-                                <div class="file-upload-display">
-                                    <span class="file-upload-text">Choose a photo...</span>
-                                    <button type="button" class="btn btn-outline btn-small">Browse</button>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="birthDate">Date of Birth <span class="field-pill optional">Optional</span></label>
+                                        <input type="date" id="birthDate" name="birthDate">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="martyrdomDate">Date of Martyrdom <span class="field-pill required">Required</span></label>
+                                        <input type="date" id="martyrdomDate" name="martyrdomDate" required>
+                                    </div>
+                                </div>
+                                <div class="age-display" id="ageDisplay"></div>
+
+                                <div class="section-divider"></div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="birthPlace">Place of Birth <span class="field-pill optional">Optional</span></label>
+                                        <input type="text" id="birthPlace" name="birthPlace" placeholder="City, Province">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="martyrdomPlace">Place of Martyrdom <span class="field-pill required">Required</span></label>
+                                        <input type="text" id="martyrdomPlace" name="martyrdomPlace" placeholder="City, Province" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="fatherName">Father's Name <span class="field-pill optional">Optional</span></label>
+                                    <input type="text" id="fatherName" name="fatherName" placeholder="e.g. Abdullah">
+                                </div>
+
+                                <div class="step-nav">
+                                    <button type="button" class="btn-next" id="btnStep1Next">
+                                        <span>Continue — Their Story</span>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                    </button>
                                 </div>
                             </div>
-                            <div id="photoPreview" class="photo-preview"></div>
-                        </div>
 
-                        <div class="form-group">
-                            <label for="additionalPhotos">Additional Photos (Optional)</label>
-                            <div class="file-upload-wrapper">
-                                <input type="file" id="additionalPhotos" name="additionalPhotos" accept="image/*" multiple>
-                                <div class="file-upload-display">
-                                    <span class="file-upload-text">Choose photos...</span>
-                                    <button type="button" class="btn btn-outline btn-small">Browse</button>
+                            <!-- STEP 2: THEIR STORY -->
+                            <div class="form-step" id="formStep2">
+                                <div class="step-section-label">
+                                    <div class="step-section-icon" aria-hidden="true">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                                    </div>
+                                    <div>
+                                        <div class="step-section-number">Step 02</div>
+                                        <h2 class="step-section-title">Their Story</h2>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="martyrPhoto">Photograph <span class="field-pill required">Required</span></label>
+                                    <div class="photo-drop-zone" id="photoDropZone">
+                                        <input type="file" id="martyrPhoto" name="martyrPhoto" accept="image/*" required aria-label="Upload martyr photograph">
+                                        <div class="drop-zone-content">
+                                            <div class="drop-zone-icon" aria-hidden="true">
+                                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                            </div>
+                                            <div class="drop-zone-title" id="dropZoneTitle">Upload their photograph</div>
+                                            <div class="drop-zone-subtitle">Drag &amp; drop or click to browse</div>
+                                            <div class="drop-zone-hint">Portrait photos work best &middot; JPG or PNG &middot; up to 10MB</div>
+                                        </div>
+                                        <div class="photo-drop-preview" id="photoDropPreview">
+                                            <img id="previewPhotoImg" src="" alt="Martyr photo preview">
+                                            <button type="button" class="change-photo-btn" id="changePhotoBtn">Change photo</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="section-divider"></div>
+
+                                <div class="form-group">
+                                    <label for="biography">Biography <span class="field-pill optional">Optional</span></label>
+                                    <div class="bio-prompts">
+                                        <button type="button" class="bio-prompts-toggle" id="bioPromptsToggle" aria-expanded="false">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                            Writing prompts — not sure what to write?
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="margin-left:auto"><polyline points="6 9 12 15 18 9"/></svg>
+                                        </button>
+                                        <ul class="bio-prompts-list" id="bioPromptsList" aria-hidden="true">
+                                            <li>Who were they? What did they love? What were their dreams?</li>
+                                            <li>What were they known for among family and community?</li>
+                                            <li>What were the circumstances of their martyrdom?</li>
+                                            <li>What cause were they fighting for or standing up for?</li>
+                                            <li>What do you want the world to remember about them?</li>
+                                        </ul>
+                                    </div>
+                                    <textarea id="biography" name="biography" rows="8" placeholder="Share their life story — their dreams, their courage, and how they will be remembered..."></textarea>
+                                    <div class="bio-counter" id="bioCounter">Start writing — every word matters</div>
+                                </div>
+
+                                <div class="section-divider"></div>
+
+                                <div class="form-group">
+                                    <label for="organization">Affiliation <span class="field-pill optional">Optional</span></label>
+                                    <select id="organization" name="organization">
+                                        <option value="">— Select affiliation —</option>
+                                        <optgroup label="Civil Society">
+                                            <option value="Civilian">Civilian (No Armed Affiliation)</option>
+                                            <option value="Student">Student / Academic</option>
+                                            <option value="Journalist">Journalist / Media</option>
+                                            <option value="Human Rights">Human Rights Activist</option>
+                                            <option value="Political Activist">Political Activist</option>
+                                        </optgroup>
+                                        <optgroup label="Political Parties">
+                                            <option value="BNM">Baloch National Movement (BNM)</option>
+                                            <option value="BNP">Balochistan National Party (BNP)</option>
+                                            <option value="BSO">Baloch Students Organization (BSO)</option>
+                                        </optgroup>
+                                        <optgroup label="Freedom Movements">
+                                            <option value="BLA">Balochistan Liberation Army (BLA)</option>
+                                            <option value="BLF">Balochistan Liberation Front (BLF)</option>
+                                            <option value="BRAS">Baloch Raaji Aajoi Sangar (BRAS)</option>
+                                            <option value="BRA">Balochistan Republican Army (BRA)</option>
+                                            <option value="LeB">Lashkar-e-Balochistan (LeB)</option>
+                                            <option value="UBA">United Baloch Army (UBA)</option>
+                                        </optgroup>
+                                        <optgroup label="Other">
+                                            <option value="Other">Other (specify below)</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+
+                                <div class="form-group" id="otherOrgGroup" style="display:none;">
+                                    <label for="organizationOther">Specify Organization <span class="field-pill optional">Optional</span></label>
+                                    <input type="text" id="organizationOther" name="organizationOther" placeholder="Enter the organization or movement name">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="rank">Rank / Title <span class="field-pill optional">Optional</span></label>
+                                    <input type="text" id="rank" name="rank" placeholder="Military rank or title held">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="additionalPhotos">Additional Photos <span class="field-pill optional">Optional</span></label>
+                                    <div class="file-upload-wrapper">
+                                        <input type="file" id="additionalPhotos" name="additionalPhotos" accept="image/*" multiple>
+                                        <div class="file-upload-display">
+                                            <span class="file-upload-text">Choose additional photos...</span>
+                                            <button type="button" class="btn btn-outline btn-small">Browse</button>
+                                        </div>
+                                    </div>
+                                    <div id="additionalPhotosPreview" class="photos-preview-grid"></div>
+                                </div>
+
+                                <div class="step-nav">
+                                    <button type="button" class="btn-back" id="btnStep2Back">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                                        Back
+                                    </button>
+                                    <button type="button" class="btn-next" id="btnStep2Next">
+                                        <span>Continue — Your Details</span>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                    </button>
                                 </div>
                             </div>
-                            <div id="additionalPhotosPreview" class="photos-preview-grid"></div>
-                        </div>
-                    </div>
 
-                    <!-- Biography Section -->
-                    <div class="form-section">
-                        <h3>Biography & Details</h3>
-                        
-                        <div class="form-group">
-                            <label for="biography">Biography</label>
-                            <textarea id="biography" name="biography" rows="6" 
-                                placeholder="Share the martyr's life story, their contributions, and the circumstances of their martyrdom..."></textarea>
-                        </div>
+                            <!-- STEP 3: YOUR DETAILS -->
+                            <div class="form-step" id="formStep3">
+                                <div class="step-section-label">
+                                    <div class="step-section-icon" aria-hidden="true">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>
+                                    </div>
+                                    <div>
+                                        <div class="step-section-number">Step 03</div>
+                                        <h2 class="step-section-title">Your Details</h2>
+                                    </div>
+                                </div>
 
-                        <div class="form-group">
-                            <label for="organization">Affiliation</label>
-                            <select id="organization" name="organization">
-                                <option value="">-- Select Affiliation --</option>
-                                <option value="Civilian">Civilian (No Armed Affiliation)</option>
-                                <option value="BLA">Balochistan Liberation Army (BLA)</option>
-                                <option value="BLF">Balochistan Liberation Front (BLF)</option>
-                                <option value="BRAS">Baloch Raaji Aajoi Sangar (BRAS)</option>
-                                <option value="BRA">Balochistan Republican Army (BRA)</option>
-                                <option value="LeB">Lashkar-e-Balochistan (LeB)</option>
-                                <option value="UBA">United Baloch Army (UBA)</option>
-                                <option value="BSO">Baloch Students Organization (BSO)</option>
-                                <option value="BNM">Baloch National Movement (BNM)</option>
-                                <option value="BNP">Balochistan National Party (BNP)</option>
-                                <option value="Student">Student / Academic</option>
-                                <option value="Journalist">Journalist / Media</option>
-                                <option value="Human Rights">Human Rights Activist</option>
-                                <option value="Political Activist">Political Activist</option>
-                                <option value="Other">Other (specify below)</option>
-                            </select>
-                        </div>
+                                <div class="submitter-note">
+                                    <strong>Almost done.</strong> We keep your details private — they are only used to verify the submission and contact you if we need more information. They will never be shown publicly.
+                                </div>
 
-                        <div class="form-group" id="otherOrgGroup" style="display: none;">
-                            <label for="organizationOther">Specify Organization</label>
-                            <input type="text" id="organizationOther" name="organizationOther" 
-                                placeholder="Enter the organization or movement name">
-                        </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="submitterName">Your Name <span class="field-pill required">Required</span></label>
+                                        <input type="text" id="submitterName" name="submitterName" required autocomplete="name">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="submitterEmail">Your Email <span class="field-pill required">Required</span></label>
+                                        <input type="email" id="submitterEmail" name="submitterEmail" required autocomplete="email">
+                                    </div>
+                                </div>
 
-                        <div class="form-group">
-                            <label for="rank">Rank/Title</label>
-                            <input type="text" id="rank" name="rank" 
-                                placeholder="Military rank or title held">
-                        </div>
-                    </div>
+                                <div class="section-divider"></div>
 
-                    <!-- Family Information Section -->
-                    <div class="form-section">
-                        <h3>Family Information (Optional)</h3>
-                        
-                        <div class="form-group">
-                            <label for="fatherName">Father's Name</label>
-                            <input type="text" id="fatherName" name="fatherName">
-                        </div>
-
-                    </div>
-
-                    <!-- Submitter Information -->
-                    <div class="form-section">
-                        <h3>Submitted By</h3>
-                        
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="submitterName">Your Name *</label>
-                                <input type="text" id="submitterName" name="submitterName" required>
+                                <div class="step-nav" style="flex-direction:column;align-items:stretch;">
+                                    <button type="submit" class="btn-submit-legacy" id="btnSubmitLegacy">
+                                        <span class="btn-spinner"></span>
+                                        <span class="btn-text">Preserve Their Legacy →</span>
+                                        <span class="btn-loading-text">Preserving legacy...</span>
+                                    </button>
+                                    <button type="button" class="btn-back" id="btnStep3Back" style="justify-content:center;margin-top:0.5rem;">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                                        Back to Their Story
+                                    </button>
+                                </div>
                             </div>
-                            
-                            <div class="form-group">
-                                <label for="submitterEmail">Your Email *</label>
-                                <input type="email" id="submitterEmail" name="submitterEmail" required>
+
+                        </form>
+
+                        <!-- Success Screen -->
+                        <div id="successMessage" style="display:none;">
+                            <span class="success-candle" aria-hidden="true">🕯️</span>
+                            <h2 class="success-title">
+                                <span id="successNameDisplay" class="success-name-highlight"></span><br>
+                                has been added to the memorial.
+                            </h2>
+                            <div class="success-divider"></div>
+                            <p class="success-subtitle">Their story will now live alongside the heroes of the Baluch nation — forever preserved, forever honoured.</p>
+                            <div class="success-actions">
+                                <a href="/gallery" class="btn btn-primary">View Memorial Gallery</a>
+                                <button onclick="location.reload()" class="btn btn-outline">Honor Another Hero</button>
                             </div>
                         </div>
-
-                    </div>
-
-                    <!-- Submit Section -->
-                    <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" onclick="resetForm()">Clear Form</button>
-                        <button type="submit" class="btn btn-primary">Submit Memorial</button>
-                    </div>
-                </form>
-
-                <!-- Success Message (Initially Hidden) -->
-                <div id="successMessage" class="success-message" style="display: none;">
-                    <h3>Thank You!</h3>
-                    <p>The martyr's information has been successfully submitted to our memorial.</p>
-                    <button onclick="window.location.href='/gallery'" class="btn btn-primary">View Gallery</button>
-                </div>
                     </div>
 
                     <!-- Memorial Preview Column (Desktop) -->
@@ -750,27 +482,20 @@
                                 <p>See how the memorial will appear</p>
                                 <div class="preview-live-indicator">Updating live</div>
                             </div>
-
                             <div class="memorial-card-3d" id="memorialPreviewCard">
                                 <div class="memorial-card-inner">
-                                    <!-- Photo Section -->
                                     <div class="preview-photo-section" id="previewPhotoSection">
                                         <div class="preview-photo-placeholder" id="previewPhotoPlaceholder">
-                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                            </svg>
-                                            <p>Photo will appear here</p>
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                            <p>Their photograph will appear here</p>
                                         </div>
-                                        <img id="previewPhotoImg" src="" alt="" style="display: none;">
+                                        <img id="previewPhotoImgCard" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;">
                                         <div class="preview-photo-frame"></div>
                                         <div class="preview-candle-icon">🕯️</div>
                                     </div>
-
-                                    <!-- Content Section -->
                                     <div class="preview-content-section">
-                                        <h3 class="preview-name empty" id="previewName">Martyr's Name</h3>
+                                        <h3 class="preview-name empty" id="previewName">Their name will appear here</h3>
                                         <p class="preview-father-name" id="previewFatherName"></p>
-
                                         <div class="preview-dates">
                                             <div class="preview-date-item">
                                                 <div class="preview-date-label">Born</div>
@@ -782,23 +507,15 @@
                                                 <div class="preview-date-value empty" id="previewMartyrdomDate">—</div>
                                             </div>
                                         </div>
-
                                         <div class="preview-location empty" id="previewLocation">
-                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            </svg>
+                                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                                             <span>Location will appear here</span>
                                         </div>
-
-                                        <div class="preview-organization" id="previewOrgContainer" style="display: none;">
+                                        <div class="preview-organization" id="previewOrgContainer" style="display:none;">
                                             <span class="preview-org-badge" id="previewOrganization"></span>
                                         </div>
-
-                                        <p class="preview-biography empty" id="previewBiography">Biography will appear here as you type...</p>
+                                        <p class="preview-biography empty" id="previewBiography">Their story will appear as you write it...</p>
                                     </div>
-
-                                    <!-- Footer -->
                                     <div class="preview-card-footer">
                                         <p>🕊️ Forever in our hearts</p>
                                     </div>
@@ -811,7 +528,6 @@
         </section>
     </main>
 
-    <!-- Footer -->
     <footer class="site-footer">
         <div class="container">
             <div class="footer-content">
@@ -836,298 +552,257 @@
             </div>
             <div class="footer-bottom">
                 <p>&copy; <span class="js-current-year">2026</span> Baluch Martyrs Memorial. All rights reserved.</p>
-                <p>Data managed by <strong>Baloch Martyrs Committee</strong> • Powered by <strong>Benjamin Baluch</strong></p>
+                <p>Data managed by <strong>Baloch Martyrs Committee</strong> &bull; Powered by <strong>Benjamin Baluch</strong></p>
             </div>
         </div>
     </footer>
 
-    <!-- Mobile Preview Toggle Button -->
-    <button class="mobile-preview-toggle" id="mobilePreviewToggle" aria-label="Preview Memorial">
-        👁️
-        <span class="badge">!</span>
+    <button class="mobile-preview-toggle" id="mobilePreviewToggle" aria-label="Preview Memorial Card">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        Preview Card
     </button>
 
-    <!-- Mobile Preview Modal -->
     <div class="mobile-preview-modal" id="mobilePreviewModal">
         <button class="mobile-preview-close" id="mobilePreviewClose">✕</button>
-        <div class="mobile-preview-content" id="mobilePreviewContent">
-            <!-- Content cloned from desktop preview -->
-        </div>
+        <div class="mobile-preview-content" id="mobilePreviewContent"></div>
     </div>
 
     <script src="js/main.js"></script>
     <script src="js/mobile-menu.js"></script>
     <script type="module" src="js/add-martyr.js"></script>
 
-    <!-- Real-time Memorial Preview Script -->
     <script>
-    (function() {
+    (function(){
         'use strict';
+        var currentStep=1;
 
-        // Format date beautifully
-        function formatDate(dateString) {
-            if (!dateString) return '—';
-            try {
-                const date = new Date(dateString);
-                if (isNaN(date.getTime())) return '—';
-                return date.toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric'
-                });
-            } catch (e) {
-                return '—';
-            }
+        function goToStep(n){
+            document.querySelectorAll('.form-step').forEach(function(s){s.classList.remove('active');});
+            var t=document.getElementById('formStep'+n);
+            if(t){t.classList.add('active');t.scrollIntoView({behavior:'smooth',block:'start'});}
+            currentStep=n;
+            updateStepIndicator(n);
         }
 
-        // Escape HTML for safety
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        function updateStepIndicator(n){
+            for(var i=1;i<=3;i++){
+                var item=document.getElementById('step-indicator-'+i);
+                if(!item)continue;
+                item.classList.remove('active','completed');
+                if(i<n)item.classList.add('completed');
+                else if(i===n)item.classList.add('active');
+            }
+            var c12=document.getElementById('connector-1-2');
+            var c23=document.getElementById('connector-2-3');
+            if(c12)c12.classList.toggle('filled',n>1);
+            if(c23)c23.classList.toggle('filled',n>2);
         }
 
-        // Truncate text
-        function truncateText(text, maxLength) {
-            if (!text || text.length <= maxLength) return text;
-            return text.substring(0, maxLength) + '...';
+        var btn1Next=document.getElementById('btnStep1Next');
+        if(btn1Next)btn1Next.addEventListener('click',function(){
+            var name=document.getElementById('fullName');
+            var martyrDate=document.getElementById('martyrdomDate');
+            var place=document.getElementById('martyrdomPlace');
+            if(!name||!name.value.trim()){if(name)name.focus();return;}
+            if(!martyrDate||!martyrDate.value){if(martyrDate)martyrDate.focus();return;}
+            if(!place||!place.value.trim()){if(place)place.focus();return;}
+            goToStep(2);
+        });
+
+        var btn2Next=document.getElementById('btnStep2Next');
+        if(btn2Next)btn2Next.addEventListener('click',function(){goToStep(3);});
+        var btn2Back=document.getElementById('btnStep2Back');
+        if(btn2Back)btn2Back.addEventListener('click',function(){goToStep(1);});
+        var btn3Back=document.getElementById('btnStep3Back');
+        if(btn3Back)btn3Back.addEventListener('click',function(){goToStep(2);});
+
+        function formatDate(ds){
+            if(!ds)return '—';
+            try{var d=new Date(ds);if(isNaN(d.getTime()))return '—';return d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});}catch(e){return '—';}
         }
 
-        // Update preview elements
-        function updatePreview() {
-            // Name
-            const name = document.getElementById('fullName')?.value.trim();
-            const previewName = document.getElementById('previewName');
-            if (previewName) {
-                if (name) {
-                    previewName.textContent = escapeHtml(name);
-                    previewName.classList.remove('empty');
-                } else {
-                    previewName.textContent = "Martyr's Name";
-                    previewName.classList.add('empty');
+        function updateAge(){
+            var bv=(document.getElementById('birthDate')||{}).value||'';
+            var mv=(document.getElementById('martyrdomDate')||{}).value||'';
+            var display=document.getElementById('ageDisplay');
+            if(!display)return;
+            if(bv&&mv){
+                var birth=new Date(bv),martyr=new Date(mv);
+                if(!isNaN(birth)&&!isNaN(martyr)&&martyr>birth){
+                    var years=martyr.getFullYear()-birth.getFullYear();
+                    var m=martyr.getMonth()-birth.getMonth();
+                    if(m<0||(m===0&&martyr.getDate()<birth.getDate()))years--;
+                    if(years>=0){display.textContent='Born '+formatDate(bv)+' — Martyred '+formatDate(mv)+' (aged '+years+')';return;}
                 }
             }
+            display.textContent='';
+        }
+        ['birthDate','martyrdomDate'].forEach(function(id){
+            var el=document.getElementById(id);
+            if(el){el.addEventListener('change',updateAge);el.addEventListener('input',updateAge);}
+        });
 
-            // Father's Name
-            const fatherName = document.getElementById('fatherName')?.value.trim();
-            const previewFatherName = document.getElementById('previewFatherName');
-            if (previewFatherName) {
-                previewFatherName.textContent = fatherName ? `Son of ${escapeHtml(fatherName)}` : '';
-            }
+        var bioToggle=document.getElementById('bioPromptsToggle');
+        var bioList=document.getElementById('bioPromptsList');
+        if(bioToggle&&bioList){
+            bioToggle.addEventListener('click',function(){
+                var open=bioList.classList.toggle('open');
+                bioToggle.classList.toggle('open',open);
+                bioToggle.setAttribute('aria-expanded',open?'true':'false');
+                bioList.setAttribute('aria-hidden',open?'false':'true');
+            });
+        }
 
-            // Birth Date
-            const birthDate = document.getElementById('birthDate')?.value;
-            const previewBirthDate = document.getElementById('previewBirthDate');
-            if (previewBirthDate) {
-                const formatted = formatDate(birthDate);
-                previewBirthDate.textContent = formatted;
-                previewBirthDate.classList.toggle('empty', formatted === '—');
-            }
+        var bioParagraph=document.getElementById('biography');
+        var bioCounter=document.getElementById('bioCounter');
+        if(bioParagraph&&bioCounter){
+            bioParagraph.addEventListener('input',function(){
+                var words=this.value.trim().split(/\s+/).filter(Boolean).length;
+                if(words>0){bioCounter.textContent=words+' word'+(words===1?'':'s')+' written — every word matters';bioCounter.classList.add('has-words');}
+                else{bioCounter.textContent='Start writing — every word matters';bioCounter.classList.remove('has-words');}
+            });
+        }
 
-            // Martyrdom Date
-            const martyrdomDate = document.getElementById('martyrdomDate')?.value;
-            const previewMartyrdomDate = document.getElementById('previewMartyrdomDate');
-            if (previewMartyrdomDate) {
-                const formatted = formatDate(martyrdomDate);
-                previewMartyrdomDate.textContent = formatted;
-                previewMartyrdomDate.classList.toggle('empty', formatted === '—');
-            }
+        var dropZone=document.getElementById('photoDropZone');
+        var photoInput=document.getElementById('martyrPhoto');
+        var photoDropPreview=document.getElementById('photoDropPreview');
+        var changePhotoBtn=document.getElementById('changePhotoBtn');
 
-            // Location
-            const birthPlace = document.getElementById('birthPlace')?.value.trim();
-            const martyrdomPlace = document.getElementById('martyrdomPlace')?.value.trim();
-            const previewLocation = document.getElementById('previewLocation');
-            if (previewLocation) {
-                const locationSpan = previewLocation.querySelector('span');
-                const location = martyrdomPlace || birthPlace;
-                if (locationSpan) {
-                    locationSpan.textContent = location ? escapeHtml(location) : 'Location will appear here';
-                }
-                previewLocation.classList.toggle('empty', !location);
-            }
+        function handlePhotoFile(file){
+            if(!file||!file.type.startsWith('image/'))return;
+            var reader=new FileReader();
+            reader.onload=function(e){
+                var img=photoDropPreview&&photoDropPreview.querySelector('img');
+                if(img)img.src=e.target.result;
+                if(dropZone)dropZone.classList.add('has-photo');
+                var cardImg=document.getElementById('previewPhotoImgCard');
+                var placeholder=document.getElementById('previewPhotoPlaceholder');
+                if(cardImg){cardImg.src=e.target.result;cardImg.style.display='block';}
+                if(placeholder)placeholder.style.display='none';
+                syncMobilePreview();
+            };
+            reader.readAsDataURL(file);
+        }
 
-            // Organization (handles dropdown + Other input)
-            const orgSelect = document.getElementById('organization');
-            const orgOtherInput = document.getElementById('organizationOther');
-            let organization = '';
-            
-            if (orgSelect) {
-                const selectedValue = orgSelect.value;
-                if (selectedValue === 'Other' && orgOtherInput && orgOtherInput.value.trim()) {
-                    organization = orgOtherInput.value.trim();
-                } else if (selectedValue && selectedValue !== 'Other') {
-                    // Use the display text (option text) for the preview
-                    const selectedOption = orgSelect.options[orgSelect.selectedIndex];
-                    organization = selectedOption ? selectedOption.text : selectedValue;
-                }
-            }
-            
-            const previewOrgContainer = document.getElementById('previewOrgContainer');
-            const previewOrganization = document.getElementById('previewOrganization');
-            if (previewOrgContainer && previewOrganization) {
-                if (organization) {
-                    previewOrganization.textContent = escapeHtml(organization);
-                    previewOrganization.classList.remove('empty');
-                    previewOrgContainer.style.display = 'flex';
-                } else {
-                    previewOrgContainer.style.display = 'none';
-                }
-            }
+        if(photoInput)photoInput.addEventListener('change',function(){if(this.files&&this.files[0])handlePhotoFile(this.files[0]);});
 
-            // Biography
-            const biography = document.getElementById('biography')?.value.trim();
-            const previewBiography = document.getElementById('previewBiography');
-            if (previewBiography) {
-                if (biography) {
-                    previewBiography.textContent = escapeHtml(truncateText(biography, 150));
-                    previewBiography.classList.remove('empty');
-                } else {
-                    previewBiography.textContent = 'Biography will appear here as you type...';
-                    previewBiography.classList.add('empty');
-                }
-            }
+        if(changePhotoBtn&&photoInput){
+            changePhotoBtn.addEventListener('click',function(e){
+                e.stopPropagation();
+                if(dropZone)dropZone.classList.remove('has-photo');
+                var cardImg=document.getElementById('previewPhotoImgCard');
+                var placeholder=document.getElementById('previewPhotoPlaceholder');
+                if(cardImg){cardImg.src='';cardImg.style.display='none';}
+                if(placeholder)placeholder.style.display='';
+                photoInput.value='';
+            });
+        }
 
-            // Update mobile preview if open
+        if(dropZone){
+            dropZone.addEventListener('dragover',function(e){e.preventDefault();this.classList.add('drag-over');});
+            dropZone.addEventListener('dragleave',function(){this.classList.remove('drag-over');});
+            dropZone.addEventListener('drop',function(e){
+                e.preventDefault();this.classList.remove('drag-over');
+                var file=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];
+                if(file)handlePhotoFile(file);
+            });
+        }
+
+        var fullNameInput=document.getElementById('fullName');
+        var dropTitle=document.getElementById('dropZoneTitle');
+        if(fullNameInput&&dropTitle){
+            fullNameInput.addEventListener('input',function(){
+                var n=this.value.trim();
+                dropTitle.textContent=n?'Upload a photograph of '+n:'Upload their photograph';
+            });
+        }
+
+        var orgSelect=document.getElementById('organization');
+        var otherGroup=document.getElementById('otherOrgGroup');
+        if(orgSelect&&otherGroup)orgSelect.addEventListener('change',function(){otherGroup.style.display=this.value==='Other'?'':'none';});
+
+        function esc(text){if(!text)return '';var div=document.createElement('div');div.textContent=text;return div.innerHTML;}
+
+        function updatePreview(){
+            var name=((document.getElementById('fullName')||{}).value||'').trim();
+            var pName=document.getElementById('previewName');
+            if(pName){pName.textContent=name||'Their name will appear here';pName.classList.toggle('empty',!name);}
+
+            var father=((document.getElementById('fatherName')||{}).value||'').trim();
+            var pFather=document.getElementById('previewFatherName');
+            if(pFather)pFather.textContent=father?'Son of '+father:'';
+
+            var bDate=((document.getElementById('birthDate')||{}).value||'');
+            var mDate=((document.getElementById('martyrdomDate')||{}).value||'');
+            var pBirth=document.getElementById('previewBirthDate');
+            var pMartyr=document.getElementById('previewMartyrdomDate');
+            if(pBirth){var fb=formatDate(bDate);pBirth.textContent=fb;pBirth.classList.toggle('empty',fb==='—');}
+            if(pMartyr){var fm=formatDate(mDate);pMartyr.textContent=fm;pMartyr.classList.toggle('empty',fm==='—');}
+
+            var bPlace=((document.getElementById('birthPlace')||{}).value||'').trim();
+            var mPlace=((document.getElementById('martyrdomPlace')||{}).value||'').trim();
+            var pLoc=document.getElementById('previewLocation');
+            if(pLoc){var loc=mPlace||bPlace;var span=pLoc.querySelector('span');if(span)span.textContent=loc||'Location will appear here';pLoc.classList.toggle('empty',!loc);}
+
+            var sel=document.getElementById('organization');
+            var orgOther=document.getElementById('organizationOther');
+            var org='';
+            if(sel&&sel.value){if(sel.value==='Other'&&orgOther&&orgOther.value.trim())org=orgOther.value.trim();else if(sel.value!=='Other')org=sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].text:sel.value;}
+            var pOrgC=document.getElementById('previewOrgContainer');
+            var pOrg=document.getElementById('previewOrganization');
+            if(pOrgC&&pOrg){pOrgC.style.display=org?'flex':'none';if(org)pOrg.textContent=org;}
+
+            var bio=((document.getElementById('biography')||{}).value||'').trim();
+            var pBio=document.getElementById('previewBiography');
+            if(pBio){pBio.textContent=bio?(bio.length>150?bio.substring(0,150)+'…':bio):'Their story will appear as you write it...';pBio.classList.toggle('empty',!bio);}
+
             syncMobilePreview();
         }
 
-        // Handle photo upload preview
-        function handlePhotoPreview(input) {
-            const previewImg = document.getElementById('previewPhotoImg');
-            const placeholder = document.getElementById('previewPhotoPlaceholder');
-
-            if (!previewImg || !placeholder) return;
-
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    previewImg.src = e.target.result;
-                    previewImg.style.display = 'block';
-                    placeholder.style.display = 'none';
-                    syncMobilePreview();
-                };
-                reader.readAsDataURL(input.files[0]);
-            } else {
-                previewImg.style.display = 'none';
-                previewImg.src = '';
-                placeholder.style.display = 'block';
-            }
+        function syncMobilePreview(){
+            var mobile=document.getElementById('mobilePreviewContent');
+            var desktop=document.getElementById('memorialPreviewCard');
+            if(mobile&&desktop)mobile.innerHTML=desktop.outerHTML;
         }
 
-        // Sync mobile preview with desktop
-        function syncMobilePreview() {
-            const mobileContent = document.getElementById('mobilePreviewContent');
-            const desktopCard = document.getElementById('memorialPreviewCard');
-            
-            if (mobileContent && desktopCard) {
-                mobileContent.innerHTML = desktopCard.outerHTML;
-            }
-        }
+        var mobileToggle=document.getElementById('mobilePreviewToggle');
+        var mobileModal=document.getElementById('mobilePreviewModal');
+        var mobileClose=document.getElementById('mobilePreviewClose');
+        if(mobileToggle&&mobileModal)mobileToggle.addEventListener('click',function(){syncMobilePreview();mobileModal.classList.add('active');document.body.style.overflow='hidden';});
+        if(mobileClose&&mobileModal)mobileClose.addEventListener('click',function(){mobileModal.classList.remove('active');document.body.style.overflow='';});
+        if(mobileModal)mobileModal.addEventListener('click',function(e){if(e.target===mobileModal){mobileModal.classList.remove('active');document.body.style.overflow='';}});
+        document.addEventListener('keydown',function(e){if(e.key==='Escape'&&mobileModal&&mobileModal.classList.contains('active')){mobileModal.classList.remove('active');document.body.style.overflow='';}});
 
-        // Mobile preview modal handlers
-        function setupMobilePreview() {
-            const toggleBtn = document.getElementById('mobilePreviewToggle');
-            const modal = document.getElementById('mobilePreviewModal');
-            const closeBtn = document.getElementById('mobilePreviewClose');
+        var form=document.getElementById('addMartyrForm');
+        if(form)form.addEventListener('submit',function(){var btn=document.getElementById('btnSubmitLegacy');if(btn)btn.classList.add('loading');});
 
-            if (toggleBtn && modal) {
-                toggleBtn.addEventListener('click', function() {
-                    syncMobilePreview();
-                    modal.classList.add('active');
-                    document.body.style.overflow = 'hidden';
-                });
-            }
+        window.addEventListener('martyrSubmitSuccess',function(e){
+            var name=(e.detail&&e.detail.name)||((document.getElementById('fullName')||{}).value||'').trim()||'The hero';
+            var nameEl=document.getElementById('successNameDisplay');
+            if(nameEl)nameEl.textContent=name;
+            var sp=document.getElementById('stepProgress');if(sp)sp.style.display='none';
+            if(form)form.style.display='none';
+            var success=document.getElementById('successMessage');if(success)success.style.display='';
+            var btn=document.getElementById('btnSubmitLegacy');if(btn)btn.classList.remove('loading');
+        });
 
-            if (closeBtn && modal) {
-                closeBtn.addEventListener('click', function() {
-                    modal.classList.remove('active');
-                    document.body.style.overflow = '';
-                });
-            }
+        ['fullName','fatherName','birthDate','martyrdomDate','birthPlace','martyrdomPlace','organization','organizationOther','biography'].forEach(function(id){
+            var el=document.getElementById(id);
+            if(el){el.addEventListener('input',updatePreview);el.addEventListener('change',updatePreview);}
+        });
 
-            // Close on backdrop click
-            if (modal) {
-                modal.addEventListener('click', function(e) {
-                    if (e.target === modal) {
-                        modal.classList.remove('active');
-                        document.body.style.overflow = '';
-                    }
-                });
-            }
-
-            // Close on escape key
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && modal?.classList.contains('active')) {
-                    modal.classList.remove('active');
-                    document.body.style.overflow = '';
-                }
-            });
-        }
-
-        // Initialize
-        function init() {
-            // Fields to watch
-            const fields = [
-                'fullName', 'fatherName', 'birthDate', 'martyrdomDate',
-                'birthPlace', 'martyrdomPlace', 'organization', 'organizationOther', 'biography'
-            ];
-
-            // Add input listeners
-            fields.forEach(fieldId => {
-                const field = document.getElementById(fieldId);
-                if (field) {
-                    field.addEventListener('input', updatePreview);
-                    field.addEventListener('change', updatePreview);
-                }
-            });
-
-            // Photo upload listener
-            const photoInput = document.getElementById('martyrPhoto');
-            if (photoInput) {
-                photoInput.addEventListener('change', function() {
-                    handlePhotoPreview(this);
-                });
-            }
-
-            // Setup mobile preview
-            setupMobilePreview();
-
-            // Initial update
-            updatePreview();
-        }
-
-        // Run when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
+        updatePreview();
+        updateAge();
     })();
     </script>
 
-    <!-- Google Translate Scripts -->
     <script type="text/javascript">
-    function googleTranslateElementInit() {
-        new google.translate.TranslateElement({pageLanguage: 'en', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
-        hideBannerAndFixLayout();
-    }
-    function hideBannerAndFixLayout() {
-        ['.goog-te-banner-frame', 'iframe.goog-te-banner-frame', '.skiptranslate', '#goog-gt-tt', '.goog-te-balloon-frame'].forEach(selector => {
-            document.querySelectorAll(selector).forEach(el => { if (el) { el.style.display = 'none'; el.remove(); } });
-        });
-        document.body.style.top = '0'; document.body.style.marginTop = '0'; document.body.style.paddingTop = '0';
-        const observer = new MutationObserver(mutations => {
-            mutations.forEach(mutation => { mutation.addedNodes.forEach(node => {
-                if (node.nodeType === 1 && node.classList && (node.classList.contains('goog-te-banner-frame') || node.classList.contains('skiptranslate'))) node.remove();
-            }); });
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
-    }
-    setInterval(hideBannerAndFixLayout, 1000);
+    function googleTranslateElementInit(){new google.translate.TranslateElement({pageLanguage:'en',layout:google.translate.TranslateElement.InlineLayout.SIMPLE},'google_translate_element');hideBannerAndFixLayout();}
+    function hideBannerAndFixLayout(){['.goog-te-banner-frame','iframe.goog-te-banner-frame','.skiptranslate','#goog-gt-tt','.goog-te-balloon-frame'].forEach(function(s){document.querySelectorAll(s).forEach(function(el){if(el){el.style.display='none';el.remove();}});});document.body.style.top='0';document.body.style.marginTop='0';document.body.style.paddingTop='0';var observer=new MutationObserver(function(mutations){mutations.forEach(function(mutation){mutation.addedNodes.forEach(function(node){if(node.nodeType===1&&node.classList&&(node.classList.contains('goog-te-banner-frame')||node.classList.contains('skiptranslate')))node.remove();});});});observer.observe(document.body,{childList:true,subtree:true});}
+    setInterval(hideBannerAndFixLayout,1000);
     </script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
-    <!-- Mobile Bottom Navigation -->
+
     <nav class="mobile-bottom-nav">
         <div class="bottom-nav-inner">
             <a href="/" class="bottom-nav-item">
