@@ -661,9 +661,6 @@ function showMartyrDetails(martyr) {
                     <button class="martyr-voice-btn" type="button">
                         🔊 Listen
                     </button>
-                    <button class="btn btn-small btn-outline martyr-print-btn-header" type="button">
-                        PDF
-                    </button>
                     <button class="close-martyr-modal" type="button">
                         &times;
                     </button>
@@ -743,9 +740,6 @@ function showMartyrDetails(martyr) {
                     <div class="martyr-modal-share-slot"></div>
 
                     <div class="martyr-modal-actions" style="margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 0.75rem;">
-                        <button class="btn martyr-print-btn" type="button">
-                            Print / Download PDF
-                        </button>
                         <button class="btn btn-outline martyr-close-btn" type="button">
                             Close
                         </button>
@@ -840,10 +834,17 @@ function createShareRowMain(martyr) {
         { name: 'X', icon: '𝕏', url: `https://twitter.com/intent/tweet?text=${shareText}&url=${encodedUrl}` },
         { name: 'Facebook', icon: 'f', url: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}` },
         { name: 'Instagram', icon: '✺', url: `https://www.instagram.com/?url=${encodedUrl}` },
-        { name: 'TikTok', icon: '🎵', url: `https://www.tiktok.com/share?url=${encodedUrl}&text=${shareText}` }
+        { name: 'WhatsApp', icon: '💬', url: `https://wa.me/?text=${shareText}%20${encodedUrl}` },
+        { name: 'Print / PDF', icon: '🖨️', action: () => {
+            if (typeof printMartyrProfile === 'function') {
+                printMartyrProfile(martyr);
+            } else {
+                window.print();
+            }
+        }}
     ];
 
-    shareNetworks.forEach(({ name, icon, url }) => {
+    shareNetworks.forEach(({ name, icon, url, action }) => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.style.cssText = 'width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(15, 23, 42, 0.12); background: #f9fafb; color: var(--primary-color, #2c5530); display: inline-flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);';
@@ -851,7 +852,11 @@ function createShareRowMain(martyr) {
         btn.setAttribute('aria-label', `Share ${martyr.fullName || 'this hero'} on ${name}`);
         btn.title = `Share on ${name}`;
         btn.addEventListener('click', () => {
-            window.open(url, '_blank', 'noopener,noreferrer');
+            if (action) {
+                action();
+            } else if (url) {
+                window.open(url, '_blank', 'noopener,noreferrer');
+            }
         });
         btn.addEventListener('mouseenter', () => {
             btn.style.borderColor = 'rgba(44, 85, 48, 0.4)';
