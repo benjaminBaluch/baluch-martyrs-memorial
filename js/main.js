@@ -664,6 +664,9 @@ function showMartyrDetails(martyr) {
                     </p>
                 </div>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button class="martyr-voice-btn" type="button" style="display: flex; align-items: center; gap: 0.3rem; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 99px; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: background 0.2s;">
+                        🔊 Listen
+                    </button>
                     <button class="btn btn-small btn-outline martyr-print-btn-header" type="button" style="color: #f9fafb; border-color: rgba(148,163,184,0.5);">
                         PDF
                     </button>
@@ -738,12 +741,7 @@ function showMartyrDetails(martyr) {
                         </div>
                     ` : ''}
 
-                    <div style="margin-top: 1.5rem;">
-                        <button class="btn martyr-voice-btn" type="button">
-                            🔊 Listen to this martyr's story
-                        </button>
-                    </div>
-                    
+
                     <div style="margin-top: 1.75rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 0.9rem; display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: space-between;">
                         <p style="margin: 0;"><strong>Submitted by:</strong> ${escapeHTMLMain(martyr.submitterName || 'Unknown')}</p>
                         <p style="margin: 0;"><strong>Submitted on:</strong> ${escapeHTMLMain(formatDate(martyr.submittedAt) || 'Unknown')}</p>
@@ -952,7 +950,7 @@ function toggleMartyrSpeechMain(martyr, buttonEl) {
     if (window.speechSynthesis.speaking && currentMartyrUtteranceMain) {
         stopMartyrSpeechMain();
         if (buttonEl) {
-            buttonEl.textContent = '🔊 Listen to this martyr\'s story';
+            buttonEl.innerHTML = '🔊 Listen';
         }
         return;
     }
@@ -973,27 +971,27 @@ function toggleMartyrSpeechMain(martyr, buttonEl) {
         utterance.onend = function() {
             currentMartyrUtteranceMain = null;
             if (buttonEl) {
-                buttonEl.textContent = '🔊 Listen to this martyr\'s story';
+                buttonEl.innerHTML = '🔊 Listen';
             }
         };
 
         utterance.onerror = function() {
             currentMartyrUtteranceMain = null;
             if (buttonEl) {
-                buttonEl.textContent = '🔊 Listen to this martyr\'s story';
+                buttonEl.innerHTML = '🔊 Listen';
             }
         };
 
         currentMartyrUtteranceMain = utterance;
         if (buttonEl) {
-            buttonEl.textContent = '⏹ Stop audio';
+            buttonEl.innerHTML = '⏹ Stop';
         }
 
         window.speechSynthesis.speak(utterance);
     } catch (e) {
         console.warn('Failed to start martyr speech:', e);
         if (buttonEl) {
-            buttonEl.textContent = '🔊 Listen to this martyr\'s story';
+            buttonEl.innerHTML = '🔊 Listen';
         }
     }
 }

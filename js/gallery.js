@@ -971,11 +971,10 @@ function toggleMartyrSpeech(martyr, buttonEl) {
         return;
     }
 
-    // If already speaking, stop
     if (window.speechSynthesis.speaking && currentMartyrUtterance) {
         stopMartyrSpeech();
         if (buttonEl) {
-            buttonEl.textContent = '🔊 Listen to this martyr\'s story';
+            buttonEl.innerHTML = '🔊 Listen';
         }
         return;
     }
@@ -996,27 +995,27 @@ function toggleMartyrSpeech(martyr, buttonEl) {
         utterance.onend = function() {
             currentMartyrUtterance = null;
             if (buttonEl) {
-                buttonEl.textContent = '🔊 Listen to this martyr\'s story';
+                buttonEl.innerHTML = '🔊 Listen';
             }
         };
 
         utterance.onerror = function() {
             currentMartyrUtterance = null;
             if (buttonEl) {
-                buttonEl.textContent = '🔊 Listen to this martyr\'s story';
+                buttonEl.innerHTML = '🔊 Listen';
             }
         };
 
         currentMartyrUtterance = utterance;
         if (buttonEl) {
-            buttonEl.textContent = '⏹ Stop audio';
+            buttonEl.innerHTML = '⏹ Stop';
         }
 
         window.speechSynthesis.speak(utterance);
     } catch (e) {
         console.warn('Failed to start martyr speech:', e);
         if (buttonEl) {
-            buttonEl.textContent = '🔊 Listen to this martyr\'s story';
+            buttonEl.innerHTML = '🔊 Listen';
         }
     }
 }
@@ -1207,6 +1206,9 @@ function showMartyrModal(martyr) {
                     </p>
                 </div>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button class="martyr-voice-btn" type="button" style="display: flex; align-items: center; gap: 0.3rem; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-radius: 99px; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; transition: background 0.2s;">
+                        🔊 Listen
+                    </button>
                     <button class="btn btn-small btn-outline martyr-print-btn-header" type="button">
                         PDF
                     </button>
@@ -1281,12 +1283,7 @@ function showMartyrModal(martyr) {
                         </div>
                     ` : ''}
 
-                    <div style="margin-top: 1.5rem;">
-                        <button class="btn martyr-voice-btn" type="button">
-                            🔊 Listen to this martyr's story
-                        </button>
-                    </div>
-                    
+
                     <div style="margin-top: 1.75rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 0.9rem; display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: space-between;">
                         <p style="margin: 0;"><strong>Submitted by:</strong> ${escapeHTML(martyr.submitterName || 'Unknown')}</p>
                         <p style="margin: 0;"><strong>Submitted on:</strong> ${escapeHTML(formatDate(martyr.submittedAt) || 'Unknown')}</p>
