@@ -839,8 +839,40 @@ function addDebugButton() {
     
     document.body.appendChild(debugBtn);
 }
-
 // Utility functions
+function normalizeRegion(place) {
+    if (!place) return null;
+    let r = place.trim();
+    if (r.length < 2) return null;
+
+    const lower = r.toLowerCase();
+    
+    // Known regions mapping
+    const map = {
+        'turbat': 'Turbat', 'quetta': 'Quetta', 'gwadar': 'Gwadar',
+        'panjgur': 'Panjgur', 'khuzdar': 'Khuzdar', 'awaran': 'Awaran',
+        'kech': 'Kech', 'mastung': 'Mastung', 'kalat': 'Kalat',
+        'lasbela': 'Lasbela', 'dera bugti': 'Dera Bugti', 'kohlu': 'Kohlu',
+        'sibi': 'Sibi', 'zhob': 'Zhob', 'loralai': 'Loralai',
+        'pishin': 'Pishin', 'chagai': 'Chagai', 'nushki': 'Nushki',
+        'washuk': 'Washuk', 'baluchistan': 'Baluchistan', 'balochistan': 'Baluchistan',
+        'karachi': 'Karachi', 'hub': 'Hub', 'pasni': 'Pasni',
+        'jiwani': 'Jiwani', 'ormara': 'Ormara', 'bela': 'Bela',
+        'zahedan': 'Zahedan', 'chabahar': 'Chabahar', 'iranshahr': 'Iranshahr',
+        'saravan': 'Saravan', 'sistan': 'Sistan-Baluchestan'
+    };
+
+    for (const [key, val] of Object.entries(map)) {
+        if (lower.includes(key)) return val;
+    }
+
+    // Capitalize words
+    return r.split(' ')
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+}
+
+
 function getYear(dateValue) {
     if (!dateValue) return '';
     
@@ -2189,8 +2221,8 @@ function populateRegionDropdown() {
     allMartyrs.forEach(m => {
         const place = (m.martyrdomPlace || m.birthPlace || '').trim();
         if (place) {
-            // Extract main region/city name
-            const mainPlace = place.split(',')[0].trim();
+            // Extract main region/city name using normalizeRegion
+            const mainPlace = normalizeRegion(place);
             if (mainPlace) {
                 const count = regions.get(mainPlace) || 0;
                 regions.set(mainPlace, count + 1);
