@@ -1357,8 +1357,7 @@ function showLoadingState() {
     const submitBtn = document.querySelector('button[type="submit"]');
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.textContent = '⏳ Saving...';
-        submitBtn.style.opacity = '0.7';
+        submitBtn.classList.add('loading');
         console.log('🔄 Loading state shown');
     }
 }
@@ -1368,8 +1367,7 @@ function hideLoadingState() {
     const submitBtn = document.querySelector('button[type="submit"]');
     if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit Memorial';
-        submitBtn.style.opacity = '1';
+        submitBtn.classList.remove('loading');
         console.log('✅ Loading state hidden');
     }
 }
@@ -1380,17 +1378,20 @@ function showSuccessMessage() {
     const successMessage = document.getElementById('successMessage');
     
     if (form && successMessage) {
+        // Personalize with the submitted martyr's name
+        const name = (document.getElementById('fullName')?.value || '').trim();
+        const nameEl = document.getElementById('successNameDisplay');
+        if (nameEl) nameEl.textContent = name || 'This hero';
+
+        // Hide step progress indicator
+        const stepProgress = document.getElementById('stepProgress');
+        if (stepProgress) stepProgress.style.display = 'none';
+
         form.style.display = 'none';
         successMessage.style.display = 'block';
         
         // Scroll to success message
         successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
-        // Hide success message and show form again after 5 seconds
-        setTimeout(() => {
-            successMessage.style.display = 'none';
-            form.style.display = 'block';
-        }, 5000);
     }
 }
 
