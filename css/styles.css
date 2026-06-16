@@ -4446,6 +4446,12 @@ html[data-theme="dark"] .about-promise {
     color: #f9fafb;
     gap: 1rem;
     position: relative;
+    flex-wrap: wrap; /* Bulletproof wrap */
+}
+
+.martyr-modal-header-title {
+    flex: 1;
+    min-width: 150px;
 }
 
 .martyr-modal-header-actions {
@@ -4492,16 +4498,22 @@ html[data-theme="dark"] .about-promise {
     color: #fff;
 }
 
-@media (max-width: 500px) {
+@media (max-width: 768px) {
     .martyr-modal-header {
-        padding: 1rem;
+        padding: 1.1rem 1.25rem;
         flex-direction: column;
         align-items: flex-start;
-        gap: 0.75rem;
+        gap: 0.85rem;
     }
     
     .martyr-modal-header-title {
-        padding-right: 2rem; /* Leave room for absolute close button */
+        padding-right: 2.5rem; /* Leave room for absolute close button */
+        width: 100%;
+    }
+    
+    .martyr-modal-header-title h2 {
+        font-size: 1.25rem !important; /* Prevent huge text from wrapping */
+        line-height: 1.3;
     }
     
     .martyr-modal-header-actions {
@@ -4511,21 +4523,21 @@ html[data-theme="dark"] .about-promise {
     }
     
     .martyr-voice-btn {
-        padding: 0.35rem 0.6rem;
-        font-size: 0.8rem;
+        padding: 0.4rem 0.75rem;
+        font-size: 0.85rem;
     }
     
     .martyr-print-btn-header {
-        padding: 0.35rem 0.6rem !important;
-        font-size: 0.8rem !important;
+        padding: 0.4rem 0.75rem !important;
+        font-size: 0.85rem !important;
     }
     
     .close-martyr-modal {
         position: absolute;
         top: 1rem;
         right: 1rem;
-        width: 32px;
-        height: 32px;
+        width: 34px;
+        height: 34px;
         font-size: 1.2rem;
     }
 }
