@@ -207,7 +207,7 @@
 
             // Year
             const year = extractYear(m.martyrdomDate);
-            if (year && year >= 1900 && year <= 2100) {
+            if (year && year >= 1800 && year <= 2100) {
                 stats.byYear[year] = (stats.byYear[year] || 0) + 1;
                 if (!stats.years.includes(year)) {
                     stats.years.push(year);
