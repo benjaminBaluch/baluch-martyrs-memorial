@@ -17,12 +17,6 @@ import {
     serverTimestamp,
     Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
-import {
-    getStorage,
-    ref,
-    uploadBytes,
-    getDownloadURL
-} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js';
 
 // Your web app's Firebase configuration - Production Ready
 const firebaseConfig = {
@@ -37,7 +31,6 @@ const firebaseConfig = {
 // Initialize Firebase with error handling
 let app;
 let db;
-let storage;
 
 try {
     console.log('🔥 Initializing Firebase app...');
@@ -47,10 +40,6 @@ try {
     console.log('🗺 Initializing Firestore...');
     db = getFirestore(app);
     console.log('✅ Firestore initialized successfully');
-    
-    console.log('📦 Initializing Firebase Storage...');
-    storage = getStorage(app);
-    console.log('✅ Firebase Storage initialized successfully');
     
     // Verify connection immediately
     console.log('🧪 Testing immediate Firestore connection...');
@@ -67,25 +56,6 @@ try {
 
 // Database helper functions
 export const firebaseDB = {
-    // Upload photo to Firebase Storage and return download URL
-    async uploadPhoto(photoBlob, martyrId) {
-        try {
-            if (!storage) throw new Error('Firebase Storage not initialized');
-            const filename = `martyrs-photos/${martyrId}_${Date.now()}.jpg`;
-            const storageRef = ref(storage, filename);
-            console.log(`📤 Uploading photo to Firebase Storage: ${filename}`);
-            const snapshot = await uploadBytes(storageRef, photoBlob, {
-                contentType: 'image/jpeg'
-            });
-            const downloadURL = await getDownloadURL(snapshot.ref);
-            console.log('✅ Photo uploaded successfully:', downloadURL);
-            return { success: true, url: downloadURL };
-        } catch (error) {
-            console.error('❌ Photo upload failed:', error);
-            return { success: false, error: error.message };
-        }
-    },
-
     // Add new pending martyr
     async addPendingMartyr(martyrData) {
         try {

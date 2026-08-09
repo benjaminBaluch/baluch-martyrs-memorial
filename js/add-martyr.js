@@ -1106,38 +1106,33 @@ function handleFormSubmit(event) {
         
         console.log('📋 Martyr data prepared:', { name: martyrData.fullName, fields: Object.keys(martyrData).length });
         
-        // Handle photo — upload to Firebase Storage (not inline base64)
+        // Handle photo data
         const photoInput = document.getElementById('martyrPhoto');
         const compressedFile = photoInput && photoInput.compressedFile;
         const photoFile = compressedFile || (photoInput && photoInput.files[0]);
         
         if (photoFile && photoFile.size > 0) {
-            console.log('📷 Uploading photo to Firebase Storage...');
+            console.log('📷 Processing photo for submission...');
+            const reader = new FileReader();
             
-            // Generate a unique ID for the photo filename
-            const photoId = 'martyr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            reader.onload = function(e) {
+                martyrData.photo = e.target.result;
+                console.log('🗜️ Photo data ready, saving martyr data...');
+                saveMartyrData(martyrData);
+            };
             
-            try {
-                // Upload to Firebase Storage
-                const uploadResult = await firebaseDB.uploadPhoto(photoFile, photoId);
-                
-                if (uploadResult.success) {
-                    // Store only the download URL — NOT the base64 blob
-                    martyrData.photo = uploadResult.url;
-                    console.log('✅ Photo uploaded, URL stored in martyr data');
-                } else {
-                    console.warn('⚠️ Photo upload failed, proceeding without photo:', uploadResult.error);
-                    // Don't block submission — save without photo
-                }
-            } catch (uploadError) {
-                console.warn('⚠️ Photo upload error, proceeding without photo:', uploadError.message);
-            }
+            reader.onerror = function() {
+                console.error('❌ Photo processing failed');
+                hideLoadingState();
+                alert('❌ Error processing photo. Please try a different image.');
+            };
+            
+            reader.readAsDataURL(photoFile);
         } else {
             console.log('📷 No photo provided, proceeding with submission...');
+            // No photo, proceed with submission
+            saveMartyrData(martyrData);
         }
-        
-        // Save martyr data (photo field is now a URL string, not base64)
-        saveMartyrData(martyrData);
         
     } catch (error) {
         console.error('❌ Form submission error:', error);
