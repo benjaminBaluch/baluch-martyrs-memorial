@@ -882,14 +882,15 @@ function initFileUploads() {
     });
 }
 
-// Compress image to reduce upload size and improve Gulf region connectivity
-function compressImage(file, maxWidth = 800, maxHeight = 600, quality = 0.8) {
+// Compress image to fit within Firestore's 1MB field limit
+// Base64 encoding adds ~33% overhead, so blob must be under ~700KB
+function compressImage(file, maxWidth = 600, maxHeight = 450, quality = 0.7) {
     return new Promise((resolve) => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const img = new Image();
         
-        img.onload = function() {
+        img.onload = async function() {
             // Calculate new dimensions
             let { width, height } = img;
             
@@ -907,12 +908,37 @@ function compressImage(file, maxWidth = 800, maxHeight = 600, quality = 0.8) {
             
             canvas.width = width;
             canvas.height = height;
-            
-            // Draw and compress
             ctx.drawImage(img, 0, 0, width, height);
             
-            // Convert to blob with compression
-            canvas.toBlob(resolve, 'image/jpeg', quality);
+            // Progressive compression: keep reducing quality until under 700KB
+            // 700KB blob → ~930KB base64 → safely under Firestore's 1,048,487 byte limit
+            const MAX_BLOB_SIZE = 700 * 1024; // 700KB
+            let currentQuality = quality;
+            
+            const tryCompress = (q) => new Promise(res => {
+                canvas.toBlob(res, 'image/jpeg', q);
+            });
+            
+            let blob = await tryCompress(currentQuality);
+            
+            while (blob && blob.size > MAX_BLOB_SIZE && currentQuality > 0.2) {
+                currentQuality -= 0.1;
+                console.log(`🗜️ Photo still ${(blob.size/1024).toFixed(0)}KB, reducing quality to ${(currentQuality*100).toFixed(0)}%...`);
+                blob = await tryCompress(currentQuality);
+            }
+            
+            // If still too large at 20% quality, reduce dimensions further
+            if (blob && blob.size > MAX_BLOB_SIZE) {
+                const scale = 0.6;
+                canvas.width = width * scale;
+                canvas.height = height * scale;
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                blob = await tryCompress(0.5);
+                console.log(`🗜️ Reduced dimensions to ${canvas.width.toFixed(0)}×${canvas.height.toFixed(0)} at 50% quality`);
+            }
+            
+            console.log(`✅ Final photo: ${(blob.size/1024).toFixed(0)}KB at ${(currentQuality*100).toFixed(0)}% quality`);
+            resolve(blob);
         };
         
         img.src = URL.createObjectURL(file);
