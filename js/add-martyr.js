@@ -1020,7 +1020,7 @@ function handlePhotoUpload(event, previewContainer, multiple) {
 }
 
 // Handle form submission with security validation
-function handleFormSubmit(event) {
+async function handleFormSubmit(event) {
     event.preventDefault();
     console.log('📋 Form submission started');
     
@@ -1132,28 +1132,36 @@ function handleFormSubmit(event) {
         
         console.log('📋 Martyr data prepared:', { name: martyrData.fullName, fields: Object.keys(martyrData).length });
         
-        // Handle photo data
+        // Handle photo data — always compress at submit time
+        // (compressedFile from initFileUploads may not exist if photoPreview element is missing)
         const photoInput = document.getElementById('martyrPhoto');
-        const compressedFile = photoInput && photoInput.compressedFile;
-        const photoFile = compressedFile || (photoInput && photoInput.files[0]);
+        const rawFile = photoInput && photoInput.files && photoInput.files[0];
         
-        if (photoFile && photoFile.size > 0) {
-            console.log('📷 Processing photo for submission...');
-            const reader = new FileReader();
+        if (rawFile && rawFile.size > 0) {
+            console.log(`📷 Compressing photo before submission... (raw: ${(rawFile.size/1024/1024).toFixed(2)}MB)`);
             
-            reader.onload = function(e) {
-                martyrData.photo = e.target.result;
-                console.log('🗜️ Photo data ready, saving martyr data...');
-                saveMartyrData(martyrData);
-            };
-            
-            reader.onerror = function() {
-                console.error('❌ Photo processing failed');
+            try {
+                // Always compress — guarantees under 700KB blob (< 1MB base64)
+                const compressedBlob = await compressImage(rawFile);
+                console.log(`🗜️ Compressed to ${(compressedBlob.size/1024).toFixed(0)}KB`);
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    martyrData.photo = e.target.result;
+                    console.log(`📷 Base64 photo ready: ${(martyrData.photo.length/1024).toFixed(0)}KB`);
+                    saveMartyrData(martyrData);
+                };
+                reader.onerror = function() {
+                    console.error('❌ Photo encoding failed');
+                    hideLoadingState();
+                    alert('❌ Error processing photo. Please try a different image.');
+                };
+                reader.readAsDataURL(compressedBlob);
+            } catch (compressError) {
+                console.error('❌ Photo compression failed:', compressError);
                 hideLoadingState();
-                alert('❌ Error processing photo. Please try a different image.');
-            };
-            
-            reader.readAsDataURL(photoFile);
+                alert('❌ Error compressing photo. Please try a smaller image.');
+            }
         } else {
             console.log('📷 No photo provided, proceeding with submission...');
             // No photo, proceed with submission
