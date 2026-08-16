@@ -211,6 +211,13 @@ async function loadGallery() {
                 console.log(`✅ Firebase success: ${result.data.length} martyrs`);
                 allMartyrs = result.data;
 
+                // Cache for backup
+                try {
+                    localStorage.setItem('martyrsData', JSON.stringify(allMartyrs));
+                } catch (storageError) {
+                    console.warn('⚠️ Failed to cache martyrsData to localStorage:', storageError);
+                }
+
                 renderGallery(allMartyrs);
                 hideOfflineWarning();
                 window.dispatchEvent(new Event('martyrsDataReady'));
@@ -262,14 +269,15 @@ async function loadGallery() {
             console.warn('⚠️ Netlify API /api/get-martyrs failed:', apiError);
         }
 
-        console.log('💾 Trying localStorage cache fallback...');
+        // Method 4: LocalStorage fallback (cached data from previous successful visit)
+        console.log('💾 Trying localStorage fallback...');
         try {
-            const cachedData = localStorage.getItem('bmm_martyrsCache');
-            if (cachedData) {
-                const parsed = JSON.parse(cachedData);
-                if (parsed.data && Array.isArray(parsed.data) && parsed.data.length > 0) {
-                    allMartyrs = parsed.data.filter(m => !m.status || m.status === 'approved');
-                    console.log(`💾 Cache success: ${allMartyrs.length} martyrs`);
+            const savedData = localStorage.getItem('martyrsData');
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                if (Array.isArray(parsedData) && parsedData.length > 0) {
+                    allMartyrs = parsedData.filter(m => !m.status || m.status === 'approved');
+                    console.log(`💾 LocalStorage success: ${allMartyrs.length} martyrs`);
                     renderGallery(allMartyrs);
                     showOfflineWarning();
                     window.dispatchEvent(new Event('martyrsDataReady'));
@@ -279,7 +287,7 @@ async function loadGallery() {
                 }
             }
         } catch (storageReadError) {
-            console.warn('⚠️ Failed to read cache:', storageReadError);
+            console.warn('⚠️ Failed to read martyrsData from localStorage:', storageReadError);
         }
 
         // Method 5: Development-only demo data (never shown on live memorial domain)

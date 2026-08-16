@@ -320,25 +320,42 @@ async function loadRecentMartyrs() {
         let martyrsData = [];
         
         try {
-            // Use pre-loaded data from homepage (no extra Firebase call)
-            if (window.martyrsDataFromFirebase && window.martyrsDataFromFirebase.length > 0) {
-                martyrsData = window.martyrsDataFromFirebase;
-                console.log(`⚡ Using pre-loaded data for recent martyrs: ${martyrsData.length}`);
-            } else if (window.firebaseDB) {
-                // Fallback: fetch if no pre-loaded data (uses built-in cache)
+            console.log('🌍 Loading recent martyrs from Firebase (global database)...');
+            
+            // Try Firebase first - this shows global data to all users
+            if (window.firebaseDB) {
                 const result = await window.firebaseDB.getApprovedMartyrs();
+                
                 if (result.success) {
                     martyrsData = result.data || [];
-                    console.log(`✅ Loaded ${martyrsData.length} martyrs for recent section`);
+                    console.log(`✅ Loaded ${martyrsData.length} martyrs from Firebase (global)`);
+                    
+                    // Cache with enhanced cache management
+                    if (martyrsData.length > 0 && window.cacheManager) {
+                        window.cacheManager.setCache('martyrsData', martyrsData, 6); // 6 hour cache
+                        console.log('💾 Cached homepage martyrs with expiration');
+                    } else if (martyrsData.length > 0) {
+                        // Fallback to localStorage
+                        localStorage.setItem('martyrsData', JSON.stringify(martyrsData));
+                        console.log('💾 Cached homepage martyrs to localStorage (fallback)');
+                    }
+                } else {
+                    throw new Error('Firebase failed: ' + result.error);
                 }
+            } else {
+                throw new Error('Firebase not available');
             }
             
         } catch (error) {
-            console.warn('⚠️ Loading recent martyrs failed:', error.message);
-            try {
-                const cached = localStorage.getItem('bmm_martyrsCache');
-                if (cached) martyrsData = JSON.parse(cached).data || [];
-            } catch(e) {}
+            console.warn('⚠️  Firebase failed, using localStorage backup:', error.message);
+            
+            // Fallback to localStorage only if Firebase fails
+            const savedMartyrs = localStorage.getItem('martyrsData');
+            if (savedMartyrs) {
+                const allMartyrs = JSON.parse(savedMartyrs);
+                martyrsData = allMartyrs.filter(m => !m.status || m.status === 'approved');
+                console.log(`Using localStorage backup: ${martyrsData.length} martyrs`);
+            }
         }
         
         // Display martyrs if we have any
@@ -1131,25 +1148,31 @@ async function loadAnniversaryMartyrs() {
     let approvedMartyrs = [];
     
     try {
-        // Use pre-loaded data from homepage (no extra Firebase call)
-        if (window.martyrsDataFromFirebase && window.martyrsDataFromFirebase.length > 0) {
-            approvedMartyrs = window.martyrsDataFromFirebase;
-            console.log(`⚡ Using pre-loaded data for anniversaries: ${approvedMartyrs.length}`);
-        } else if (window.firebaseDB) {
-            // Fallback: fetch if no pre-loaded data (uses built-in cache)
+        console.log('🎆 Loading anniversary data from Firebase (global database)...');
+        
+        // Try Firebase first for global data
+        if (window.firebaseDB) {
             const result = await window.firebaseDB.getApprovedMartyrs();
+            
             if (result.success) {
                 approvedMartyrs = result.data || [];
-                console.log(`✅ Loaded ${approvedMartyrs.length} martyrs for anniversaries`);
+                console.log(`✅ Loaded ${approvedMartyrs.length} martyrs for anniversaries from Firebase`);
+            } else {
+                throw new Error('Firebase failed: ' + result.error);
             }
+        } else {
+            throw new Error('Firebase not available');
         }
         
     } catch (error) {
-        console.warn('⚠️ Loading anniversaries failed:', error.message);
-        try {
-            const cached = localStorage.getItem('bmm_martyrsCache');
-            if (cached) approvedMartyrs = JSON.parse(cached).data || [];
-        } catch(e) {}
+        console.warn('⚠️  Firebase failed for anniversaries, using localStorage:', error.message);
+        
+        // Fallback to localStorage
+        const savedMartyrs = localStorage.getItem('martyrsData');
+        if (savedMartyrs) {
+            const allMartyrs = JSON.parse(savedMartyrs);
+            approvedMartyrs = allMartyrs.filter(m => !m.status || m.status === 'approved');
+        }
     }
     
     if (approvedMartyrs.length === 0) {

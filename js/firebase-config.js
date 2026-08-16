@@ -18,13 +18,6 @@ import {
     Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 
-import {
-    getStorage,
-    ref,
-    uploadBytes,
-    getDownloadURL
-} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js';
-
 // Your web app's Firebase configuration - Production Ready
 const firebaseConfig = {
     apiKey: "AIzaSyBW2JKt68kGKE-CMvKQUUj33ToZ8M-kGII",
@@ -38,7 +31,6 @@ const firebaseConfig = {
 // Initialize Firebase with error handling
 let app;
 let db;
-let storage;
 
 try {
     console.log('🔥 Initializing Firebase app...');
@@ -48,7 +40,6 @@ try {
     console.log('🗺 Initializing Firestore...');
     db = getFirestore(app);
     console.log('✅ Firestore initialized successfully');
-    storage = getStorage(app);
     
     // Verify connection immediately
     console.log('🧪 Testing immediate Firestore connection...');
@@ -65,67 +56,6 @@ try {
 
 // Database helper functions
 export const firebaseDB = {
-    // ── In-memory + localStorage cache for instant loading ──
-    _cache: null,
-    _cacheTimestamp: 0,
-    _CACHE_TTL: 6 * 60 * 60 * 1000, // 6 hours
-    _fetching: null, // deduplication promise
-
-    // Upload photo to Firebase Storage, return download URL
-    async uploadPhoto(photoBlob, martyrId) {
-        try {
-            if (!storage) throw new Error('Firebase Storage not initialized');
-            const filename = `martyrs-photos/${martyrId}_${Date.now()}.jpg`;
-            const storageRef = ref(storage, filename);
-            console.log(`📤 Uploading photo to Storage: ${filename}`);
-            const snapshot = await uploadBytes(storageRef, photoBlob, { contentType: 'image/jpeg' });
-            const downloadURL = await getDownloadURL(snapshot.ref);
-            console.log('✅ Photo uploaded:', downloadURL);
-            return { success: true, url: downloadURL };
-        } catch (error) {
-            console.error('❌ Photo upload failed:', error);
-            return { success: false, error: error.message };
-        }
-    },
-
-    // Migrate existing base64 photos in Firestore to Firebase Storage URLs
-    async migratePhotosToStorage() {
-        console.log('🔄 Starting photo migration to Firebase Storage...');
-        let migrated = 0, failed = 0, skipped = 0;
-        for (const colName of ['martyrs', 'pendingMartyrs']) {
-            try {
-                const snapshot = await getDocs(collection(db, colName));
-                for (const docSnap of snapshot.docs) {
-                    const data = docSnap.data();
-                    if (!data.photo || !data.photo.startsWith('data:image')) {
-                        skipped++;
-                        continue;
-                    }
-                    try {
-                        // Convert base64 to blob
-                        const res = await fetch(data.photo);
-                        const blob = await res.blob();
-                        // Upload to Storage
-                        const result = await this.uploadPhoto(blob, docSnap.id);
-                        if (result.success) {
-                            // Update Firestore doc with URL instead of base64
-                            await updateDoc(doc(db, colName, docSnap.id), { photo: result.url });
-                            migrated++;
-                            console.log(`✅ Migrated photo for ${data.fullName || docSnap.id}`);
-                        } else { failed++; }
-                    } catch (e) {
-                        console.error(`❌ Failed to migrate ${docSnap.id}:`, e);
-                        failed++;
-                    }
-                }
-            } catch (e) {
-                console.warn(`⚠️ Could not access ${colName}:`, e.message);
-            }
-        }
-        console.log(`🔄 Migration done: ${migrated} migrated, ${failed} failed, ${skipped} skipped`);
-        return { migrated, failed, skipped };
-    },
-
     // Add new pending martyr
     async addPendingMartyr(martyrData) {
         try {
@@ -154,112 +84,97 @@ export const firebaseDB = {
         }
     },
 
-    // Get all approved martyrs — cache-first for instant loading
-    async getApprovedMartyrs(forceRefresh = false) {
-        // 1. Return in-memory cache if valid (instant)
-        if (!forceRefresh && this._cache && (Date.now() - this._cacheTimestamp) < this._CACHE_TTL) {
-            console.log(`⚡ Returning ${this._cache.length} martyrs from memory cache`);
-            return { success: true, data: this._cache, fromCache: true };
-        }
-
-        // 2. Check localStorage cache (fast, ~5ms)
-        if (!forceRefresh) {
-            try {
-                const cached = localStorage.getItem('bmm_martyrsCache');
-                if (cached) {
-                    const parsed = JSON.parse(cached);
-                    if (parsed.ts && (Date.now() - parsed.ts) < this._CACHE_TTL) {
-                        this._cache = parsed.data;
-                        this._cacheTimestamp = parsed.ts;
-                        console.log(`⚡ Returning ${parsed.data.length} martyrs from localStorage cache`);
-                        // Background refresh so next load is even fresher
-                        this._backgroundRefresh();
-                        return { success: true, data: parsed.data, fromCache: true };
-                    }
-                }
-            } catch (e) { /* ignore cache errors */ }
-        }
-
-        // 3. Deduplicated Firebase fetch (prevents 3-4 parallel calls)
-        if (this._fetching) {
-            console.log('🔄 Waiting for in-flight fetch...');
-            return this._fetching;
-        }
-
-        this._fetching = this._fetchFromFirebase();
-        const result = await this._fetching;
-        this._fetching = null;
-        return result;
-    },
-
-    // Background refresh — updates cache silently without blocking UI
-    _backgroundRefresh() {
-        if (this._fetching) return; // already fetching
-        setTimeout(async () => {
-            try {
-                console.log('🔄 Background refresh started...');
-                this._fetching = this._fetchFromFirebase();
-                await this._fetching;
-                this._fetching = null;
-                console.log('🔄 Background refresh done');
-            } catch (e) {
-                this._fetching = null;
-                console.warn('⚠️ Background refresh failed:', e.message);
-            }
-        }, 100);
-    },
-
-    // Actual Firebase fetch + cache update
-    async _fetchFromFirebase() {
+    // Get all approved martyrs with comprehensive collection checking
+    async getApprovedMartyrs() {
         try {
-            console.log('🔍 Fetching martyrs from Firebase...');
+            console.log('🔍 Fetching martyrs from Firebase collections...');
+            
             let allMartyrs = [];
-
+            
             // Check main 'martyrs' collection first
             try {
-                const martyrsSnapshot = await getDocs(collection(db, 'martyrs'));
-                martyrsSnapshot.forEach((d) => {
-                    const data = d.data();
+                console.log('🔍 Checking main martyrs collection...');
+                const martyrsCollection = collection(db, 'martyrs');
+                const martyrsSnapshot = await getDocs(martyrsCollection);
+                
+                martyrsSnapshot.forEach((doc) => {
+                    const data = doc.data();
+                    // Include all martyrs or only approved ones
                     if (!data.status || data.status === 'approved') {
-                        allMartyrs.push({ id: d.id, ...data, status: data.status || 'approved' });
+                        allMartyrs.push({
+                            id: doc.id,
+                            ...data,
+                            status: data.status || 'approved' // Default to approved
+                        });
                     }
                 });
-                console.log(`📋 Found ${allMartyrs.length} approved in martyrs collection`);
+                
+                console.log(`📋 Found ${martyrsSnapshot.size} total docs in martyrs collection, ${allMartyrs.length} approved`);
             } catch (error) {
                 console.warn('⚠️ Error accessing martyrs collection:', error.message);
             }
-
-            // Fallback: check pendingMartyrs for approved ones
+            
+            // If no martyrs found, check pendingMartyrs collection for any approved ones
             if (allMartyrs.length === 0) {
                 try {
-                    const pendingSnapshot = await getDocs(collection(db, 'pendingMartyrs'));
-                    pendingSnapshot.forEach((d) => {
-                        const data = d.data();
+                    console.log('🔍 Checking pendingMartyrs collection for approved items...');
+                    const pendingCollection = collection(db, 'pendingMartyrs');
+                    const pendingSnapshot = await getDocs(pendingCollection);
+                    
+                    pendingSnapshot.forEach((doc) => {
+                        const data = doc.data();
                         if (data.status === 'approved') {
-                            allMartyrs.push({ id: d.id, ...data });
+                            allMartyrs.push({
+                                id: doc.id,
+                                ...data
+                            });
                         }
                     });
-                    console.log(`📋 Found ${allMartyrs.length} approved from pending`);
+                    
+                    console.log(`📋 Found ${pendingSnapshot.size} pending docs, ${allMartyrs.length} approved from pending`);
                 } catch (error) {
-                    console.warn('⚠️ Error accessing pendingMartyrs:', error.message);
+                    console.warn('⚠️ Error accessing pendingMartyrs collection:', error.message);
                 }
             }
-
-            // Update caches
-            this._cache = allMartyrs;
-            this._cacheTimestamp = Date.now();
-            try {
-                localStorage.setItem('bmm_martyrsCache', JSON.stringify({
-                    data: allMartyrs,
-                    ts: this._cacheTimestamp
-                }));
-            } catch (e) { console.warn('⚠️ Cache write failed:', e.message); }
-
-            console.log(`✅ Fetched ${allMartyrs.length} martyrs, cached`);
-            return { success: true, data: allMartyrs, fromCache: false };
+            
+            // If still no martyrs, check if collections exist and are accessible
+            if (allMartyrs.length === 0) {
+                console.log('📊 No martyrs found. Checking Firebase connectivity and permissions...');
+                
+                // Test basic Firestore read access
+                try {
+                    const testCollection = collection(db, 'test');
+                    const testSnapshot = await getDocs(testCollection);
+                    console.log('✅ Firestore read access confirmed - collections may be empty');
+                } catch (testError) {
+                    console.error('❌ Firestore read access failed:', testError);
+                    throw new Error(`Firebase access denied: ${testError.message}`);
+                }
+            }
+            
+            console.log(`✅ Final result: ${allMartyrs.length} martyrs total`);
+            return { 
+                success: true, 
+                data: allMartyrs,
+                collections_checked: ['martyrs', 'pendingMartyrs'],
+                total_found: allMartyrs.length
+            };
+            
         } catch (error) {
-            console.error('❌ Firebase fetch failed:', error);
-            return { success: false, error: error.message, code: error.code };
+            console.error('❌ Error getting martyrs from Firebase:', error);
+            console.error('🔎 Detailed error info:', {
+                code: error.code,
+                message: error.message,
+                name: error.name,
+                stack: error.stack?.substring(0, 500)
+            });
+            
+            return { 
+                success: false, 
+                error: error.message,
+                code: error.code,
+                details: error 
+            };
         }
     },
 
