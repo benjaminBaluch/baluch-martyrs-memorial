@@ -1706,39 +1706,38 @@
     </footer>
 
     <script type="module">
-        // Import Firebase for global martyr data
         import { firebaseDB } from './js/firebase-config.js';
         
-        // Make Firebase available globally for main.js
+        // Make Firebase available globally
         window.firebaseDB = firebaseDB;
         
-        // Function to update homepage statistics
-        async function updateHomepageStats() {
+        // SINGLE fetch — shared across all homepage sections
+        async function initHomepage() {
             try {
-                // Get martyrs data
                 const result = await firebaseDB.getApprovedMartyrs();
                 const martyrs = result.success ? result.data || [] : [];
                 
-                // Fallback to localStorage if Firebase fails
+                // Fallback to localStorage
                 if (martyrs.length === 0) {
-                    const localData = localStorage.getItem('martyrsData');
+                    const localData = localStorage.getItem('bmm_martyrsCache');
                     if (localData) {
-                        const localMartyrs = JSON.parse(localData);
-                        martyrs.push(...localMartyrs.filter(m => !m.status || m.status === 'approved'));
+                        try {
+                            const parsed = JSON.parse(localData);
+                            martyrs.push(...(parsed.data || []).filter(m => !m.status || m.status === 'approved'));
+                        } catch(e) {}
                     }
                 }
                 
                 const total = martyrs.length;
                 const withStories = martyrs.filter(m => m.biography).length;
 
-                // Animated count-up helper
+                // Animated count-up
                 function animateCount(el, target) {
                     if (!el) return;
-                    const duration = 1600;
-                    const start = performance.now();
+                    const duration = 1600, start = performance.now();
                     function step(now) {
                         const p = Math.min((now - start) / duration, 1);
-                        const eased = 1 - Math.pow(1 - p, 3); // ease-out-cubic
+                        const eased = 1 - Math.pow(1 - p, 3);
                         el.textContent = Math.floor(eased * target).toLocaleString();
                         if (p < 1) requestAnimationFrame(step);
                         else el.textContent = target.toLocaleString();
@@ -1746,9 +1745,9 @@
                     requestAnimationFrame(step);
                 }
 
-                // Count-up triggers on scroll (IntersectionObserver)
+                // Impact stats with IntersectionObserver
                 const impactSection = document.querySelector('.impact-section');
-                const totalCount   = document.getElementById('totalMartyrsCount');
+                const totalCount = document.getElementById('totalMartyrsCount');
                 const storiesCount = document.getElementById('totalStoriesCount');
 
                 if (impactSection && (totalCount || storiesCount)) {
@@ -1767,27 +1766,23 @@
                     if (storiesCount) storiesCount.textContent = withStories.toLocaleString();
                 }
 
-                // Hero live counter (no animation — instant feels alive)
+                // Hero counter
                 const heroCount = document.getElementById('heroMartyrCount');
                 if (heroCount) heroCount.textContent = total.toLocaleString();
                 
-                console.log(`✅ Homepage stats updated: ${total} total martyrs`);
+                // Share data globally so main.js can use it WITHOUT re-fetching
+                window.martyrsDataFromFirebase = martyrs;
+                window.dispatchEvent(new CustomEvent('martyrsDataReady', { detail: martyrs }));
+                
+                console.log(`✅ Homepage init: ${total} martyrs loaded (cache: ${result.fromCache ? 'yes' : 'no'})`);
             } catch (error) {
-                console.error('❌ Error updating homepage stats:', error);
+                console.error('❌ Homepage init error:', error);
                 const heroCount = document.getElementById('heroMartyrCount');
                 if (heroCount) heroCount.textContent = '—';
             }
         }
         
-        // Update stats when Firebase is ready
-        if (firebaseDB) {
-            updateHomepageStats();
-        } else {
-            window.addEventListener('firebaseReady', updateHomepageStats);
-        }
-        
-        // Also update after a short delay to ensure Firebase is fully loaded
-        setTimeout(updateHomepageStats, 2000);
+        initHomepage();
     </script>
     <script src="js/main.js"></script>
     <script src="js/hero-3d.js"></script>

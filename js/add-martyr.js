@@ -1132,41 +1132,56 @@ async function handleFormSubmit(event) {
         
         console.log('📋 Martyr data prepared:', { name: martyrData.fullName, fields: Object.keys(martyrData).length });
         
-        // Handle photo data — always compress at submit time
-        // (compressedFile from initFileUploads may not exist if photoPreview element is missing)
+        // Handle photo — compress then upload to Firebase Storage (not inline base64)
         const photoInput = document.getElementById('martyrPhoto');
         const rawFile = photoInput && photoInput.files && photoInput.files[0];
         
         if (rawFile && rawFile.size > 0) {
-            console.log(`📷 Compressing photo before submission... (raw: ${(rawFile.size/1024/1024).toFixed(2)}MB)`);
+            console.log(`📷 Compressing photo... (raw: ${(rawFile.size/1024/1024).toFixed(2)}MB)`);
             
             try {
-                // Always compress — guarantees under 700KB blob (< 1MB base64)
                 const compressedBlob = await compressImage(rawFile);
                 console.log(`🗜️ Compressed to ${(compressedBlob.size/1024).toFixed(0)}KB`);
                 
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    martyrData.photo = e.target.result;
-                    console.log(`📷 Base64 photo ready: ${(martyrData.photo.length/1024).toFixed(0)}KB`);
-                    saveMartyrData(martyrData);
-                };
-                reader.onerror = function() {
-                    console.error('❌ Photo encoding failed');
-                    hideLoadingState();
-                    alert('❌ Error processing photo. Please try a different image.');
-                };
-                reader.readAsDataURL(compressedBlob);
-            } catch (compressError) {
-                console.error('❌ Photo compression failed:', compressError);
-                hideLoadingState();
-                alert('❌ Error compressing photo. Please try a smaller image.');
+                // Upload to Firebase Storage instead of embedding base64 in Firestore
+                const photoId = 'martyr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                if (firebaseDB && typeof firebaseDB.uploadPhoto === 'function') {
+                    const uploadResult = await firebaseDB.uploadPhoto(compressedBlob, photoId);
+                    if (uploadResult.success) {
+                        martyrData.photo = uploadResult.url; // URL string (~150 bytes, not 500KB base64)
+                        console.log('✅ Photo uploaded to Storage, URL stored');
+                    } else {
+                        console.warn('⚠️ Storage upload failed, saving as base64 fallback:', uploadResult.error);
+                        // Fallback: use base64 if Storage upload fails
+                        const base64 = await new Promise((resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = e => resolve(e.target.result);
+                            reader.onerror = () => reject(new Error('FileReader failed'));
+                            reader.readAsDataURL(compressedBlob);
+                        });
+                        martyrData.photo = base64;
+                    }
+                } else {
+                    // Firebase Storage not available, use base64 fallback
+                    console.warn('⚠️ uploadPhoto not available, using base64 fallback');
+                    const base64 = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = e => resolve(e.target.result);
+                        reader.onerror = () => reject(new Error('FileReader failed'));
+                        reader.readAsDataURL(compressedBlob);
+                    });
+                    martyrData.photo = base64;
+                }
+            } catch (photoError) {
+                console.error('❌ Photo processing failed:', photoError);
+                // Don't block submission — proceed without photo
             }
         } else {
-            console.log('📷 No photo provided, proceeding with submission...');
-            // No photo, proceed with submission
-            saveMartyrData(martyrData);
+            console.log('📷 No photo provided');
         }
+        
+        // Save martyr data (photo is now a URL string or base64 fallback)
+        saveMartyrData(martyrData);
         
     } catch (error) {
         console.error('❌ Form submission error:', error);
