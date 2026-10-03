@@ -1,0 +1,44 @@
+# Cloudflare Pages custom headers (replaces the [[headers]] blocks in netlify.toml).
+# NOTE: Pages joins values when several rules set the same header, so rules below
+# that need to override a global header first detach it with "! Header-Name".
+
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebasestorage.app wss://*.firebaseio.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self';
+
+# Admin pages: never framed, never indexed, never cached
+/admin*
+  ! X-Frame-Options
+  X-Frame-Options: DENY
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate, private
+  Pragma: no-cache
+  Expires: 0
+
+# Keep sensitive scripts out of search indexes
+/js/firebase-config.js
+  X-Robots-Tag: noindex, nofollow
+
+/js/auth.js
+  X-Robots-Tag: noindex, nofollow
+
+/js/admin.js
+  X-Robots-Tag: noindex, nofollow
+
+# Static asset caching
+/css/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/js/*
+  Cache-Control: public, max-age=86400
+
+/*.png
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.svg
+  Cache-Control: public, max-age=31536000, immutable

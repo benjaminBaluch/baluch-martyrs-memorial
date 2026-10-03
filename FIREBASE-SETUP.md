@@ -31,7 +31,7 @@
 
 ### 5. Test It
 - Submit a profile via your website
-- Check admin panel at `yoursite.netlify.app/admin.html`
+- Check admin panel at `baluchmartyrs.com/admin`
 - Approve/reject submissions
 
 ## 🔒 Security Rules

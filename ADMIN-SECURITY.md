@@ -14,7 +14,7 @@ The admin panel has been secured with client-side authentication to prevent unau
 - **Password**: `memorial@admin`
 
 ### Accessing Admin Panel
-1. Navigate to: `https://baluchmartyrs.site/admin-login.html`
+1. Navigate to: `https://baluchmartyrs.com/admin-login.html`
 2. Enter your credentials
 3. You'll be redirected to the admin panel upon successful login
 

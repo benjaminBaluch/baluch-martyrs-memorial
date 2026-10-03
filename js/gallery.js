@@ -43,7 +43,7 @@ function createShareRow(martyr, variant = 'card') {
 
     const siteOrigin = (typeof window !== 'undefined' && window.location && window.location.origin)
         ? window.location.origin
-        : 'https://baluchmartyrs.site';
+        : 'https://baluchmartyrs.com';
     const heroIdentifier = encodeURIComponent(martyr.id || martyr.fullName || '');
     const targetUrl = `${siteOrigin}/gallery.html?hero=${heroIdentifier}`;
     const encodedUrl = encodeURIComponent(targetUrl);
@@ -292,7 +292,8 @@ async function loadGallery() {
 
         // Method 5: Development-only demo data (never shown on live memorial domain)
         const hostname = window.location.hostname;
-        const isLiveSite = hostname === 'baluchmartyrs.site' || hostname === 'www.baluchmartyrs.site';
+        const liveHosts = ['baluchmartyrs.com', 'www.baluchmartyrs.com', 'baluchmartyrs.site', 'www.baluchmartyrs.site'];
+        const isLiveSite = liveHosts.includes(hostname);
         if (!isLiveSite) {
             console.log('🎭 Loading demo data for local development/testing...');
             allMartyrs = [

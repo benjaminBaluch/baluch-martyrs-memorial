@@ -952,7 +952,7 @@
             
             // Footer
             doc.setFontSize(9);
-            doc.text('baluchmartyrs.site', pageWidth / 2, pageHeight - 20, { align: 'center' });
+            doc.text('baluchmartyrs.com', pageWidth / 2, pageHeight - 20, { align: 'center' });
             
             // ---- MARTYR PROFILES ----
             
@@ -1202,7 +1202,7 @@
             doc.setFontSize(10);
             doc.setTextColor(...primaryColor);
             doc.setFont('helvetica', 'bold');
-            doc.text('baluchmartyrs.site', pageWidth / 2, closingY + 25, { align: 'center' });
+            doc.text('baluchmartyrs.com', pageWidth / 2, closingY + 25, { align: 'center' });
             
             // Green footer bar
             doc.setFillColor(...primaryColor);

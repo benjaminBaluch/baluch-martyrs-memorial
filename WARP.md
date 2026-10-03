@@ -42,10 +42,12 @@ There is no test or linter configuration in this repo. Use the browser DevTools 
 # Key: martyrsData (JSON array)
 ```
 
-### Deployment (Netlify)
-- Static publish directory: project root (.)
-- Functions directory configured at netlify/functions (none checked in)
-- Redirects: /api/* → /.netlify/functions/:splat (status 200)
+### Deployment (Cloudflare Pages)
+- Build: `npm run build` → publishes `dist/` (see scripts/build.mjs)
+- Pages Functions live in `functions/api/` (`/api/admin-login`, `/api/get-martyrs`)
+- Headers: `_headers`; custom 404: `404.html`
+- Full setup guide: CLOUDFLARE-DEPLOY.md
+- `netlify.toml` / `netlify/` are legacy and can be deleted after the DNS cutover
 
 ## Architecture Overview
 

@@ -1,5 +1,5 @@
 # Robots.txt for Baluch Martyrs Memorial
-# https://baluchmartyrs.site
+# https://baluchmartyrs.com
 
 User-agent: *
 
@@ -31,4 +31,4 @@ Disallow: /js/admin.js
 Crawl-delay: 1
 
 # Sitemap (if you create one)
-# Sitemap: https://baluchmartyrs.site/sitemap.xml
+# Sitemap: https://baluchmartyrs.com/sitemap.xml

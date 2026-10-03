@@ -524,8 +524,11 @@ if (typeof window !== 'undefined') {
     
     // Verify domain is authorized
     const allowedDomains = [
+        'baluchmartyrs.com',
+        'www.baluchmartyrs.com',
         'baluchmartyrs.site',
         'www.baluchmartyrs.site', 
+        'pages.dev',
         'localhost',
         '127.0.0.1',
         'benjaminbaluch.github.io'

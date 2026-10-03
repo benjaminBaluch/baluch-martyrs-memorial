@@ -60,8 +60,8 @@ const firebaseConfig = {
 ### Step 5: Authorize Domains
 1. Go to Authentication → Settings
 2. Add authorized domains:
-   - `baluchmartyrs.site`
-   - `www.baluchmartyrs.site`
+   - `baluchmartyrs.com`
+   - `www.baluchmartyrs.com`
    - `benjaminbaluch.github.io`
 
 ### Step 6: Migrate Existing Data

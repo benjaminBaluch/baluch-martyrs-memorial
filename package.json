@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "python3 -m http.server 8000",
-    "build": "echo 'No build step needed for vanilla HTML/CSS/JS'",
+    "build": "node scripts/build.mjs",
     "start": "python3 -m http.server 8000"
   },
   "keywords": ["memorial", "baluch", "martyrs", "website"],

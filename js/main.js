@@ -824,7 +824,7 @@ function createShareRowMain(martyr) {
     const actions = document.createElement('div');
     actions.style.cssText = 'display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap;';
 
-    const siteOrigin = window.location?.origin || 'https://baluchmartyrs.site';
+    const siteOrigin = window.location?.origin || 'https://baluchmartyrs.com';
     const heroIdentifier = encodeURIComponent(martyr.id || martyr.fullName || '');
     const targetUrl = `${siteOrigin}/gallery.html?hero=${heroIdentifier}`;
     const encodedUrl = encodeURIComponent(targetUrl);
@@ -1082,7 +1082,7 @@ function printMartyrProfileMain(martyr) {
 
     <div class="footer">
       Submitted by: ${safe(martyr.submitterName || 'Unknown')} | Submitted on: ${safe(submitted)}<br>
-      Generated from Baluch Martyrs Memorial – baluchmartyrs.site
+      Generated from Baluch Martyrs Memorial – baluchmartyrs.com
     </div>
   </div>
   <script>window.onload = function() { window.print(); };<\/script>
