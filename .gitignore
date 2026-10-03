@@ -45,3 +45,7 @@ Icon?
 *.db
 *.sqlite
 *.sqlite3
+
+# Cloudflare / Wrangler
+.wrangler/
+.dev.vars

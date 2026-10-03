@@ -44,7 +44,7 @@ There is no test or linter configuration in this repo. Use the browser DevTools 
 
 ### Deployment (Cloudflare Pages)
 - Build: `npm run build` → publishes `dist/` (see scripts/build.mjs)
-- Pages Functions live in `functions/api/` (`/api/admin-login`, `/api/get-martyrs`)
+- Pages Functions live in `functions/api/` (`/api/admin-login`, `/api/get-martyrs`), routed by worker/index.js via wrangler.jsonc
 - Headers: `_headers`; custom 404: `404.html`
 - Full setup guide: CLOUDFLARE-DEPLOY.md
 - `netlify.toml` / `netlify/` are legacy and can be deleted after the DNS cutover

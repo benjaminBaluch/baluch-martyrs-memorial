@@ -9,11 +9,14 @@ const PROJECT_ID = 'baluch-martyrs-memorial';
 // Public web API key (the same one shipped in js/firebase-config.js)
 const DEFAULT_API_KEY = 'AIzaSyBW2JKt68kGKE-CMvKQUUj33ToZ8M-kGII';
 
-// Only these fields are exposed (keeps submitter contact details private)
+// Only these fields are exposed (keeps submitter contact details private).
+// 'photo' is deliberately excluded: photos are stored as base64 inside each Firestore
+// document (~82 MB for all martyrs), which would blow Worker memory/CPU limits.
+// This endpoint is only a text-only fallback; the browser loads photos from Firestore directly.
 const PUBLIC_FIELDS = [
     'id', 'fullName', 'fatherName', 'birthDate', 'birthPlace', 'martyrdomDate',
     'martyrdomPlace', 'biography', 'organization', 'rank', 'familyDetails',
-    'photo', 'submittedAt', 'approvedAt', 'status'
+    'submittedAt', 'approvedAt', 'status'
 ];
 
 const HEADERS = {
