@@ -14,9 +14,12 @@ import {
     query,
     where,
     orderBy,
+    limit,
     serverTimestamp,
     Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
+
+import { idbCache } from './idb-cache.js';
 
 // Your web app's Firebase configuration - Production Ready
 const firebaseConfig = {
@@ -84,27 +87,116 @@ export const firebaseDB = {
         }
     },
 
-    // Get all approved martyrs with comprehensive collection checking
-    async getApprovedMartyrs() {
+    _memoryCache: null,
+    _inFlightPromise: null,
+
+    // Fast initial batch (24 items, ~1.5MB) for sub-second first render
+    async getInitialBatch(count = 24) {
+        try {
+            // 1. Check in-memory
+            if (this._memoryCache && this._memoryCache.length > 0) {
+                return { success: true, data: this._memoryCache.slice(0, count), fromCache: true };
+            }
+            // 2. Check IndexedDB
+            const cached = await idbCache.get();
+            if (cached && cached.data && cached.data.length > 0) {
+                this._memoryCache = cached.data;
+                return { success: true, data: cached.data.slice(0, count), fromCache: true };
+            }
+            // 3. Quick Firestore query with limit
+            console.log(`⚡ Fetching fast initial batch (${count} martyrs)...`);
+            const martyrsCollection = collection(db, 'martyrs');
+            const q = query(martyrsCollection, limit(count));
+            const snapshot = await getDocs(q);
+            const batch = [];
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                if (!data.status || data.status === 'approved') {
+                    batch.push({
+                        id: doc.id,
+                        ...data,
+                        status: data.status || 'approved'
+                    });
+                }
+            });
+            console.log(`⚡ Fast initial batch ready: ${batch.length} martyrs`);
+            return { success: true, data: batch, fromCache: false };
+        } catch (err) {
+            console.warn('⚠️ Fast initial batch fetch failed, falling back:', err.message);
+            return { success: false, data: [] };
+        }
+    },
+
+    // Get all approved martyrs with IndexedDB caching and deduplication
+    async getApprovedMartyrs(forceRefresh = false) {
+        // 1. Return in-memory cache if available (0ms)
+        if (!forceRefresh && this._memoryCache && this._memoryCache.length > 0) {
+            return { success: true, data: this._memoryCache, fromCache: true };
+        }
+
+        // 2. Check IndexedDB local storage (30ms)
+        if (!forceRefresh) {
+            try {
+                const cached = await idbCache.get();
+                if (cached && cached.data && cached.data.length > 0) {
+                    this._memoryCache = cached.data;
+                    console.log(`⚡ Loaded ${cached.data.length} martyrs instantly from IndexedDB cache`);
+                    // If cache is stale, refresh quietly in background without blocking UI
+                    if (cached.isStale) {
+                        this._backgroundSync();
+                    }
+                    return { success: true, data: cached.data, fromCache: true };
+                }
+            } catch (cacheErr) {
+                console.warn('⚠️ IndexedDB read error:', cacheErr);
+            }
+        }
+
+        // 3. Deduplicate active in-flight request
+        if (this._inFlightPromise) {
+            console.log('🔄 Reusing active in-flight martyrs request...');
+            return this._inFlightPromise;
+        }
+
+        this._inFlightPromise = this._fetchFullFromFirebase();
+        try {
+            const result = await this._inFlightPromise;
+            return result;
+        } finally {
+            this._inFlightPromise = null;
+        }
+    },
+
+    // Background sync to update cache silently
+    _backgroundSync() {
+        setTimeout(async () => {
+            try {
+                console.log('🔄 Running silent background sync for martyrs...');
+                await this._fetchFullFromFirebase();
+            } catch (e) {
+                console.warn('⚠️ Background sync failed:', e.message);
+            }
+        }, 2000);
+    },
+
+    // Core Firestore fetch for all martyrs
+    async _fetchFullFromFirebase() {
         try {
             console.log('🔍 Fetching martyrs from Firebase collections...');
-            
             let allMartyrs = [];
             
             // Check main 'martyrs' collection first
             try {
-                console.log('🔍 Checking main martyrs collection...');
                 const martyrsCollection = collection(db, 'martyrs');
                 const martyrsSnapshot = await getDocs(martyrsCollection);
                 
                 martyrsSnapshot.forEach((doc) => {
                     const data = doc.data();
-                    // Include all martyrs or only approved ones
                     if (!data.status || data.status === 'approved') {
                         allMartyrs.push({
                             id: doc.id,
                             ...data,
-                            status: data.status || 'approved' // Default to approved
+                            status: data.status || 'approved'
                         });
                     }
                 });
@@ -114,10 +206,9 @@ export const firebaseDB = {
                 console.warn('⚠️ Error accessing martyrs collection:', error.message);
             }
             
-            // If no martyrs found, check pendingMartyrs collection for any approved ones
+            // Fallback to pendingMartyrs if needed
             if (allMartyrs.length === 0) {
                 try {
-                    console.log('🔍 Checking pendingMartyrs collection for approved items...');
                     const pendingCollection = collection(db, 'pendingMartyrs');
                     const pendingSnapshot = await getDocs(pendingCollection);
                     
@@ -130,48 +221,32 @@ export const firebaseDB = {
                             });
                         }
                     });
-                    
-                    console.log(`📋 Found ${pendingSnapshot.size} pending docs, ${allMartyrs.length} approved from pending`);
                 } catch (error) {
                     console.warn('⚠️ Error accessing pendingMartyrs collection:', error.message);
                 }
             }
             
-            // If still no martyrs, check if collections exist and are accessible
-            if (allMartyrs.length === 0) {
-                console.log('📊 No martyrs found. Checking Firebase connectivity and permissions...');
-                
-                // Test basic Firestore read access
-                try {
-                    const testCollection = collection(db, 'test');
-                    const testSnapshot = await getDocs(testCollection);
-                    console.log('✅ Firestore read access confirmed - collections may be empty');
-                } catch (testError) {
-                    console.error('❌ Firestore read access failed:', testError);
-                    throw new Error(`Firebase access denied: ${testError.message}`);
-                }
+            // Update caches if we found martyrs
+            if (allMartyrs.length > 0) {
+                this._memoryCache = allMartyrs;
+                await idbCache.set(allMartyrs);
+                console.log(`💾 Saved ${allMartyrs.length} martyrs into IndexedDB cache`);
             }
-            
+
             console.log(`✅ Final result: ${allMartyrs.length} martyrs total`);
             return { 
                 success: true, 
                 data: allMartyrs,
                 collections_checked: ['martyrs', 'pendingMartyrs'],
-                total_found: allMartyrs.length
+                total_found: allMartyrs.length,
+                fromCache: false
             };
             
         } catch (error) {
             console.error('❌ Error getting martyrs from Firebase:', error);
-            console.error('🔎 Detailed error info:', {
-                code: error.code,
-                message: error.message,
-                name: error.name,
-                stack: error.stack?.substring(0, 500)
-            });
-            
             return { 
                 success: false, 
-                error: error.message,
+                error: error.message, 
                 code: error.code,
                 details: error 
             };

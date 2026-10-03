@@ -15,6 +15,11 @@ function escapeHTML(value) {
 
 // Global state
 let allMartyrs = [];
+let currentFilteredMartyrs = [];
+let currentlyRenderedCount = 0;
+const BATCH_SIZE = 24;
+let scrollObserver = null;
+
 let currentFilters = {
     general: '',
     name: '',
@@ -169,71 +174,111 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Main gallery loader
+// Main gallery loader with sub-second initial display
 async function loadGallery() {
-    // Prevent multiple concurrent or repeated loads
-    if (galleryLoaded) {
-        console.log('📦 Gallery already loaded, skipping extra load request.');
-        return;
-    }
-    if (galleryLoading) {
-        console.log('⏳ Gallery load already in progress, skipping duplicate call.');
-        return;
-    }
+    if (galleryLoaded) return;
+    if (galleryLoading) return;
     galleryLoading = true;
 
-    console.log('🎯 Starting gallery load process...');
+    console.log('🎯 Starting ultra-fast gallery load process...');
     
     const galleryGrid = document.getElementById('galleryGrid');
     if (!galleryGrid) {
         console.error('❌ Gallery grid element not found!');
+        galleryLoading = false;
         return;
     }
-    
+
     try {
-        // Method 1: Pre-loaded Firebase data (if some other script populated it)
+        // Method 1: Pre-loaded Firebase data
         if (window.martyrsDataFromFirebase && window.martyrsDataFromFirebase.length > 0) {
             console.log(`✨ Using pre-loaded data: ${window.martyrsDataFromFirebase.length} martyrs`);
             allMartyrs = window.martyrsDataFromFirebase;
-            renderGallery(allMartyrs);
-            window.dispatchEvent(new Event('martyrsDataReady'));
+            renderGallery(null, true);
+            populateFilterDropdowns();
+            checkUrlForHero();
+                window.dispatchEvent(new Event('martyrsDataReady'));
             galleryLoaded = true;
             galleryLoading = false;
             return;
         }
 
-        // Method 2: Direct Firebase call from browser (primary path)
+        // Method 2: Instant 30ms load from IndexedDB cache
+        if (window.idbCache && typeof window.idbCache.get === 'function') {
+            const cached = await window.idbCache.get();
+            if (cached && cached.data && cached.data.length > 0) {
+                console.log(`⚡ Instant load from IndexedDB: ${cached.data.length} martyrs`);
+                allMartyrs = cached.data;
+                window.martyrsDataFromFirebase = allMartyrs;
+                renderGallery(null, true);
+                populateFilterDropdowns();
+                hideOfflineWarning();
+                galleryLoaded = true;
+                galleryLoading = false;
+
+                // If cache is older than 6 hours, refresh quietly in background
+                if (cached.isStale && window.firebaseDB) {
+                    window.firebaseDB.getApprovedMartyrs(true).then(res => {
+                        if (res && res.success && res.data) {
+                            allMartyrs = res.data;
+                            window.martyrsDataFromFirebase = allMartyrs;
+                            populateFilterDropdowns();
+                        }
+                    });
+                }
+                return;
+            }
+        }
+
+        // Method 3: First-time cold visit: show skeletons and fetch first 24 cards (~300ms)
+        showLoadingState();
+
+        if (window.firebaseDB && typeof window.firebaseDB.getInitialBatch === 'function') {
+            console.log('⚡ Fetching initial fast batch (24 cards)...');
+            const batchResult = await window.firebaseDB.getInitialBatch(24);
+            if (batchResult && batchResult.success && batchResult.data && batchResult.data.length > 0) {
+                console.log(`⚡ Displaying initial ${batchResult.data.length} cards immediately!`);
+                allMartyrs = batchResult.data;
+                renderGallery(null, true);
+                hideOfflineWarning();
+            }
+        }
+
+        // Method 4: Fetch full collection in background
         if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
-            console.log('🔥 Trying direct Firebase call (firebaseDB.getApprovedMartyrs)...');
+            console.log('🔥 Fetching full martyrs collection...');
             const result = await window.firebaseDB.getApprovedMartyrs();
 
             if (result && result.success && Array.isArray(result.data) && result.data.length > 0) {
-                console.log(`✅ Firebase success: ${result.data.length} martyrs`);
+                console.log(`✅ Full dataset ready: ${result.data.length} martyrs`);
                 allMartyrs = result.data;
+                window.martyrsDataFromFirebase = allMartyrs;
+                populateFilterDropdowns();
 
-                // Cache for backup
-                try {
-                    localStorage.setItem('martyrsData', JSON.stringify(allMartyrs));
-                } catch (storageError) {
-                    console.warn('⚠️ Failed to cache martyrsData to localStorage:', storageError);
+                // If no active filter, smoothly update total count and attach sentinel
+                const hasFilters = Object.values(currentFilters).some(f => f !== '');
+                if (!hasFilters) {
+                    currentFilteredMartyrs = allMartyrs;
+                    updateSearchResultsInfo(allMartyrs.length);
+                    if (currentlyRenderedCount < allMartyrs.length) {
+                        attachScrollSentinel();
+                    }
+                } else {
+                    renderGallery(null, true);
                 }
 
-                renderGallery(allMartyrs);
                 hideOfflineWarning();
+                checkUrlForHero();
                 window.dispatchEvent(new Event('martyrsDataReady'));
                 galleryLoaded = true;
                 galleryLoading = false;
                 return;
-            } else {
-                console.warn('⚠️ Firebase returned no data or failed:', result?.error || 'no result');
             }
-        } else {
-            console.warn('⚠️ window.firebaseDB.getApprovedMartyrs is not available – skipping direct Firebase path');
         }
 
-        // Method 3: Netlify serverless API fallback (still uses Firebase on the server)
+        // Method 5: API fallback
         try {
-            console.log('🌐 Trying Netlify API fallback at /api/get-martyrs ...');
+            console.log('🌐 Trying API fallback at /api/get-martyrs ...');
             const response = await fetch('/api/get-martyrs', {
                 method: 'GET',
                 headers: { 'Accept': 'application/json' },
@@ -243,81 +288,25 @@ async function loadGallery() {
             if (response.ok) {
                 const apiData = await response.json();
                 if (Array.isArray(apiData) && apiData.length > 0) {
-                    console.log(`✅ Netlify API success: ${apiData.length} martyrs`);
+                    console.log(`✅ API fallback success: ${apiData.length} martyrs`);
                     allMartyrs = apiData;
-
-                    // Cache for backup
-                    try {
-                        localStorage.setItem('martyrsData', JSON.stringify(allMartyrs));
-                    } catch (storageError) {
-                        console.warn('⚠️ Failed to cache martyrsData from API to localStorage:', storageError);
-                    }
-
-                    renderGallery(allMartyrs);
+                    window.martyrsDataFromFirebase = allMartyrs;
+                    renderGallery(null, true);
+                    populateFilterDropdowns();
                     hideOfflineWarning();
-                    window.dispatchEvent(new Event('martyrsDataReady'));
                     galleryLoaded = true;
                     galleryLoading = false;
                     return;
-                } else {
-                    console.warn('⚠️ Netlify API returned empty martyrs list');
                 }
-            } else {
-                console.warn('⚠️ Netlify API /api/get-martyrs HTTP error:', response.status, response.statusText);
             }
         } catch (apiError) {
-            console.warn('⚠️ Netlify API /api/get-martyrs failed:', apiError);
+            console.warn('⚠️ API /api/get-martyrs failed:', apiError);
         }
 
-        // Method 4: LocalStorage fallback (cached data from previous successful visit)
-        console.log('💾 Trying localStorage fallback...');
-        try {
-            const savedData = localStorage.getItem('martyrsData');
-            if (savedData) {
-                const parsedData = JSON.parse(savedData);
-                if (Array.isArray(parsedData) && parsedData.length > 0) {
-                    allMartyrs = parsedData.filter(m => !m.status || m.status === 'approved');
-                    console.log(`💾 LocalStorage success: ${allMartyrs.length} martyrs`);
-                    renderGallery(allMartyrs);
-                    showOfflineWarning();
-                    window.dispatchEvent(new Event('martyrsDataReady'));
-                    galleryLoaded = true;
-                    galleryLoading = false;
-                    return;
-                }
-            }
-        } catch (storageReadError) {
-            console.warn('⚠️ Failed to read martyrsData from localStorage:', storageReadError);
+        // If everything returned 0, show empty message
+        if (allMartyrs.length === 0) {
+            showEmptyMessage();
         }
-
-        // Method 5: Development-only demo data (never shown on live memorial domain)
-        const hostname = window.location.hostname;
-        const liveHosts = ['baluchmartyrs.com', 'www.baluchmartyrs.com', 'baluchmartyrs.site', 'www.baluchmartyrs.site'];
-        const isLiveSite = liveHosts.includes(hostname);
-        if (!isLiveSite) {
-            console.log('🎭 Loading demo data for local development/testing...');
-            allMartyrs = [
-                {
-                    id: 'demo-1',
-                    fullName: 'Demo Martyr - Check Console',
-                    martyrdomDate: '2024-01-01',
-                    martyrdomPlace: 'Testing Location',
-                    birthPlace: 'Demo City',
-                    organization: 'Development Testing',
-                    biography: 'This is demo data to verify the gallery is working. Check the browser console for debugging information.',
-                    status: 'approved'
-                }
-            ];
-            renderGallery(allMartyrs);
-            window.dispatchEvent(new Event('martyrsDataReady'));
-            galleryLoaded = true;
-            galleryLoading = false;
-            return;
-        }
-
-        // On the live site with no data from any source, show a clean empty-state message
-        console.warn('📭 No martyrs available from Firebase, API, or cache – showing empty gallery message');
-        showEmptyMessage();
         galleryLoaded = true;
         galleryLoading = false;
 
@@ -328,289 +317,7 @@ async function loadGallery() {
     }
 }
 
-// Render gallery with current martyrs
-function renderGallery() {
-    const galleryGrid = document.getElementById('galleryGrid');
-    if (!galleryGrid) {
-        console.error('❌ Cannot render - gallery grid not found');
-        return;
-    }
-    
-    console.log(`🎨 Rendering ${allMartyrs.length} martyrs...`);
-    
-    // Clear existing content
-    galleryGrid.innerHTML = '';
-    
-    if (allMartyrs.length === 0) {
-        showEmptyMessage();
-        return;
-    }
-    
-    // Create cards
-    let rendered = 0;
-    allMartyrs.forEach((martyr, index) => {
-        try {
-            const card = createGalleryCard(martyr);
-            galleryGrid.appendChild(card);
-            rendered++;
-        } catch (error) {
-            console.error(`❌ Failed to create card ${index}:`, error);
-        }
-    });
-    
-    console.log(`✅ Rendered ${rendered}/${allMartyrs.length} martyr cards`);
-    
-    // Show results info container (initially hidden)
-    const resultsInfo = document.getElementById('searchResultsInfo');
-    if (resultsInfo) {
-        resultsInfo.style.display = allMartyrs.length > 0 ? 'flex' : 'none';
-    }
-
-    // Apply current filters (this will update the result count text)
-    applyFilters();
-    
-    // Trigger lazy scroll reveal setup for newly created cards
-    if (typeof window.initScrollReveal === 'function') {
-        window.initScrollReveal();
-    }
-}
-// Create individual martyr card
-function createGalleryCard(martyr) {
-    // Debug: log martyr data to verify organization and rank fields
-    console.log(`📋 Creating card for ${martyr.fullName}:`, {
-        organization: martyr.organization || '(not set)',
-        rank: martyr.rank || '(not set)',
-        hasOrg: !!martyr.organization,
-        hasRank: !!martyr.rank
-    });
-    
-    const card = document.createElement('div');
-    card.className = 'martyr-card';
-    
-    // Search attributes
-    card.setAttribute('data-search-text', 
-        `${martyr.fullName} ${martyr.birthPlace || ''} ${martyr.martyrdomPlace || ''} ${martyr.organization || ''}`.toLowerCase()
-    );
-    card.setAttribute('data-name', martyr.fullName.toLowerCase());
-    card.setAttribute('data-location', `${martyr.birthPlace || ''} ${martyr.martyrdomPlace || ''}`.toLowerCase());
-    card.setAttribute('data-organization', (martyr.organization || '').toLowerCase());
-    card.setAttribute('data-year', martyr.martyrdomDate ? getYear(martyr.martyrdomDate) : '');
-    
-    // Image section
-    const imageDiv = document.createElement('div');
-    imageDiv.className = 'martyr-image';
-    
-    if (martyr.photo) {
-        const img = document.createElement('img');
-        img.src = martyr.photo;
-        img.alt = martyr.fullName;
-        img.loading = 'lazy';
-        img.decoding = 'async';
-        img.width = 300;
-        img.height = 200;
-        img.style.cssText = 'width: 100%; height: 200px; object-fit: cover; border-radius: 8px 8px 0 0;';
-        imageDiv.appendChild(img);
-    } else {
-        imageDiv.style.cssText = 'height: 200px; background: linear-gradient(135deg, #f0f0f0, #d0d0d0); border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: center; font-size: 48px; color: #999;';
-        imageDiv.textContent = '📸';
-    }
-    
-    // Info section
-    const infoDiv = document.createElement('div');
-    infoDiv.className = 'martyr-info';
-    infoDiv.style.cssText = 'padding: 1rem;';
-    
-    const name = document.createElement('h3');
-    name.textContent = martyr.fullName;
-    name.style.cssText = 'margin: 0 0 0.5rem 0; color: #2c5530;';
-    
-    const dates = document.createElement('p');
-    const birthYear = martyr.birthDate ? getYear(martyr.birthDate) : '?';
-    const martyrdomYear = getYear(martyr.martyrdomDate) || '?';
-    dates.textContent = `${birthYear} - ${martyrdomYear}`;
-    dates.style.cssText = 'margin: 0 0 0.5rem 0; font-weight: 500;';
-    
-    const place = document.createElement('p');
-    place.textContent = martyr.martyrdomPlace || 'Unknown location';
-    place.style.cssText = 'margin: 0 0 0.5rem 0; color: #666;';
-    
-    const viewBtn = document.createElement('button');
-    viewBtn.textContent = 'View Details';
-    viewBtn.className = 'btn btn-small btn-ghost';
-    viewBtn.style.cssText = 'width: 100%; margin-top: 0.5rem;';
-    // Use the original gallery-specific martyr modal
-    viewBtn.onclick = () => showMartyrModal(martyr);
-    
-    infoDiv.appendChild(name);
-    infoDiv.appendChild(dates);
-    infoDiv.appendChild(place);
-    
-    if (martyr.organization) {
-        const org = document.createElement('p');
-        org.textContent = martyr.organization;
-        org.style.cssText = 'margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #888;';
-        infoDiv.appendChild(org);
-    }
-    
-    if (martyr.rank) {
-        const rank = document.createElement('p');
-        rank.textContent = `Rank: ${martyr.rank}`;
-        rank.style.cssText = 'margin: 0 0 0.5rem 0; font-size: 0.85rem; color: #777; font-style: italic;';
-        infoDiv.appendChild(rank);
-    }
-    
-    infoDiv.appendChild(viewBtn);
-    infoDiv.appendChild(createShareRow(martyr, 'card'));
-    
-    card.appendChild(imageDiv);
-    card.appendChild(infoDiv);
-    
-    // Card styling
-    card.style.cssText = 'border: 1px solid #ddd; border-radius: 8px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.2s, box-shadow 0.2s; overflow: hidden;';
-    
-    // Hover effect
-    card.addEventListener('mouseenter', () => {
-        card.style.transform = 'translateY(-4px)';
-        card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-    });
-    card.addEventListener('mouseleave', () => {
-        card.style.transform = 'translateY(0)';
-        card.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-    });
-    
-    return card;
-}
-
-// Apply filters to visible cards
-function applyFilters() {
-    const cards = document.querySelectorAll('.martyr-card');
-    if (cards.length === 0) {
-        console.warn('⚠️ No cards found to filter');
-        return;
-    }
-    
-    console.log(`🔍 Applying filters to ${cards.length} cards...`);
-    
-    let visibleCount = 0;
-    const hasFilters = Object.values(currentFilters).some(f => f !== '');
-    
-    cards.forEach(card => {
-        let visible = true;
-        
-        // General search
-        if (currentFilters.general) {
-            const searchText = card.getAttribute('data-search-text') || '';
-            visible = visible && searchText.includes(currentFilters.general);
-        }
-        
-        // Name filter
-        if (currentFilters.name) {
-            const name = card.getAttribute('data-name') || '';
-            visible = visible && name.includes(currentFilters.name);
-        }
-        
-        // Location filter
-        if (currentFilters.location) {
-            const location = card.getAttribute('data-location') || '';
-            visible = visible && location.includes(currentFilters.location);
-        }
-        
-        // Organization filter
-        if (currentFilters.organization) {
-            const org = card.getAttribute('data-organization') || '';
-            visible = visible && org.includes(currentFilters.organization);
-        }
-        
-        // Year filter
-        if (currentFilters.year) {
-            const year = card.getAttribute('data-year') || '';
-            visible = visible && year === currentFilters.year;
-        }
-        
-        card.style.display = visible ? 'block' : 'none';
-        if (visible) visibleCount++;
-    });
-    
-    updateSearchResultsInfo(visibleCount);
-    console.log(`🔍 Filter result: ${visibleCount}/${cards.length} cards visible`);
-    
-    // Show no results message if needed
-    if (visibleCount === 0 && hasFilters && cards.length > 0) {
-        showNoResultsMessage();
-    } else {
-        hideNoResultsMessage();
-    }
-}
-
-// Initialize search functionality
-function initSearchFilter() {
-    const searchInput = document.getElementById('searchMartyrs');
-    const clearSearch = document.getElementById('clearSearch');
-    
-    if (searchInput) {
-        searchInput.addEventListener('input', function(e) {
-            currentFilters.general = e.target.value.toLowerCase().trim();
-            applyFilters();
-            toggleClearButton();
-        });
-    }
-    
-    if (clearSearch) {
-        clearSearch.addEventListener('click', function() {
-            if (searchInput) searchInput.value = '';
-            currentFilters.general = '';
-            applyFilters();
-            toggleClearButton();
-        });
-    }
-}
-
-// Initialize advanced search
-function initAdvancedSearch() {
-    const toggleBtn = document.getElementById('toggleAdvancedSearch');
-    const panel = document.getElementById('advancedSearchPanel');
-    
-    if (toggleBtn && panel) {
-        toggleBtn.addEventListener('click', function() {
-            const isVisible = panel.style.display !== 'none';
-            panel.style.display = isVisible ? 'none' : 'block';
-            toggleBtn.textContent = isVisible ? 'Advanced Search' : 'Hide Advanced';
-        });
-    }
-    
-    // Advanced search inputs
-    const inputs = [
-        { id: 'searchByName', filter: 'name' },
-        { id: 'searchByFather', filter: 'father' },
-        { id: 'searchByLocation', filter: 'location' },
-        { id: 'searchByOrganization', filter: 'organization' },
-        { id: 'searchByYear', filter: 'year' }
-    ];
-    
-    inputs.forEach(({ id, filter }) => {
-        const input = document.getElementById(id);
-        if (input) {
-            input.addEventListener('input', function() {
-                currentFilters[filter] = this.value.toLowerCase().trim();
-                applyFilters();
-            });
-        }
-    });
-    
-    // Clear buttons
-    const clearAdvanced = document.getElementById('clearAdvancedSearch');
-    const clearAll = document.getElementById('clearAllFilters');
-    
-    if (clearAdvanced) {
-        clearAdvanced.addEventListener('click', clearAdvancedFilters);
-    }
-    
-    if (clearAll) {
-        clearAll.addEventListener('click', clearAllFilters);
-    }
-}
-
-// Helper functions
+// Interface helpers
 function initializeInterface() {
     toggleClearButton();
     const resultsInfo = document.getElementById('searchResultsInfo');
@@ -619,59 +326,8 @@ function initializeInterface() {
     }
 }
 
-function toggleClearButton() {
-    const clearBtn = document.getElementById('clearSearch');
-    const searchInput = document.getElementById('searchMartyrs');
-    if (clearBtn && searchInput) {
-        clearBtn.style.display = searchInput.value.trim() ? 'flex' : 'none';
-    }
-}
-
-function clearAdvancedFilters() {
-    ['searchByName', 'searchByLocation', 'searchByOrganization', 'searchByYear'].forEach(id => {
-        const input = document.getElementById(id);
-        if (input) input.value = '';
-    });
-    
-    currentFilters.name = '';
-    currentFilters.father = '';
-    currentFilters.location = '';
-    currentFilters.organization = '';
-    currentFilters.year = '';
-    
-    applyFilters();
-}
-
-function clearAllFilters() {
-    const searchInput = document.getElementById('searchMartyrs');
-    if (searchInput) searchInput.value = '';
-    
-    clearAdvancedFilters();
-    
-    currentFilters.general = '';
-    applyFilters();
-    toggleClearButton();
-}
-
-function updateSearchResultsInfo(count) {
-    const resultsCount = document.getElementById('resultsCount');
-    const resultsLabel = document.getElementById('resultsLabel');
-    const resultsFilters = document.getElementById('resultsFilters');
-    
-    if (resultsCount) resultsCount.textContent = count;
-    if (resultsLabel) resultsLabel.textContent = count === 1 ? 'martyr found' : 'martyrs found';
-
-    // Show a short summary of active filters if any
-    if (resultsFilters) {
-        const filtersText = getActiveFiltersText();
-        resultsFilters.textContent = filtersText ? ` | Filters: ${filtersText}` : '';
-    }
-}
-
 function updateConnectionStatus(connected, source, error) {
     console.log(`📶 Connection status: ${connected ? 'Connected' : 'Disconnected'} - Source: ${source}`);
-    
-    // Store status globally for debugging
     window.galleryConnectionStatus = {
         connected,
         source,
@@ -679,40 +335,6 @@ function updateConnectionStatus(connected, source, error) {
         timestamp: new Date().toISOString()
     };
 }
-
-function showNoResultsMessage() {
-    hideNoResultsMessage(); // Remove any existing message
-    
-    const galleryGrid = document.getElementById('galleryGrid');
-    const noResultsMsg = document.createElement('div');
-    noResultsMsg.id = 'noResultsMessage';
-    noResultsMsg.style.cssText = `
-        text-align: center; padding: 3rem; color: #666; background: #f8f9fa;
-        border: 1px solid #dee2e6; border-radius: 8px; margin-top: 2rem;
-    `;
-    
-    const activeFilters = [];
-    if (currentFilters.general) activeFilters.push(`General: "${currentFilters.general}"`);
-    if (currentFilters.name) activeFilters.push(`Name: "${currentFilters.name}"`);
-    if (currentFilters.location) activeFilters.push(`Location: "${currentFilters.location}"`);
-    if (currentFilters.organization) activeFilters.push(`Organization: "${currentFilters.organization}"`);
-    if (currentFilters.year) activeFilters.push(`Year: ${currentFilters.year}`);
-    
-    noResultsMsg.innerHTML = `
-        <h3>No martyrs found</h3>
-        <p>No martyrs match your search criteria:</p>
-        <p style="font-style: italic; color: #007bff;">${activeFilters.join(', ')}</p>
-        <button onclick="clearAllFilters()" style="margin-top: 1rem; background: #2c5530; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Clear All Filters</button>
-    `;
-    
-    galleryGrid.parentNode.insertBefore(noResultsMsg, galleryGrid.nextSibling);
-}
-
-function hideNoResultsMessage() {
-    const msg = document.getElementById('noResultsMessage');
-    if (msg) msg.remove();
-}
-
 // To keep the experience clean, we show skeleton loaders
 function showLoadingState() {
     console.log('🔄 Preparing gallery – waiting for data...');
@@ -1402,201 +1024,177 @@ function showMartyrModal(martyr) {
     document.addEventListener('keydown', escHandler);
 }
 
-// Show empty gallery message
-function showEmptyGalleryMessage() {
-    const galleryGrid = document.getElementById('galleryGrid');
-    galleryGrid.innerHTML = `
-        <div class="martyr-card placeholder" style="grid-column: 1/-1; text-align: center; padding: 3rem;">
-            <div class="martyr-info">
-                <h3>No martyrs in gallery yet</h3>
-                <p>Be the first to add a martyr to our memorial</p>
-                <a href="add-martyr.html" class="btn btn-small">Add Martyr</a>
-            </div>
-        </div>
-    `;
-}
-
-// Show offline warning
-function showOfflineWarning() {
-    // Remove any existing warning first
-    hideOfflineWarning();
-    
-    const galleryGrid = document.getElementById('galleryGrid');
-    const warningDiv = document.createElement('div');
-    warningDiv.className = 'offline-warning';
-    warningDiv.id = 'offline-warning';
-    warningDiv.style.cssText = `
-        background: #fff3cd;
-        border: 1px solid #ffeaa7;
-        color: #856404;
-        padding: 1rem;
-        margin-bottom: 2rem;
-        border-radius: 8px;
-        text-align: center;
-        font-weight: 500;
-    `;
-    warningDiv.innerHTML = `
-        ⚠️ <strong>Offline Mode:</strong> Showing cached data. Some recent martyrs may not be visible.
-        <button onclick="location.reload()" style="margin-left: 1rem; padding: 0.25rem 0.75rem; border-radius: 4px; border: 1px solid #856404; background: transparent; color: #856404; cursor: pointer;">Retry</button>
-    `;
-    
-    galleryGrid.parentNode.insertBefore(warningDiv, galleryGrid);
-}
-
-// Hide offline warning
-function hideOfflineWarning() {
-    const existingWarning = document.getElementById('offline-warning');
-    if (existingWarning) {
-        existingWarning.remove();
-    }
-}
-
-// Add debug button for Firebase testing (only in development)
-function addDebugButton() {
-    const debugBtn = document.createElement('button');
-    debugBtn.textContent = 'Debug Firebase';
-    debugBtn.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        left: 20px;
-        background: #ff6b6b;
-        color: white;
-        border: none;
-        padding: 10px 15px;
-        border-radius: 5px;
-        cursor: pointer;
-        z-index: 9999;
-        font-size: 12px;
-    `;
-    
-    // Only show this heavy debug button in local development, never on production
-    const hostname = window.location.hostname;
-    const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1';
-    if (!isDevelopment) {
-        return;
-    }
-
-    debugBtn.addEventListener('click', async function() {
-        console.log('=== COMPREHENSIVE GALLERY DEBUG START ===');
-        
-        // Run manual data check
-        window.checkGalleryData();
-        
-        // Show current state
-        const galleryGrid = document.getElementById('galleryGrid');
-        console.log('Gallery grid element:', galleryGrid);
-        console.log('Gallery grid children:', galleryGrid?.children.length || 0);
-        
-        // Test Firebase directly
-        if (window.firebaseDB) {
-            try {
-                console.log('🔥 Testing Firebase connection...');
-                const result = await window.firebaseDB.getApprovedMartyrs();
-                console.log(`✅ Firebase test: ${result.success ? 'SUCCESS' : 'FAILED'}`);
-                if (result.success && result.data) {
-                    console.log(`📊 Found ${result.data.length} approved martyrs`);
-                    console.log('Sample martyr:', result.data[0]);
-                    
-                    // Try to render directly
-                    if (result.data.length > 0) {
-                        allMartyrs = result.data;
-                        await renderAndDisplay(allMartyrs, 'debug manual load');
-                    }
-                } else {
-                    console.error('❌ Error:', result.error);
-                }
-            } catch (error) {
-                console.error('❌ Firebase test failed:', error);
-            }
-        } else {
-            console.error('❌ Firebase not available globally');
-        }
-        
-        // Check for localStorage data to migrate
-        const localData = localStorage.getItem('martyrsData');
-        if (localData) {
-            const martyrs = JSON.parse(localData);
-            console.log(`💾 Found ${martyrs.length} martyrs in localStorage`);
-            
-            if (confirm(`Found ${martyrs.length} martyrs in localStorage. Migrate to Firebase for global visibility?`)) {
-                console.log('🚚 Starting migration...');
-                if (window.migrateToFirebase) {
-                    const result = await window.migrateToFirebase();
-                    if (result.success) {
-                        alert(`Migration completed! Migrated ${result.migrated} martyrs to Firebase. Refreshing gallery...`);
-                        location.reload();
-                    } else {
-                        alert('Migration failed: ' + result.error);
-                    }
-                } else {
-                    alert('Migration function not available. Please refresh the page.');
-                }
-            }
-        } else {
-            console.log('💭 No localStorage data found to migrate');
-        }
-        
-        // Test mobile menu
-        const hamburger = document.querySelector('.hamburger');
-        const navMenu = document.querySelector('.nav-menu');
-        console.log('Mobile menu elements:');
-        console.log('Hamburger:', hamburger);
-        console.log('Nav menu:', navMenu);
-        
-        console.log('=== FIREBASE DEBUG END ===');
-        alert('Debug completed. Check console for details.');
-    });
-    
-    document.body.appendChild(debugBtn);
-}
-
-// Render martyrs in gallery
-function renderGallery(martyrsData) {
+// Progressive chunked rendering with infinite scroll
+function renderGallery(itemsToRender = null, reset = true) {
     const galleryGrid = document.getElementById('galleryGrid');
     if (!galleryGrid) {
         console.error('❌ Gallery grid element not found!');
         return;
     }
 
-    const list = Array.isArray(martyrsData) ? martyrsData : [];
-
-    // Frontend-only: always show martyrs in alphabetical order by name
-    const sortedMartyrs = [...list].sort((a, b) => {
-        const aName = ((a && a.fullName) ? String(a.fullName) : '').trim();
-        const bName = ((b && b.fullName) ? String(b.fullName) : '').trim();
-
-        // Put empty/unknown names at the end
-        if (!aName && !bName) return 0;
-        if (!aName) return 1;
-        if (!bName) return -1;
-
-        return aName.localeCompare(bName, undefined, { sensitivity: 'base' });
-    });
-
-    console.log(`🎨 Rendering ${sortedMartyrs.length} martyrs to gallery (alphabetical)...`);
-    galleryGrid.innerHTML = '';
-
-    let renderedCount = 0;
-    sortedMartyrs.forEach((martyr, index) => {
-        try {
-            const card = createGalleryCard(martyr);
-            galleryGrid.appendChild(card);
-            renderedCount++;
-        } catch (error) {
-            console.error(`❌ Error rendering martyr ${index}:`, error, martyr);
+    if (reset) {
+        // If itemsToRender is passed as an array, use it; otherwise use allMartyrs
+        if (Array.isArray(itemsToRender)) {
+            currentFilteredMartyrs = itemsToRender;
+        } else if (!currentFilteredMartyrs || currentFilteredMartyrs.length === 0 || itemsToRender === null) {
+            currentFilteredMartyrs = allMartyrs || [];
         }
-    });
 
-    console.log(`✅ Successfully rendered ${renderedCount} out of ${sortedMartyrs.length} martyrs`);
-    updateSearchResultsInfo(sortedMartyrs.length);
-    
+        // Frontend-only: always sort current martyrs in alphabetical order by name
+        currentFilteredMartyrs = [...currentFilteredMartyrs].sort((a, b) => {
+            const aName = ((a && a.fullName) ? String(a.fullName) : '').trim();
+            const bName = ((b && b.fullName) ? String(b.fullName) : '').trim();
+            if (!aName && !bName) return 0;
+            if (!aName) return 1;
+            if (!bName) return -1;
+            return aName.localeCompare(bName, undefined, { sensitivity: 'base' });
+        });
+
+        // Reset grid and counter
+        galleryGrid.innerHTML = '';
+        currentlyRenderedCount = 0;
+        removeScrollSentinel();
+
+        const totalItems = currentFilteredMartyrs.length;
+        if (totalItems === 0) {
+            const hasActiveFilters = Object.values(currentFilters).some(f => f !== '') || 
+                (typeof discoveryState !== 'undefined' && (discoveryState.activeQuickFilter !== 'all' || discoveryState.activeLetter));
+            if (hasActiveFilters) {
+                showNoResultsMessage();
+            } else {
+                showEmptyMessage();
+            }
+            updateSearchResultsInfo(0);
+            return;
+        }
+
+        hideNoResultsMessage();
+        updateSearchResultsInfo(totalItems);
+        const resultsInfo = document.getElementById('searchResultsInfo');
+        if (resultsInfo) {
+            resultsInfo.style.display = totalItems > 0 ? 'flex' : 'none';
+        }
+    }
+
+    const totalItems = currentFilteredMartyrs.length;
+    const startIndex = currentlyRenderedCount;
+    const endIndex = Math.min(startIndex + BATCH_SIZE, totalItems);
+    const chunk = currentFilteredMartyrs.slice(startIndex, endIndex);
+
+    if (chunk.length > 0) {
+        const fragment = document.createDocumentFragment();
+        chunk.forEach((martyr, index) => {
+            try {
+                const card = createGalleryCard(martyr);
+                fragment.appendChild(card);
+            } catch (error) {
+                console.error(`❌ Error rendering martyr ${startIndex + index}:`, error, martyr);
+            }
+        });
+        galleryGrid.appendChild(fragment);
+        currentlyRenderedCount = endIndex;
+        console.log(`📦 Rendered ${currentlyRenderedCount}/${totalItems} martyrs`);
+    }
+
+    // Attach sentinel if more cards exist; otherwise remove it
+    if (currentlyRenderedCount < totalItems) {
+        attachScrollSentinel();
+    } else {
+        removeScrollSentinel();
+    }
+
     // Trigger lazy scroll reveal setup for newly created cards
     if (typeof window.initScrollReveal === 'function') {
         window.initScrollReveal();
     }
 }
 
-// Create gallery card (front of gallery)
+// Infinite scroll sentinel manager
+function attachScrollSentinel() {
+    let sentinel = document.getElementById('galleryScrollSentinel');
+    if (!sentinel) {
+        sentinel = document.createElement('div');
+        sentinel.id = 'galleryScrollSentinel';
+        sentinel.className = 'gallery-scroll-sentinel';
+        sentinel.style.cssText = 'grid-column: 1 / -1; width: 100%; text-align: center; padding: 2rem 1rem;';
+        sentinel.innerHTML = `
+            <div style="display: inline-flex; align-items: center; justify-content: center; gap: 10px; color: #555; font-size: 0.95rem; background: rgba(255,255,255,0.85); padding: 0.6rem 1.4rem; border-radius: 999px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid #e0e0e0;">
+                <span class="sentinel-spinner" style="display: inline-block; width: 18px; height: 18px; border: 2.5px solid #d0d7de; border-top-color: #2c5530; border-radius: 50%; animation: sentinelRotate 0.8s linear infinite;"></span>
+                <span>Loading more martyrs...</span>
+            </div>
+            <style>
+                @keyframes sentinelRotate {
+                    to { transform: rotate(360deg); }
+                }
+            </style>
+        `;
+        const galleryGrid = document.getElementById('galleryGrid');
+        if (galleryGrid) {
+            galleryGrid.appendChild(sentinel);
+        }
+    } else {
+        sentinel.style.display = 'block';
+        const galleryGrid = document.getElementById('galleryGrid');
+        if (galleryGrid && sentinel.parentNode === galleryGrid) {
+            galleryGrid.appendChild(sentinel);
+        }
+    }
+
+    if (scrollObserver) {
+        scrollObserver.disconnect();
+    }
+
+    scrollObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                if (currentlyRenderedCount < currentFilteredMartyrs.length) {
+                    renderGallery(null, false);
+                } else {
+                    removeScrollSentinel();
+                }
+            }
+        });
+    }, {
+        root: null,
+        rootMargin: '400px 0px',
+        threshold: 0.01
+    });
+
+    scrollObserver.observe(sentinel);
+}
+
+function removeScrollSentinel() {
+    if (scrollObserver) {
+        scrollObserver.disconnect();
+        scrollObserver = null;
+    }
+    const sentinel = document.getElementById('galleryScrollSentinel');
+    if (sentinel) {
+        sentinel.style.display = 'none';
+    }
+}
+
+// Deep-link helper for hero query param (?hero=...)
+function checkUrlForHero() {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const heroParam = params.get('hero');
+        if (heroParam && allMartyrs && allMartyrs.length > 0) {
+            const decoded = decodeURIComponent(heroParam).toLowerCase().trim();
+            const found = allMartyrs.find(m => 
+                (m.id && String(m.id).toLowerCase() === decoded) ||
+                (m.fullName && m.fullName.toLowerCase().trim() === decoded)
+            );
+            if (found) {
+                setTimeout(() => showMartyrModal(found), 400);
+            }
+        }
+    } catch (e) {
+        console.warn('Could not parse hero URL parameter:', e);
+    }
+}
+
+// Create gallery card// Create gallery card (front of gallery)
 // Modern, respectful design for gallery grid
 function createGalleryCard(martyr) {
     const card = document.createElement('div');
@@ -1961,9 +1559,15 @@ function clearAllFilters() {
 function updateSearchResultsInfo(count) {
     const resultsCount = document.getElementById('resultsCount');
     const resultsLabel = document.getElementById('resultsLabel');
+    const resultsFilters = document.getElementById('resultsFilters');
     
     if (resultsCount) resultsCount.textContent = count;
-    if (resultsLabel) resultsLabel.textContent = count === 1 ? 'martyr found' : 'martyrs found';
+    if (resultsLabel) resultsLabel.textContent = count === 1 ? 'hero found' : 'heroes found';
+
+    if (resultsFilters) {
+        const filtersText = getActiveFiltersText();
+        resultsFilters.textContent = filtersText ? ` | ${filtersText}` : '';
+    }
 }
 
 // Show no results message

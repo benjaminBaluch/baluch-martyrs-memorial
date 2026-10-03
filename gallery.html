@@ -208,6 +208,12 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
     
     <!-- Load main scripts; main.js will initialize Firebase via js/firebase-config.js -->
+    <script src="js/idb-cache.js"></script>
+    <script type="module">
+        import { firebaseDB } from './js/firebase-config.js';
+        window.firebaseDB = firebaseDB;
+        window.dispatchEvent(new Event('firebaseReady'));
+    </script>
     <script src="js/main.js"></script>
     <script src="js/mobile-menu.js"></script>
     <script src="js/gallery.js"></script>
