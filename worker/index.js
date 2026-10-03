@@ -16,6 +16,26 @@ export default {
         const { pathname } = new URL(request.url);
         const handler = routes[pathname.replace(/\/+$/, '')];
 
+        if (pathname.replace(/\/+$/, '') === '/api/get-martyrs' && request.method === 'GET') {
+            try {
+                const cache = caches.default;
+                const cacheKey = new Request(request.url, request);
+                let cachedResponse = await cache.match(cacheKey);
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+                const response = await getMartyrs({ request, env });
+                if (response && response.ok) {
+                    const responseToCache = new Response(response.clone().body, response);
+                    responseToCache.headers.set('Cache-Control', 'public, max-age=1800, s-maxage=86400');
+                    cache.put(cacheKey, responseToCache).catch(() => {});
+                }
+                return response;
+            } catch (err) {
+                return getMartyrs({ request, env });
+            }
+        }
+
         if (handler) {
             return handler({ request, env });
         }

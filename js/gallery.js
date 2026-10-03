@@ -245,22 +245,36 @@ async function loadGallery() {
         const fb = await waitForFirebase(6000);
 
         if (fb) {
-            // Step 3a: Fast initial batch of 24 cards for sub-second first paint
+            // Step 3a: Fast initial batch of 24 cards (alphabetical) for sub-second first paint
             if (typeof fb.getInitialBatch === 'function') {
-                console.log('⚡ Fetching initial fast batch (24 cards)...');
+                console.log('⚡ Fetching initial alphabetical batch (24 cards)...');
                 const batchResult = await fb.getInitialBatch(24);
                 if (batchResult && batchResult.success && batchResult.data && batchResult.data.length > 0) {
                     console.log(`⚡ Displaying initial ${batchResult.data.length} cards immediately!`);
                     allMartyrs = batchResult.data;
                     renderGallery(allMartyrs, true);
                     hideOfflineWarning();
+                    checkUrlForHero();
+                    galleryLoaded = true;
+                    galleryLoading = false;
+                    populateFilterDropdowns();
+
+                    // If not all martyrs were loaded, attach sentinel for infinite scroll and start background stream
+                    if (batchResult.hasMore !== false) {
+                        attachScrollSentinel();
+                        startBackgroundProgressiveLoad();
+                    }
+                    return;
                 }
             }
 
-            // Step 3b: Fetch full collection
+            // Step 3b: If initial batch query failed, try getApprovedMartyrs fallback with timeout
             if (typeof fb.getApprovedMartyrs === 'function') {
-                console.log('🔥 Fetching full martyrs collection...');
-                const result = await fb.getApprovedMartyrs();
+                console.log('🔥 Fetching full martyrs collection as fallback...');
+                const result = await Promise.race([
+                    fb.getApprovedMartyrs(),
+                    new Promise(resolve => setTimeout(() => resolve({ success: false, data: [] }), 4000))
+                ]);
 
                 if (result && result.success && Array.isArray(result.data) && result.data.length > 0) {
                     console.log(`✅ Full dataset ready: ${result.data.length} martyrs`);
@@ -268,19 +282,9 @@ async function loadGallery() {
                     window.martyrsDataFromFirebase = allMartyrs;
                     populateFilterDropdowns();
 
-                    // If user has not applied any filters, seamlessly update total count and sentinel
-                    const hasFilters = Object.values(currentFilters).some(f => f !== '') ||
-                        (typeof discoveryState !== 'undefined' && (discoveryState.activeQuickFilter !== 'all' || discoveryState.activeLetter));
-
-                    if (!hasFilters) {
-                        currentFilteredMartyrs = allMartyrs;
-                        updateSearchResultsInfo(allMartyrs.length);
-                        if (currentlyRenderedCount < allMartyrs.length) {
-                            attachScrollSentinel();
-                        }
-                    } else {
-                        applyFilters();
-                    }
+                    currentFilteredMartyrs = allMartyrs;
+                    renderGallery(allMartyrs, true);
+                    updateSearchResultsInfo(allMartyrs.length);
 
                     hideOfflineWarning();
                     checkUrlForHero();
@@ -1137,8 +1141,9 @@ function renderGallery(itemsToRender = null, reset = true) {
         console.log(`📦 Rendered ${currentlyRenderedCount}/${totalItems} martyrs`);
     }
 
-    // Attach sentinel if more cards exist; otherwise remove it
-    if (currentlyRenderedCount < totalItems) {
+    // Attach sentinel if more cards exist in memory, or if database has more batches
+    const hasMoreInDb = window.firebaseDB && typeof window.firebaseDB.hasMoreBatches === 'function' && window.firebaseDB.hasMoreBatches();
+    if (currentlyRenderedCount < totalItems || hasMoreInDb) {
         attachScrollSentinel();
     } else {
         removeScrollSentinel();
@@ -1190,6 +1195,8 @@ function attachScrollSentinel() {
             if (entry.isIntersecting) {
                 if (currentlyRenderedCount < currentFilteredMartyrs.length) {
                     renderGallery(null, false);
+                } else if (window.firebaseDB && typeof window.firebaseDB.getNextBatch === 'function' && window.firebaseDB.hasMoreBatches()) {
+                    loadNextBatchOnScroll();
                 } else {
                     removeScrollSentinel();
                 }
@@ -1213,6 +1220,118 @@ function removeScrollSentinel() {
     if (sentinel) {
         sentinel.style.display = 'none';
     }
+}
+
+// On-demand fetch when user scrolls to the bottom
+let isFetchingScrollBatch = false;
+async function loadNextBatchOnScroll() {
+    if (isFetchingScrollBatch) return;
+    if (!window.firebaseDB || typeof window.firebaseDB.getNextBatch !== 'function') return;
+    if (!window.firebaseDB.hasMoreBatches()) {
+        removeScrollSentinel();
+        return;
+    }
+
+    isFetchingScrollBatch = true;
+    try {
+        console.log('📜 User scrolled to bottom, fetching next batch of martyrs...');
+        const res = await window.firebaseDB.getNextBatch(24);
+        if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+            console.log(`📦 Loaded ${res.data.length} more martyrs from Firestore`);
+            res.data.forEach(m => {
+                if (!allMartyrs.some(existing => existing.id === m.id)) {
+                    allMartyrs.push(m);
+                }
+            });
+
+            const hasFilters = Object.values(currentFilters).some(f => f !== '') ||
+                (typeof discoveryState !== 'undefined' && (discoveryState.activeQuickFilter !== 'all' || discoveryState.activeLetter));
+
+            if (!hasFilters) {
+                currentFilteredMartyrs = allMartyrs;
+                renderGallery(null, false);
+                updateSearchResultsInfo(allMartyrs.length);
+            } else {
+                applyFilters();
+            }
+
+            // Save to IndexedDB
+            const idb = (typeof window !== 'undefined' && window.idbCache) ? window.idbCache : null;
+            if (idb) idb.set(allMartyrs);
+
+            if (!res.hasMore) {
+                removeScrollSentinel();
+            }
+        } else if (res && !res.hasMore) {
+            removeScrollSentinel();
+        }
+    } catch (err) {
+        console.warn('⚠️ Error fetching batch on scroll:', err);
+    } finally {
+        isFetchingScrollBatch = false;
+    }
+}
+
+// Quiet background streaming to pre-load the memorial directory without lagging UI
+let backgroundLoaderActive = false;
+function startBackgroundProgressiveLoad() {
+    if (backgroundLoaderActive) return;
+    backgroundLoaderActive = true;
+
+    const streamNext = async () => {
+        if (!window.firebaseDB || typeof window.firebaseDB.getNextBatch !== 'function') {
+            backgroundLoaderActive = false;
+            return;
+        }
+        if (!window.firebaseDB.hasMoreBatches()) {
+            console.log('✅ Background load complete: all martyrs in memory');
+            backgroundLoaderActive = false;
+            return;
+        }
+        // If an on-scroll batch is active, yield
+        if (isFetchingScrollBatch || window.firebaseDB._isFetchingBatch) {
+            setTimeout(streamNext, 2000);
+            return;
+        }
+
+        try {
+            const next = await window.firebaseDB.getNextBatch(36);
+            if (next && next.success && Array.isArray(next.data) && next.data.length > 0) {
+                next.data.forEach(m => {
+                    if (!allMartyrs.some(existing => existing.id === m.id)) {
+                        allMartyrs.push(m);
+                    }
+                });
+
+                const idb = (typeof window !== 'undefined' && window.idbCache) ? window.idbCache : null;
+                if (idb) idb.set(allMartyrs);
+
+                populateFilterDropdowns();
+
+                const hasFilters = Object.values(currentFilters).some(f => f !== '') ||
+                    (typeof discoveryState !== 'undefined' && (discoveryState.activeQuickFilter !== 'all' || discoveryState.activeLetter));
+
+                if (!hasFilters) {
+                    currentFilteredMartyrs = allMartyrs;
+                    updateSearchResultsInfo(allMartyrs.length);
+                    if (currentlyRenderedCount < allMartyrs.length) {
+                        attachScrollSentinel();
+                    }
+                }
+            }
+
+            if (next && next.hasMore) {
+                setTimeout(streamNext, 1500);
+            } else {
+                backgroundLoaderActive = false;
+            }
+        } catch (e) {
+            console.warn('Background load paused:', e.message);
+            backgroundLoaderActive = false;
+        }
+    };
+
+    setTimeout(streamNext, 1200);
 }
 
 // Deep-link helper for hero query param (?hero=...)

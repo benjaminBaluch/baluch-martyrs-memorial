@@ -322,22 +322,33 @@ async function loadRecentMartyrs() {
         try {
             // 1. Check pre-loaded memory data
             if (window.martyrsDataFromFirebase && window.martyrsDataFromFirebase.length > 0) {
-                martyrsData = window.martyrsDataFromFirebase;
+                martyrsData = window.martyrsDataFromFirebase.slice(-6).reverse();
                 console.log(`⚡ Using pre-loaded data for recent martyrs: ${martyrsData.length}`);
-            } else if (window.firebaseDB) {
-                // 2. Fetch using cache-first method
-                const result = await window.firebaseDB.getApprovedMartyrs();
-                if (result.success) {
-                    martyrsData = result.data || [];
-                    console.log(`✅ Loaded ${martyrsData.length} martyrs for recent section`);
+            } else if (window.idbCache) {
+                const cached = await window.idbCache.get();
+                if (cached && cached.data && cached.data.length > 0) {
+                    martyrsData = cached.data.slice(-6).reverse();
+                    console.log(`⚡ Loaded ${martyrsData.length} recent martyrs from IDB cache`);
+                }
+            }
+
+            // 2. Fetch only 6 recent martyrs from Firebase (only 6 docs, <200ms)
+            if (martyrsData.length === 0 && window.firebaseDB) {
+                if (typeof window.firebaseDB.getRecentMartyrs === 'function') {
+                    const result = await window.firebaseDB.getRecentMartyrs(6);
+                    if (result && result.success && Array.isArray(result.data)) {
+                        martyrsData = result.data;
+                        console.log(`✅ Loaded ${martyrsData.length} recent martyrs via fast query`);
+                    }
+                } else if (typeof window.firebaseDB.getInitialBatch === 'function') {
+                    const result = await window.firebaseDB.getInitialBatch(6);
+                    if (result && result.success && Array.isArray(result.data)) {
+                        martyrsData = result.data;
+                    }
                 }
             }
         } catch (error) {
             console.warn('⚠️ Loading recent martyrs failed:', error.message);
-            if (window.idbCache) {
-                const cached = await window.idbCache.get();
-                if (cached) martyrsData = cached.data;
-            }
         }
         
         // Display martyrs if we have any

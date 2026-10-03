@@ -59,30 +59,33 @@
         let source = 'unknown';
 
         try {
-            // Method 1: Firebase direct (most reliable)
-            if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
-                console.log('📊 Fetching from Firebase...');
-                updateStatus(statusEl, 'Connecting to database...', true);
-                
-                const result = await window.firebaseDB.getApprovedMartyrs();
-                
-                if (result && result.success && Array.isArray(result.data) && result.data.length > 0) {
-                    martyrs = result.data;
-                    source = 'database';
-                    console.log(`✅ Firebase: ${martyrs.length} martyrs`);
+            // Method 1: Instant load from Memory or IndexedDB Cache (0-30ms)
+            if (window.martyrsDataFromFirebase && window.martyrsDataFromFirebase.length > 0) {
+                martyrs = window.martyrsDataFromFirebase;
+                source = 'cache';
+                console.log(`⚡ Statistics: Loaded ${martyrs.length} martyrs from memory`);
+            } else if (window.idbCache) {
+                try {
+                    const cached = await window.idbCache.get();
+                    if (cached && cached.data && cached.data.length > 0) {
+                        martyrs = cached.data;
+                        source = 'cache';
+                        console.log(`⚡ Statistics: Loaded ${martyrs.length} martyrs from IDB cache`);
+                    }
+                } catch (e) {
+                    console.warn('IDB read error in stats:', e);
                 }
             }
 
-            // Method 2: API fallback
+            // Method 2: Fast API (lightweight JSON without heavy base64 photos, ~300KB, <200ms)
             if (martyrs.length === 0) {
-                console.log('📊 Trying API...');
-                updateStatus(statusEl, 'Trying API...', true);
+                console.log('📊 Fetching lightweight statistics data from /api/get-martyrs...');
+                updateStatus(statusEl, 'Loading insights...', true);
                 
                 try {
                     const response = await fetch('/api/get-martyrs', {
                         method: 'GET',
-                        headers: { 'Accept': 'application/json' },
-                        cache: 'no-store'
+                        headers: { 'Accept': 'application/json' }
                     });
                     
                     if (response.ok) {
@@ -90,11 +93,30 @@
                         if (Array.isArray(data) && data.length > 0) {
                             martyrs = data;
                             source = 'database';
-                            console.log(`✅ API: ${martyrs.length} martyrs`);
+                            console.log(`✅ API: Loaded ${martyrs.length} martyrs`);
+                            // Save to IDB for future visits
+                            if (window.idbCache) window.idbCache.set(martyrs);
                         }
                     }
                 } catch (e) {
-                    console.warn('API failed:', e);
+                    console.warn('API /api/get-martyrs failed:', e);
+                }
+            }
+
+            // Method 3: Firebase SDK fallback (with 3.5s timeout to prevent hanging)
+            if (martyrs.length === 0 && window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
+                console.log('📊 Fetching from Firebase fallback...');
+                updateStatus(statusEl, 'Connecting to database...', true);
+                
+                const result = await Promise.race([
+                    window.firebaseDB.getApprovedMartyrs(),
+                    new Promise(resolve => setTimeout(() => resolve({ success: false, data: [] }), 3500))
+                ]);
+                
+                if (result && result.success && Array.isArray(result.data) && result.data.length > 0) {
+                    martyrs = result.data;
+                    source = 'database';
+                    console.log(`✅ Firebase: ${martyrs.length} martyrs`);
                 }
             }
 

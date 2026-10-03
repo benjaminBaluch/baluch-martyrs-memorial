@@ -15,6 +15,8 @@ import {
     where,
     orderBy,
     limit,
+    startAfter,
+    getCountFromServer,
     serverTimestamp,
     Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
@@ -89,44 +91,201 @@ export const firebaseDB = {
 
     _memoryCache: null,
     _inFlightPromise: null,
+    _lastDocSnapshot: null,
+    _hasMoreBatches: true,
+    _isFetchingBatch: false,
 
-    // Fast initial batch (24 items, ~1.5MB) for sub-second first render
+    hasMoreBatches() {
+        return this._hasMoreBatches;
+    },
+
+    // Fast initial batch (24 items) sorted alphabetically by fullName
     async getInitialBatch(count = 24) {
-        try {
-            // 1. Check in-memory
-            if (this._memoryCache && this._memoryCache.length > 0) {
-                return { success: true, data: this._memoryCache.slice(0, count), fromCache: true };
-            }
-            // 2. Check IndexedDB
-            const idb = getIdb();
-            if (idb) {
+        this._lastDocSnapshot = null;
+        this._hasMoreBatches = true;
+
+        // 1. Check in-memory cache
+        if (this._memoryCache && this._memoryCache.length > 0) {
+            const sorted = [...this._memoryCache].sort((a, b) => 
+                String(a.fullName || '').localeCompare(String(b.fullName || ''), undefined, { sensitivity: 'base' })
+            );
+            this._hasMoreBatches = sorted.length > count;
+            return { success: true, data: sorted.slice(0, count), fromCache: true, hasMore: this._hasMoreBatches, total: sorted.length };
+        }
+
+        // 2. Check IndexedDB
+        const idb = getIdb();
+        if (idb) {
+            try {
                 const cached = await idb.get();
                 if (cached && cached.data && cached.data.length > 0) {
                     this._memoryCache = cached.data;
-                    return { success: true, data: cached.data.slice(0, count), fromCache: true };
+                    const sorted = [...cached.data].sort((a, b) => 
+                        String(a.fullName || '').localeCompare(String(b.fullName || ''), undefined, { sensitivity: 'base' })
+                    );
+                    this._hasMoreBatches = sorted.length > count;
+                    return { success: true, data: sorted.slice(0, count), fromCache: true, hasMore: this._hasMoreBatches, total: sorted.length };
                 }
+            } catch (e) {
+                console.warn('⚠️ IDB read error:', e);
             }
-            // 3. Quick Firestore query with limit
-            console.log(`⚡ Fetching fast initial batch (${count} martyrs)...`);
+        }
+
+        // 3. Firestore query with orderBy('fullName', 'asc') and limit(count)
+        try {
+            console.log(`⚡ Fetching alphabetical initial batch (${count} martyrs)...`);
             const martyrsCollection = collection(db, 'martyrs');
-            const q = query(martyrsCollection, limit(count));
+            const q = query(martyrsCollection, orderBy('fullName', 'asc'), limit(count));
             const snapshot = await getDocs(q);
             const batch = [];
-            snapshot.forEach((doc) => {
-                const data = doc.data();
+            snapshot.forEach((docSnap) => {
+                const data = docSnap.data();
                 if (!data.status || data.status === 'approved') {
                     batch.push({
-                        id: doc.id,
+                        id: docSnap.id,
                         ...data,
                         status: data.status || 'approved'
                     });
                 }
             });
-            console.log(`⚡ Fast initial batch ready: ${batch.length} martyrs`);
+
+            if (snapshot.docs.length > 0) {
+                this._lastDocSnapshot = snapshot.docs[snapshot.docs.length - 1];
+            }
+            this._hasMoreBatches = snapshot.docs.length >= count;
+            console.log(`⚡ Alphabetical initial batch ready: ${batch.length} martyrs (hasMore: ${this._hasMoreBatches})`);
+            return { success: true, data: batch, fromCache: false, hasMore: this._hasMoreBatches };
+        } catch (err) {
+            console.warn('⚠️ Alphabetical batch query failed, trying standard limit fallback:', err.message);
+            try {
+                const martyrsCollection = collection(db, 'martyrs');
+                const fallbackQ = query(martyrsCollection, limit(count));
+                const snapshot = await getDocs(fallbackQ);
+                const batch = [];
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    if (!data.status || data.status === 'approved') {
+                        batch.push({
+                            id: docSnap.id,
+                            ...data,
+                            status: data.status || 'approved'
+                        });
+                    }
+                });
+                batch.sort((a, b) => String(a.fullName || '').localeCompare(String(b.fullName || ''), undefined, { sensitivity: 'base' }));
+                if (snapshot.docs.length > 0) {
+                    this._lastDocSnapshot = snapshot.docs[snapshot.docs.length - 1];
+                }
+                this._hasMoreBatches = snapshot.docs.length >= count;
+                return { success: true, data: batch, fromCache: false, hasMore: this._hasMoreBatches };
+            } catch (fallbackErr) {
+                console.warn('⚠️ Fallback query also failed:', fallbackErr.message);
+                return { success: false, data: [], hasMore: false };
+            }
+        }
+    },
+
+    // Next batch for infinite scroll on demand
+    async getNextBatch(count = 24) {
+        if (this._isFetchingBatch) return { success: false, inFlight: true, data: [] };
+        if (!this._hasMoreBatches || !this._lastDocSnapshot) {
+            return { success: true, data: [], hasMore: false };
+        }
+
+        this._isFetchingBatch = true;
+        try {
+            console.log(`⚡ Fetching next batch (${count} martyrs)...`);
+            const martyrsCollection = collection(db, 'martyrs');
+            const q = query(
+                martyrsCollection,
+                orderBy('fullName', 'asc'),
+                startAfter(this._lastDocSnapshot),
+                limit(count)
+            );
+            const snapshot = await getDocs(q);
+            const batch = [];
+            snapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                if (!data.status || data.status === 'approved') {
+                    batch.push({
+                        id: docSnap.id,
+                        ...data,
+                        status: data.status || 'approved'
+                    });
+                }
+            });
+
+            if (snapshot.docs.length > 0) {
+                this._lastDocSnapshot = snapshot.docs[snapshot.docs.length - 1];
+            }
+            this._hasMoreBatches = snapshot.docs.length >= count;
+            console.log(`⚡ Next batch ready: ${batch.length} martyrs (hasMore: ${this._hasMoreBatches})`);
+            return { success: true, data: batch, hasMore: this._hasMoreBatches };
+        } catch (err) {
+            console.warn('⚠️ Next batch fetch failed:', err.message);
+            return { success: false, data: [], error: err.message, hasMore: false };
+        } finally {
+            this._isFetchingBatch = false;
+        }
+    },
+
+    // Fast 6 recent martyrs for homepage (sub-200ms)
+    async getRecentMartyrs(count = 6) {
+        // 1. From memory cache if present
+        if (this._memoryCache && this._memoryCache.length > 0) {
+            return { success: true, data: this._memoryCache.slice(-count).reverse(), fromCache: true };
+        }
+        // 2. From IndexedDB
+        const idb = getIdb();
+        if (idb) {
+            try {
+                const cached = await idb.get();
+                if (cached && cached.data && cached.data.length > 0) {
+                    this._memoryCache = cached.data;
+                    return { success: true, data: cached.data.slice(-count).reverse(), fromCache: true };
+                }
+            } catch (e) {}
+        }
+        // 3. Query Firestore with small limit (only 6 docs, tiny bandwidth)
+        try {
+            const martyrsCollection = collection(db, 'martyrs');
+            const q = query(martyrsCollection, limit(count));
+            const snapshot = await getDocs(q);
+            const batch = [];
+            snapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                if (!data.status || data.status === 'approved') {
+                    batch.push({ id: docSnap.id, ...data });
+                }
+            });
             return { success: true, data: batch, fromCache: false };
         } catch (err) {
-            console.warn('⚠️ Fast initial batch fetch failed, falling back:', err.message);
+            console.warn('⚠️ getRecentMartyrs failed:', err.message);
             return { success: false, data: [] };
+        }
+    },
+
+    // Fast count for homepage hero & stats (costs only 1 read, <100ms)
+    async getMartyrsCount() {
+        if (this._memoryCache && this._memoryCache.length > 0) {
+            return this._memoryCache.length;
+        }
+        const idb = getIdb();
+        if (idb) {
+            try {
+                const cached = await idb.get();
+                if (cached && cached.data && cached.data.length > 0) {
+                    return cached.data.length;
+                }
+            } catch (e) {}
+        }
+        try {
+            const martyrsCollection = collection(db, 'martyrs');
+            const snapshot = await getCountFromServer(martyrsCollection);
+            return snapshot.data().count;
+        } catch (err) {
+            console.warn('⚠️ getMartyrsCount failed, using fallback:', err.message);
+            return 1179;
         }
     },
 

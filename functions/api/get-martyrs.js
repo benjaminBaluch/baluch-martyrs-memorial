@@ -21,7 +21,7 @@ const PUBLIC_FIELDS = [
 
 const HEADERS = {
     'Content-Type': 'application/json',
-    'Cache-Control': 'no-store',
+    'Cache-Control': 'public, max-age=1800, s-maxage=86400, stale-while-revalidate=86400',
     'X-Content-Type-Options': 'nosniff',
     'Access-Control-Allow-Origin': '*'
 };
