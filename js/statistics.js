@@ -175,6 +175,11 @@
                 downloadInfo.textContent = `PDF includes ${martyrs.length} profiles with photos and biographies`;
             }
 
+            // If loaded from cache, trigger background database sync to fetch remaining records
+            if (source === 'cache') {
+                syncDatabaseInBackground(statusEl, martyrs);
+            }
+
             console.log('✅ Statistics rendered');
 
         } catch (error) {
@@ -187,6 +192,77 @@
                 const text = emptyEl.querySelector('.empty-text');
                 if (title) title.textContent = 'Error Loading Data';
                 if (text) text.textContent = 'Please refresh the page to try again.';
+            }
+        }
+    }
+
+    // Background database sync to fetch remaining records if only partial cache was available
+    async function syncDatabaseInBackground(statusEl, currentMartyrs) {
+        console.log('🔄 Checking database for full martyr records in background...');
+        let freshMartyrs = null;
+        let quotaExceeded = false;
+
+        // Try API first (lightweight, ~300KB)
+        try {
+            const response = await fetch('/api/get-martyrs', {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                if (Array.isArray(data) && data.length > currentMartyrs.length) {
+                    freshMartyrs = data;
+                }
+            } else {
+                const errJson = await response.json().catch(() => null);
+                if (response.status === 429 || (errJson && (errJson.code === 429 || errJson.error === 'Quota exceeded'))) {
+                    quotaExceeded = true;
+                }
+            }
+        } catch (e) {
+            console.warn('Background API sync error:', e);
+        }
+
+        // Try Firestore directly if API didn't give more and not already known 429
+        if (!freshMartyrs && !quotaExceeded && window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
+            try {
+                const res = await Promise.race([
+                    window.firebaseDB.getApprovedMartyrs(true),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4500))
+                ]);
+                if (res && res.success && Array.isArray(res.data) && res.data.length > currentMartyrs.length) {
+                    freshMartyrs = res.data;
+                }
+            } catch (fbErr) {
+                if (fbErr && (fbErr.code === 'resource-exhausted' || String(fbErr.message).includes('Quota exceeded') || String(fbErr.message).includes('429'))) {
+                    quotaExceeded = true;
+                }
+            }
+        }
+
+        if (freshMartyrs && freshMartyrs.length > currentMartyrs.length) {
+            console.log(`🎉 Database returned full dataset: ${freshMartyrs.length} martyrs! Updating statistics.`);
+            allMartyrsData = freshMartyrs;
+            window.martyrsDataFromFirebase = freshMartyrs;
+            if (window.idbCache) window.idbCache.set(freshMartyrs);
+
+            updateStatus(statusEl, `${freshMartyrs.length} records from database`, false);
+            const stats = processData(freshMartyrs);
+            renderKeyNumbers(stats);
+            render3DTimelineRibbon(stats);
+            renderTimeline(stats);
+            renderRegions(stats);
+            renderMonthly(stats);
+            renderInsights(stats);
+        } else if (quotaExceeded) {
+            console.warn('⚠️ Firebase quota exceeded (429 RESOURCE_EXHAUSTED). Database reads paused by Google.');
+            if (statusEl) {
+                statusEl.innerHTML = `
+                    <span class="status-dot warning" style="background:#f59e0b; width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px;"></span>
+                    <span title="Google Firebase daily free read quota reached (50,000/day). Upgrade to Blaze plan in Firebase Console to unlock all 1,179 profiles immediately." style="color:#d97706; font-weight:600;">
+                        ${currentMartyrs.length} records from cache • ⚠️ Firebase daily quota limit reached
+                    </span>
+                `;
             }
         }
     }

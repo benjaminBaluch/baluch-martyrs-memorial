@@ -104,8 +104,8 @@ export const firebaseDB = {
         this._lastDocSnapshot = null;
         this._hasMoreBatches = true;
 
-        // 1. Check in-memory cache
-        if (this._memoryCache && this._memoryCache.length > 0) {
+        // 1. Check in-memory cache (only bypass Firestore if full dataset is in memory)
+        if (this._memoryCache && this._memoryCache.length >= 1000) {
             const sorted = [...this._memoryCache].sort((a, b) => 
                 String(a.fullName || '').localeCompare(String(b.fullName || ''), undefined, { sensitivity: 'base' })
             );
@@ -113,12 +113,12 @@ export const firebaseDB = {
             return { success: true, data: sorted.slice(0, count), fromCache: true, hasMore: this._hasMoreBatches, total: sorted.length };
         }
 
-        // 2. Check IndexedDB
+        // 2. Check IndexedDB (only bypass Firestore if full dataset was cached)
         const idb = getIdb();
         if (idb) {
             try {
                 const cached = await idb.get();
-                if (cached && cached.data && cached.data.length > 0) {
+                if (cached && cached.data && cached.data.length >= 1000) {
                     this._memoryCache = cached.data;
                     const sorted = [...cached.data].sort((a, b) => 
                         String(a.fullName || '').localeCompare(String(b.fullName || ''), undefined, { sensitivity: 'base' })
@@ -180,6 +180,11 @@ export const firebaseDB = {
                 return { success: true, data: batch, fromCache: false, hasMore: this._hasMoreBatches };
             } catch (fallbackErr) {
                 console.warn('⚠️ Fallback query also failed:', fallbackErr.message);
+                if (fallbackErr && (fallbackErr.code === 'resource-exhausted' || String(fallbackErr.message).includes('Quota exceeded') || String(fallbackErr.message).includes('429'))) {
+                    if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('firebaseQuotaExceeded', { detail: { error: fallbackErr.message } }));
+                    }
+                }
                 return { success: false, data: [], hasMore: false };
             }
         }
@@ -188,8 +193,12 @@ export const firebaseDB = {
     // Next batch for infinite scroll on demand
     async getNextBatch(count = 24) {
         if (this._isFetchingBatch) return { success: false, inFlight: true, data: [] };
-        if (!this._hasMoreBatches || !this._lastDocSnapshot) {
+        if (!this._hasMoreBatches) {
             return { success: true, data: [], hasMore: false };
+        }
+        if (!this._lastDocSnapshot) {
+            // When initial view was rendered from cache, establish cursor by fetching first batch
+            return await this.getInitialBatch(count);
         }
 
         this._isFetchingBatch = true;
@@ -223,6 +232,11 @@ export const firebaseDB = {
             return { success: true, data: batch, hasMore: this._hasMoreBatches };
         } catch (err) {
             console.warn('⚠️ Next batch fetch failed:', err.message);
+            if (err && (err.code === 'resource-exhausted' || String(err.message).includes('Quota exceeded') || String(err.message).includes('429'))) {
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('firebaseQuotaExceeded', { detail: { error: err.message } }));
+                }
+            }
             return { success: false, data: [], error: err.message, hasMore: false };
         } finally {
             this._isFetchingBatch = false;
@@ -267,14 +281,14 @@ export const firebaseDB = {
 
     // Fast count for homepage hero & stats (costs only 1 read, <100ms)
     async getMartyrsCount() {
-        if (this._memoryCache && this._memoryCache.length > 0) {
+        if (this._memoryCache && this._memoryCache.length >= 1000) {
             return this._memoryCache.length;
         }
         const idb = getIdb();
         if (idb) {
             try {
                 const cached = await idb.get();
-                if (cached && cached.data && cached.data.length > 0) {
+                if (cached && cached.data && cached.data.length >= 1000) {
                     return cached.data.length;
                 }
             } catch (e) {}
@@ -291,8 +305,8 @@ export const firebaseDB = {
 
     // Get all approved martyrs with IndexedDB caching and deduplication
     async getApprovedMartyrs(forceRefresh = false) {
-        // 1. Return in-memory cache if available (0ms)
-        if (!forceRefresh && this._memoryCache && this._memoryCache.length > 0) {
+        // 1. Return in-memory cache if full dataset is available (0ms)
+        if (!forceRefresh && this._memoryCache && this._memoryCache.length >= 1000) {
             return { success: true, data: this._memoryCache, fromCache: true };
         }
 
@@ -302,7 +316,7 @@ export const firebaseDB = {
                 const idb = getIdb();
                 if (idb) {
                     const cached = await idb.get();
-                    if (cached && cached.data && cached.data.length > 0) {
+                    if (cached && cached.data && cached.data.length >= 1000) {
                         this._memoryCache = cached.data;
                         console.log(`⚡ Loaded ${cached.data.length} martyrs instantly from IndexedDB cache`);
                         // If cache is stale, refresh quietly in background without blocking UI
@@ -412,6 +426,14 @@ export const firebaseDB = {
             
         } catch (error) {
             console.error('❌ Error getting martyrs from Firebase:', error);
+            if (error && (error.code === 'resource-exhausted' || String(error.message).includes('Quota exceeded') || String(error.message).includes('429'))) {
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('firebaseQuotaExceeded', { detail: { error: error.message } }));
+                }
+            }
+            if (this._memoryCache && this._memoryCache.length > 0) {
+                return { success: true, data: this._memoryCache, fromCache: true, partial: true, error: error.message };
+            }
             return { 
                 success: false, 
                 error: error.message, 

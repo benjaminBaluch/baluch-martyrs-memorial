@@ -97,6 +97,11 @@ export async function onRequest({ request, env }) {
         return new Response(JSON.stringify(martyrs), { status: 200, headers: HEADERS });
     } catch (error) {
         console.error('get-martyrs failed:', error);
-        return new Response(JSON.stringify({ error: 'Database error' }), { status: 502, headers: HEADERS });
+        const isQuota = String(error.message).includes('429');
+        return new Response(JSON.stringify({ 
+            error: isQuota ? 'Quota exceeded' : 'Database error',
+            code: isQuota ? 429 : 502,
+            message: isQuota ? 'Firestore daily read quota exceeded (RESOURCE_EXHAUSTED). Please upgrade to Firebase Blaze plan.' : 'Failed to connect to database'
+        }), { status: isQuota ? 429 : 502, headers: HEADERS });
     }
 }

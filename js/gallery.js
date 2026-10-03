@@ -221,15 +221,19 @@ async function loadGallery() {
                     galleryLoaded = true;
                     galleryLoading = false;
 
-                    // If cache is older than 6 hours, refresh quietly in background
-                    if (cached.isStale && window.firebaseDB) {
+                    // If cache only has partial dataset (< 1000 items), continue loading rest from database!
+                    if (allMartyrs.length < 1000) {
+                        console.log(`🔄 Cache only has ${allMartyrs.length} martyrs. Continuing to stream rest from database...`);
+                        attachScrollSentinel();
+                        startBackgroundProgressiveLoad();
+                    } else if (cached.isStale && window.firebaseDB) {
                         window.firebaseDB.getApprovedMartyrs(true).then(res => {
                             if (res && res.success && res.data && res.data.length > 0) {
                                 allMartyrs = res.data;
                                 window.martyrsDataFromFirebase = allMartyrs;
                                 populateFilterDropdowns();
                             }
-                        });
+                        }).catch(() => {});
                     }
                     return;
                 }
@@ -310,6 +314,11 @@ async function loadGallery() {
                         checkUrlForHero();
                         galleryLoaded = true;
                         galleryLoading = false;
+                        if (allMartyrs.length < 1000) {
+                            console.log(`🔄 LocalStorage only has ${allMartyrs.length} martyrs. Continuing to stream rest from database...`);
+                            attachScrollSentinel();
+                            startBackgroundProgressiveLoad();
+                        }
                         return;
                     }
                 }
@@ -1264,9 +1273,16 @@ async function loadNextBatchOnScroll() {
             }
         } else if (res && !res.hasMore) {
             removeScrollSentinel();
+        } else if (res && !res.success && res.error) {
+            if (res.error.includes('Quota') || res.error.includes('429') || res.error.includes('resource-exhausted')) {
+                showQuotaExceededBanner();
+            }
         }
     } catch (err) {
         console.warn('⚠️ Error fetching batch on scroll:', err);
+        if (err && (err.code === 'resource-exhausted' || String(err.message).includes('Quota exceeded') || String(err.message).includes('429'))) {
+            showQuotaExceededBanner();
+        }
     } finally {
         isFetchingScrollBatch = false;
     }
@@ -1277,6 +1293,49 @@ let backgroundLoaderActive = false;
 function startBackgroundProgressiveLoad() {
     if (backgroundLoaderActive) return;
     backgroundLoaderActive = true;
+
+    // Fast API sync in parallel if only partial dataset is loaded
+    if (allMartyrs.length < 1000) {
+        fetch('/api/get-martyrs', { method: 'GET', headers: { 'Accept': 'application/json' } })
+            .then(res => {
+                if (res.status === 429) {
+                    showQuotaExceededBanner();
+                    return null;
+                }
+                return res.ok ? res.json() : null;
+            })
+            .then(data => {
+                if (Array.isArray(data) && data.length > allMartyrs.length) {
+                    console.log(`🎉 Background API sync retrieved ${data.length} martyrs!`);
+                    const photoMap = new Map();
+                    allMartyrs.forEach(m => {
+                        if (m && m.id && m.photo) photoMap.set(m.id, m.photo);
+                    });
+                    allMartyrs = data.map(m => {
+                        if (photoMap.has(m.id)) {
+                            return { ...m, photo: photoMap.get(m.id) };
+                        }
+                        return m;
+                    });
+                    window.martyrsDataFromFirebase = allMartyrs;
+                    const idb = (typeof window !== 'undefined' && window.idbCache) ? window.idbCache : null;
+                    if (idb) idb.set(allMartyrs);
+                    populateFilterDropdowns();
+
+                    const hasFilters = Object.values(currentFilters).some(f => f !== '') ||
+                        (typeof discoveryState !== 'undefined' && (discoveryState.activeQuickFilter !== 'all' || discoveryState.activeLetter));
+
+                    if (!hasFilters) {
+                        currentFilteredMartyrs = allMartyrs;
+                        updateSearchResultsInfo(allMartyrs.length);
+                        if (currentlyRenderedCount < allMartyrs.length) {
+                            attachScrollSentinel();
+                        }
+                    }
+                }
+            })
+            .catch(() => {});
+    }
 
     const streamNext = async () => {
         if (!window.firebaseDB || typeof window.firebaseDB.getNextBatch !== 'function') {
@@ -1318,6 +1377,10 @@ function startBackgroundProgressiveLoad() {
                         attachScrollSentinel();
                     }
                 }
+            } else if (next && !next.success && next.error) {
+                if (next.error.includes('Quota') || next.error.includes('429') || next.error.includes('resource-exhausted')) {
+                    showQuotaExceededBanner();
+                }
             }
 
             if (next && next.hasMore) {
@@ -1327,12 +1390,46 @@ function startBackgroundProgressiveLoad() {
             }
         } catch (e) {
             console.warn('Background load paused:', e.message);
+            if (e && (e.code === 'resource-exhausted' || String(e.message).includes('Quota exceeded') || String(e.message).includes('429'))) {
+                showQuotaExceededBanner();
+            }
             backgroundLoaderActive = false;
         }
     };
 
     setTimeout(streamNext, 1200);
 }
+
+// Quota warning banner when Firebase Spark daily limit is reached
+function showQuotaExceededBanner() {
+    let banner = document.getElementById('firebaseQuotaBanner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'firebaseQuotaBanner';
+        banner.style.cssText = 'grid-column: 1 / -1; width: 100%; margin: 1rem 0 1.5rem; padding: 1.1rem 1.3rem; background: #fffbeb; border: 1.5px solid #f59e0b; border-radius: 12px; color: #92400e; font-size: 0.95rem; line-height: 1.5; display: flex; align-items: center; gap: 14px; box-shadow: 0 4px 12px rgba(245,158,11,0.12);';
+        banner.innerHTML = `
+            <span style="font-size: 1.8rem; flex-shrink: 0;">⚠️</span>
+            <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 1rem; color: #b45309; margin-bottom: 3px;">
+                    Firebase Daily Read Limit Reached (${allMartyrs.length} cached profiles shown)
+                </div>
+                <div style="font-size: 0.9rem; color: #78350f;">
+                    Google Firebase has paused live database queries for today because the Spark (free tier) daily read limit (50,000/day) was reached.
+                    <strong>To unlock all 1,179 profiles immediately:</strong> In the <a href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" style="color: #b45309; text-decoration: underline; font-weight: 700;">Firebase Console</a>, switch your project from Spark to the <strong>Blaze plan</strong> (Pay-as-you-go). The first 50,000 reads/day remain free.
+                </div>
+            </div>
+        `;
+        const galleryGrid = document.getElementById('galleryGrid');
+        if (galleryGrid && galleryGrid.parentNode) {
+            galleryGrid.parentNode.insertBefore(banner, galleryGrid);
+        }
+    }
+}
+
+// Listen for global quota exceeded notifications
+window.addEventListener('firebaseQuotaExceeded', () => {
+    showQuotaExceededBanner();
+});
 
 // Deep-link helper for hero query param (?hero=...)
 function checkUrlForHero() {

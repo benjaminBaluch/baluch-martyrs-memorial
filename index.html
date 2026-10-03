@@ -1723,8 +1723,10 @@
                     try {
                         const cached = await idb.get();
                         if (cached && cached.data && cached.data.length > 0) {
-                            total = cached.data.length;
-                            withStories = cached.data.filter(m => m.biography).length;
+                            if (cached.data.length >= 1000) {
+                                total = cached.data.length;
+                                withStories = cached.data.filter(m => m.biography).length;
+                            }
                             window.martyrsDataFromFirebase = cached.data;
                             window.dispatchEvent(new CustomEvent('martyrsDataReady', { detail: { data: cached.data, source: 'cache' } }));
                         }
