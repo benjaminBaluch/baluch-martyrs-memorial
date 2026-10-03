@@ -21,7 +21,7 @@ const PUBLIC_FIELDS = [
 
 const HEADERS = {
     'Content-Type': 'application/json',
-    'Cache-Control': 'public, max-age=1800, s-maxage=86400, stale-while-revalidate=86400',
+    'Cache-Control': 'no-store',
     'X-Content-Type-Options': 'nosniff',
     'Access-Control-Allow-Origin': '*'
 };
@@ -97,11 +97,6 @@ export async function onRequest({ request, env }) {
         return new Response(JSON.stringify(martyrs), { status: 200, headers: HEADERS });
     } catch (error) {
         console.error('get-martyrs failed:', error);
-        const isQuota = String(error.message).includes('429');
-        return new Response(JSON.stringify({ 
-            error: isQuota ? 'Quota exceeded' : 'Database error',
-            code: isQuota ? 429 : 502,
-            message: isQuota ? 'Firestore daily read quota exceeded (RESOURCE_EXHAUSTED). Please upgrade to Firebase Blaze plan.' : 'Failed to connect to database'
-        }), { status: isQuota ? 429 : 502, headers: HEADERS });
+        return new Response(JSON.stringify({ error: 'Database error' }), { status: 502, headers: HEADERS });
     }
 }

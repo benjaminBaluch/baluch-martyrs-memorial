@@ -14,14 +14,9 @@ import {
     query,
     where,
     orderBy,
-    limit,
-    startAfter,
-    getCountFromServer,
     serverTimestamp,
     Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
-// Safe IndexedDB reference (from window.idbCache loaded via idb-cache.js)
-const getIdb = () => (typeof window !== 'undefined' && window.idbCache) ? window.idbCache : null;
 
 // Your web app's Firebase configuration - Production Ready
 const firebaseConfig = {
@@ -89,293 +84,27 @@ export const firebaseDB = {
         }
     },
 
-    _memoryCache: null,
-    _inFlightPromise: null,
-    _lastDocSnapshot: null,
-    _hasMoreBatches: true,
-    _isFetchingBatch: false,
-
-    hasMoreBatches() {
-        return this._hasMoreBatches;
-    },
-
-    // Fast initial batch (24 items) sorted alphabetically by fullName
-    async getInitialBatch(count = 24) {
-        this._lastDocSnapshot = null;
-        this._hasMoreBatches = true;
-
-        // 1. Check in-memory cache (only bypass Firestore if full dataset is in memory)
-        if (this._memoryCache && this._memoryCache.length >= 1000) {
-            const sorted = [...this._memoryCache].sort((a, b) => 
-                String(a.fullName || '').localeCompare(String(b.fullName || ''), undefined, { sensitivity: 'base' })
-            );
-            this._hasMoreBatches = sorted.length > count;
-            return { success: true, data: sorted.slice(0, count), fromCache: true, hasMore: this._hasMoreBatches, total: sorted.length };
-        }
-
-        // 2. Check IndexedDB (only bypass Firestore if full dataset was cached)
-        const idb = getIdb();
-        if (idb) {
-            try {
-                const cached = await idb.get();
-                if (cached && cached.data && cached.data.length >= 1000) {
-                    this._memoryCache = cached.data;
-                    const sorted = [...cached.data].sort((a, b) => 
-                        String(a.fullName || '').localeCompare(String(b.fullName || ''), undefined, { sensitivity: 'base' })
-                    );
-                    this._hasMoreBatches = sorted.length > count;
-                    return { success: true, data: sorted.slice(0, count), fromCache: true, hasMore: this._hasMoreBatches, total: sorted.length };
-                }
-            } catch (e) {
-                console.warn('⚠️ IDB read error:', e);
-            }
-        }
-
-        // 3. Firestore query with orderBy('fullName', 'asc') and limit(count)
-        try {
-            console.log(`⚡ Fetching alphabetical initial batch (${count} martyrs)...`);
-            const martyrsCollection = collection(db, 'martyrs');
-            const q = query(martyrsCollection, orderBy('fullName', 'asc'), limit(count));
-            const snapshot = await getDocs(q);
-            const batch = [];
-            snapshot.forEach((docSnap) => {
-                const data = docSnap.data();
-                if (!data.status || data.status === 'approved') {
-                    batch.push({
-                        id: docSnap.id,
-                        ...data,
-                        status: data.status || 'approved'
-                    });
-                }
-            });
-
-            if (snapshot.docs.length > 0) {
-                this._lastDocSnapshot = snapshot.docs[snapshot.docs.length - 1];
-            }
-            this._hasMoreBatches = snapshot.docs.length >= count;
-            console.log(`⚡ Alphabetical initial batch ready: ${batch.length} martyrs (hasMore: ${this._hasMoreBatches})`);
-            return { success: true, data: batch, fromCache: false, hasMore: this._hasMoreBatches };
-        } catch (err) {
-            console.warn('⚠️ Alphabetical batch query failed, trying standard limit fallback:', err.message);
-            try {
-                const martyrsCollection = collection(db, 'martyrs');
-                const fallbackQ = query(martyrsCollection, limit(count));
-                const snapshot = await getDocs(fallbackQ);
-                const batch = [];
-                snapshot.forEach((docSnap) => {
-                    const data = docSnap.data();
-                    if (!data.status || data.status === 'approved') {
-                        batch.push({
-                            id: docSnap.id,
-                            ...data,
-                            status: data.status || 'approved'
-                        });
-                    }
-                });
-                batch.sort((a, b) => String(a.fullName || '').localeCompare(String(b.fullName || ''), undefined, { sensitivity: 'base' }));
-                if (snapshot.docs.length > 0) {
-                    this._lastDocSnapshot = snapshot.docs[snapshot.docs.length - 1];
-                }
-                this._hasMoreBatches = snapshot.docs.length >= count;
-                return { success: true, data: batch, fromCache: false, hasMore: this._hasMoreBatches };
-            } catch (fallbackErr) {
-                console.warn('⚠️ Fallback query also failed:', fallbackErr.message);
-                if (fallbackErr && (fallbackErr.code === 'resource-exhausted' || String(fallbackErr.message).includes('Quota exceeded') || String(fallbackErr.message).includes('429'))) {
-                    if (typeof window !== 'undefined') {
-                        window.dispatchEvent(new CustomEvent('firebaseQuotaExceeded', { detail: { error: fallbackErr.message } }));
-                    }
-                }
-                return { success: false, data: [], hasMore: false };
-            }
-        }
-    },
-
-    // Next batch for infinite scroll on demand
-    async getNextBatch(count = 24) {
-        if (this._isFetchingBatch) return { success: false, inFlight: true, data: [] };
-        if (!this._hasMoreBatches) {
-            return { success: true, data: [], hasMore: false };
-        }
-        if (!this._lastDocSnapshot) {
-            // When initial view was rendered from cache, establish cursor by fetching first batch
-            return await this.getInitialBatch(count);
-        }
-
-        this._isFetchingBatch = true;
-        try {
-            console.log(`⚡ Fetching next batch (${count} martyrs)...`);
-            const martyrsCollection = collection(db, 'martyrs');
-            const q = query(
-                martyrsCollection,
-                orderBy('fullName', 'asc'),
-                startAfter(this._lastDocSnapshot),
-                limit(count)
-            );
-            const snapshot = await getDocs(q);
-            const batch = [];
-            snapshot.forEach((docSnap) => {
-                const data = docSnap.data();
-                if (!data.status || data.status === 'approved') {
-                    batch.push({
-                        id: docSnap.id,
-                        ...data,
-                        status: data.status || 'approved'
-                    });
-                }
-            });
-
-            if (snapshot.docs.length > 0) {
-                this._lastDocSnapshot = snapshot.docs[snapshot.docs.length - 1];
-            }
-            this._hasMoreBatches = snapshot.docs.length >= count;
-            console.log(`⚡ Next batch ready: ${batch.length} martyrs (hasMore: ${this._hasMoreBatches})`);
-            return { success: true, data: batch, hasMore: this._hasMoreBatches };
-        } catch (err) {
-            console.warn('⚠️ Next batch fetch failed:', err.message);
-            if (err && (err.code === 'resource-exhausted' || String(err.message).includes('Quota exceeded') || String(err.message).includes('429'))) {
-                if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new CustomEvent('firebaseQuotaExceeded', { detail: { error: err.message } }));
-                }
-            }
-            return { success: false, data: [], error: err.message, hasMore: false };
-        } finally {
-            this._isFetchingBatch = false;
-        }
-    },
-
-    // Fast 6 recent martyrs for homepage (sub-200ms)
-    async getRecentMartyrs(count = 6) {
-        // 1. From memory cache if present
-        if (this._memoryCache && this._memoryCache.length > 0) {
-            return { success: true, data: this._memoryCache.slice(-count).reverse(), fromCache: true };
-        }
-        // 2. From IndexedDB
-        const idb = getIdb();
-        if (idb) {
-            try {
-                const cached = await idb.get();
-                if (cached && cached.data && cached.data.length > 0) {
-                    this._memoryCache = cached.data;
-                    return { success: true, data: cached.data.slice(-count).reverse(), fromCache: true };
-                }
-            } catch (e) {}
-        }
-        // 3. Query Firestore with small limit (only 6 docs, tiny bandwidth)
-        try {
-            const martyrsCollection = collection(db, 'martyrs');
-            const q = query(martyrsCollection, limit(count));
-            const snapshot = await getDocs(q);
-            const batch = [];
-            snapshot.forEach((docSnap) => {
-                const data = docSnap.data();
-                if (!data.status || data.status === 'approved') {
-                    batch.push({ id: docSnap.id, ...data });
-                }
-            });
-            return { success: true, data: batch, fromCache: false };
-        } catch (err) {
-            console.warn('⚠️ getRecentMartyrs failed:', err.message);
-            return { success: false, data: [] };
-        }
-    },
-
-    // Fast count for homepage hero & stats (costs only 1 read, <100ms)
-    async getMartyrsCount() {
-        if (this._memoryCache && this._memoryCache.length >= 1000) {
-            return this._memoryCache.length;
-        }
-        const idb = getIdb();
-        if (idb) {
-            try {
-                const cached = await idb.get();
-                if (cached && cached.data && cached.data.length >= 1000) {
-                    return cached.data.length;
-                }
-            } catch (e) {}
-        }
-        try {
-            const martyrsCollection = collection(db, 'martyrs');
-            const snapshot = await getCountFromServer(martyrsCollection);
-            return snapshot.data().count;
-        } catch (err) {
-            console.warn('⚠️ getMartyrsCount failed, using fallback:', err.message);
-            return 1179;
-        }
-    },
-
-    // Get all approved martyrs with IndexedDB caching and deduplication
-    async getApprovedMartyrs(forceRefresh = false) {
-        // 1. Return in-memory cache if full dataset is available (0ms)
-        if (!forceRefresh && this._memoryCache && this._memoryCache.length >= 1000) {
-            return { success: true, data: this._memoryCache, fromCache: true };
-        }
-
-        // 2. Check IndexedDB local storage (30ms)
-        if (!forceRefresh) {
-            try {
-                const idb = getIdb();
-                if (idb) {
-                    const cached = await idb.get();
-                    if (cached && cached.data && cached.data.length >= 1000) {
-                        this._memoryCache = cached.data;
-                        console.log(`⚡ Loaded ${cached.data.length} martyrs instantly from IndexedDB cache`);
-                        // If cache is stale, refresh quietly in background without blocking UI
-                        if (cached.isStale) {
-                            this._backgroundSync();
-                        }
-                        return { success: true, data: cached.data, fromCache: true };
-                    }
-                }
-            } catch (cacheErr) {
-                console.warn('⚠️ IndexedDB read error:', cacheErr);
-            }
-        }
-
-        // 3. Deduplicate active in-flight request
-        if (this._inFlightPromise) {
-            console.log('🔄 Reusing active in-flight martyrs request...');
-            return this._inFlightPromise;
-        }
-
-        this._inFlightPromise = this._fetchFullFromFirebase();
-        try {
-            const result = await this._inFlightPromise;
-            return result;
-        } finally {
-            this._inFlightPromise = null;
-        }
-    },
-
-    // Background sync to update cache silently
-    _backgroundSync() {
-        setTimeout(async () => {
-            try {
-                console.log('🔄 Running silent background sync for martyrs...');
-                await this._fetchFullFromFirebase();
-            } catch (e) {
-                console.warn('⚠️ Background sync failed:', e.message);
-            }
-        }, 2000);
-    },
-
-    // Core Firestore fetch for all martyrs
-    async _fetchFullFromFirebase() {
+    // Get all approved martyrs with comprehensive collection checking
+    async getApprovedMartyrs() {
         try {
             console.log('🔍 Fetching martyrs from Firebase collections...');
+            
             let allMartyrs = [];
             
             // Check main 'martyrs' collection first
             try {
+                console.log('🔍 Checking main martyrs collection...');
                 const martyrsCollection = collection(db, 'martyrs');
                 const martyrsSnapshot = await getDocs(martyrsCollection);
                 
                 martyrsSnapshot.forEach((doc) => {
                     const data = doc.data();
+                    // Include all martyrs or only approved ones
                     if (!data.status || data.status === 'approved') {
                         allMartyrs.push({
                             id: doc.id,
                             ...data,
-                            status: data.status || 'approved'
+                            status: data.status || 'approved' // Default to approved
                         });
                     }
                 });
@@ -385,9 +114,10 @@ export const firebaseDB = {
                 console.warn('⚠️ Error accessing martyrs collection:', error.message);
             }
             
-            // Fallback to pendingMartyrs if needed
+            // If no martyrs found, check pendingMartyrs collection for any approved ones
             if (allMartyrs.length === 0) {
                 try {
+                    console.log('🔍 Checking pendingMartyrs collection for approved items...');
                     const pendingCollection = collection(db, 'pendingMartyrs');
                     const pendingSnapshot = await getDocs(pendingCollection);
                     
@@ -400,43 +130,48 @@ export const firebaseDB = {
                             });
                         }
                     });
+                    
+                    console.log(`📋 Found ${pendingSnapshot.size} pending docs, ${allMartyrs.length} approved from pending`);
                 } catch (error) {
                     console.warn('⚠️ Error accessing pendingMartyrs collection:', error.message);
                 }
             }
             
-            // Update caches if we found martyrs
-            if (allMartyrs.length > 0) {
-                this._memoryCache = allMartyrs;
-                const idb = getIdb();
-                if (idb) {
-                    await idb.set(allMartyrs);
-                    console.log(`💾 Saved ${allMartyrs.length} martyrs into IndexedDB cache`);
+            // If still no martyrs, check if collections exist and are accessible
+            if (allMartyrs.length === 0) {
+                console.log('📊 No martyrs found. Checking Firebase connectivity and permissions...');
+                
+                // Test basic Firestore read access
+                try {
+                    const testCollection = collection(db, 'test');
+                    const testSnapshot = await getDocs(testCollection);
+                    console.log('✅ Firestore read access confirmed - collections may be empty');
+                } catch (testError) {
+                    console.error('❌ Firestore read access failed:', testError);
+                    throw new Error(`Firebase access denied: ${testError.message}`);
                 }
             }
-
+            
             console.log(`✅ Final result: ${allMartyrs.length} martyrs total`);
             return { 
                 success: true, 
                 data: allMartyrs,
                 collections_checked: ['martyrs', 'pendingMartyrs'],
-                total_found: allMartyrs.length,
-                fromCache: false
+                total_found: allMartyrs.length
             };
             
         } catch (error) {
             console.error('❌ Error getting martyrs from Firebase:', error);
-            if (error && (error.code === 'resource-exhausted' || String(error.message).includes('Quota exceeded') || String(error.message).includes('429'))) {
-                if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new CustomEvent('firebaseQuotaExceeded', { detail: { error: error.message } }));
-                }
-            }
-            if (this._memoryCache && this._memoryCache.length > 0) {
-                return { success: true, data: this._memoryCache, fromCache: true, partial: true, error: error.message };
-            }
+            console.error('🔎 Detailed error info:', {
+                code: error.code,
+                message: error.message,
+                name: error.name,
+                stack: error.stack?.substring(0, 500)
+            });
+            
             return { 
                 success: false, 
-                error: error.message, 
+                error: error.message,
                 code: error.code,
                 details: error 
             };

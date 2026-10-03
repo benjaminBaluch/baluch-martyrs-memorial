@@ -1436,7 +1436,7 @@
                 </div>
                 <div class="hero-live-count">
                     <span class="hlc-dot"></span>
-                    Honoring <strong id="heroMartyrCount">1,179</strong> martyrs
+                    Honoring <strong id="heroMartyrCount">...</strong> martyrs
                 </div>
             </div>
         </div>
@@ -1525,7 +1525,7 @@
                         <div class="impact-icon" aria-hidden="true">
                             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14"/><path d="M8 21v-5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v5"/><path d="M3 7l9-4 9 4"/></svg>
                         </div>
-                        <div class="impact-number" id="totalMartyrsCount">1,179</div>
+                        <div class="impact-number" id="totalMartyrsCount">--</div>
                         <div class="impact-label">Martyrs Honored</div>
                         <div class="impact-description">Heroes whose sacrifices are preserved for eternity</div>
                     </div>
@@ -1533,7 +1533,7 @@
                         <div class="impact-icon" aria-hidden="true">
                             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                         </div>
-                        <div class="impact-number" id="totalStoriesCount">842</div>
+                        <div class="impact-number" id="totalStoriesCount">--</div>
                         <div class="impact-label">Stories Documented</div>
                         <div class="impact-description">Biographical accounts that inspire generations</div>
                     </div>
@@ -1705,52 +1705,40 @@
         </div>
     </footer>
 
-    <script src="js/idb-cache.js"></script>
     <script type="module">
+        // Import Firebase for global martyr data
         import { firebaseDB } from './js/firebase-config.js';
         
-        // Make Firebase available globally
+        // Make Firebase available globally for main.js
         window.firebaseDB = firebaseDB;
         
+        // Function to update homepage statistics
         async function updateHomepageStats() {
             try {
-                let total = 1179;
-                let withStories = 842;
-
-                // 1. Check if martyrs exist in IndexedDB cache (instant 0-30ms)
-                const idb = (typeof window !== 'undefined' && window.idbCache) ? window.idbCache : null;
-                if (idb) {
-                    try {
-                        const cached = await idb.get();
-                        if (cached && cached.data && cached.data.length > 0) {
-                            if (cached.data.length >= 1000) {
-                                total = cached.data.length;
-                                withStories = cached.data.filter(m => m.biography).length;
-                            }
-                            window.martyrsDataFromFirebase = cached.data;
-                            window.dispatchEvent(new CustomEvent('martyrsDataReady', { detail: { data: cached.data, source: 'cache' } }));
-                        }
-                    } catch (e) {}
+                // Get martyrs data
+                const result = await firebaseDB.getApprovedMartyrs();
+                const martyrs = result.success ? result.data || [] : [];
+                
+                // Fallback to localStorage if Firebase fails
+                if (martyrs.length === 0) {
+                    const localData = localStorage.getItem('martyrsData');
+                    if (localData) {
+                        const localMartyrs = JSON.parse(localData);
+                        martyrs.push(...localMartyrs.filter(m => !m.status || m.status === 'approved'));
+                    }
                 }
-
-                // 2. Fetch server count using 1-read count API (<100ms)
-                if (firebaseDB && typeof firebaseDB.getMartyrsCount === 'function') {
-                    try {
-                        const serverCount = await firebaseDB.getMartyrsCount();
-                        if (serverCount && serverCount > 0) {
-                            total = serverCount;
-                        }
-                    } catch (e) {}
-                }
+                
+                const total = martyrs.length;
+                const withStories = martyrs.filter(m => m.biography).length;
 
                 // Animated count-up helper
                 function animateCount(el, target) {
                     if (!el) return;
-                    const duration = 1000;
+                    const duration = 1600;
                     const start = performance.now();
                     function step(now) {
                         const p = Math.min((now - start) / duration, 1);
-                        const eased = 1 - Math.pow(1 - p, 3);
+                        const eased = 1 - Math.pow(1 - p, 3); // ease-out-cubic
                         el.textContent = Math.floor(eased * target).toLocaleString();
                         if (p < 1) requestAnimationFrame(step);
                         else el.textContent = target.toLocaleString();
@@ -1758,7 +1746,7 @@
                     requestAnimationFrame(step);
                 }
 
-                // Count-up triggers on scroll
+                // Count-up triggers on scroll (IntersectionObserver)
                 const impactSection = document.querySelector('.impact-section');
                 const totalCount   = document.getElementById('totalMartyrsCount');
                 const storiesCount = document.getElementById('totalStoriesCount');
@@ -1779,17 +1767,27 @@
                     if (storiesCount) storiesCount.textContent = withStories.toLocaleString();
                 }
 
-                // Hero live counter (instant)
+                // Hero live counter (no animation — instant feels alive)
                 const heroCount = document.getElementById('heroMartyrCount');
                 if (heroCount) heroCount.textContent = total.toLocaleString();
-
-                console.log(`✅ Homepage stats updated: ${total} total martyrs (ultra-fast)`);
+                
+                console.log(`✅ Homepage stats updated: ${total} total martyrs`);
             } catch (error) {
-                console.warn('⚠️ Error updating homepage stats:', error);
+                console.error('❌ Error updating homepage stats:', error);
+                const heroCount = document.getElementById('heroMartyrCount');
+                if (heroCount) heroCount.textContent = '—';
             }
         }
         
-        updateHomepageStats();
+        // Update stats when Firebase is ready
+        if (firebaseDB) {
+            updateHomepageStats();
+        } else {
+            window.addEventListener('firebaseReady', updateHomepageStats);
+        }
+        
+        // Also update after a short delay to ensure Firebase is fully loaded
+        setTimeout(updateHomepageStats, 2000);
     </script>
     <script src="js/main.js"></script>
     <script src="js/hero-3d.js"></script>

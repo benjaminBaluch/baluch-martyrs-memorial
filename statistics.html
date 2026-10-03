@@ -1226,13 +1226,9 @@
         </div>
     </footer>
 
-    <!-- Firebase SDK & IDB Cache -->
-    <script src="js/idb-cache.js"></script>
-    <script type="module">
-        import { firebaseDB } from './js/firebase-config.js';
-        window.firebaseDB = firebaseDB;
-        window.dispatchEvent(new Event('firebaseReady'));
-    </script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
     
     <script src="js/main.js"></script>
     <script src="js/mobile-menu.js"></script>

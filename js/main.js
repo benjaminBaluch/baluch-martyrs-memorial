@@ -320,35 +320,42 @@ async function loadRecentMartyrs() {
         let martyrsData = [];
         
         try {
-            // 1. Check pre-loaded memory data
-            if (window.martyrsDataFromFirebase && window.martyrsDataFromFirebase.length > 0) {
-                martyrsData = window.martyrsDataFromFirebase.slice(-6).reverse();
-                console.log(`⚡ Using pre-loaded data for recent martyrs: ${martyrsData.length}`);
-            } else if (window.idbCache) {
-                const cached = await window.idbCache.get();
-                if (cached && cached.data && cached.data.length > 0) {
-                    martyrsData = cached.data.slice(-6).reverse();
-                    console.log(`⚡ Loaded ${martyrsData.length} recent martyrs from IDB cache`);
-                }
-            }
-
-            // 2. Fetch only 6 recent martyrs from Firebase (only 6 docs, <200ms)
-            if (martyrsData.length === 0 && window.firebaseDB) {
-                if (typeof window.firebaseDB.getRecentMartyrs === 'function') {
-                    const result = await window.firebaseDB.getRecentMartyrs(6);
-                    if (result && result.success && Array.isArray(result.data)) {
-                        martyrsData = result.data;
-                        console.log(`✅ Loaded ${martyrsData.length} recent martyrs via fast query`);
+            console.log('🌍 Loading recent martyrs from Firebase (global database)...');
+            
+            // Try Firebase first - this shows global data to all users
+            if (window.firebaseDB) {
+                const result = await window.firebaseDB.getApprovedMartyrs();
+                
+                if (result.success) {
+                    martyrsData = result.data || [];
+                    console.log(`✅ Loaded ${martyrsData.length} martyrs from Firebase (global)`);
+                    
+                    // Cache with enhanced cache management
+                    if (martyrsData.length > 0 && window.cacheManager) {
+                        window.cacheManager.setCache('martyrsData', martyrsData, 6); // 6 hour cache
+                        console.log('💾 Cached homepage martyrs with expiration');
+                    } else if (martyrsData.length > 0) {
+                        // Fallback to localStorage
+                        localStorage.setItem('martyrsData', JSON.stringify(martyrsData));
+                        console.log('💾 Cached homepage martyrs to localStorage (fallback)');
                     }
-                } else if (typeof window.firebaseDB.getInitialBatch === 'function') {
-                    const result = await window.firebaseDB.getInitialBatch(6);
-                    if (result && result.success && Array.isArray(result.data)) {
-                        martyrsData = result.data;
-                    }
+                } else {
+                    throw new Error('Firebase failed: ' + result.error);
                 }
+            } else {
+                throw new Error('Firebase not available');
             }
+            
         } catch (error) {
-            console.warn('⚠️ Loading recent martyrs failed:', error.message);
+            console.warn('⚠️  Firebase failed, using localStorage backup:', error.message);
+            
+            // Fallback to localStorage only if Firebase fails
+            const savedMartyrs = localStorage.getItem('martyrsData');
+            if (savedMartyrs) {
+                const allMartyrs = JSON.parse(savedMartyrs);
+                martyrsData = allMartyrs.filter(m => !m.status || m.status === 'approved');
+                console.log(`Using localStorage backup: ${martyrsData.length} martyrs`);
+            }
         }
         
         // Display martyrs if we have any
@@ -1141,21 +1148,30 @@ async function loadAnniversaryMartyrs() {
     let approvedMartyrs = [];
     
     try {
-        if (window.martyrsDataFromFirebase && window.martyrsDataFromFirebase.length > 0) {
-            approvedMartyrs = window.martyrsDataFromFirebase;
-            console.log(`⚡ Using pre-loaded data for anniversaries: ${approvedMartyrs.length}`);
-        } else if (window.firebaseDB) {
+        console.log('🎆 Loading anniversary data from Firebase (global database)...');
+        
+        // Try Firebase first for global data
+        if (window.firebaseDB) {
             const result = await window.firebaseDB.getApprovedMartyrs();
+            
             if (result.success) {
                 approvedMartyrs = result.data || [];
-                console.log(`✅ Loaded ${approvedMartyrs.length} martyrs for anniversaries`);
+                console.log(`✅ Loaded ${approvedMartyrs.length} martyrs for anniversaries from Firebase`);
+            } else {
+                throw new Error('Firebase failed: ' + result.error);
             }
+        } else {
+            throw new Error('Firebase not available');
         }
+        
     } catch (error) {
-        console.warn('⚠️ Loading anniversaries failed:', error.message);
-        if (window.idbCache) {
-            const cached = await window.idbCache.get();
-            if (cached) approvedMartyrs = cached.data;
+        console.warn('⚠️  Firebase failed for anniversaries, using localStorage:', error.message);
+        
+        // Fallback to localStorage
+        const savedMartyrs = localStorage.getItem('martyrsData');
+        if (savedMartyrs) {
+            const allMartyrs = JSON.parse(savedMartyrs);
+            approvedMartyrs = allMartyrs.filter(m => !m.status || m.status === 'approved');
         }
     }
     
