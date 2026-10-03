@@ -822,53 +822,371 @@
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
     // ============================================
-    // PDF GENERATION - Professional Multi-Page Layout
+    // PDF GENERATION - Professional Multi-Page Layout & Filters
     // ============================================
-    
-    function setupPdfDownload() {
-        const btn = document.getElementById('downloadPdfBtn');
-        if (!btn) return;
-        
-        btn.addEventListener('click', generatePdf);
+
+    const PDF_MONTH_NAMES = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    let pdfFiltersInitialized = false;
+
+    function populatePdfFilters() {
+        if (!allMartyrsData || allMartyrsData.length === 0) return;
+
+        const yearSelect = document.getElementById('pdfFilterYear');
+        const monthSelect = document.getElementById('pdfFilterMonth');
+        const orgSelect = document.getElementById('pdfFilterOrg');
+
+        if (!yearSelect || !monthSelect || !orgSelect) return;
+
+        const prevYear = yearSelect.value || 'all';
+        const prevMonth = monthSelect.value || 'all';
+        const prevOrg = orgSelect.value || 'all';
+
+        // 1. Collect years with counts
+        const yearCounts = new Map();
+        let unknownYearCount = 0;
+
+        // 2. Collect organizations with counts
+        const orgCounts = new Map();
+        let noOrgCount = 0;
+
+        allMartyrsData.forEach(m => {
+            // Year
+            const yr = extractYear(m.martyrdomDate);
+            if (yr && yr >= 1800 && yr <= 2100) {
+                yearCounts.set(yr, (yearCounts.get(yr) || 0) + 1);
+            } else {
+                unknownYearCount++;
+            }
+
+            // Organization
+            const org = (m.organization || '').trim();
+            if (org) {
+                orgCounts.set(org, (orgCounts.get(org) || 0) + 1);
+            } else {
+                noOrgCount++;
+            }
+        });
+
+        // Populate Years dropdown (descending order)
+        const sortedYears = [...yearCounts.keys()].sort((a, b) => b - a);
+        yearSelect.innerHTML = `<option value="all">All Years (${allMartyrsData.length})</option>`;
+        sortedYears.forEach(yr => {
+            const opt = document.createElement('option');
+            opt.value = String(yr);
+            opt.textContent = `${yr} (${yearCounts.get(yr)})`;
+            yearSelect.appendChild(opt);
+        });
+        if (unknownYearCount > 0) {
+            const opt = document.createElement('option');
+            opt.value = 'unknown';
+            opt.textContent = `Year Not Specified (${unknownYearCount})`;
+            yearSelect.appendChild(opt);
+        }
+
+        // Populate Organizations dropdown (sorted by count descending, then alphabetically)
+        const sortedOrgs = [...orgCounts.entries()].sort((a, b) => {
+            if (b[1] !== a[1]) return b[1] - a[1];
+            return a[0].localeCompare(b[0]);
+        });
+        orgSelect.innerHTML = `<option value="all">All Organizations (${allMartyrsData.length})</option>`;
+        sortedOrgs.forEach(([org, count]) => {
+            const opt = document.createElement('option');
+            opt.value = org;
+            opt.textContent = `${org} (${count})`;
+            orgSelect.appendChild(opt);
+        });
+        if (noOrgCount > 0) {
+            const opt = document.createElement('option');
+            opt.value = '__none__';
+            opt.textContent = `Independent / Not Specified (${noOrgCount})`;
+            orgSelect.appendChild(opt);
+        }
+
+        // Restore selections if still valid
+        if ([...yearSelect.options].some(o => o.value === prevYear)) {
+            yearSelect.value = prevYear;
+        } else {
+            yearSelect.value = 'all';
+        }
+
+        if ([...monthSelect.options].some(o => o.value === prevMonth)) {
+            monthSelect.value = prevMonth;
+        } else {
+            monthSelect.value = 'all';
+        }
+
+        if ([...orgSelect.options].some(o => o.value === prevOrg)) {
+            orgSelect.value = prevOrg;
+        } else {
+            orgSelect.value = 'all';
+        }
+
+        updatePdfFilterSummary();
     }
-    
+
+    function getFilteredMartyrsForPdf() {
+        if (!allMartyrsData || allMartyrsData.length === 0) return [];
+
+        const yearSelect = document.getElementById('pdfFilterYear');
+        const monthSelect = document.getElementById('pdfFilterMonth');
+        const orgSelect = document.getElementById('pdfFilterOrg');
+
+        const selectedYear = yearSelect ? yearSelect.value : 'all';
+        const selectedMonth = monthSelect ? monthSelect.value : 'all';
+        const selectedOrg = orgSelect ? orgSelect.value : 'all';
+
+        return allMartyrsData.filter(m => {
+            // Year filter
+            if (selectedYear !== 'all') {
+                const yr = extractYear(m.martyrdomDate);
+                if (selectedYear === 'unknown') {
+                    if (yr !== null && yr >= 1800 && yr <= 2100) return false;
+                } else {
+                    if (yr !== parseInt(selectedYear, 10)) return false;
+                }
+            }
+
+            // Month filter
+            if (selectedMonth !== 'all') {
+                const mo = extractMonth(m.martyrdomDate);
+                if (mo === null || mo !== parseInt(selectedMonth, 10)) return false;
+            }
+
+            // Organization filter
+            if (selectedOrg !== 'all') {
+                const org = (m.organization || '').trim();
+                if (selectedOrg === '__none__') {
+                    if (org.length > 0) return false;
+                } else {
+                    if (org.toLowerCase() !== selectedOrg.toLowerCase()) return false;
+                }
+            }
+
+            return true;
+        });
+    }
+
+    function getFilterScopeDescription() {
+        const yearSelect = document.getElementById('pdfFilterYear');
+        const monthSelect = document.getElementById('pdfFilterMonth');
+        const orgSelect = document.getElementById('pdfFilterOrg');
+
+        const selectedYear = yearSelect ? yearSelect.value : 'all';
+        const selectedMonth = monthSelect ? monthSelect.value : 'all';
+        const selectedOrg = orgSelect ? orgSelect.value : 'all';
+
+        const parts = [];
+        let orgTitle = '';
+        let timeTitle = '';
+
+        if (selectedOrg !== 'all') {
+            if (selectedOrg === '__none__') {
+                parts.push('Independent / Not Specified');
+                orgTitle = 'Independent';
+            } else {
+                parts.push(selectedOrg);
+                orgTitle = selectedOrg;
+            }
+        }
+
+        const monthName = selectedMonth !== 'all' && PDF_MONTH_NAMES[parseInt(selectedMonth, 10)] ? PDF_MONTH_NAMES[parseInt(selectedMonth, 10)] : null;
+        const yearText = selectedYear !== 'all' ? (selectedYear === 'unknown' ? 'Unspecified Year' : selectedYear) : null;
+
+        if (monthName && yearText) {
+            parts.push(`${monthName} ${yearText}`);
+            timeTitle = `${monthName} ${yearText}`;
+        } else if (monthName) {
+            parts.push(`${monthName}`);
+            timeTitle = `${monthName}`;
+        } else if (yearText) {
+            parts.push(`Year ${yearText}`);
+            timeTitle = `${yearText}`;
+        }
+
+        const isFiltered = parts.length > 0;
+        const scopeSummary = isFiltered ? parts.join(' • ') : 'Complete Archive';
+
+        let coverTitle = 'Baluch Martyrs Memorial';
+        let coverSubtitle = 'A Digital Archive of Heroes';
+        let sectionHeader = 'Memorial Archive';
+
+        if (orgTitle && timeTitle) {
+            coverSubtitle = `${orgTitle} — ${timeTitle}`;
+            sectionHeader = `${orgTitle} Archive (${timeTitle})`;
+        } else if (orgTitle) {
+            coverSubtitle = `${orgTitle} Archive`;
+            sectionHeader = `${orgTitle} Archive`;
+        } else if (timeTitle) {
+            coverSubtitle = `${timeTitle} Archive`;
+            sectionHeader = `${timeTitle} Archive`;
+        } else {
+            coverSubtitle = 'A Digital Archive of Heroes';
+            sectionHeader = 'Complete Memorial Archive';
+        }
+
+        return {
+            isFiltered,
+            scopeSummary,
+            coverTitle,
+            coverSubtitle,
+            sectionHeader,
+            orgTitle,
+            monthName,
+            yearText
+        };
+    }
+
+    function updatePdfFilterSummary() {
+        const btn = document.getElementById('downloadPdfBtn');
+        const statusEl = document.getElementById('downloadFilterStatus');
+        const statusText = document.getElementById('filterStatusText');
+        const infoEl = document.getElementById('downloadInfo');
+
+        const filtered = getFilteredMartyrsForPdf();
+        const total = allMartyrsData ? allMartyrsData.length : 0;
+        const desc = getFilterScopeDescription();
+
+        // Update active filter pill
+        if (statusEl && statusText) {
+            if (desc.isFiltered) {
+                statusEl.style.display = 'inline-flex';
+                statusText.innerHTML = `<strong>Filter Active:</strong> ${escapeHtmlText(desc.scopeSummary)} (${filtered.length} of ${total} Profiles)`;
+            } else {
+                statusEl.style.display = 'none';
+            }
+        }
+
+        // Update button text & disabled state
+        if (btn) {
+            const labelText = desc.isFiltered 
+                ? (filtered.length === 0 ? 'No Profiles Matching' : `Download PDF (${filtered.length} Profiles)`)
+                : `Download Complete Archive (${total})`;
+
+            btn.innerHTML = `
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <span id="downloadBtnText">${labelText}</span>
+            `;
+
+            btn.disabled = filtered.length === 0;
+        }
+
+        // Update information caption
+        if (infoEl) {
+            if (filtered.length === 0) {
+                infoEl.textContent = 'No martyrs found matching the selected filter combination.';
+            } else if (desc.isFiltered) {
+                infoEl.textContent = `PDF will contain ${filtered.length} profile${filtered.length === 1 ? '' : 's'} matching "${desc.scopeSummary}"`;
+            } else {
+                infoEl.textContent = `PDF includes all ${total} profiles with photos, biographies, and dates`;
+            }
+        }
+    }
+
+    function escapeHtmlText(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function resetPdfFilters() {
+        const yearSelect = document.getElementById('pdfFilterYear');
+        const monthSelect = document.getElementById('pdfFilterMonth');
+        const orgSelect = document.getElementById('pdfFilterOrg');
+
+        if (yearSelect) yearSelect.value = 'all';
+        if (monthSelect) monthSelect.value = 'all';
+        if (orgSelect) orgSelect.value = 'all';
+
+        updatePdfFilterSummary();
+    }
+
+    function setupPdfDownload() {
+        populatePdfFilters();
+
+        if (pdfFiltersInitialized) return;
+        pdfFiltersInitialized = true;
+
+        const btn = document.getElementById('downloadPdfBtn');
+        const yearSelect = document.getElementById('pdfFilterYear');
+        const monthSelect = document.getElementById('pdfFilterMonth');
+        const orgSelect = document.getElementById('pdfFilterOrg');
+        const resetBtn = document.getElementById('pdfResetFilterBtn');
+
+        if (btn) {
+            btn.addEventListener('click', generatePdf);
+        }
+
+        if (yearSelect) {
+            yearSelect.addEventListener('change', updatePdfFilterSummary);
+        }
+        if (monthSelect) {
+            monthSelect.addEventListener('change', updatePdfFilterSummary);
+        }
+        if (orgSelect) {
+            orgSelect.addEventListener('change', updatePdfFilterSummary);
+        }
+        if (resetBtn) {
+            resetBtn.addEventListener('click', resetPdfFilters);
+        }
+    }
+
     async function generatePdf() {
         const btn = document.getElementById('downloadPdfBtn');
         const progress = document.getElementById('downloadProgress');
         const progressFill = document.getElementById('progressFill');
         const progressText = document.getElementById('progressText');
-        
-        if (!allMartyrsData || allMartyrsData.length === 0) {
-            alert('No data available to download.');
+        const yearSelect = document.getElementById('pdfFilterYear');
+        const monthSelect = document.getElementById('pdfFilterMonth');
+        const orgSelect = document.getElementById('pdfFilterOrg');
+
+        const filteredMartyrs = getFilteredMartyrsForPdf();
+
+        if (!filteredMartyrs || filteredMartyrs.length === 0) {
+            alert('No martyrs found matching your selected filters.');
             return;
         }
-        
+
         // Check if jsPDF is loaded
         if (typeof window.jspdf === 'undefined') {
             alert('PDF library not loaded. Please refresh and try again.');
             return;
         }
-        
+
         const { jsPDF } = window.jspdf;
-        
-        // Disable button, show progress
+
+        // Disable button & filter dropdowns, show progress bar
         btn.disabled = true;
-        btn.innerHTML = '<div class="spinner"></div><span>Generating...</span>';
+        if (yearSelect) yearSelect.disabled = true;
+        if (monthSelect) monthSelect.disabled = true;
+        if (orgSelect) orgSelect.disabled = true;
+
+        btn.innerHTML = '<div class="spinner"></div><span>Generating PDF...</span>';
         if (progress) progress.style.display = 'block';
-        
+
+        const filterDesc = getFilterScopeDescription();
+
         try {
-            // Sort martyrs alphabetically
-            const sortedMartyrs = [...allMartyrsData].sort((a, b) => 
+            // Sort filtered martyrs alphabetically
+            const sortedMartyrs = [...filteredMartyrs].sort((a, b) => 
                 (a.fullName || '').localeCompare(b.fullName || '')
             );
-            
+
             // Create PDF (A4 size)
             const doc = new jsPDF({
                 orientation: 'portrait',
                 unit: 'mm',
                 format: 'a4'
             });
-            
+
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
             const margin = 15;
@@ -876,20 +1194,20 @@
             const footerHeight = 18;
             const headerHeight = 17;
             const maxContentY = pageHeight - footerHeight - 5; // Bottom boundary for content
-            
+
             // Colors
             const primaryColor = [44, 85, 48];
             const accentColor = [212, 175, 55];
             const textColor = [51, 65, 85];
             const lightGray = [148, 163, 184];
-            
+
             // Helper: Draw page header for continuation pages
             function drawContinuationHeader(martyrName, profileNum, totalProfiles) {
                 doc.setFillColor(...primaryColor);
                 doc.rect(0, 0, pageWidth, 12, 'F');
                 doc.setFillColor(...accentColor);
                 doc.rect(0, 12, pageWidth, 1.5, 'F');
-                
+
                 doc.setFontSize(8);
                 doc.setTextColor(255, 255, 255);
                 doc.setFont('helvetica', 'normal');
@@ -897,76 +1215,84 @@
                 doc.text(`${martyrName} (continued)`, pageWidth / 2, 8, { align: 'center' });
                 doc.text(`${profileNum} of ${totalProfiles}`, pageWidth - margin, 8, { align: 'right' });
             }
-            
+
             // Helper: Draw page footer
             function drawPageFooter() {
                 doc.setFillColor(...primaryColor);
                 doc.rect(0, pageHeight - footerHeight, pageWidth, footerHeight, 'F');
-                
+
                 doc.setTextColor(255, 255, 255);
                 doc.setFontSize(7);
                 doc.setFont('helvetica', 'italic');
                 doc.text('Forever remembered. Forever honored.', pageWidth / 2, pageHeight - 8, { align: 'center' });
             }
-            
+
             // ---- COVER PAGE ----
             updateProgress(progressFill, progressText, 5, 'Creating cover page...');
-            
+
             // Green header bar
             doc.setFillColor(...primaryColor);
             doc.rect(0, 0, pageWidth, 80, 'F');
-            
+
             // Gold accent line
             doc.setFillColor(...accentColor);
             doc.rect(0, 80, pageWidth, 3, 'F');
-            
+
             // Title
             doc.setTextColor(255, 255, 255);
-            doc.setFontSize(28);
+            doc.setFontSize(26);
             doc.setFont('helvetica', 'bold');
-            doc.text('Baluch Martyrs Memorial', pageWidth / 2, 40, { align: 'center' });
-            
-            doc.setFontSize(14);
+            doc.text(filterDesc.coverTitle, pageWidth / 2, 38, { align: 'center' });
+
+            doc.setFontSize(13);
             doc.setFont('helvetica', 'normal');
-            doc.text('A Digital Archive of Heroes', pageWidth / 2, 52, { align: 'center' });
-            
+            doc.text(filterDesc.coverSubtitle, pageWidth / 2, 50, { align: 'center' });
+
             // Memorial info box
             doc.setFillColor(248, 250, 252);
-            doc.roundedRect(margin, 100, contentWidth, 60, 3, 3, 'F');
-            
+            doc.roundedRect(margin, 95, contentWidth, 68, 3, 3, 'F');
+
             doc.setTextColor(...textColor);
             doc.setFontSize(12);
             doc.setFont('helvetica', 'bold');
-            doc.text('Memorial Archive', pageWidth / 2, 115, { align: 'center' });
-            
+            doc.text(filterDesc.sectionHeader, pageWidth / 2, 110, { align: 'center' });
+
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(11);
+            doc.setFontSize(10.5);
             const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-            doc.text(`Generated: ${date}`, pageWidth / 2, 128, { align: 'center' });
-            doc.text(`Total Profiles: ${sortedMartyrs.length}`, pageWidth / 2, 140, { align: 'center' });
-            
+            doc.text(`Generated: ${date}`, pageWidth / 2, 122, { align: 'center' });
+            doc.text(`Total Profiles: ${sortedMartyrs.length}`, pageWidth / 2, 133, { align: 'center' });
+
+            if (filterDesc.isFiltered) {
+                doc.setFontSize(9.5);
+                doc.setTextColor(...primaryColor);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`Filter Scope: ${filterDesc.scopeSummary}`, pageWidth / 2, 145, { align: 'center' });
+            }
+
             // Dedication
             doc.setFontSize(10);
             doc.setTextColor(...lightGray);
-            doc.text('Preserving the memory of those who sacrificed for freedom', pageWidth / 2, 180, { align: 'center' });
-            
+            doc.setFont('helvetica', 'normal');
+            doc.text('Preserving the memory of those who sacrificed for freedom', pageWidth / 2, 185, { align: 'center' });
+
             // Footer
             doc.setFontSize(9);
             doc.text('baluchmartyrs.com', pageWidth / 2, pageHeight - 20, { align: 'center' });
-            
+
             // ---- MARTYR PROFILES ----
-            
+
             for (let i = 0; i < sortedMartyrs.length; i++) {
                 const martyr = sortedMartyrs[i];
                 const progressPercent = Math.round(10 + ((i / sortedMartyrs.length) * 85));
-                updateProgress(progressFill, progressText, progressPercent, `Processing ${i + 1} of ${sortedMartyrs.length}...`);
-                
+                updateProgress(progressFill, progressText, progressPercent, `Processing profile ${i + 1} of ${sortedMartyrs.length}...`);
+
                 const martyrName = martyr.fullName || 'Unnamed Martyr';
                 const profileNum = i + 1;
-                
+
                 // New page for each martyr
                 doc.addPage();
-                
+
                 // Page header bar
                 doc.setFillColor(...primaryColor);
                 doc.rect(0, 0, pageWidth, 15, 'F');
@@ -974,20 +1300,20 @@
                 doc.setTextColor(255, 255, 255);
                 doc.text('Baluch Martyrs Memorial', margin, 10);
                 doc.text(`${profileNum} of ${sortedMartyrs.length}`, pageWidth - margin, 10, { align: 'right' });
-                
+
                 // Gold accent line under header
                 doc.setFillColor(...accentColor);
                 doc.rect(0, 15, pageWidth, 2, 'F');
-                
+
                 let yPos = 28;
-                
+
                 // Profile layout with photo on left
                 const photoSize = 45;
                 const photoX = margin;
                 const photoY = yPos;
                 const textStartX = margin + photoSize + 12;
                 const textWidth = contentWidth - photoSize - 12;
-                
+
                 // Photo (only if available)
                 let hasPhoto = false;
                 if (martyr.photo && martyr.photo.startsWith('data:image')) {
@@ -998,36 +1324,36 @@
                         hasPhoto = false;
                     }
                 }
-                
+
                 // If no photo, start text from left margin
                 const actualTextX = hasPhoto ? textStartX : margin;
                 const actualTextWidth = hasPhoto ? textWidth : contentWidth;
-                
+
                 // Name (large, prominent)
                 doc.setTextColor(...primaryColor);
                 doc.setFontSize(18);
                 doc.setFont('helvetica', 'bold');
-                
+
                 // Handle long names
                 const nameLines = doc.splitTextToSize(martyrName, actualTextWidth);
                 nameLines.forEach((line, idx) => {
                     doc.text(line, actualTextX, yPos + 6 + (idx * 7));
                 });
-                
+
                 // Decorative line under name
                 const nameEndY = yPos + 6 + ((nameLines.length - 1) * 7) + 4;
                 doc.setDrawColor(...accentColor);
                 doc.setLineWidth(0.5);
                 doc.line(actualTextX, nameEndY, actualTextX + 50, nameEndY);
-                
+
                 yPos = nameEndY + 6;
-                
+
                 // Build details section dynamically (only show what exists)
                 const details = [];
-                
+
                 const birthDate = formatDateForPdf(martyr.birthDate);
                 const martyrdomDate = formatDateForPdf(martyr.martyrdomDate);
-                
+
                 if (birthDate && martyrdomDate) {
                     details.push({ label: 'Lived', value: `${birthDate} — ${martyrdomDate}` });
                 } else if (martyrdomDate) {
@@ -1035,36 +1361,36 @@
                 } else if (birthDate) {
                     details.push({ label: 'Born', value: birthDate });
                 }
-                
+
                 if (martyr.fatherName) {
                     details.push({ label: 'Father', value: martyr.fatherName });
                 }
-                
+
                 if (martyr.birthPlace) {
                     details.push({ label: 'Birthplace', value: martyr.birthPlace });
                 }
-                
+
                 if (martyr.martyrdomPlace) {
                     details.push({ label: 'Place of Martyrdom', value: martyr.martyrdomPlace });
                 }
-                
+
                 if (martyr.organization) {
                     details.push({ label: 'Organization', value: martyr.organization });
                 }
-                
+
                 if (martyr.rank) {
                     details.push({ label: 'Rank', value: martyr.rank });
                 }
-                
+
                 // Render details in a clean grid
                 doc.setFontSize(9);
                 const detailLineHeight = 5.5;
-                
+
                 details.forEach(detail => {
                     doc.setFont('helvetica', 'bold');
                     doc.setTextColor(...lightGray);
                     doc.text(detail.label + ':', actualTextX, yPos);
-                    
+
                     doc.setFont('helvetica', 'normal');
                     doc.setTextColor(...textColor);
                     const valueX = actualTextX + 32;
@@ -1075,104 +1401,104 @@
                     });
                     yPos += Math.max(valueLines.length * detailLineHeight, detailLineHeight);
                 });
-                
+
                 // Biography section - starts after details or photo, whichever is lower
                 const photoBottomY = hasPhoto ? photoY + photoSize * 1.25 + 8 : 0;
                 let bioStartY = Math.max(yPos + 8, photoBottomY);
-                
+
                 if (martyr.biography && martyr.biography.trim().length > 0) {
                     const bioText = martyr.biography.trim();
-                    
+
                     // Biography heading with background
                     doc.setFillColor(248, 250, 252);
                     doc.roundedRect(margin, bioStartY - 3, contentWidth, 9, 2, 2, 'F');
-                    
+
                     doc.setFont('helvetica', 'bold');
                     doc.setFontSize(10);
                     doc.setTextColor(...primaryColor);
                     doc.text('Biography', margin + 4, bioStartY + 3);
-                    
+
                     bioStartY += 12;
-                    
+
                     // Biography text with multi-page support
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(9.5);
                     doc.setTextColor(...textColor);
-                    
+
                     const lineHeight = 4.8;
                     const bioLines = doc.splitTextToSize(bioText, contentWidth);
-                    
+
                     let currentY = bioStartY;
                     let lineIndex = 0;
                     let isFirstBioPage = true;
-                    
+
                     while (lineIndex < bioLines.length) {
                         // Check if we need a new page
                         if (currentY + lineHeight > maxContentY) {
                             // Draw footer on current page
                             drawPageFooter();
-                            
+
                             // Add new page
                             doc.addPage();
-                            
+
                             // Draw header for continuation
                             drawContinuationHeader(martyrName, profileNum, sortedMartyrs.length);
-                            
+
                             // Reset Y position for new page
                             currentY = headerHeight + 8;
-                            
+
                             // Add "Biography continued" label
                             doc.setFont('helvetica', 'italic');
                             doc.setFontSize(8);
                             doc.setTextColor(...lightGray);
                             doc.text('Biography (continued)', margin, currentY);
                             currentY += 6;
-                            
+
                             // Reset to normal bio formatting
                             doc.setFont('helvetica', 'normal');
                             doc.setFontSize(9.5);
                             doc.setTextColor(...textColor);
-                            
+
                             isFirstBioPage = false;
                         }
-                        
+
                         // Draw the line
                         doc.text(bioLines[lineIndex], margin, currentY);
                         currentY += lineHeight;
                         lineIndex++;
                     }
                 }
-                
+
                 // Draw footer on the last page of this profile
                 drawPageFooter();
             }
-            
+
             // ---- FINAL PAGE ----
-            updateProgress(progressFill, progressText, 98, 'Finalizing...');
-            
+            updateProgress(progressFill, progressText, 98, 'Finalizing document...');
+
             doc.addPage();
-            
+
             // Elegant closing page
             doc.setFillColor(248, 250, 252);
             doc.rect(0, 0, pageWidth, pageHeight, 'F');
-            
+
             // Green accent at top
             doc.setFillColor(...primaryColor);
             doc.rect(0, 0, pageWidth, 40, 'F');
             doc.setFillColor(...accentColor);
             doc.rect(0, 40, pageWidth, 2, 'F');
-            
+
             // Title in header
             doc.setTextColor(255, 255, 255);
             doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
             doc.text('In Eternal Memory', pageWidth / 2, 25, { align: 'center' });
-            
+
             // Center content
             doc.setTextColor(...textColor);
             doc.setFontSize(11);
             doc.setFont('helvetica', 'normal');
-            
+
             const closingLines = [
                 'This document preserves the memory of Baluch martyrs',
                 'who sacrificed their lives for freedom and justice.',
@@ -1182,7 +1508,11 @@
                 '',
                 `Total Profiles Documented: ${sortedMartyrs.length}`,
             ];
-            
+
+            if (filterDesc.isFiltered) {
+                closingLines.push(`Scope: ${filterDesc.scopeSummary}`);
+            }
+
             let closingY = 80;
             closingLines.forEach(line => {
                 if (line === '') {
@@ -1192,59 +1522,72 @@
                     closingY += 8;
                 }
             });
-            
+
             // Decorative element
             doc.setDrawColor(...accentColor);
             doc.setLineWidth(0.5);
             doc.line(pageWidth / 2 - 30, closingY + 10, pageWidth / 2 + 30, closingY + 10);
-            
+
             // Website
             doc.setFontSize(10);
             doc.setTextColor(...primaryColor);
             doc.setFont('helvetica', 'bold');
             doc.text('baluchmartyrs.com', pageWidth / 2, closingY + 25, { align: 'center' });
-            
+
             // Green footer bar
             doc.setFillColor(...primaryColor);
             doc.rect(0, pageHeight - 30, pageWidth, 30, 'F');
-            
+
             doc.setTextColor(255, 255, 255);
             doc.setFontSize(8);
             doc.setFont('helvetica', 'normal');
             doc.text(`Generated on ${date}`, pageWidth / 2, pageHeight - 18, { align: 'center' });
             doc.text(`© ${new Date().getFullYear()} Baluch Martyrs Memorial. All rights reserved.`, pageWidth / 2, pageHeight - 12, { align: 'center' });
-            
+
+            // Build informative filename based on active filters
+            const dateStamp = new Date().toISOString().split('T')[0];
+            const nameParts = ['Baluch_Martyrs'];
+
+            if (filterDesc.orgTitle) {
+                nameParts.push(filterDesc.orgTitle.replace(/[^a-zA-Z0-9]/g, '_'));
+            }
+            if (filterDesc.yearText) {
+                nameParts.push(filterDesc.yearText.replace(/[^a-zA-Z0-9]/g, '_'));
+            }
+            if (filterDesc.monthName) {
+                nameParts.push(filterDesc.monthName);
+            }
+            if (!filterDesc.isFiltered) {
+                nameParts.push('Complete_Archive');
+            }
+            nameParts.push(dateStamp);
+
+            const filename = `${nameParts.filter(Boolean).join('_')}.pdf`;
+
             // Save PDF
             updateProgress(progressFill, progressText, 100, 'Complete!');
-            
-            const filename = `Baluch_Martyrs_Memorial_${new Date().toISOString().split('T')[0]}.pdf`;
             doc.save(filename);
-            
+
             // Reset UI
             setTimeout(() => {
-                btn.disabled = false;
-                btn.innerHTML = `
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    <span>Download PDF</span>
-                `;
+                if (yearSelect) yearSelect.disabled = false;
+                if (monthSelect) monthSelect.disabled = false;
+                if (orgSelect) orgSelect.disabled = false;
+                updatePdfFilterSummary();
                 if (progress) progress.style.display = 'none';
                 if (progressFill) progressFill.style.width = '0%';
-            }, 1500);
-            
+            }, 1200);
+
         } catch (error) {
             console.error('PDF generation failed:', error);
             alert('Failed to generate PDF. Please try again.');
-            
-            btn.disabled = false;
-            btn.innerHTML = `
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                </svg>
-                <span>Download PDF</span>
-            `;
+
+            if (yearSelect) yearSelect.disabled = false;
+            if (monthSelect) monthSelect.disabled = false;
+            if (orgSelect) orgSelect.disabled = false;
+            updatePdfFilterSummary();
             if (progress) progress.style.display = 'none';
+            if (progressFill) progressFill.style.width = '0%';
         }
     }
     

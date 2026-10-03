@@ -617,6 +617,147 @@
             color: #94a3b8;
         }
 
+        /* PDF Download Filters */
+        .download-filters-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.1rem;
+            max-width: 760px;
+            margin: 0 auto 1.5rem auto;
+            text-align: left;
+        }
+
+        @media (max-width: 720px) {
+            .download-filters-container {
+                grid-template-columns: 1fr;
+                gap: 0.85rem;
+            }
+        }
+
+        .download-filter-field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .download-filter-label {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .download-filter-label svg {
+            width: 14px;
+            height: 14px;
+            color: var(--primary-color);
+        }
+
+        [data-theme="dark"] .download-filter-label {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .download-filter-label svg {
+            color: #86efac;
+        }
+
+        .download-select-wrapper {
+            position: relative;
+        }
+
+        .download-select {
+            width: 100%;
+            padding: 0.65rem 2rem 0.65rem 0.85rem;
+            font-size: 0.9rem;
+            font-family: inherit;
+            color: #1e293b;
+            background-color: #f8fafc;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 8px;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.2s ease;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 14px;
+        }
+
+        .download-select:hover {
+            border-color: #94a3b8;
+            background-color: #ffffff;
+        }
+
+        .download-select:focus {
+            border-color: var(--primary-color);
+            background-color: #ffffff;
+            box-shadow: 0 0 0 3px rgba(44, 85, 48, 0.15);
+        }
+
+        [data-theme="dark"] .download-select {
+            color: #f1f5f9;
+            background-color: #0f172a;
+            border-color: #334155;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+        }
+
+        [data-theme="dark"] .download-select:hover {
+            border-color: #475569;
+            background-color: #1e293b;
+        }
+
+        [data-theme="dark"] .download-select:focus {
+            border-color: #86efac;
+            box-shadow: 0 0 0 3px rgba(134, 239, 172, 0.2);
+        }
+
+        .download-filter-status {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            margin-bottom: 1.25rem;
+            padding: 0.4rem 0.95rem;
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            color: #334155;
+        }
+
+        [data-theme="dark"] .download-filter-status {
+            background: #0f172a;
+            color: #cbd5e1;
+            border-color: #334155;
+        }
+
+        .filter-reset-link {
+            background: none;
+            border: none;
+            color: #ef4444;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0 0.25rem;
+            text-decoration: underline;
+        }
+
+        .filter-reset-link:hover {
+            color: #dc2626;
+        }
+
+        .download-action-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
         @media (max-width: 600px) {
             .download-section {
                 padding: 1.5rem;
@@ -1177,14 +1318,75 @@
                     <div class="download-section" id="downloadSection">
                         <div class="download-header">
                             <h3>Download Memorial Archive</h3>
-                            <p>Get a beautifully formatted PDF document containing all documented martyrs' profiles</p>
+                            <p>Generate and export a beautifully formatted PDF document. Download the complete archive or filter by year, month, and organization.</p>
                         </div>
-                        <button type="button" class="download-btn" id="downloadPdfBtn">
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                            </svg>
-                            <span>Download PDF</span>
-                        </button>
+
+                        <!-- PDF Filter Controls -->
+                        <div class="download-filters-container">
+                            <div class="download-filter-field">
+                                <label for="pdfFilterYear" class="download-filter-label">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                    <span>Year</span>
+                                </label>
+                                <div class="download-select-wrapper">
+                                    <select id="pdfFilterYear" class="download-select">
+                                        <option value="all">All Years</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="download-filter-field">
+                                <label for="pdfFilterMonth" class="download-filter-label">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                    <span>Month</span>
+                                </label>
+                                <div class="download-select-wrapper">
+                                    <select id="pdfFilterMonth" class="download-select">
+                                        <option value="all">All Months</option>
+                                        <option value="0">January</option>
+                                        <option value="1">February</option>
+                                        <option value="2">March</option>
+                                        <option value="3">April</option>
+                                        <option value="4">May</option>
+                                        <option value="5">June</option>
+                                        <option value="6">July</option>
+                                        <option value="7">August</option>
+                                        <option value="8">September</option>
+                                        <option value="9">October</option>
+                                        <option value="10">November</option>
+                                        <option value="11">December</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="download-filter-field">
+                                <label for="pdfFilterOrg" class="download-filter-label">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                                    <span>Organization</span>
+                                </label>
+                                <div class="download-select-wrapper">
+                                    <select id="pdfFilterOrg" class="download-select">
+                                        <option value="all">All Organizations</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Active filter indicator & reset button -->
+                        <div class="download-filter-status" id="downloadFilterStatus" style="display: none;">
+                            <span class="filter-status-text" id="filterStatusText"></span>
+                            <button type="button" class="filter-reset-link" id="pdfResetFilterBtn" title="Reset to all martyrs">Reset Filters</button>
+                        </div>
+
+                        <div class="download-action-row">
+                            <button type="button" class="download-btn" id="downloadPdfBtn">
+                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <span id="downloadBtnText">Download PDF Archive</span>
+                            </button>
+                        </div>
+
                         <div class="download-progress" id="downloadProgress">
                             <div class="progress-bar">
                                 <div class="progress-fill" id="progressFill"></div>
