@@ -117,6 +117,24 @@ window.checkGalleryData = function() {
     loadGallery();
 };
 
+// Helper to wait until window.firebaseDB is ready
+function waitForFirebase(timeoutMs = 6000) {
+    if (window.firebaseDB) return Promise.resolve(window.firebaseDB);
+    return new Promise((resolve) => {
+        let timer = null;
+        const onReady = () => {
+            if (timer) clearTimeout(timer);
+            window.removeEventListener('firebaseReady', onReady);
+            resolve(window.firebaseDB || null);
+        };
+        window.addEventListener('firebaseReady', onReady);
+        timer = setTimeout(() => {
+            window.removeEventListener('firebaseReady', onReady);
+            resolve(window.firebaseDB || null);
+        }, timeoutMs);
+    });
+}
+
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎨 Gallery DOM loaded, initializing...');
@@ -130,53 +148,38 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeInterface();
     addDebugButton();
     
-        // Listen for data events from Firebase loader
+    // Listen for data events from external loaders
     window.addEventListener('martyrsDataReady', (event) => {
-        console.log('📨 Received martyrsDataReady event:', event.detail);
+        if (!event || !event.detail) return;
         const { data, source, connected, error } = event.detail;
+        if (connected !== undefined) updateConnectionStatus(connected, source, error);
         
-        // Update connection status display
-        updateConnectionStatus(connected, source, error);
-        
-        if (data && data.length > 0) {
-            console.log(`✅ Got ${data.length} martyrs from ${source}`);
+        if (Array.isArray(data) && data.length > 0) {
+            console.log(`✅ Got ${data.length} martyrs from ${source || 'event'}`);
             allMartyrs = data;
-            renderGallery(allMartyrs);
+            renderGallery(allMartyrs, true);
+            populateFilterDropdowns();
+            checkUrlForHero();
             galleryLoaded = true;
             galleryLoading = false;
-            
-            // Show offline warning if using localStorage
-            if (source.includes('localStorage') && source.includes('h old')) {
-                showOfflineWarning();
-            } else if (connected) {
-                hideOfflineWarning();
-            }
-        } else {
-            console.warn('⚠️ Received empty data from', source);
-            if (error) {
-                showErrorMessage(error);
-            } else {
-                showEmptyMessage();
-            }
         }
     });
-    
-    // Multiple loading attempts
-    setTimeout(() => loadGallery(), 100);   // Immediate
-    setTimeout(() => { if (allMartyrs.length === 0) loadGallery(); }, 500);  // Quick retry
-    setTimeout(() => { if (allMartyrs.length === 0) loadGallery(); }, 2000); // Patient retry
-    setTimeout(() => { if (allMartyrs.length === 0) loadGallery(); }, 5000); // Final retry
-    
+
+    // Start loading gallery
+    loadGallery();
+
     // Listen for Firebase ready
     window.addEventListener('firebaseReady', () => {
-        console.log('🔥 Firebase ready event - loading gallery');
-        loadGallery();
+        console.log('🔥 Firebase ready event received');
+        if (!galleryLoaded || allMartyrs.length === 0) {
+            loadGallery();
+        }
     });
 });
 
 // Main gallery loader with sub-second initial display
 async function loadGallery() {
-    if (galleryLoaded) return;
+    if (galleryLoaded && allMartyrs && allMartyrs.length > 0) return;
     if (galleryLoading) return;
     galleryLoading = true;
 
@@ -194,86 +197,121 @@ async function loadGallery() {
         if (window.martyrsDataFromFirebase && window.martyrsDataFromFirebase.length > 0) {
             console.log(`✨ Using pre-loaded data: ${window.martyrsDataFromFirebase.length} martyrs`);
             allMartyrs = window.martyrsDataFromFirebase;
-            renderGallery(null, true);
+            renderGallery(allMartyrs, true);
             populateFilterDropdowns();
             checkUrlForHero();
-                window.dispatchEvent(new Event('martyrsDataReady'));
             galleryLoaded = true;
             galleryLoading = false;
             return;
         }
 
-        // Method 2: Instant 30ms load from IndexedDB cache
-        if (window.idbCache && typeof window.idbCache.get === 'function') {
-            const cached = await window.idbCache.get();
-            if (cached && cached.data && cached.data.length > 0) {
-                console.log(`⚡ Instant load from IndexedDB: ${cached.data.length} martyrs`);
-                allMartyrs = cached.data;
-                window.martyrsDataFromFirebase = allMartyrs;
-                renderGallery(null, true);
-                populateFilterDropdowns();
-                hideOfflineWarning();
-                galleryLoaded = true;
-                galleryLoading = false;
+        // Method 2: Instant ~30ms load from IndexedDB cache
+        const idb = (typeof window !== 'undefined' && window.idbCache) ? window.idbCache : null;
+        if (idb && typeof idb.get === 'function') {
+            try {
+                const cached = await idb.get();
+                if (cached && cached.data && cached.data.length > 0) {
+                    console.log(`⚡ Instant load from IndexedDB: ${cached.data.length} martyrs`);
+                    allMartyrs = cached.data;
+                    window.martyrsDataFromFirebase = allMartyrs;
+                    renderGallery(allMartyrs, true);
+                    populateFilterDropdowns();
+                    hideOfflineWarning();
+                    checkUrlForHero();
+                    galleryLoaded = true;
+                    galleryLoading = false;
 
-                // If cache is older than 6 hours, refresh quietly in background
-                if (cached.isStale && window.firebaseDB) {
-                    window.firebaseDB.getApprovedMartyrs(true).then(res => {
-                        if (res && res.success && res.data) {
-                            allMartyrs = res.data;
-                            window.martyrsDataFromFirebase = allMartyrs;
-                            populateFilterDropdowns();
-                        }
-                    });
+                    // If cache is older than 6 hours, refresh quietly in background
+                    if (cached.isStale && window.firebaseDB) {
+                        window.firebaseDB.getApprovedMartyrs(true).then(res => {
+                            if (res && res.success && res.data && res.data.length > 0) {
+                                allMartyrs = res.data;
+                                window.martyrsDataFromFirebase = allMartyrs;
+                                populateFilterDropdowns();
+                            }
+                        });
+                    }
+                    return;
                 }
-                return;
+            } catch (idbErr) {
+                console.warn('idb cache read failed:', idbErr);
             }
         }
 
-        // Method 3: First-time cold visit: show skeletons and fetch first 24 cards (~300ms)
+        // Show professional skeleton loading state while connecting
         showLoadingState();
 
-        if (window.firebaseDB && typeof window.firebaseDB.getInitialBatch === 'function') {
-            console.log('⚡ Fetching initial fast batch (24 cards)...');
-            const batchResult = await window.firebaseDB.getInitialBatch(24);
-            if (batchResult && batchResult.success && batchResult.data && batchResult.data.length > 0) {
-                console.log(`⚡ Displaying initial ${batchResult.data.length} cards immediately!`);
-                allMartyrs = batchResult.data;
-                renderGallery(null, true);
-                hideOfflineWarning();
+        // Method 3: Wait for Firebase SDK (up to 6s)
+        const fb = await waitForFirebase(6000);
+
+        if (fb) {
+            // Step 3a: Fast initial batch of 24 cards for sub-second first paint
+            if (typeof fb.getInitialBatch === 'function') {
+                console.log('⚡ Fetching initial fast batch (24 cards)...');
+                const batchResult = await fb.getInitialBatch(24);
+                if (batchResult && batchResult.success && batchResult.data && batchResult.data.length > 0) {
+                    console.log(`⚡ Displaying initial ${batchResult.data.length} cards immediately!`);
+                    allMartyrs = batchResult.data;
+                    renderGallery(allMartyrs, true);
+                    hideOfflineWarning();
+                }
+            }
+
+            // Step 3b: Fetch full collection
+            if (typeof fb.getApprovedMartyrs === 'function') {
+                console.log('🔥 Fetching full martyrs collection...');
+                const result = await fb.getApprovedMartyrs();
+
+                if (result && result.success && Array.isArray(result.data) && result.data.length > 0) {
+                    console.log(`✅ Full dataset ready: ${result.data.length} martyrs`);
+                    allMartyrs = result.data;
+                    window.martyrsDataFromFirebase = allMartyrs;
+                    populateFilterDropdowns();
+
+                    // If user has not applied any filters, seamlessly update total count and sentinel
+                    const hasFilters = Object.values(currentFilters).some(f => f !== '') ||
+                        (typeof discoveryState !== 'undefined' && (discoveryState.activeQuickFilter !== 'all' || discoveryState.activeLetter));
+
+                    if (!hasFilters) {
+                        currentFilteredMartyrs = allMartyrs;
+                        updateSearchResultsInfo(allMartyrs.length);
+                        if (currentlyRenderedCount < allMartyrs.length) {
+                            attachScrollSentinel();
+                        }
+                    } else {
+                        applyFilters();
+                    }
+
+                    hideOfflineWarning();
+                    checkUrlForHero();
+                    galleryLoaded = true;
+                    galleryLoading = false;
+                    return;
+                }
             }
         }
 
-        // Method 4: Fetch full collection in background
-        if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
-            console.log('🔥 Fetching full martyrs collection...');
-            const result = await window.firebaseDB.getApprovedMartyrs();
-
-            if (result && result.success && Array.isArray(result.data) && result.data.length > 0) {
-                console.log(`✅ Full dataset ready: ${result.data.length} martyrs`);
-                allMartyrs = result.data;
-                window.martyrsDataFromFirebase = allMartyrs;
-                populateFilterDropdowns();
-
-                // If no active filter, smoothly update total count and attach sentinel
-                const hasFilters = Object.values(currentFilters).some(f => f !== '');
-                if (!hasFilters) {
-                    currentFilteredMartyrs = allMartyrs;
-                    updateSearchResultsInfo(allMartyrs.length);
-                    if (currentlyRenderedCount < allMartyrs.length) {
-                        attachScrollSentinel();
+        // Method 4: LocalStorage fallback
+        try {
+            const savedData = localStorage.getItem('martyrsData');
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                if (Array.isArray(parsedData) && parsedData.length > 0) {
+                    allMartyrs = parsedData.filter(m => !m.status || m.status === 'approved');
+                    if (allMartyrs.length > 0) {
+                        console.log(`💾 LocalStorage success: ${allMartyrs.length} martyrs`);
+                        renderGallery(allMartyrs, true);
+                        populateFilterDropdowns();
+                        showOfflineWarning();
+                        checkUrlForHero();
+                        galleryLoaded = true;
+                        galleryLoading = false;
+                        return;
                     }
-                } else {
-                    renderGallery(null, true);
                 }
-
-                hideOfflineWarning();
-                checkUrlForHero();
-                window.dispatchEvent(new Event('martyrsDataReady'));
-                galleryLoaded = true;
-                galleryLoading = false;
-                return;
             }
+        } catch (storageReadError) {
+            console.warn('⚠️ Failed to read martyrsData from localStorage:', storageReadError);
         }
 
         // Method 5: API fallback
@@ -291,9 +329,10 @@ async function loadGallery() {
                     console.log(`✅ API fallback success: ${apiData.length} martyrs`);
                     allMartyrs = apiData;
                     window.martyrsDataFromFirebase = allMartyrs;
-                    renderGallery(null, true);
+                    renderGallery(allMartyrs, true);
                     populateFilterDropdowns();
                     hideOfflineWarning();
+                    checkUrlForHero();
                     galleryLoaded = true;
                     galleryLoading = false;
                     return;
@@ -303,11 +342,13 @@ async function loadGallery() {
             console.warn('⚠️ API /api/get-martyrs failed:', apiError);
         }
 
-        // If everything returned 0, show empty message
+        // If after all methods, still 0 martyrs:
         if (allMartyrs.length === 0) {
-            showEmptyMessage();
+            console.warn('📭 No martyrs loaded after all attempts');
+            showErrorMessage('Unable to connect to memorial database. Please refresh the page.');
         }
-        galleryLoaded = true;
+
+        galleryLoaded = (allMartyrs.length > 0);
         galleryLoading = false;
 
     } catch (error) {

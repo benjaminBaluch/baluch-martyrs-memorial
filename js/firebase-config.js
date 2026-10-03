@@ -18,8 +18,8 @@ import {
     serverTimestamp,
     Timestamp
 } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
-
-import { idbCache } from './idb-cache.js';
+// Safe IndexedDB reference (from window.idbCache loaded via idb-cache.js)
+const getIdb = () => (typeof window !== 'undefined' && window.idbCache) ? window.idbCache : null;
 
 // Your web app's Firebase configuration - Production Ready
 const firebaseConfig = {
@@ -98,10 +98,13 @@ export const firebaseDB = {
                 return { success: true, data: this._memoryCache.slice(0, count), fromCache: true };
             }
             // 2. Check IndexedDB
-            const cached = await idbCache.get();
-            if (cached && cached.data && cached.data.length > 0) {
-                this._memoryCache = cached.data;
-                return { success: true, data: cached.data.slice(0, count), fromCache: true };
+            const idb = getIdb();
+            if (idb) {
+                const cached = await idb.get();
+                if (cached && cached.data && cached.data.length > 0) {
+                    this._memoryCache = cached.data;
+                    return { success: true, data: cached.data.slice(0, count), fromCache: true };
+                }
             }
             // 3. Quick Firestore query with limit
             console.log(`⚡ Fetching fast initial batch (${count} martyrs)...`);
@@ -137,15 +140,18 @@ export const firebaseDB = {
         // 2. Check IndexedDB local storage (30ms)
         if (!forceRefresh) {
             try {
-                const cached = await idbCache.get();
-                if (cached && cached.data && cached.data.length > 0) {
-                    this._memoryCache = cached.data;
-                    console.log(`⚡ Loaded ${cached.data.length} martyrs instantly from IndexedDB cache`);
-                    // If cache is stale, refresh quietly in background without blocking UI
-                    if (cached.isStale) {
-                        this._backgroundSync();
+                const idb = getIdb();
+                if (idb) {
+                    const cached = await idb.get();
+                    if (cached && cached.data && cached.data.length > 0) {
+                        this._memoryCache = cached.data;
+                        console.log(`⚡ Loaded ${cached.data.length} martyrs instantly from IndexedDB cache`);
+                        // If cache is stale, refresh quietly in background without blocking UI
+                        if (cached.isStale) {
+                            this._backgroundSync();
+                        }
+                        return { success: true, data: cached.data, fromCache: true };
                     }
-                    return { success: true, data: cached.data, fromCache: true };
                 }
             } catch (cacheErr) {
                 console.warn('⚠️ IndexedDB read error:', cacheErr);
@@ -229,8 +235,11 @@ export const firebaseDB = {
             // Update caches if we found martyrs
             if (allMartyrs.length > 0) {
                 this._memoryCache = allMartyrs;
-                await idbCache.set(allMartyrs);
-                console.log(`💾 Saved ${allMartyrs.length} martyrs into IndexedDB cache`);
+                const idb = getIdb();
+                if (idb) {
+                    await idb.set(allMartyrs);
+                    console.log(`💾 Saved ${allMartyrs.length} martyrs into IndexedDB cache`);
+                }
             }
 
             console.log(`✅ Final result: ${allMartyrs.length} martyrs total`);
