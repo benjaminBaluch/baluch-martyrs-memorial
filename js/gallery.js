@@ -1190,13 +1190,57 @@ function printMartyrProfile(martyr) {
 console.log('✅ Gallery.js loaded successfully');
 console.log('🔧 Debug functions: checkGalleryData(), loadGalleryNow(), retryFirebaseConnection()');
 
+// Ordered list currently visible in the gallery grid (filtered + alphabetical).
+// Used by the profile modal for Previous / Next navigation.
+var galleryNavList = [];
+
+function compareMartyrNames(a, b) {
+    const aName = ((a && a.fullName) ? String(a.fullName) : '').trim();
+    const bName = ((b && b.fullName) ? String(b.fullName) : '').trim();
+    if (!aName && !bName) return 0;
+    if (!aName) return 1;
+    if (!bName) return -1;
+    return aName.localeCompare(bName, undefined, { sensitivity: 'base' });
+}
+
+// Find the list + position to browse from for a given martyr
+function resolveGalleryNavList(martyr, navList) {
+    const findIn = (list) => {
+        if (!Array.isArray(list) || !list.length) return -1;
+        let idx = list.indexOf(martyr);
+        if (idx === -1 && martyr && martyr.id) {
+            idx = list.findIndex(m => m && m.id === martyr.id);
+        }
+        return idx;
+    };
+
+    const candidates = [navList, galleryNavList];
+    for (const list of candidates) {
+        const idx = findIn(list);
+        if (idx !== -1) return { list, index: idx };
+    }
+
+    // e.g. a "Discover" pick outside the current filter: browse the full archive
+    if (Array.isArray(allMartyrs) && allMartyrs.length) {
+        const all = [...allMartyrs].sort(compareMartyrNames);
+        const idx = findIn(all);
+        if (idx !== -1) return { list: all, index: idx };
+    }
+
+    return { list: [martyr], index: 0 };
+}
+
 // Show martyr details modal (with print/download support)
-function showMartyrModal(martyr) {
+function showMartyrModal(martyr, navList) {
     console.log(`🔍 Showing modal for: ${martyr.fullName}`);
     
-    // Remove existing modal
+    // Remember what opened the modal so focus can return there on close
+    const opener = document.activeElement;
+
+    // Remove existing modal (and its keyboard/swipe listeners)
     const existingModal = document.getElementById('martyrModal');
     if (existingModal) {
+        if (typeof existingModal._pnCleanup === 'function') existingModal._pnCleanup();
         existingModal.remove();
     }
     
@@ -1233,6 +1277,21 @@ function showMartyrModal(martyr) {
         border: 1px solid rgba(148, 163, 184, 0.35);
     `;
 
+    let closed = false;
+    const closeModal = () => {
+        if (closed) return;
+        closed = true;
+        stopMartyrSpeech();
+        if (typeof modal._pnCleanup === 'function') modal._pnCleanup();
+        modal.remove();
+        document.body.style.overflow = 'auto';
+        if (opener && typeof opener.focus === 'function' && document.body.contains(opener)) {
+            try { opener.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+        }
+    };
+
+    // Fills the content box for one martyr (re-used when browsing Prev / Next)
+    function renderContent(martyr) {
     const birthPretty = formatDate(martyr.birthDate) || 'Unknown';
     const martyrdomPretty = formatDate(martyr.martyrdomDate) || 'Unknown';
     const headerDateLabel = martyrdomPretty;
@@ -1345,25 +1404,18 @@ function showMartyrModal(martyr) {
         shareSlot.replaceWith(createShareRow(martyr, 'modal'));
     }
 
-    modal.appendChild(content);
-    document.body.appendChild(modal);
-    document.body.style.overflow = 'hidden';
-    
-    const closeModal = () => {
-        stopMartyrSpeech();
-        modal.remove();
-        document.body.style.overflow = 'auto';
-    };
-    
     // Close buttons
-    const closeIcon = modal.querySelector('.close-martyr-modal');
-    const closeBtn  = modal.querySelector('.martyr-close-btn');
-    if (closeIcon) closeIcon.addEventListener('click', closeModal);
+    const closeIcon = content.querySelector('.close-martyr-modal');
+    const closeBtn  = content.querySelector('.martyr-close-btn');
+    if (closeIcon) {
+        closeIcon.setAttribute('aria-label', 'Close profile');
+        closeIcon.addEventListener('click', closeModal);
+    }
     if (closeBtn)  closeBtn.addEventListener('click', closeModal);
     
     // Print / Download button
-    const printBtn = modal.querySelector('.martyr-print-btn');
-    const printHeaderBtn = modal.querySelector('.martyr-print-btn-header');
+    const printBtn = content.querySelector('.martyr-print-btn');
+    const printHeaderBtn = content.querySelector('.martyr-print-btn-header');
     [printBtn, printHeaderBtn].forEach((btn) => {
         if (btn) {
             btn.addEventListener('click', () => {
@@ -1373,7 +1425,7 @@ function showMartyrModal(martyr) {
     });
 
     // Voice assistant button (text-to-speech)
-    const voiceBtn = modal.querySelector('.martyr-voice-btn');
+    const voiceBtn = content.querySelector('.martyr-voice-btn');
     if (voiceBtn) {
         if ('speechSynthesis' in window && typeof window.SpeechSynthesisUtterance !== 'undefined') {
             voiceBtn.addEventListener('click', () => {
@@ -1384,6 +1436,16 @@ function showMartyrModal(martyr) {
             voiceBtn.style.display = 'none';
         }
     }
+    } // end renderContent
+
+    renderContent(martyr);
+
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Martyr profile');
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
     
     // Close on background click
     modal.addEventListener('click', (e) => {
@@ -1392,14 +1454,34 @@ function showMartyrModal(martyr) {
         }
     });
     
-    // Close on Escape key
-    const escHandler = (e) => {
-        if (e.key === 'Escape') {
-            closeModal();
-            document.removeEventListener('keydown', escHandler);
-        }
-    };
-    document.addEventListener('keydown', escHandler);
+    // Previous / Next navigation (buttons, ← → keys, swipe) + Escape to close
+    if (typeof attachProfileNavigation === 'function') {
+        const nav = resolveGalleryNavList(martyr, navList);
+        modal._pnCleanup = attachProfileNavigation({
+            modal,
+            content,
+            list: nav.list,
+            index: nav.index,
+            render: (m) => {
+                stopMartyrSpeech();
+                renderContent(m);
+            },
+            close: closeModal
+        });
+    } else {
+        // Fallback: Escape only
+        const escHandler = (e) => {
+            if (e.key === 'Escape') closeModal();
+        };
+        document.addEventListener('keydown', escHandler);
+        modal._pnCleanup = () => document.removeEventListener('keydown', escHandler);
+    }
+
+    // Move focus into the dialog for keyboard / screen-reader users
+    const firstClose = content.querySelector('.close-martyr-modal');
+    if (firstClose) {
+        try { firstClose.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+    }
 }
 
 // Show empty gallery message
@@ -1574,6 +1656,7 @@ function renderGallery(martyrsData) {
     });
 
     console.log(`🎨 Rendering ${sortedMartyrs.length} martyrs to gallery (alphabetical)...`);
+    galleryNavList = sortedMartyrs;
     galleryGrid.innerHTML = '';
 
     let renderedCount = 0;

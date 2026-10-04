@@ -366,7 +366,7 @@ async function loadRecentMartyrs() {
             const recentMartyrs = martyrsData.slice(-6).reverse();
             
             recentMartyrs.forEach(martyr => {
-                const martyrCard = createMartyrCard(martyr);
+                const martyrCard = createMartyrCard(martyr, recentMartyrs);
                 recentMartyrsContainer.appendChild(martyrCard);
             });
             
@@ -378,7 +378,7 @@ async function loadRecentMartyrs() {
 }
 
 // Create Martyr Card Element - Matching Gallery Professional Design
-function createMartyrCard(martyr) {
+function createMartyrCard(martyr, list) {
     const card = document.createElement('div');
     card.className = 'martyr-card';
     
@@ -485,7 +485,7 @@ function createMartyrCard(martyr) {
     viewBtn.textContent = 'View Details';
     viewBtn.onclick = function(e) {
         e.preventDefault();
-        showMartyrDetails(martyr);
+        showMartyrDetails(martyr, list);
     };
     
     infoDiv.appendChild(viewBtn);
@@ -600,12 +600,16 @@ function escapeHTMLMain(value) {
 }
 
 // Show Martyr Details in Professional Modal (matching gallery design)
-function showMartyrDetails(martyr) {
+function showMartyrDetails(martyr, list) {
     console.log(`🔍 Showing modal for: ${martyr.fullName}`);
     
-    // Remove existing modal
+    // Remember what opened the modal so focus can return there on close
+    const opener = document.activeElement;
+
+    // Remove existing modal (and its keyboard/swipe listeners)
     const existingModal = document.getElementById('martyrDetailsModal');
     if (existingModal) {
+        if (typeof existingModal._pnCleanup === 'function') existingModal._pnCleanup();
         existingModal.remove();
     }
     
@@ -642,6 +646,21 @@ function showMartyrDetails(martyr) {
         border: 1px solid rgba(148, 163, 184, 0.35);
     `;
 
+    let closed = false;
+    const closeModal = () => {
+        if (closed) return;
+        closed = true;
+        stopMartyrSpeechMain();
+        if (typeof modal._pnCleanup === 'function') modal._pnCleanup();
+        modal.remove();
+        document.body.style.overflow = 'auto';
+        if (opener && typeof opener.focus === 'function' && document.body.contains(opener)) {
+            try { opener.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+        }
+    };
+
+    // Fills the content box for one martyr (re-used when browsing Prev / Next)
+    function renderContent(martyr) {
     const birthPretty = formatDate(martyr.birthDate) || 'Unknown';
     const martyrdomPretty = formatDate(martyr.martyrdomDate) || 'Unknown';
     const headerDateLabel = martyrdomPretty;
@@ -755,25 +774,18 @@ function showMartyrDetails(martyr) {
         shareSlot.replaceWith(createShareRowMain(martyr));
     }
 
-    modal.appendChild(content);
-    document.body.appendChild(modal);
-    document.body.style.overflow = 'hidden';
-    
-    const closeModal = () => {
-        stopMartyrSpeechMain();
-        modal.remove();
-        document.body.style.overflow = 'auto';
-    };
-    
     // Close buttons
-    const closeIcon = modal.querySelector('.close-martyr-modal');
-    const closeBtn  = modal.querySelector('.martyr-close-btn');
-    if (closeIcon) closeIcon.addEventListener('click', closeModal);
+    const closeIcon = content.querySelector('.close-martyr-modal');
+    const closeBtn  = content.querySelector('.martyr-close-btn');
+    if (closeIcon) {
+        closeIcon.setAttribute('aria-label', 'Close profile');
+        closeIcon.addEventListener('click', closeModal);
+    }
     if (closeBtn)  closeBtn.addEventListener('click', closeModal);
     
     // Print / Download button
-    const printBtn = modal.querySelector('.martyr-print-btn');
-    const printHeaderBtn = modal.querySelector('.martyr-print-btn-header');
+    const printBtn = content.querySelector('.martyr-print-btn');
+    const printHeaderBtn = content.querySelector('.martyr-print-btn-header');
     [printBtn, printHeaderBtn].forEach((btn) => {
         if (btn) {
             btn.addEventListener('click', () => {
@@ -783,7 +795,7 @@ function showMartyrDetails(martyr) {
     });
 
     // Voice assistant button (text-to-speech)
-    const voiceBtn = modal.querySelector('.martyr-voice-btn');
+    const voiceBtn = content.querySelector('.martyr-voice-btn');
     if (voiceBtn) {
         if ('speechSynthesis' in window && typeof window.SpeechSynthesisUtterance !== 'undefined') {
             voiceBtn.addEventListener('click', () => {
@@ -793,6 +805,16 @@ function showMartyrDetails(martyr) {
             voiceBtn.style.display = 'none';
         }
     }
+    } // end renderContent
+
+    renderContent(martyr);
+
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Martyr profile');
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
     
     // Close on background click
     modal.addEventListener('click', (e) => {
@@ -801,14 +823,33 @@ function showMartyrDetails(martyr) {
         }
     });
     
-    // Close on Escape key
-    const escHandler = (e) => {
-        if (e.key === 'Escape') {
-            closeModal();
-            document.removeEventListener('keydown', escHandler);
-        }
-    };
-    document.addEventListener('keydown', escHandler);
+    // Previous / Next navigation (buttons, ← → keys, swipe) + Escape to close
+    let navItems = Array.isArray(list) ? list : [];
+    let navIndex = navItems.indexOf(martyr);
+    if (navIndex === -1 && martyr && martyr.id) {
+        navIndex = navItems.findIndex(m => m && m.id === martyr.id);
+    }
+    if (navIndex === -1) {
+        navItems = [martyr];
+        navIndex = 0;
+    }
+    modal._pnCleanup = attachProfileNavigation({
+        modal,
+        content,
+        list: navItems,
+        index: navIndex,
+        render: (m) => {
+            stopMartyrSpeechMain();
+            renderContent(m);
+        },
+        close: closeModal
+    });
+
+    // Move focus into the dialog for keyboard / screen-reader users
+    const firstClose = content.querySelector('.close-martyr-modal');
+    if (firstClose) {
+        try { firstClose.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
+    }
 }
 
 // Create share row for modal
@@ -1102,6 +1143,7 @@ function closeMartyrModal() {
     const modal = document.getElementById('martyrDetailsModal');
     if (modal) {
         stopMartyrSpeechMain();
+        if (typeof modal._pnCleanup === 'function') modal._pnCleanup();
         modal.remove();
         document.body.style.overflow = 'auto';
     }
@@ -1273,7 +1315,7 @@ function renderAnniversarySlider() {
         slide.className = 'slide';
         if (index === 0) slide.classList.add('active');
         
-        const martyrCard = createAnniversaryCard(martyr);
+        const martyrCard = createAnniversaryCard(martyr, anniversaryMartyrs);
         slide.appendChild(martyrCard);
         slider.appendChild(slide);
         
@@ -1287,7 +1329,7 @@ function renderAnniversarySlider() {
 }
 
 // Create anniversary card
-function createAnniversaryCard(martyr) {
+function createAnniversaryCard(martyr, list) {
     const card = document.createElement('div');
     card.className = 'martyr-card anniversary-card';
     
@@ -1363,7 +1405,7 @@ function createAnniversaryCard(martyr) {
     const viewBtn = document.createElement('button');
     viewBtn.className = 'btn btn-small';
     viewBtn.textContent = 'Read More';
-    viewBtn.onclick = () => showMartyrDetails(martyr);
+    viewBtn.onclick = () => showMartyrDetails(martyr, list);
     infoDiv.appendChild(viewBtn);
     
     card.appendChild(imageDiv);
@@ -1650,3 +1692,227 @@ function initImageLightbox() {
         }
     });
 }
+
+
+// ============================================
+// PROFILE NAVIGATION (Previous / Next between martyr profiles)
+// Shared by the gallery modal (gallery.js) and the homepage modal (this file).
+// Controls live on the modal overlay (not inside the content) so they stay in
+// place while the profile content is swapped. Styles are injected from JS so
+// they are not affected by the long-lived cache on css/styles.css.
+// ============================================
+
+function ensureProfileNavStyles() {
+    if (document.getElementById('profileNavStyles')) return;
+    const style = document.createElement('style');
+    style.id = 'profileNavStyles';
+    style.textContent = `
+        .pn-arrow{position:fixed;top:50%;transform:translateY(-50%);z-index:10002;width:52px;height:52px;border-radius:50%;
+            border:1px solid rgba(255,255,255,0.22);background:rgba(15,23,42,0.55);color:#fff;cursor:pointer;display:flex;
+            align-items:center;justify-content:center;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+            transition:background .2s ease,transform .2s ease,opacity .2s ease;box-shadow:0 8px 24px rgba(0,0,0,0.35)}
+        .pn-arrow:hover:not(:disabled){background:rgba(44,85,48,0.9);transform:translateY(-50%) scale(1.06)}
+        .pn-arrow:focus-visible,.pn-bar button:focus-visible{outline:3px solid #d4af37;outline-offset:2px}
+        .pn-arrow:disabled{opacity:.25;cursor:default}
+        .pn-prev{left:max(16px,calc(50% - 480px - 76px))}
+        .pn-next{right:max(16px,calc(50% - 480px - 76px))}
+        .pn-bar{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:10002;
+            display:flex;align-items:center;gap:.35rem;padding:.35rem;border-radius:999px;background:rgba(15,23,42,0.82);
+            border:1px solid rgba(255,255,255,0.16);color:#f8fafc;box-shadow:0 10px 30px rgba(0,0,0,0.4);
+            backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-family:'Inter',sans-serif;max-width:calc(100vw - 24px)}
+        .pn-bar button{width:44px;height:44px;border-radius:50%;border:none;background:rgba(255,255,255,0.1);color:#fff;
+            cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .pn-bar button:disabled{opacity:.3;cursor:default}
+        .pn-bar button:active:not(:disabled){background:rgba(44,85,48,0.95)}
+        .pn-counter{padding:0 .6rem;font-size:.82rem;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+        .pn-hint{font-weight:400;opacity:.7;margin-left:.4rem}
+        .pn-toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:10003;
+            background:rgba(212,175,55,0.95);color:#1f1504;padding:.5rem 1rem;border-radius:999px;font-family:'Inter',sans-serif;
+            font-size:.82rem;font-weight:600;pointer-events:none;animation:pnToast 3s ease forwards}
+        @keyframes pnToast{0%{opacity:0;transform:translate(-50%,8px)}12%,80%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
+        @keyframes pnInNext{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+        @keyframes pnInPrev{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:none}}
+        @keyframes pnBump{0%,100%{transform:none}30%{transform:translateX(var(--pn-bump,10px))}60%{transform:translateX(calc(var(--pn-bump,10px) * -0.4))}}
+        .pn-enter-next{animation:pnInNext .22s ease-out}
+        .pn-enter-prev{animation:pnInPrev .22s ease-out}
+        .pn-bump{animation:pnBump .3s ease}
+        .pn-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+        .pn-bar .pn-mobile-only{display:none}
+        @media (max-width:899px){
+            .pn-arrow{display:none}
+            .pn-bar .pn-mobile-only{display:flex}
+            .pn-hint{display:none}
+            .pn-has-nav{max-height:calc(100vh - 100px) !important;margin-bottom:64px}
+        }
+        @media (prefers-reduced-motion:reduce){
+            .pn-enter-next,.pn-enter-prev,.pn-bump,.pn-toast{animation:none}
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+/**
+ * Adds Previous/Next navigation, keyboard and swipe support to a martyr modal.
+ * @param {Object} opts
+ * @param {HTMLElement} opts.modal    - overlay element (stays mounted while browsing)
+ * @param {HTMLElement} opts.content  - scrollable content box (its innerHTML is re-rendered)
+ * @param {Array}       opts.list     - ordered martyrs to browse
+ * @param {number}      opts.index    - index of the martyr currently shown
+ * @param {Function}    opts.render   - render(martyr) re-fills the content box
+ * @param {Function}    opts.close    - closes the modal
+ * @returns {Function} cleanup - removes listeners (call when the modal closes)
+ */
+function attachProfileNavigation({ modal, content, list, index, render, close }) {
+    ensureProfileNavStyles();
+
+    const items = Array.isArray(list) ? list : [];
+    let current = Math.max(0, Math.min(index || 0, items.length - 1));
+    const hasNav = items.length > 1;
+    const nameOf = (m) => (m && m.fullName ? String(m.fullName).trim() : 'Unknown martyr');
+
+    const arrowSvg = (dir) => `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${dir === 'prev' ? '<path d="M15 18l-6-6 6-6"/>' : '<path d="M9 18l6-6-6-6"/>'}</svg>`;
+
+    let prevArrow, nextArrow, barPrev, barNext, counter, live;
+
+    if (hasNav) {
+        content.classList.add('pn-has-nav');
+
+        prevArrow = document.createElement('button');
+        prevArrow.type = 'button';
+        prevArrow.className = 'pn-arrow pn-prev';
+        prevArrow.innerHTML = arrowSvg('prev');
+
+        nextArrow = document.createElement('button');
+        nextArrow.type = 'button';
+        nextArrow.className = 'pn-arrow pn-next';
+        nextArrow.innerHTML = arrowSvg('next');
+
+        const bar = document.createElement('div');
+        bar.className = 'pn-bar';
+        bar.setAttribute('role', 'group');
+        bar.setAttribute('aria-label', 'Browse profiles');
+
+        barPrev = document.createElement('button');
+        barPrev.type = 'button';
+        barPrev.className = 'pn-mobile-only';
+        barPrev.innerHTML = arrowSvg('prev');
+
+        counter = document.createElement('span');
+        counter.className = 'pn-counter';
+
+        barNext = document.createElement('button');
+        barNext.type = 'button';
+        barNext.className = 'pn-mobile-only';
+        barNext.innerHTML = arrowSvg('next');
+
+        bar.append(barPrev, counter, barNext);
+
+        live = document.createElement('div');
+        live.className = 'pn-sr';
+        live.setAttribute('aria-live', 'polite');
+
+        modal.append(prevArrow, nextArrow, bar, live);
+
+        [prevArrow, barPrev].forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); go(-1); }));
+        [nextArrow, barNext].forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); go(1); }));
+    }
+
+    function updateControls() {
+        if (!hasNav) return;
+        const prev = items[current - 1];
+        const next = items[current + 1];
+        const prevLabel = prev ? `Previous: ${nameOf(prev)}` : 'No previous profile';
+        const nextLabel = next ? `Next: ${nameOf(next)}` : 'No next profile';
+
+        [prevArrow, barPrev].forEach(b => { b.disabled = !prev; b.title = prevLabel; b.setAttribute('aria-label', prevLabel); });
+        [nextArrow, barNext].forEach(b => { b.disabled = !next; b.title = nextLabel; b.setAttribute('aria-label', nextLabel); });
+
+        counter.innerHTML = `${current + 1} of ${items.length}<span class="pn-hint">· use ← → keys</span>`;
+    }
+
+    function bump(direction) {
+        content.style.setProperty('--pn-bump', direction > 0 ? '-10px' : '10px');
+        content.classList.remove('pn-bump');
+        void content.offsetWidth; // restart animation
+        content.classList.add('pn-bump');
+    }
+
+    function go(delta) {
+        if (!hasNav) return;
+        const target = current + delta;
+        if (target < 0 || target >= items.length) {
+            bump(delta);
+            return;
+        }
+        current = target;
+        render(items[current]);
+        content.scrollTop = 0;
+        content.classList.remove('pn-enter-next', 'pn-enter-prev', 'pn-bump');
+        void content.offsetWidth;
+        content.classList.add(delta > 0 ? 'pn-enter-next' : 'pn-enter-prev');
+        updateControls();
+        if (live) live.textContent = `Profile ${current + 1} of ${items.length}: ${nameOf(items[current])}`;
+        if (typeof window.triggerTactileFeedback === 'function') window.triggerTactileFeedback(8);
+    }
+
+    // Keyboard: ← → to browse, Esc to close (Esc closes an open photo lightbox first)
+    function onKeyDown(e) {
+        const lightbox = document.querySelector('.lightbox-overlay');
+        if (e.key === 'Escape') {
+            if (lightbox) { lightbox.remove(); return; }
+            close();
+            return;
+        }
+        if (!hasNav || lightbox) return;
+        if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+        const t = e.target;
+        if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+        if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
+    }
+    document.addEventListener('keydown', onKeyDown);
+
+    // Swipe left/right on touch devices (vertical scrolling is left untouched)
+    let touchStart = null;
+    function onTouchStart(e) {
+        if (!hasNav || e.touches.length !== 1) { touchStart = null; return; }
+        const t = e.touches[0];
+        touchStart = { x: t.clientX, y: t.clientY, time: Date.now() };
+    }
+    function onTouchEnd(e) {
+        if (!touchStart || !e.changedTouches.length) return;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - touchStart.x;
+        const dy = t.clientY - touchStart.y;
+        const dt = Date.now() - touchStart.time;
+        touchStart = null;
+        if (dt > 700 || Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+        go(dx < 0 ? 1 : -1);
+    }
+    content.addEventListener('touchstart', onTouchStart, { passive: true });
+    content.addEventListener('touchend', onTouchEnd, { passive: true });
+
+    updateControls();
+
+    // One-time hint for touch users
+    if (hasNav && window.matchMedia && window.matchMedia('(max-width: 899px)').matches) {
+        try {
+            if (!localStorage.getItem('bmm_swipe_hint_seen')) {
+                const toast = document.createElement('div');
+                toast.className = 'pn-toast';
+                toast.textContent = 'Swipe left or right to browse profiles';
+                modal.appendChild(toast);
+                setTimeout(() => toast.remove(), 3100);
+                localStorage.setItem('bmm_swipe_hint_seen', '1');
+            }
+        } catch (e) { /* storage unavailable – skip hint */ }
+    }
+
+    return function cleanupProfileNavigation() {
+        document.removeEventListener('keydown', onKeyDown);
+        content.removeEventListener('touchstart', onTouchStart);
+        content.removeEventListener('touchend', onTouchEnd);
+    };
+}
+
+window.attachProfileNavigation = attachProfileNavigation;
