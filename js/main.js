@@ -373,6 +373,16 @@ async function loadRecentMartyrs() {
             console.log(`🏠 Displayed ${recentMartyrs.length} recent martyrs on homepage`);
         } else {
             console.log('😔 No approved martyrs found');
+            recentMartyrsContainer.innerHTML = `
+                <div class="martyr-card placeholder">
+                    <div class="martyr-image"></div>
+                    <div class="martyr-info">
+                        <h3>🎯 Start Building Our Memorial</h3>
+                        <p>Be the first to honor a hero by adding their story to our digital memorial</p>
+                        <a href="/add-martyr" class="btn btn-small">➕ Honor a Hero</a>
+                    </div>
+                </div>
+            `;
         }
     }
 }
