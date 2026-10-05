@@ -621,67 +621,95 @@
         }
         @keyframes memorialPulse {
             0%, 100% { transform: scale(1); opacity: 0.9; }
-            50% { transform: scale(1.12); opacity: 1; filter: drop-shadow(0 4px 14px rgba(44, 85, 48, 0.4)); }
+            50% { transform: scale(1.08); opacity: 1; filter: drop-shadow(0 4px 12px rgba(44, 85, 48, 0.35)); }
         }
         @keyframes memorialFadeIn {
             from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        @media (max-width: 768px) {
+            .slider-container {
+                background: transparent !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+        }
         .memorial-loading-card {
-            min-height: 320px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 3.5rem 1.5rem;
-            background: #ffffff;
-            border-radius: 18px;
-            border: 1px solid rgba(44, 85, 48, 0.12);
-            box-shadow: 0 12px 35px rgba(15, 23, 42, 0.08);
+            min-height: 250px;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            text-align: center !important;
+            padding: 2.75rem 1.25rem !important;
+            background: #ffffff !important;
+            border-radius: 18px !important;
+            border: 1px solid rgba(44, 85, 48, 0.1) !important;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08) !important;
+            width: 100% !important;
+            max-width: 480px !important;
+            margin: 0 auto !important;
+            box-sizing: border-box !important;
         }
         html[data-theme="dark"] .memorial-loading-card {
-            background: linear-gradient(135deg, #0f1419 0%, #0a0f15 100%);
-            border-color: rgba(74, 222, 128, 0.15);
-            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45);
+            background: linear-gradient(135deg, #0f1419 0%, #0a0f15 100%) !important;
+            border-color: rgba(74, 222, 128, 0.15) !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45) !important;
         }
         .memorial-loading-inner {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 0.9rem;
-            max-width: 440px;
-            margin: 0 auto;
+            width: 100%;
         }
         .memorial-pulse-emblem {
-            font-size: 3rem;
+            font-size: 2.6rem;
             line-height: 1;
+            margin-bottom: 0.75rem;
             animation: memorialPulse 2.4s ease-in-out infinite;
             user-select: none;
-            filter: drop-shadow(0 2px 8px rgba(44, 85, 48, 0.25));
+            filter: drop-shadow(0 2px 6px rgba(44, 85, 48, 0.2));
+        }
+        .memorial-spinner-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.85rem;
         }
         .memorial-spinner {
-            width: 32px;
-            height: 32px;
-            border: 3px solid rgba(44, 85, 48, 0.18);
+            width: 28px;
+            height: 28px;
+            border: 2.5px solid rgba(44, 85, 48, 0.14);
             border-top-color: #2c5530;
             border-radius: 50%;
-            animation: memorialSpin 0.9s linear infinite;
+            animation: memorialSpin 0.85s linear infinite;
         }
         html[data-theme="dark"] .memorial-spinner {
-            border-color: rgba(134, 239, 172, 0.2);
+            border-color: rgba(134, 239, 172, 0.18);
             border-top-color: #4ade80;
         }
-        .memorial-loading-text {
-            margin: 0.2rem 0 0 0;
+        .memorial-loading-title {
+            margin: 0 0 0.25rem 0;
             font-size: 1.05rem;
-            font-weight: 600;
+            font-weight: 700;
             color: #1e4024;
             letter-spacing: 0.01em;
-            line-height: 1.5;
+            line-height: 1.3;
         }
-        html[data-theme="dark"] .memorial-loading-text {
+        html[data-theme="dark"] .memorial-loading-title {
             color: #86efac;
+        }
+        .memorial-loading-subtitle {
+            margin: 0;
+            font-size: 0.88rem;
+            font-weight: 500;
+            color: #64748b;
+            letter-spacing: 0.01em;
+            line-height: 1.3;
+        }
+        html[data-theme="dark"] .memorial-loading-subtitle {
+            color: #94a3b8;
         }
         /* Smooth fade-in transition when real card loads */
         .slide.active .anniversary-card {
@@ -1629,10 +1657,11 @@
                             <div class="martyr-card anniversary-card memorial-loading-card" aria-busy="true" aria-label="Loading memorial data">
                                 <div class="memorial-loading-inner">
                                     <div class="memorial-pulse-emblem" aria-hidden="true">🕊️</div>
-                                    <div class="memorial-spinner" aria-hidden="true"></div>
-                                    <p class="memorial-loading-text">
-                                        🕊️ Honoring our heroes &bull; Loading memorial data...
-                                    </p>
+                                    <div class="memorial-spinner-wrap" aria-hidden="true">
+                                        <div class="memorial-spinner"></div>
+                                    </div>
+                                    <p class="memorial-loading-title">Honoring Our Heroes</p>
+                                    <p class="memorial-loading-subtitle">Loading memorial data...</p>
                                 </div>
                             </div>
                         </div>
