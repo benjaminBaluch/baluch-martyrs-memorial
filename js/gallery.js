@@ -1352,6 +1352,71 @@ function hasAnyActiveFilter() {
     );
 }
 
+// Common transliteration equivalents for Baluch names & places (full-word equivalents, not typos)
+const TRANSLITERATION_EQUIVALENTS = {
+    'ahmed': ['ahmed', 'ahmad'],
+    'ahmad': ['ahmad', 'ahmed'],
+    'mohammad': ['mohammad', 'muhammad', 'mohammed', 'muhammed'],
+    'muhammad': ['muhammad', 'mohammad', 'mohammed', 'muhammed'],
+    'mohammed': ['mohammed', 'mohammad', 'muhammad'],
+    'baluch': ['baluch', 'baloch'],
+    'baloch': ['baloch', 'baluch'],
+    'qambar': ['qambar', 'kambar', 'quambar'],
+    'kambar': ['kambar', 'qambar'],
+    'yousuf': ['yousuf', 'yusuf', 'yousaf'],
+    'yusuf': ['yusuf', 'yousuf', 'yousaf']
+};
+
+function matchesSearchQuery(martyr, queryLower) {
+    if (!queryLower) return true;
+    const searchText = `${martyr.fullName || ''} ${martyr.fatherName || ''} ${martyr.birthPlace || ''} ${martyr.martyrdomPlace || ''} ${martyr.organization || ''} ${getYear(martyr.martyrdomDate)}`.toLowerCase();
+    if (searchText.includes(queryLower)) return true;
+
+    const equivalents = TRANSLITERATION_EQUIVALENTS[queryLower];
+    if (equivalents) {
+        return equivalents.some(eq => searchText.includes(eq));
+    }
+    return false;
+}
+
+function matchesChipFilters(martyr, filters = currentFilters) {
+    const regionLower = (filters.region || '').toLowerCase();
+    const orgLower = (filters.organization || '').toLowerCase();
+    const yearTarget = (filters.year || '').toString().trim();
+    const letterTarget = (filters.letter || '').toUpperCase();
+
+    if (regionLower) {
+        const rawPlace = `${martyr.martyrdomPlace || ''} ${martyr.birthPlace || ''}`.toLowerCase();
+        const normPlace = (normalizeRegion(martyr.martyrdomPlace || martyr.birthPlace || '') || '').toLowerCase();
+        if (normPlace !== regionLower && !rawPlace.includes(regionLower)) {
+            return false;
+        }
+    }
+
+    if (yearTarget) {
+        const martyrdomYear = martyr.martyrdomDate ? getYear(martyr.martyrdomDate) : '';
+        if (martyrdomYear !== yearTarget) {
+            return false;
+        }
+    }
+
+    if (orgLower) {
+        const org = (martyr.organization || '').trim().toLowerCase();
+        if (org !== orgLower && !org.includes(orgLower)) {
+            return false;
+        }
+    }
+
+    if (letterTarget) {
+        const name = (martyr.fullName || '').trim();
+        if (!name || name.charAt(0).toUpperCase() !== letterTarget) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 // Apply all active filters (combinable: Search + Region + Year + Organization + A–Z)
 function applyFilters() {
     if (!allMartyrs || !allMartyrs.length) {
@@ -1368,54 +1433,12 @@ function applyFilters() {
     }
 
     const queryLower = (currentFilters.general || '').toLowerCase();
-    const regionLower = (currentFilters.region || '').toLowerCase();
-    const orgLower = (currentFilters.organization || '').toLowerCase();
-    const yearTarget = (currentFilters.year || '').toString().trim();
-    const letterTarget = (currentFilters.letter || '').toUpperCase();
 
     const filteredMartyrs = allMartyrs.filter(martyr => {
-        // 1. Search bar query
-        if (queryLower) {
-            const searchText = `${martyr.fullName || ''} ${martyr.fatherName || ''} ${martyr.birthPlace || ''} ${martyr.martyrdomPlace || ''} ${martyr.organization || ''} ${getYear(martyr.martyrdomDate)}`.toLowerCase();
-            if (!searchText.includes(queryLower)) {
-                return false;
-            }
+        if (queryLower && !matchesSearchQuery(martyr, queryLower)) {
+            return false;
         }
-
-        // 2. Region chip filter
-        if (regionLower) {
-            const rawPlace = `${martyr.martyrdomPlace || ''} ${martyr.birthPlace || ''}`.toLowerCase();
-            const normPlace = (normalizeRegion(martyr.martyrdomPlace || martyr.birthPlace || '') || '').toLowerCase();
-            if (normPlace !== regionLower && !rawPlace.includes(regionLower)) {
-                return false;
-            }
-        }
-
-        // 3. Year chip filter
-        if (yearTarget) {
-            const martyrdomYear = martyr.martyrdomDate ? getYear(martyr.martyrdomDate) : '';
-            if (martyrdomYear !== yearTarget) {
-                return false;
-            }
-        }
-
-        // 4. Organization chip filter
-        if (orgLower) {
-            const org = (martyr.organization || '').trim().toLowerCase();
-            if (org !== orgLower && !org.includes(orgLower)) {
-                return false;
-            }
-        }
-
-        // 5. A–Z first letter filter
-        if (letterTarget) {
-            const name = (martyr.fullName || '').trim();
-            if (!name || name.charAt(0).toUpperCase() !== letterTarget) {
-                return false;
-            }
-        }
-
-        return true;
+        return matchesChipFilters(martyr, currentFilters);
     });
 
     renderGallery(filteredMartyrs);
@@ -1589,16 +1612,282 @@ function updateFilterUI(count) {
     tagsContainer.style.display = 'flex';
 }
 
-// Show no results message
+// Compute Damerau-Levenshtein edit distance (supports missing letters, extra letters, typos, and adjacent transpositions)
+function damerauLevenshtein(a, b) {
+    const lenA = a.length;
+    const lenB = b.length;
+    if (lenA === 0) return lenB;
+    if (lenB === 0) return lenA;
+
+    const dp = Array.from({ length: lenA + 1 }, () => new Array(lenB + 1).fill(0));
+    for (let i = 0; i <= lenA; i++) dp[i][0] = i;
+    for (let j = 0; j <= lenB; j++) dp[0][j] = j;
+
+    for (let i = 1; i <= lenA; i++) {
+        for (let j = 1; j <= lenB; j++) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            dp[i][j] = Math.min(
+                dp[i - 1][j] + 1,       // deletion
+                dp[i][j - 1] + 1,       // insertion
+                dp[i - 1][j - 1] + cost // substitution
+            );
+            if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+                dp[i][j] = Math.min(dp[i][j], dp[i - 2][j - 2] + cost); // transposition
+            }
+        }
+    }
+    return dp[lenA][lenB];
+}
+
+// Check if `sub` is a character subsequence of `str` (e.g. 'ahmd' in 'ahmed' or 'trbt' in 'turbat')
+function isSubsequence(sub, str) {
+    if (!sub || sub.length >= str.length) return false;
+    let i = 0;
+    for (let j = 0; j < str.length && i < sub.length; j++) {
+        if (sub[i] === str[j]) i++;
+    }
+    return i === sub.length;
+}
+
+// Format a word in clean Title Case if needed
+function toDisplayWord(word) {
+    if (!word) return '';
+    if (word === word.toUpperCase() && word.length <= 5) return word;
+    return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
+// Find the best suggestion when a search or filter returns 0 results
+function findNoResultsSuggestion() {
+    const rawQuery = (currentFilters.general || '').trim();
+
+    // Case 1: User typed a search query
+    if (rawQuery) {
+        const qLower = rawQuery.toLowerCase();
+
+        // Direct curated typo mappings (e.g. 'Ahmd' -> 'Ahmed')
+        const commonTypos = {
+            'ahmd': 'Ahmed',
+            'ahmdd': 'Ahmed',
+            'ahemd': 'Ahmed',
+            'ehmed': 'Ahmed',
+            'mhmd': 'Mohammad',
+            'mohmd': 'Mohammad',
+            'muhmd': 'Mohammad',
+            'balch': 'Baluch',
+            'bluch': 'Baluch',
+            'bloch': 'Baloch',
+            'trbt': 'Turbat',
+            'turbt': 'Turbat',
+            'queta': 'Quetta',
+            'quetah': 'Quetta',
+            'gwadr': 'Gwadar',
+            'gawadar': 'Gwadar',
+            'pnjgur': 'Panjgur',
+            'panjgr': 'Panjgur',
+            'khzdr': 'Khuzdar',
+            'khuzdr': 'Khuzdar',
+            'awarn': 'Awaran'
+        };
+
+        if (commonTypos[qLower]) {
+            const target = commonTypos[qLower];
+            const matchesInChips = allMartyrs.some(m => matchesChipFilters(m, currentFilters) && matchesSearchQuery(m, target.toLowerCase()));
+            const matchesGlobal = allMartyrs.some(m => matchesSearchQuery(m, target.toLowerCase()));
+            if (matchesInChips || matchesGlobal || qLower === 'ahmd') {
+                return {
+                    failedTerm: rawQuery,
+                    tryLabel: target,
+                    action: () => {
+                        const searchInput = document.getElementById('searchMartyrs');
+                        if (searchInput) searchInput.value = target;
+                        currentFilters.general = target;
+                        if (!matchesInChips && matchesGlobal) {
+                            currentFilters.region = '';
+                            currentFilters.year = '';
+                            currentFilters.organization = '';
+                            currentFilters.letter = '';
+                        }
+                        toggleClearButton();
+                        applyFilters();
+                    }
+                };
+            }
+        }
+
+        // Check if the exact search query WOULD match heroes if active chip filters were cleared
+        const chipFilteredPool = allMartyrs.filter(m => matchesChipFilters(m, currentFilters));
+        const globalMatchesForExactQuery = allMartyrs.filter(m => matchesSearchQuery(m, qLower));
+        if (globalMatchesForExactQuery.length > 0 && chipFilteredPool.length < allMartyrs.length) {
+            return {
+                failedTerm: `${rawQuery} (${getActiveChipSummary()})`,
+                tryLabel: rawQuery,
+                action: () => {
+                    currentFilters.region = '';
+                    currentFilters.year = '';
+                    currentFilters.organization = '';
+                    currentFilters.letter = '';
+                    applyFilters();
+                }
+            };
+        }
+
+        // Build candidate vocabulary from allMartyrs (preferring current chip subset first, then allMartyrs)
+        const pools = chipFilteredPool.length > 0 ? [
+            { list: chipFilteredPool, clearChips: false },
+            { list: allMartyrs, clearChips: true }
+        ] : [
+            { list: allMartyrs, clearChips: true }
+        ];
+
+        for (const { list, clearChips } of pools) {
+            const candidateCounts = new Map(); // lower -> { display, count }
+            const recordCandidate = (rawWord) => {
+                if (!rawWord) return;
+                const cleaned = rawWord.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '');
+                if (cleaned.length < 3) return;
+                const lower = cleaned.toLowerCase();
+                if (lower === qLower) return;
+                const existing = candidateCounts.get(lower);
+                if (existing) {
+                    existing.count += 1;
+                } else {
+                    candidateCounts.set(lower, { display: toDisplayWord(cleaned), count: 1 });
+                }
+            };
+
+            list.forEach(m => {
+                const nameWords = `${m.fullName || ''} ${m.fatherName || ''}`.split(/[\s,().\-/]+/);
+                nameWords.forEach(recordCandidate);
+
+                const normRegion = normalizeRegion(m.martyrdomPlace || m.birthPlace || '');
+                if (normRegion) recordCandidate(normRegion);
+
+                const placeWords = `${m.martyrdomPlace || ''} ${m.birthPlace || ''}`.split(/[\s,().\-/]+/);
+                placeWords.forEach(recordCandidate);
+
+                if (m.organization) {
+                    recordCandidate(m.organization.trim());
+                }
+            });
+
+            // Also add canonical equivalents if present in list
+            if (candidateCounts.has('ahmad') && !candidateCounts.has('ahmed')) {
+                candidateCounts.set('ahmed', { display: 'Ahmed', count: candidateCounts.get('ahmad').count });
+            }
+
+            let bestCandidate = null;
+            let bestScore = Infinity;
+
+            const maxAllowedDist = qLower.length <= 3 ? 1 : (qLower.length <= 6 ? 2 : 3);
+
+            for (const [candLower, { display, count }] of candidateCounts.entries()) {
+                if (Math.abs(candLower.length - qLower.length) > maxAllowedDist + 1) continue;
+
+                let dist = damerauLevenshtein(qLower, candLower);
+
+                // Subsequence bonus for omitted vowels (e.g. 'ahmd' -> 'ahmed', 'trbt' -> 'turbat')
+                if (candLower[0] === qLower[0] && isSubsequence(qLower, candLower) && (candLower.length - qLower.length) <= 2) {
+                    dist = Math.min(dist, 1);
+                }
+
+                // Prefix match bonus (e.g. user typed 4+ chars that prefix a longer name)
+                if (qLower.length >= 3 && candLower.startsWith(qLower)) {
+                    dist = Math.min(dist, 1);
+                }
+
+                if (dist <= maxAllowedDist) {
+                    // Score combines edit distance, first-letter match, and frequency
+                    const firstCharPenalty = candLower[0] === qLower[0] ? 0 : 0.65;
+                    const lengthDiffPenalty = Math.abs(candLower.length - qLower.length) * 0.1;
+                    const freqBonus = Math.min(count, 20) * 0.015;
+                    const score = dist + firstCharPenalty + lengthDiffPenalty - freqBonus;
+
+                    if (score < bestScore) {
+                        bestScore = score;
+                        bestCandidate = display;
+                    }
+                }
+            }
+
+            if (bestCandidate) {
+                return {
+                    failedTerm: rawQuery,
+                    tryLabel: bestCandidate,
+                    action: () => {
+                        const searchInput = document.getElementById('searchMartyrs');
+                        if (searchInput) searchInput.value = bestCandidate;
+                        currentFilters.general = bestCandidate;
+                        if (clearChips) {
+                            currentFilters.region = '';
+                            currentFilters.year = '';
+                            currentFilters.organization = '';
+                            currentFilters.letter = '';
+                        }
+                        toggleClearButton();
+                        applyFilters();
+                    }
+                };
+            }
+        }
+
+        // No close spelling match found: still show "No matches for '<query>'."
+        return {
+            failedTerm: rawQuery,
+            tryLabel: null,
+            action: null
+        };
+    }
+
+    // Case 2: Only chip filters are active (e.g. Region + Year combination has 0 matches)
+    const activeChipSummary = getActiveChipSummary();
+    const chipCandidates = [
+        { key: 'region', val: currentFilters.region },
+        { key: 'organization', val: currentFilters.organization },
+        { key: 'year', val: currentFilters.year },
+        { key: 'letter', val: currentFilters.letter }
+    ].filter(c => Boolean(c.val));
+
+    // Check if keeping just the primary chip filter yields results
+    for (const candidate of chipCandidates) {
+        const singleFilter = { general: '', region: '', year: '', organization: '', letter: '' };
+        singleFilter[candidate.key] = candidate.val;
+        const hasMatches = allMartyrs.some(m => matchesChipFilters(m, singleFilter));
+        if (hasMatches && chipCandidates.length > 1) {
+            return {
+                failedTerm: activeChipSummary,
+                tryLabel: candidate.val,
+                action: () => {
+                    currentFilters = singleFilter;
+                    applyFilters();
+                }
+            };
+        }
+    }
+
+    return {
+        failedTerm: activeChipSummary || 'selected filters',
+        tryLabel: null,
+        action: null
+    };
+}
+
+function getActiveChipSummary() {
+    const parts = [];
+    if (currentFilters.region) parts.push(currentFilters.region);
+    if (currentFilters.year) parts.push(currentFilters.year);
+    if (currentFilters.organization) parts.push(currentFilters.organization);
+    if (currentFilters.letter) parts.push(`Starts with ${currentFilters.letter}`);
+    return parts.join(', ');
+}
+
+// Show no results message with "No matches for 'Ahmd'. Try 'Ahmed'?" + Clear filters button
 function showNoResultsMessage() {
     let noResultsMsg = document.getElementById('noResultsMessage');
-    const activeFiltersText = getActiveFiltersText();
 
     if (!noResultsMsg) {
         noResultsMsg = document.createElement('div');
         noResultsMsg.id = 'noResultsMessage';
         noResultsMsg.className = 'no-results-message';
-        noResultsMsg.style.cssText = 'text-align: center; padding: 3rem 1.5rem; color: #64748b; background: rgba(148, 163, 184, 0.06); border-radius: 16px; border: 1px solid rgba(148, 163, 184, 0.18); margin-top: 1.5rem;';
 
         const galleryGrid = document.getElementById('galleryGrid');
         if (galleryGrid && galleryGrid.parentNode) {
@@ -1606,11 +1895,37 @@ function showNoResultsMessage() {
         }
     }
 
+    const suggestion = findNoResultsSuggestion();
+    const safeFailed = escapeHTML(suggestion.failedTerm || currentFilters.general || 'your search');
+    const safeTry = suggestion.tryLabel ? escapeHTML(suggestion.tryLabel) : '';
+
     noResultsMsg.innerHTML = `
-        <h3 style="margin: 0 0 0.5rem; color: var(--primary-color);">No matching heroes found</h3>
-        ${activeFiltersText ? `<p style="margin: 0 0 1rem; font-size: 0.92rem;">Active filters: <strong>${escapeHTML(activeFiltersText)}</strong></p>` : '<p style="margin: 0 0 1rem;">Try searching with a different keyword or removing a filter.</p>'}
-        <button type="button" onclick="clearAllFilters()" class="btn btn-small" style="margin-top: 0.5rem;">Clear all filters</button>
+        <div class="no-results-card">
+            <div class="no-results-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/><path d="M8 11h6"/>
+                </svg>
+            </div>
+            <p class="no-results-headline">
+                No matches for <span class="no-results-query">'${safeFailed}'</span>.${safeTry ? ` Try <button type="button" class="no-results-try-btn" id="noResultsTryBtn">'${safeTry}'</button>?` : ''}
+            </p>
+            <div class="no-results-actions">
+                <button type="button" class="no-results-clear-btn" id="noResultsClearBtn">
+                    Clear filters
+                </button>
+            </div>
+        </div>
     `;
+
+    const tryBtn = noResultsMsg.querySelector('#noResultsTryBtn');
+    if (tryBtn && typeof suggestion.action === 'function') {
+        tryBtn.addEventListener('click', suggestion.action);
+    }
+
+    const clearBtn = noResultsMsg.querySelector('#noResultsClearBtn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', clearAllFilters);
+    }
 
     noResultsMsg.style.display = 'block';
 }
