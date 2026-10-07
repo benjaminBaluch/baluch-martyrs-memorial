@@ -18,7 +18,7 @@
     <link rel="manifest" href="/site.webmanifest">
     <link rel="shortcut icon" href="/favicon.svg">
     
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=20261007">
     
     <!-- Professional Static Asset Refresh System -->
     <script src="js/asset-refresh.js"></script>
@@ -60,110 +60,102 @@
 
                 <!-- Search & Discovery -->
                 <div class="discovery-bar">
-                    <!-- Primary Search -->
+                    <!-- 1. One Search Bar -->
                     <div class="discovery-search">
                         <div class="search-wrapper">
-                            <svg class="search-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <svg class="search-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                             </svg>
-                            <input type="text" id="searchMartyrs" placeholder="Search heroes by name, location..." autocomplete="off">
-                            <button type="button" id="clearSearch" class="search-clear" title="Clear">
+                            <input type="text" id="searchMartyrs" placeholder="Search heroes by name, father's name, location, or organization..." autocomplete="off" aria-label="Search heroes">
+                            <button type="button" id="clearSearch" class="search-clear" title="Clear search" aria-label="Clear search">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
                             </button>
-                            <div id="autocompleteDropdown" class="autocomplete-dropdown"></div>
+                            <div id="autocompleteDropdown" class="autocomplete-dropdown" role="listbox"></div>
                         </div>
-                        <button type="button" id="discoverHero" class="discover-btn" title="Discover a random hero">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                            </svg>
-                            <span>Discover</span>
-                        </button>
                     </div>
 
-                    <!-- Filter Toolbar -->
-                    <div class="discovery-filters">
-                        <div class="filter-tabs">
-                            <button type="button" class="filter-tab active" data-filter="all">All</button>
-                            <button type="button" class="filter-tab" data-filter="recent">Recent</button>
-                            <div class="filter-tab-dropdown">
-                                <button type="button" class="filter-tab" data-filter="region" data-dropdown="regionDropdown">
-                                    Region
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+                    <!-- 2. One Row of Filter Chips (Region, Year, Organization, A–Z) + Clear All Link -->
+                    <div class="discovery-chips-row">
+                        <div class="filter-chips" role="group" aria-label="Filter martyrs">
+                            <!-- Region Chip -->
+                            <div class="filter-chip-wrapper">
+                                <button type="button" class="filter-chip" id="chipRegion" data-filter="region" data-dropdown="regionDropdown" aria-expanded="false" aria-haspopup="true">
+                                    <span class="chip-label" data-default="Region">Region</span>
+                                    <svg class="chip-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                                 </button>
-                                <div id="regionDropdown" class="filter-dropdown-menu">
+                                <div id="regionDropdown" class="filter-dropdown-menu" role="menu" aria-label="Filter by Region">
+                                    <div class="dropdown-sheet-handle" aria-hidden="true"></div>
+                                    <div class="dropdown-mobile-header">
+                                        <span class="dropdown-mobile-title">Select Region</span>
+                                        <button type="button" class="dropdown-mobile-close" aria-label="Close">&times;</button>
+                                    </div>
                                     <div class="dropdown-scroll" id="regionList"></div>
                                 </div>
                             </div>
-                            <div class="filter-tab-dropdown">
-                                <button type="button" class="filter-tab" data-filter="year" data-dropdown="yearDropdown">
-                                    Year
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+
+                            <!-- Year Chip -->
+                            <div class="filter-chip-wrapper">
+                                <button type="button" class="filter-chip" id="chipYear" data-filter="year" data-dropdown="yearDropdown" aria-expanded="false" aria-haspopup="true">
+                                    <span class="chip-label" data-default="Year">Year</span>
+                                    <svg class="chip-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                                 </button>
-                                <div id="yearDropdown" class="filter-dropdown-menu">
+                                <div id="yearDropdown" class="filter-dropdown-menu" role="menu" aria-label="Filter by Year">
+                                    <div class="dropdown-sheet-handle" aria-hidden="true"></div>
+                                    <div class="dropdown-mobile-header">
+                                        <span class="dropdown-mobile-title">Select Year</span>
+                                        <button type="button" class="dropdown-mobile-close" aria-label="Close">&times;</button>
+                                    </div>
                                     <div class="dropdown-scroll" id="yearList"></div>
                                 </div>
                             </div>
-                            <div class="filter-tab-dropdown">
-                                <button type="button" class="filter-tab" data-filter="organization" data-dropdown="orgDropdown">
-                                    Organization
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+
+                            <!-- Organization Chip -->
+                            <div class="filter-chip-wrapper">
+                                <button type="button" class="filter-chip" id="chipOrg" data-filter="organization" data-dropdown="orgDropdown" aria-expanded="false" aria-haspopup="true">
+                                    <span class="chip-label" data-default="Organization">Organization</span>
+                                    <svg class="chip-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
                                 </button>
-                                <div id="orgDropdown" class="filter-dropdown-menu">
+                                <div id="orgDropdown" class="filter-dropdown-menu" role="menu" aria-label="Filter by Organization">
+                                    <div class="dropdown-sheet-handle" aria-hidden="true"></div>
+                                    <div class="dropdown-mobile-header">
+                                        <span class="dropdown-mobile-title">Select Organization</span>
+                                        <button type="button" class="dropdown-mobile-close" aria-label="Close">&times;</button>
+                                    </div>
                                     <div class="dropdown-scroll" id="orgList"></div>
                                 </div>
                             </div>
-                        </div>
-                        <button type="button" id="toggleAdvancedSearch" class="advanced-toggle">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 3v18m-6-6l6 6 6-6M3 6h18M6 12h12M9 18h6"/>
-                            </svg>
-                            Filters
-                        </button>
-                    </div>
 
-                    <!-- Alphabet Bar -->
-                    <div class="alphabet-bar" id="alphabetNav"></div>
-
-                    <!-- Advanced Search Panel -->
-                    <div id="advancedSearchPanel" class="advanced-panel">
-                        <div class="advanced-grid">
-                            <div class="advanced-field">
-                                <label for="searchByName">Name</label>
-                                <input type="text" id="searchByName" placeholder="Martyr name...">
-                            </div>
-                            <div class="advanced-field">
-                                <label for="searchByFather">Father's Name</label>
-                                <input type="text" id="searchByFather" placeholder="Father's name...">
-                            </div>
-                            <div class="advanced-field">
-                                <label for="searchByLocation">Location</label>
-                                <input type="text" id="searchByLocation" placeholder="City or region...">
-                            </div>
-                            <div class="advanced-field">
-                                <label for="searchByOrganization">Organization</label>
-                                <input type="text" id="searchByOrganization" placeholder="Organization...">
-                            </div>
-                            <div class="advanced-field">
-                                <label for="searchByYear">Year</label>
-                                <input type="number" id="searchByYear" placeholder="Year" min="1800" max="2030">
+                            <!-- A–Z Chip -->
+                            <div class="filter-chip-wrapper">
+                                <button type="button" class="filter-chip" id="chipAz" data-filter="az" data-dropdown="azDropdown" aria-expanded="false" aria-haspopup="true">
+                                    <span class="chip-label" data-default="A–Z">A–Z</span>
+                                    <svg class="chip-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                                </button>
+                                <div id="azDropdown" class="filter-dropdown-menu filter-dropdown-az" role="menu" aria-label="Filter by First Letter">
+                                    <div class="dropdown-sheet-handle" aria-hidden="true"></div>
+                                    <div class="dropdown-mobile-header">
+                                        <span class="dropdown-mobile-title">Filter by First Letter (A–Z)</span>
+                                        <button type="button" class="dropdown-mobile-close" aria-label="Close">&times;</button>
+                                    </div>
+                                    <div class="az-grid" id="alphabetNav"></div>
+                                </div>
                             </div>
                         </div>
-                        <div class="advanced-actions">
-                            <button type="button" id="clearAdvancedSearch" class="btn-reset">Reset</button>
-                            <button type="button" id="applyAdvancedSearch" class="btn-apply">Apply Filters</button>
+
+                        <!-- Results Count & Clear All Link -->
+                        <div class="discovery-meta">
+                            <div id="searchResultsInfo" class="results-summary-inline">
+                                <strong id="resultsCount">0</strong>
+                                <span id="resultsLabel">heroes</span>
+                            </div>
+                            <button type="button" id="clearAllFilters" class="clear-all-link" style="display: none;">Clear all</button>
                         </div>
                     </div>
 
-                    <!-- Results Summary -->
-                    <div id="searchResultsInfo" class="results-bar">
-                        <div class="results-text">
-                            <strong id="resultsCount">0</strong>
-                            <span id="resultsLabel">heroes found</span>
-                            <span id="resultsFilters" class="results-filter-tag"></span>
-                        </div>
-                        <button type="button" id="clearAllFilters" class="results-clear">Clear all</button>
-                    </div>
+                    <!-- 3. Selected Filters as Removable Tags -->
+                    <div id="activeFilterTags" class="active-filter-tags" aria-live="polite" style="display: none;"></div>
                 </div>
+                <div id="filterBackdrop" class="filter-mobile-backdrop" aria-hidden="true"></div>
 
                 <!-- Gallery Grid -->
                 <div class="gallery-grid" id="galleryGrid">
@@ -208,9 +200,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
     
     <!-- Load main scripts; main.js will initialize Firebase via js/firebase-config.js -->
-    <script src="js/main.js?v=20261004"></script>
+    <script src="js/main.js?v=20261007"></script>
     <script src="js/mobile-menu.js"></script>
-    <script src="js/gallery.js?v=20261004"></script>
+    <script src="js/gallery.js?v=20261007"></script>
 
     <!-- Initialize Professional Asset Refresh System -->
     <script>

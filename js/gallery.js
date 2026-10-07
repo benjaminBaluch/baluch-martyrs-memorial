@@ -17,11 +17,10 @@ function escapeHTML(value) {
 let allMartyrs = [];
 let currentFilters = {
     general: '',
-    name: '',
-    father: '',
-    location: '',
+    region: '',
+    year: '',
     organization: '',
-    year: ''
+    letter: ''
 };
 
 // Simple flags to prevent duplicate/overlapping gallery loads
@@ -121,12 +120,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Setup interface
     initSearchFilter();
-    initAdvancedSearch();
     initializeInterface();
     addDebugButton();
     
-        // Listen for data events from Firebase loader
+    // Listen for data events from Firebase loader
     window.addEventListener('martyrsDataReady', (event) => {
+        if (!event || !event.detail) return;
         console.log('📨 Received martyrsDataReady event:', event.detail);
         const { data, source, connected, error } = event.detail;
         
@@ -136,12 +135,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data && data.length > 0) {
             console.log(`✅ Got ${data.length} martyrs from ${source}`);
             allMartyrs = data;
-            renderGallery(allMartyrs);
+            applyFilters();
             galleryLoaded = true;
             galleryLoading = false;
             
             // Show offline warning if using localStorage
-            if (source.includes('localStorage') && source.includes('h old')) {
+            if (source && source.includes('localStorage') && source.includes('h old')) {
                 showOfflineWarning();
             } else if (connected) {
                 hideOfflineWarning();
@@ -328,343 +327,12 @@ async function loadGallery() {
     }
 }
 
-// Render gallery with current martyrs
-function renderGallery() {
-    const galleryGrid = document.getElementById('galleryGrid');
-    if (!galleryGrid) {
-        console.error('❌ Cannot render - gallery grid not found');
-        return;
-    }
-    
-    console.log(`🎨 Rendering ${allMartyrs.length} martyrs...`);
-    
-    // Clear existing content
-    galleryGrid.innerHTML = '';
-    
-    if (allMartyrs.length === 0) {
-        showEmptyMessage();
-        return;
-    }
-    
-    // Create cards
-    let rendered = 0;
-    allMartyrs.forEach((martyr, index) => {
-        try {
-            const card = createGalleryCard(martyr);
-            galleryGrid.appendChild(card);
-            rendered++;
-        } catch (error) {
-            console.error(`❌ Failed to create card ${index}:`, error);
-        }
-    });
-    
-    console.log(`✅ Rendered ${rendered}/${allMartyrs.length} martyr cards`);
-    
-    // Show results info container (initially hidden)
-    const resultsInfo = document.getElementById('searchResultsInfo');
-    if (resultsInfo) {
-        resultsInfo.style.display = allMartyrs.length > 0 ? 'flex' : 'none';
-    }
-
-    // Apply current filters (this will update the result count text)
-    applyFilters();
-    
-    // Trigger lazy scroll reveal setup for newly created cards
-    if (typeof window.initScrollReveal === 'function') {
-        window.initScrollReveal();
-    }
-}
-// Create individual martyr card
-function createGalleryCard(martyr) {
-    // Debug: log martyr data to verify organization and rank fields
-    console.log(`📋 Creating card for ${martyr.fullName}:`, {
-        organization: martyr.organization || '(not set)',
-        rank: martyr.rank || '(not set)',
-        hasOrg: !!martyr.organization,
-        hasRank: !!martyr.rank
-    });
-    
-    const card = document.createElement('div');
-    card.className = 'martyr-card';
-    
-    // Search attributes
-    card.setAttribute('data-search-text', 
-        `${martyr.fullName} ${martyr.birthPlace || ''} ${martyr.martyrdomPlace || ''} ${martyr.organization || ''}`.toLowerCase()
-    );
-    card.setAttribute('data-name', martyr.fullName.toLowerCase());
-    card.setAttribute('data-location', `${martyr.birthPlace || ''} ${martyr.martyrdomPlace || ''}`.toLowerCase());
-    card.setAttribute('data-organization', (martyr.organization || '').toLowerCase());
-    card.setAttribute('data-year', martyr.martyrdomDate ? getYear(martyr.martyrdomDate) : '');
-    
-    // Image section
-    const imageDiv = document.createElement('div');
-    imageDiv.className = 'martyr-image';
-    
-    if (martyr.photo) {
-        const img = document.createElement('img');
-        img.src = martyr.photo;
-        img.alt = martyr.fullName;
-        img.loading = 'lazy';
-        img.decoding = 'async';
-        img.width = 300;
-        img.height = 200;
-        img.style.cssText = 'width: 100%; height: 200px; object-fit: cover; border-radius: 8px 8px 0 0;';
-        imageDiv.appendChild(img);
-    } else {
-        imageDiv.style.cssText = 'height: 200px; background: linear-gradient(135deg, #f0f0f0, #d0d0d0); border-radius: 8px 8px 0 0; display: flex; align-items: center; justify-content: center; font-size: 48px; color: #999;';
-        imageDiv.textContent = '📸';
-    }
-    
-    // Info section
-    const infoDiv = document.createElement('div');
-    infoDiv.className = 'martyr-info';
-    infoDiv.style.cssText = 'padding: 1rem;';
-    
-    const name = document.createElement('h3');
-    name.textContent = martyr.fullName;
-    name.style.cssText = 'margin: 0 0 0.5rem 0; color: #2c5530;';
-    
-    const dates = document.createElement('p');
-    const birthYear = martyr.birthDate ? getYear(martyr.birthDate) : '?';
-    const martyrdomYear = getYear(martyr.martyrdomDate) || '?';
-    dates.textContent = `${birthYear} - ${martyrdomYear}`;
-    dates.style.cssText = 'margin: 0 0 0.5rem 0; font-weight: 500;';
-    
-    const place = document.createElement('p');
-    place.textContent = martyr.martyrdomPlace || 'Unknown location';
-    place.style.cssText = 'margin: 0 0 0.5rem 0; color: #666;';
-    
-    const viewBtn = document.createElement('button');
-    viewBtn.textContent = 'View Details';
-    viewBtn.className = 'btn btn-small btn-ghost';
-    viewBtn.style.cssText = 'width: 100%; margin-top: 0.5rem;';
-    // Use the original gallery-specific martyr modal
-    viewBtn.onclick = () => showMartyrModal(martyr);
-    
-    infoDiv.appendChild(name);
-    infoDiv.appendChild(dates);
-    infoDiv.appendChild(place);
-    
-    if (martyr.organization) {
-        const org = document.createElement('p');
-        org.textContent = martyr.organization;
-        org.style.cssText = 'margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #888;';
-        infoDiv.appendChild(org);
-    }
-    
-    if (martyr.rank) {
-        const rank = document.createElement('p');
-        rank.textContent = `Rank: ${martyr.rank}`;
-        rank.style.cssText = 'margin: 0 0 0.5rem 0; font-size: 0.85rem; color: #777; font-style: italic;';
-        infoDiv.appendChild(rank);
-    }
-    
-    infoDiv.appendChild(viewBtn);
-    infoDiv.appendChild(createShareRow(martyr, 'card'));
-    
-    card.appendChild(imageDiv);
-    card.appendChild(infoDiv);
-    
-    // Card styling
-    card.style.cssText = 'border: 1px solid #ddd; border-radius: 8px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.2s, box-shadow 0.2s; overflow: hidden;';
-    
-    // Hover effect
-    card.addEventListener('mouseenter', () => {
-        card.style.transform = 'translateY(-4px)';
-        card.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-    });
-    card.addEventListener('mouseleave', () => {
-        card.style.transform = 'translateY(0)';
-        card.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-    });
-    
-    return card;
-}
-
-// Apply filters to visible cards
-function applyFilters() {
-    const cards = document.querySelectorAll('.martyr-card');
-    if (cards.length === 0) {
-        console.warn('⚠️ No cards found to filter');
-        return;
-    }
-    
-    console.log(`🔍 Applying filters to ${cards.length} cards...`);
-    
-    let visibleCount = 0;
-    const hasFilters = Object.values(currentFilters).some(f => f !== '');
-    
-    cards.forEach(card => {
-        let visible = true;
-        
-        // General search
-        if (currentFilters.general) {
-            const searchText = card.getAttribute('data-search-text') || '';
-            visible = visible && searchText.includes(currentFilters.general);
-        }
-        
-        // Name filter
-        if (currentFilters.name) {
-            const name = card.getAttribute('data-name') || '';
-            visible = visible && name.includes(currentFilters.name);
-        }
-        
-        // Location filter
-        if (currentFilters.location) {
-            const location = card.getAttribute('data-location') || '';
-            visible = visible && location.includes(currentFilters.location);
-        }
-        
-        // Organization filter
-        if (currentFilters.organization) {
-            const org = card.getAttribute('data-organization') || '';
-            visible = visible && org.includes(currentFilters.organization);
-        }
-        
-        // Year filter
-        if (currentFilters.year) {
-            const year = card.getAttribute('data-year') || '';
-            visible = visible && year === currentFilters.year;
-        }
-        
-        card.style.display = visible ? 'block' : 'none';
-        if (visible) visibleCount++;
-    });
-    
-    updateSearchResultsInfo(visibleCount);
-    console.log(`🔍 Filter result: ${visibleCount}/${cards.length} cards visible`);
-    
-    // Show no results message if needed
-    if (visibleCount === 0 && hasFilters && cards.length > 0) {
-        showNoResultsMessage();
-    } else {
-        hideNoResultsMessage();
-    }
-}
-
-// Initialize search functionality
-function initSearchFilter() {
-    const searchInput = document.getElementById('searchMartyrs');
-    const clearSearch = document.getElementById('clearSearch');
-    
-    if (searchInput) {
-        searchInput.addEventListener('input', function(e) {
-            currentFilters.general = e.target.value.toLowerCase().trim();
-            applyFilters();
-            toggleClearButton();
-        });
-    }
-    
-    if (clearSearch) {
-        clearSearch.addEventListener('click', function() {
-            if (searchInput) searchInput.value = '';
-            currentFilters.general = '';
-            applyFilters();
-            toggleClearButton();
-        });
-    }
-}
-
-// Initialize advanced search
-function initAdvancedSearch() {
-    const toggleBtn = document.getElementById('toggleAdvancedSearch');
-    const panel = document.getElementById('advancedSearchPanel');
-    
-    if (toggleBtn && panel) {
-        toggleBtn.addEventListener('click', function() {
-            const isVisible = panel.style.display !== 'none';
-            panel.style.display = isVisible ? 'none' : 'block';
-            toggleBtn.textContent = isVisible ? 'Advanced Search' : 'Hide Advanced';
-        });
-    }
-    
-    // Advanced search inputs
-    const inputs = [
-        { id: 'searchByName', filter: 'name' },
-        { id: 'searchByFather', filter: 'father' },
-        { id: 'searchByLocation', filter: 'location' },
-        { id: 'searchByOrganization', filter: 'organization' },
-        { id: 'searchByYear', filter: 'year' }
-    ];
-    
-    inputs.forEach(({ id, filter }) => {
-        const input = document.getElementById(id);
-        if (input) {
-            input.addEventListener('input', function() {
-                currentFilters[filter] = this.value.toLowerCase().trim();
-                applyFilters();
-            });
-        }
-    });
-    
-    // Clear buttons
-    const clearAdvanced = document.getElementById('clearAdvancedSearch');
-    const clearAll = document.getElementById('clearAllFilters');
-    
-    if (clearAdvanced) {
-        clearAdvanced.addEventListener('click', clearAdvancedFilters);
-    }
-    
-    if (clearAll) {
-        clearAll.addEventListener('click', clearAllFilters);
-    }
-}
-
 // Helper functions
 function initializeInterface() {
     toggleClearButton();
     const resultsInfo = document.getElementById('searchResultsInfo');
     if (resultsInfo) {
-        resultsInfo.style.display = 'none';
-    }
-}
-
-function toggleClearButton() {
-    const clearBtn = document.getElementById('clearSearch');
-    const searchInput = document.getElementById('searchMartyrs');
-    if (clearBtn && searchInput) {
-        clearBtn.style.display = searchInput.value.trim() ? 'flex' : 'none';
-    }
-}
-
-function clearAdvancedFilters() {
-    ['searchByName', 'searchByLocation', 'searchByOrganization', 'searchByYear'].forEach(id => {
-        const input = document.getElementById(id);
-        if (input) input.value = '';
-    });
-    
-    currentFilters.name = '';
-    currentFilters.father = '';
-    currentFilters.location = '';
-    currentFilters.organization = '';
-    currentFilters.year = '';
-    
-    applyFilters();
-}
-
-function clearAllFilters() {
-    const searchInput = document.getElementById('searchMartyrs');
-    if (searchInput) searchInput.value = '';
-    
-    clearAdvancedFilters();
-    
-    currentFilters.general = '';
-    applyFilters();
-    toggleClearButton();
-}
-
-function updateSearchResultsInfo(count) {
-    const resultsCount = document.getElementById('resultsCount');
-    const resultsLabel = document.getElementById('resultsLabel');
-    const resultsFilters = document.getElementById('resultsFilters');
-    
-    if (resultsCount) resultsCount.textContent = count;
-    if (resultsLabel) resultsLabel.textContent = count === 1 ? 'martyr found' : 'martyrs found';
-
-    // Show a short summary of active filters if any
-    if (resultsFilters) {
-        const filtersText = getActiveFiltersText();
-        resultsFilters.textContent = filtersText ? ` | Filters: ${filtersText}` : '';
+        resultsInfo.style.display = 'inline-flex';
     }
 }
 
@@ -680,38 +348,6 @@ function updateConnectionStatus(connected, source, error) {
     };
 }
 
-function showNoResultsMessage() {
-    hideNoResultsMessage(); // Remove any existing message
-    
-    const galleryGrid = document.getElementById('galleryGrid');
-    const noResultsMsg = document.createElement('div');
-    noResultsMsg.id = 'noResultsMessage';
-    noResultsMsg.style.cssText = `
-        text-align: center; padding: 3rem; color: #666; background: #f8f9fa;
-        border: 1px solid #dee2e6; border-radius: 8px; margin-top: 2rem;
-    `;
-    
-    const activeFilters = [];
-    if (currentFilters.general) activeFilters.push(`General: "${currentFilters.general}"`);
-    if (currentFilters.name) activeFilters.push(`Name: "${currentFilters.name}"`);
-    if (currentFilters.location) activeFilters.push(`Location: "${currentFilters.location}"`);
-    if (currentFilters.organization) activeFilters.push(`Organization: "${currentFilters.organization}"`);
-    if (currentFilters.year) activeFilters.push(`Year: ${currentFilters.year}`);
-    
-    noResultsMsg.innerHTML = `
-        <h3>No martyrs found</h3>
-        <p>No martyrs match your search criteria:</p>
-        <p style="font-style: italic; color: #007bff;">${activeFilters.join(', ')}</p>
-        <button onclick="clearAllFilters()" style="margin-top: 1rem; background: #2c5530; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Clear All Filters</button>
-    `;
-    
-    galleryGrid.parentNode.insertBefore(noResultsMsg, galleryGrid.nextSibling);
-}
-
-function hideNoResultsMessage() {
-    const msg = document.getElementById('noResultsMessage');
-    if (msg) msg.remove();
-}
 
 // To keep the experience clean, we show skeleton loaders
 function showLoadingState() {
@@ -1498,139 +1134,6 @@ function showEmptyGalleryMessage() {
     `;
 }
 
-// Show offline warning
-function showOfflineWarning() {
-    // Remove any existing warning first
-    hideOfflineWarning();
-    
-    const galleryGrid = document.getElementById('galleryGrid');
-    const warningDiv = document.createElement('div');
-    warningDiv.className = 'offline-warning';
-    warningDiv.id = 'offline-warning';
-    warningDiv.style.cssText = `
-        background: #fff3cd;
-        border: 1px solid #ffeaa7;
-        color: #856404;
-        padding: 1rem;
-        margin-bottom: 2rem;
-        border-radius: 8px;
-        text-align: center;
-        font-weight: 500;
-    `;
-    warningDiv.innerHTML = `
-        ⚠️ <strong>Offline Mode:</strong> Showing cached data. Some recent martyrs may not be visible.
-        <button onclick="location.reload()" style="margin-left: 1rem; padding: 0.25rem 0.75rem; border-radius: 4px; border: 1px solid #856404; background: transparent; color: #856404; cursor: pointer;">Retry</button>
-    `;
-    
-    galleryGrid.parentNode.insertBefore(warningDiv, galleryGrid);
-}
-
-// Hide offline warning
-function hideOfflineWarning() {
-    const existingWarning = document.getElementById('offline-warning');
-    if (existingWarning) {
-        existingWarning.remove();
-    }
-}
-
-// Add debug button for Firebase testing (only in development)
-function addDebugButton() {
-    const debugBtn = document.createElement('button');
-    debugBtn.textContent = 'Debug Firebase';
-    debugBtn.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        left: 20px;
-        background: #ff6b6b;
-        color: white;
-        border: none;
-        padding: 10px 15px;
-        border-radius: 5px;
-        cursor: pointer;
-        z-index: 9999;
-        font-size: 12px;
-    `;
-    
-    // Only show this heavy debug button in local development, never on production
-    const hostname = window.location.hostname;
-    const isDevelopment = hostname === 'localhost' || hostname === '127.0.0.1';
-    if (!isDevelopment) {
-        return;
-    }
-
-    debugBtn.addEventListener('click', async function() {
-        console.log('=== COMPREHENSIVE GALLERY DEBUG START ===');
-        
-        // Run manual data check
-        window.checkGalleryData();
-        
-        // Show current state
-        const galleryGrid = document.getElementById('galleryGrid');
-        console.log('Gallery grid element:', galleryGrid);
-        console.log('Gallery grid children:', galleryGrid?.children.length || 0);
-        
-        // Test Firebase directly
-        if (window.firebaseDB) {
-            try {
-                console.log('🔥 Testing Firebase connection...');
-                const result = await window.firebaseDB.getApprovedMartyrs();
-                console.log(`✅ Firebase test: ${result.success ? 'SUCCESS' : 'FAILED'}`);
-                if (result.success && result.data) {
-                    console.log(`📊 Found ${result.data.length} approved martyrs`);
-                    console.log('Sample martyr:', result.data[0]);
-                    
-                    // Try to render directly
-                    if (result.data.length > 0) {
-                        allMartyrs = result.data;
-                        await renderAndDisplay(allMartyrs, 'debug manual load');
-                    }
-                } else {
-                    console.error('❌ Error:', result.error);
-                }
-            } catch (error) {
-                console.error('❌ Firebase test failed:', error);
-            }
-        } else {
-            console.error('❌ Firebase not available globally');
-        }
-        
-        // Check for localStorage data to migrate
-        const localData = localStorage.getItem('martyrsData');
-        if (localData) {
-            const martyrs = JSON.parse(localData);
-            console.log(`💾 Found ${martyrs.length} martyrs in localStorage`);
-            
-            if (confirm(`Found ${martyrs.length} martyrs in localStorage. Migrate to Firebase for global visibility?`)) {
-                console.log('🚚 Starting migration...');
-                if (window.migrateToFirebase) {
-                    const result = await window.migrateToFirebase();
-                    if (result.success) {
-                        alert(`Migration completed! Migrated ${result.migrated} martyrs to Firebase. Refreshing gallery...`);
-                        location.reload();
-                    } else {
-                        alert('Migration failed: ' + result.error);
-                    }
-                } else {
-                    alert('Migration function not available. Please refresh the page.');
-                }
-            }
-        } else {
-            console.log('💭 No localStorage data found to migrate');
-        }
-        
-        // Test mobile menu
-        const hamburger = document.querySelector('.hamburger');
-        const navMenu = document.querySelector('.nav-menu');
-        console.log('Mobile menu elements:');
-        console.log('Hamburger:', hamburger);
-        console.log('Nav menu:', navMenu);
-        
-        console.log('=== FIREBASE DEBUG END ===');
-        alert('Debug completed. Check console for details.');
-    });
-    
-    document.body.appendChild(debugBtn);
-}
 
 // Render martyrs in gallery
 function renderGallery(martyrsData) {
@@ -1805,78 +1308,33 @@ function createGalleryCard(martyr) {
     return card;
 }
 
-// Initialize search/filter functionality
+// Initialize search and Clear All functionality
 function initSearchFilter() {
     const searchInput = document.getElementById('searchMartyrs');
     const clearSearch = document.getElementById('clearSearch');
-    
+    const clearAllBtn = document.getElementById('clearAllFilters');
+
     if (searchInput) {
         searchInput.addEventListener('input', function(e) {
-            currentFilters.general = e.target.value.toLowerCase().trim();
+            currentFilters.general = e.target.value.trim();
             applyFilters();
             toggleClearButton();
         });
     }
-    
+
     if (clearSearch) {
         clearSearch.addEventListener('click', function() {
-            searchInput.value = '';
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.focus();
+            }
             currentFilters.general = '';
+            hideAutocomplete();
             applyFilters();
             toggleClearButton();
         });
     }
-}
 
-// Initialize advanced search functionality
-function initAdvancedSearch() {
-    const toggleBtn = document.getElementById('toggleAdvancedSearch');
-    const panel = document.getElementById('advancedSearchPanel');
-    const applyBtn = document.getElementById('applyAdvancedSearch');
-    const clearBtn = document.getElementById('clearAdvancedSearch');
-    const clearAllBtn = document.getElementById('clearAllFilters');
-    
-    // Toggle advanced search panel
-    if (toggleBtn && panel) {
-        toggleBtn.addEventListener('click', function() {
-            const isVisible = panel.classList.contains('show');
-            panel.classList.toggle('show');
-            toggleBtn.classList.toggle('active');
-        });
-    }
-    
-    // Advanced search inputs
-    const nameInput = document.getElementById('searchByName');
-    const locationInput = document.getElementById('searchByLocation');
-    const organizationInput = document.getElementById('searchByOrganization');
-    const yearInput = document.getElementById('searchByYear');
-    
-    // Real-time filtering for advanced search
-    [nameInput, locationInput, organizationInput, yearInput].forEach(input => {
-        if (input) {
-            input.addEventListener('input', function() {
-                updateAdvancedFilters();
-                applyFilters();
-            });
-        }
-    });
-    
-    // Apply filters button
-    if (applyBtn) {
-        applyBtn.addEventListener('click', function() {
-            updateAdvancedFilters();
-            applyFilters();
-        });
-    }
-    
-    // Clear advanced search
-    if (clearBtn) {
-        clearBtn.addEventListener('click', function() {
-            clearAdvancedSearch();
-        });
-    }
-    
-    // Clear all filters
     if (clearAllBtn) {
         clearAllBtn.addEventListener('click', function() {
             clearAllFilters();
@@ -1884,111 +1342,93 @@ function initAdvancedSearch() {
     }
 }
 
-// Update advanced search filters from inputs
-function updateAdvancedFilters() {
-    currentFilters.name = (document.getElementById('searchByName')?.value || '').toLowerCase().trim();
-    currentFilters.father = (document.getElementById('searchByFather')?.value || '').toLowerCase().trim();
-    currentFilters.location = (document.getElementById('searchByLocation')?.value || '').toLowerCase().trim();
-    currentFilters.organization = (document.getElementById('searchByOrganization')?.value || '').toLowerCase().trim();
-    currentFilters.year = (document.getElementById('searchByYear')?.value || '').toString().trim();
+function hasAnyActiveFilter() {
+    return Boolean(
+        currentFilters.general ||
+        currentFilters.region ||
+        currentFilters.year ||
+        currentFilters.organization ||
+        currentFilters.letter
+    );
 }
 
-// Apply all filters to the gallery
+// Apply all active filters (combinable: Search + Region + Year + Organization + A–Z)
 function applyFilters() {
     if (!allMartyrs || !allMartyrs.length) {
-        console.warn('⚠️ applyFilters called but no martyrs loaded:', { allMartyrsLength: allMartyrs ? allMartyrs.length : 'undefined' });
         return;
     }
-    
-    // Check if any filters are active
-    const hasActiveFilters = Object.values(currentFilters).some(filter => filter !== '');
-    
-    // If no filters are active, show all martyrs
-    if (!hasActiveFilters) {
-        console.log(`📊 Showing all ${allMartyrs.length} martyrs (no filters active)`);
+
+    const hasActive = hasAnyActiveFilter();
+
+    if (!hasActive) {
         renderGallery(allMartyrs);
-        
-        // Always show the total count when no filters are active
-        updateSearchResultsInfo(allMartyrs.length);
-        const resultsInfo = document.getElementById('searchResultsInfo');
-        if (resultsInfo && allMartyrs.length > 0) {
-            resultsInfo.classList.add('show');
-        } else if (resultsInfo) {
-            resultsInfo.classList.remove('show');
-        }
-        
+        updateFilterUI(allMartyrs.length);
         hideNoResultsMessage();
         return;
     }
-    
-    // Apply filters
+
+    const queryLower = (currentFilters.general || '').toLowerCase();
+    const regionLower = (currentFilters.region || '').toLowerCase();
+    const orgLower = (currentFilters.organization || '').toLowerCase();
+    const yearTarget = (currentFilters.year || '').toString().trim();
+    const letterTarget = (currentFilters.letter || '').toUpperCase();
+
     const filteredMartyrs = allMartyrs.filter(martyr => {
-        // General search (searches across all fields)
-        if (currentFilters.general) {
-            const searchText = `${martyr.fullName} ${martyr.birthPlace || ''} ${martyr.martyrdomPlace || ''} ${martyr.organization || ''} ${martyr.fatherName || ''}`.toLowerCase();
-            if (!searchText.includes(currentFilters.general)) {
+        // 1. Search bar query
+        if (queryLower) {
+            const searchText = `${martyr.fullName || ''} ${martyr.fatherName || ''} ${martyr.birthPlace || ''} ${martyr.martyrdomPlace || ''} ${martyr.organization || ''} ${getYear(martyr.martyrdomDate)}`.toLowerCase();
+            if (!searchText.includes(queryLower)) {
                 return false;
             }
-        }
-        
-        // Name filter
-        if (currentFilters.name && !martyr.fullName.toLowerCase().includes(currentFilters.name)) {
-            return false;
         }
 
-        // Father name filter
-        if (currentFilters.father) {
-            const father = (martyr.fatherName || '').toLowerCase();
-            if (!father.includes(currentFilters.father)) {
+        // 2. Region chip filter
+        if (regionLower) {
+            const rawPlace = `${martyr.martyrdomPlace || ''} ${martyr.birthPlace || ''}`.toLowerCase();
+            const normPlace = (normalizeRegion(martyr.martyrdomPlace || martyr.birthPlace || '') || '').toLowerCase();
+            if (normPlace !== regionLower && !rawPlace.includes(regionLower)) {
                 return false;
             }
         }
-        
-        // Location filter (searches both birth and martyrdom places)
-        if (currentFilters.location) {
-            const birthPlace = (martyr.birthPlace || '').toLowerCase();
-            const martyrdomPlace = (martyr.martyrdomPlace || '').toLowerCase();
-            if (!birthPlace.includes(currentFilters.location) && !martyrdomPlace.includes(currentFilters.location)) {
-                return false;
-            }
-        }
-        
-        // Organization filter
-        if (currentFilters.organization) {
-            const organization = (martyr.organization || '').toLowerCase();
-            if (!organization.includes(currentFilters.organization)) {
-                return false;
-            }
-        }
-        
-        // Year filter
-        if (currentFilters.year) {
+
+        // 3. Year chip filter
+        if (yearTarget) {
             const martyrdomYear = martyr.martyrdomDate ? getYear(martyr.martyrdomDate) : '';
-            if (martyrdomYear !== currentFilters.year) {
+            if (martyrdomYear !== yearTarget) {
                 return false;
             }
         }
-        
+
+        // 4. Organization chip filter
+        if (orgLower) {
+            const org = (martyr.organization || '').trim().toLowerCase();
+            if (org !== orgLower && !org.includes(orgLower)) {
+                return false;
+            }
+        }
+
+        // 5. A–Z first letter filter
+        if (letterTarget) {
+            const name = (martyr.fullName || '').trim();
+            if (!name || name.charAt(0).toUpperCase() !== letterTarget) {
+                return false;
+            }
+        }
+
         return true;
     });
-    
+
     renderGallery(filteredMartyrs);
-    
-    // Show/hide results info
-    const resultsInfo = document.getElementById('searchResultsInfo');
-    if (resultsInfo) {
-        resultsInfo.style.display = hasActiveFilters ? 'flex' : 'none';
-    }
-    
-    // Show no results message if needed
-    if (filteredMartyrs.length === 0 && allMartyrs.length > 0 && hasActiveFilters) {
+    updateFilterUI(filteredMartyrs.length);
+
+    if (filteredMartyrs.length === 0 && allMartyrs.length > 0 && hasActive) {
         showNoResultsMessage();
     } else {
         hideNoResultsMessage();
     }
 }
 
-// Toggle clear button visibility
+// Toggle search input clear (×) button visibility
 function toggleClearButton() {
     const clearBtn = document.getElementById('clearSearch');
     const searchInput = document.getElementById('searchMartyrs');
@@ -1997,97 +1437,181 @@ function toggleClearButton() {
     }
 }
 
-// Clear advanced search filters
-function clearAdvancedSearch() {
-    const nameInput = document.getElementById('searchByName');
-    const locationInput = document.getElementById('searchByLocation');
-    const organizationInput = document.getElementById('searchByOrganization');
-    const yearInput = document.getElementById('searchByYear');
-    
-    if (nameInput) nameInput.value = '';
-    if (locationInput) locationInput.value = '';
-    if (organizationInput) organizationInput.value = '';
-    if (yearInput) yearInput.value = '';
-    
-    currentFilters.name = '';
-    currentFilters.location = '';
-    currentFilters.organization = '';
-    currentFilters.year = '';
-    
+// Remove a single filter category when clicking × on a tag
+function removeSingleFilter(key) {
+    if (!(key in currentFilters)) return;
+    currentFilters[key] = '';
+
+    if (key === 'general') {
+        const searchInput = document.getElementById('searchMartyrs');
+        if (searchInput) searchInput.value = '';
+        toggleClearButton();
+    }
+
     applyFilters();
 }
 
-// Clear all filters
+// Clear all filters and reset UI
 function clearAllFilters() {
-    // Clear general search
     const searchInput = document.getElementById('searchMartyrs');
     if (searchInput) searchInput.value = '';
-    
-    // Clear advanced search
-    clearAdvancedSearch();
-    
-    // Reset all filters
+
     currentFilters = {
         general: '',
-        name: '',
-        father: '',
-        location: '',
+        region: '',
+        year: '',
         organization: '',
-        year: ''
+        letter: ''
     };
-    
-    applyFilters();
-    toggleClearButton();
-}
 
-// Update search results info
+    closeAllDropdowns();
+    hideAutocomplete();
+    toggleClearButton();
+    applyFilters();
+}
+window.clearAllFilters = clearAllFilters;
+
+// Update results count and synchronize chips + removable tags
 function updateSearchResultsInfo(count) {
     const resultsCount = document.getElementById('resultsCount');
     const resultsLabel = document.getElementById('resultsLabel');
-    
+
     if (resultsCount) resultsCount.textContent = count;
-    if (resultsLabel) resultsLabel.textContent = count === 1 ? 'martyr found' : 'martyrs found';
+    if (resultsLabel) resultsLabel.textContent = count === 1 ? 'hero' : 'heroes';
+
+    updateFilterUI(count);
+}
+
+// Synchronize filter chips, dropdown active states, Clear All link, and removable filter tags
+function updateFilterUI(count) {
+    const resultsCount = document.getElementById('resultsCount');
+    const resultsLabel = document.getElementById('resultsLabel');
+    if (resultsCount && typeof count === 'number') resultsCount.textContent = count;
+    if (resultsLabel && typeof count === 'number') resultsLabel.textContent = count === 1 ? 'hero' : 'heroes';
+
+    const hasActive = hasAnyActiveFilter();
+
+    // 1. Update Chip states and labels
+    const chipConfigs = [
+        { id: 'chipRegion', key: 'region', defaultLabel: 'Region', prefix: 'Region' },
+        { id: 'chipYear', key: 'year', defaultLabel: 'Year', prefix: 'Year' },
+        { id: 'chipOrg', key: 'organization', defaultLabel: 'Organization', prefix: 'Org' },
+        { id: 'chipAz', key: 'letter', defaultLabel: 'A–Z', prefix: 'A–Z' }
+    ];
+
+    chipConfigs.forEach(({ id, key, defaultLabel, prefix }) => {
+        const chip = document.getElementById(id);
+        if (!chip) return;
+        const labelEl = chip.querySelector('.chip-label');
+        const val = currentFilters[key];
+        if (val) {
+            chip.classList.add('active');
+            if (labelEl) labelEl.textContent = `${prefix}: ${val}`;
+        } else {
+            chip.classList.remove('active');
+            if (labelEl) labelEl.textContent = defaultLabel;
+        }
+    });
+
+    // 2. Highlight active items inside dropdown lists
+    document.querySelectorAll('#regionList button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.value === currentFilters.region);
+    });
+    document.querySelectorAll('#yearList button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.value === currentFilters.year);
+    });
+    document.querySelectorAll('#orgList button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.value === currentFilters.organization);
+    });
+    document.querySelectorAll('#alphabetNav .letter-btn').forEach(btn => {
+        const letter = btn.dataset.letter;
+        if (letter === 'all') {
+            btn.classList.toggle('active', !currentFilters.letter);
+        } else {
+            btn.classList.toggle('active', letter === currentFilters.letter);
+        }
+    });
+
+    // 3. Toggle "Clear all" link visibility
+    const clearAllBtn = document.getElementById('clearAllFilters');
+    if (clearAllBtn) {
+        clearAllBtn.style.display = hasActive ? 'inline-flex' : 'none';
+    }
+
+    // 4. Render Removable Active Filter Tags
+    const tagsContainer = document.getElementById('activeFilterTags');
+    if (!tagsContainer) return;
+
+    if (!hasActive) {
+        tagsContainer.style.display = 'none';
+        tagsContainer.innerHTML = '';
+        return;
+    }
+
+    const activeTagDefs = [];
+    if (currentFilters.general) {
+        activeTagDefs.push({ key: 'general', category: 'Search', value: `"${currentFilters.general}"` });
+    }
+    if (currentFilters.region) {
+        activeTagDefs.push({ key: 'region', category: 'Region', value: currentFilters.region });
+    }
+    if (currentFilters.year) {
+        activeTagDefs.push({ key: 'year', category: 'Year', value: currentFilters.year });
+    }
+    if (currentFilters.organization) {
+        activeTagDefs.push({ key: 'organization', category: 'Organization', value: currentFilters.organization });
+    }
+    if (currentFilters.letter) {
+        activeTagDefs.push({ key: 'letter', category: 'Starts with', value: currentFilters.letter });
+    }
+
+    tagsContainer.innerHTML = '';
+    activeTagDefs.forEach(({ key, category, value }) => {
+        const tag = document.createElement('span');
+        tag.className = 'filter-tag';
+        tag.innerHTML = `
+            <span class="filter-tag-category">${escapeHTML(category)}:</span>
+            <span class="filter-tag-value">${escapeHTML(value)}</span>
+        `;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'filter-tag-remove';
+        removeBtn.setAttribute('aria-label', `Remove ${category} filter ${value}`);
+        removeBtn.title = `Remove ${category} filter`;
+        removeBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+        removeBtn.addEventListener('click', () => removeSingleFilter(key));
+
+        tag.appendChild(removeBtn);
+        tagsContainer.appendChild(tag);
+    });
+
+    tagsContainer.style.display = 'flex';
 }
 
 // Show no results message
 function showNoResultsMessage() {
     let noResultsMsg = document.getElementById('noResultsMessage');
-    
+    const activeFiltersText = getActiveFiltersText();
+
     if (!noResultsMsg) {
         noResultsMsg = document.createElement('div');
         noResultsMsg.id = 'noResultsMessage';
         noResultsMsg.className = 'no-results-message';
-        noResultsMsg.style.textAlign = 'center';
-        noResultsMsg.style.padding = '3rem';
-        noResultsMsg.style.color = '#666';
-        noResultsMsg.style.background = '#f8f9fa';
-        noResultsMsg.style.borderRadius = '8px';
-        noResultsMsg.style.border = '1px solid #dee2e6';
-        noResultsMsg.style.marginTop = '2rem';
-        
-        const hasActiveFilters = Object.values(currentFilters).some(filter => filter !== '');
-        const activeFiltersText = getActiveFiltersText();
-        const suggestionsHtml = `
-            <div style="margin-top: 1rem; font-size: 0.9rem; color: #555; text-align: left; max-width: 480px; margin-left: auto; margin-right: auto;">
-                <p>Suggestions:</p>
-                <ul style="list-style: disc; margin: 0.5rem 0 0 1.5rem; padding: 0;">
-                    <li>Try only the first name (for example, \"Abdul\" instead of the full name).</li>
-                    <li>Try searching by city instead of a smaller village name.</li>
-                </ul>
-            </div>
-        `;
-        
-        noResultsMsg.innerHTML = `
-            <h3>No martyrs found</h3>
-            ${hasActiveFilters ? `<p>No martyrs match your search criteria:</p><p style=\"font-style: italic; color: #007bff;\">${activeFiltersText}</p>` : '<p>Try searching with different keywords</p>'}
-            ${suggestionsHtml}
-            <button onclick=\"clearAllFilters()\" class=\"btn btn-small\" style=\"margin-top: 1.25rem;\">Clear All Filters</button>
-        `;
-        
+        noResultsMsg.style.cssText = 'text-align: center; padding: 3rem 1.5rem; color: #64748b; background: rgba(148, 163, 184, 0.06); border-radius: 16px; border: 1px solid rgba(148, 163, 184, 0.18); margin-top: 1.5rem;';
+
         const galleryGrid = document.getElementById('galleryGrid');
-        galleryGrid.parentNode.insertBefore(noResultsMsg, galleryGrid.nextSibling);
+        if (galleryGrid && galleryGrid.parentNode) {
+            galleryGrid.parentNode.insertBefore(noResultsMsg, galleryGrid.nextSibling);
+        }
     }
-    
+
+    noResultsMsg.innerHTML = `
+        <h3 style="margin: 0 0 0.5rem; color: var(--primary-color);">No matching heroes found</h3>
+        ${activeFiltersText ? `<p style="margin: 0 0 1rem; font-size: 0.92rem;">Active filters: <strong>${escapeHTML(activeFiltersText)}</strong></p>` : '<p style="margin: 0 0 1rem;">Try searching with a different keyword or removing a filter.</p>'}
+        <button type="button" onclick="clearAllFilters()" class="btn btn-small" style="margin-top: 0.5rem;">Clear all filters</button>
+    `;
+
     noResultsMsg.style.display = 'block';
 }
 
@@ -2099,190 +1623,74 @@ function hideNoResultsMessage() {
     }
 }
 
-// Get active filters text for display
+// Get active filters summary text
 function getActiveFiltersText() {
-    const activeFilters = [];
-    
-    if (currentFilters.general) activeFilters.push(`General: \"${currentFilters.general}\"`);
-    if (currentFilters.name) activeFilters.push(`Name: \"${currentFilters.name}\"`);
-    if (currentFilters.father) activeFilters.push(`Father: \"${currentFilters.father}\"`);
-    if (currentFilters.location) activeFilters.push(`Location: \"${currentFilters.location}\"`);
-    if (currentFilters.organization) activeFilters.push(`Organization: \"${currentFilters.organization}\"`);
-    if (currentFilters.year) activeFilters.push(`Year: ${currentFilters.year}`);
-    
-    return activeFilters.join(', ');
+    const parts = [];
+    if (currentFilters.general) parts.push(`Search: "${currentFilters.general}"`);
+    if (currentFilters.region) parts.push(`Region: ${currentFilters.region}`);
+    if (currentFilters.year) parts.push(`Year: ${currentFilters.year}`);
+    if (currentFilters.organization) parts.push(`Organization: ${currentFilters.organization}`);
+    if (currentFilters.letter) parts.push(`Starts with: ${currentFilters.letter}`);
+    return parts.join(' • ');
 }
 
-// (old modal implementation removed – replaced by print‑enabled modal above)
-
 // ============================================
-// SEARCH & DISCOVERY EXPERIENCE
+// SEARCH & DISCOVERY - STREAMLINED CHIPS
 // ============================================
 
-// State for discovery features
 let discoveryState = {
-    activeQuickFilter: 'all',
-    activeLetter: null,
     autocompleteIndex: -1
 };
 
-// Initialize Search & Discovery Experience
 function initSearchDiscovery() {
-    console.log('🔍 Initializing Search & Discovery Experience...');
-    
-    initDiscoverHero();
-    initQuickFilters();
+    initFilterChips();
     initAlphabetNav();
     initAutocomplete();
     initFilterDropdowns();
-    
-    console.log('✅ Search & Discovery Experience initialized');
 }
 
-// ========== DISCOVER HERO (Random) ==========
-function initDiscoverHero() {
-    const discoverBtn = document.getElementById('discoverHero');
-    if (!discoverBtn) return;
-    
-    discoverBtn.addEventListener('click', function() {
-        discoverRandomHero();
-    });
-}
-
-function discoverRandomHero() {
-    if (!allMartyrs || allMartyrs.length === 0) {
-        console.warn('No martyrs available to discover');
-        return;
-    }
-    
-    // Get a random martyr
-    const randomIndex = Math.floor(Math.random() * allMartyrs.length);
-    const randomMartyr = allMartyrs[randomIndex];
-    
-    // Add a subtle animation to the button
-    const btn = document.getElementById('discoverHero');
-    if (btn) {
-        btn.style.transform = 'scale(0.95)';
-        setTimeout(() => {
-            btn.style.transform = '';
-        }, 150);
-    }
-    
-    // Show the modal for this martyr
-    showMartyrModal(randomMartyr);
-    
-    console.log(`🎲 Discovered random hero: ${randomMartyr.fullName}`);
-}
-
-// ========== QUICK FILTERS ==========
-function initQuickFilters() {
-    const filterTabs = document.querySelectorAll('.filter-tab');
-    
-    filterTabs.forEach(tab => {
-        tab.addEventListener('click', function(e) {
-            const filterType = this.dataset.filter;
+function initFilterChips() {
+    const chips = document.querySelectorAll('.filter-chip[data-dropdown]');
+    chips.forEach(chip => {
+        chip.addEventListener('click', function(e) {
+            e.stopPropagation();
             const dropdownId = this.dataset.dropdown;
-            
-            // Handle dropdown tabs
             if (dropdownId) {
-                e.stopPropagation();
                 toggleFilterDropdown(dropdownId, this);
-                return;
             }
-            
-            // Handle direct filter tabs
-            handleQuickFilter(filterType, this);
         });
     });
-}
 
-function handleQuickFilter(filterType, tabElement) {
-    // Update active state
-    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-    tabElement.classList.add('active');
-    
-    // Close any open dropdowns
-    closeAllDropdowns();
-    
-    // Reset alphabet navigation
-    resetAlphabetNav();
-    
-    discoveryState.activeQuickFilter = filterType;
-    
-    switch(filterType) {
-        case 'all':
-            clearAllFilters();
-            break;
-        case 'recent':
-            filterByRecent();
-            break;
-    }
-}
-
-function filterByRecent() {
-    if (!allMartyrs || allMartyrs.length === 0) return;
-    
-    // Sort by submission date (most recent first) and take top 10
-    const sortedByRecent = [...allMartyrs].sort((a, b) => {
-        const dateA = getTimestamp(a.submittedAt || a.martyrdomDate);
-        const dateB = getTimestamp(b.submittedAt || b.martyrdomDate);
-        return dateB - dateA;
+    // Mobile sheet close buttons
+    document.querySelectorAll('.dropdown-mobile-close').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            closeAllDropdowns();
+        });
     });
-    
-    const recentMartyrs = sortedByRecent.slice(0, 12);
-    
-    renderGallery(recentMartyrs);
-    updateSearchResultsInfo(recentMartyrs.length);
-    
-    // Show results info
-    const resultsInfo = document.getElementById('searchResultsInfo');
-    if (resultsInfo) {
-        resultsInfo.style.display = 'flex';
-        const filtersSpan = document.getElementById('resultsFilters');
-        if (filtersSpan) filtersSpan.textContent = ' | Recent additions';
+
+    // Mobile backdrop click closes open dropdown sheet
+    const backdrop = document.getElementById('filterBackdrop');
+    if (backdrop) {
+        backdrop.addEventListener('click', closeAllDropdowns);
     }
 }
 
-function getTimestamp(dateValue) {
-    if (!dateValue) return 0;
-    
-    try {
-        if (dateValue && typeof dateValue.toDate === 'function') {
-            return dateValue.toDate().getTime();
-        }
-        if (dateValue && typeof dateValue.seconds === 'number') {
-            return dateValue.seconds * 1000;
-        }
-        if (dateValue instanceof Date) {
-            return dateValue.getTime();
-        }
-        if (typeof dateValue === 'string') {
-            return new Date(dateValue).getTime() || 0;
-        }
-    } catch (e) {
-        return 0;
-    }
-    return 0;
-}
-
-// ========== FILTER DROPDOWNS ==========
 function initFilterDropdowns() {
-    // Populate dropdowns when data is ready
     window.addEventListener('martyrsDataReady', populateFilterDropdowns);
-    
-    // Also try immediately if data already exists
+
     if (allMartyrs && allMartyrs.length > 0) {
         populateFilterDropdowns();
     }
-    
+
     // Close dropdowns when clicking outside
     document.addEventListener('click', function(e) {
-        if (!e.target.closest('.filter-tab-dropdown')) {
+        if (!e.target.closest('.filter-chip-wrapper')) {
             closeAllDropdowns();
         }
     });
-    
-    // Handle escape key to close dropdowns
+
+    // Escape key closes dropdowns
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeAllDropdowns();
@@ -2294,39 +1702,54 @@ function populateFilterDropdowns() {
     populateRegionDropdown();
     populateYearDropdown();
     populateOrgDropdown();
+    updateAlphabetAvailability();
+    updateFilterUI(allMartyrs ? allMartyrs.length : 0);
 }
 
 function populateRegionDropdown() {
     const regionList = document.getElementById('regionList');
     if (!regionList || !allMartyrs) return;
-    
-    // Collect unique regions (martyrdom places)
+
     const regions = new Map();
     allMartyrs.forEach(m => {
         const place = (m.martyrdomPlace || m.birthPlace || '').trim();
         if (place) {
-            // Extract main region/city name using normalizeRegion
             const mainPlace = normalizeRegion(place);
             if (mainPlace) {
-                const count = regions.get(mainPlace) || 0;
-                regions.set(mainPlace, count + 1);
+                regions.set(mainPlace, (regions.get(mainPlace) || 0) + 1);
             }
         }
     });
-    
-    // Sort by count (most common first)
+
     const sortedRegions = [...regions.entries()]
         .sort((a, b) => b[1] - a[1])
-        .slice(0, 15); // Top 15 regions
-    
+        .slice(0, 20);
+
     regionList.innerHTML = '';
+
+    // "All Regions" reset option
+    const allBtn = document.createElement('button');
+    allBtn.type = 'button';
+    allBtn.dataset.value = '';
+    allBtn.className = !currentFilters.region ? 'active' : '';
+    allBtn.innerHTML = `<span>All Regions</span><span class="dropdown-option-count">${allMartyrs.length}</span>`;
+    allBtn.addEventListener('click', () => {
+        currentFilters.region = '';
+        closeAllDropdowns();
+        applyFilters();
+    });
+    regionList.appendChild(allBtn);
+
     sortedRegions.forEach(([region, count]) => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.textContent = `${region} (${count})`;
+        btn.dataset.value = region;
+        if (currentFilters.region === region) btn.classList.add('active');
+        btn.innerHTML = `<span>${escapeHTML(region)}</span><span class="dropdown-option-count">${count}</span>`;
         btn.addEventListener('click', () => {
-            filterByRegion(region);
+            currentFilters.region = currentFilters.region === region ? '' : region;
             closeAllDropdowns();
+            applyFilters();
         });
         regionList.appendChild(btn);
     });
@@ -2335,29 +1758,43 @@ function populateRegionDropdown() {
 function populateYearDropdown() {
     const yearList = document.getElementById('yearList');
     if (!yearList || !allMartyrs) return;
-    
-    // Collect unique years
+
     const years = new Map();
     allMartyrs.forEach(m => {
         const year = getYear(m.martyrdomDate);
         if (year) {
-            const count = years.get(year) || 0;
-            years.set(year, count + 1);
+            years.set(year, (years.get(year) || 0) + 1);
         }
     });
-    
-    // Sort by year (most recent first)
+
     const sortedYears = [...years.entries()]
-        .sort((a, b) => parseInt(b[0]) - parseInt(a[0]));
-    
+        .sort((a, b) => parseInt(b[0], 10) - parseInt(a[0], 10));
+
     yearList.innerHTML = '';
+
+    // "All Years" reset option
+    const allBtn = document.createElement('button');
+    allBtn.type = 'button';
+    allBtn.dataset.value = '';
+    allBtn.className = !currentFilters.year ? 'active' : '';
+    allBtn.innerHTML = `<span>All Years</span><span class="dropdown-option-count">${allMartyrs.length}</span>`;
+    allBtn.addEventListener('click', () => {
+        currentFilters.year = '';
+        closeAllDropdowns();
+        applyFilters();
+    });
+    yearList.appendChild(allBtn);
+
     sortedYears.forEach(([year, count]) => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.textContent = `${year} (${count})`;
+        btn.dataset.value = year;
+        if (currentFilters.year === year) btn.classList.add('active');
+        btn.innerHTML = `<span>${escapeHTML(year)}</span><span class="dropdown-option-count">${count}</span>`;
         btn.addEventListener('click', () => {
-            filterByYear(year);
+            currentFilters.year = currentFilters.year === year ? '' : year;
             closeAllDropdowns();
+            applyFilters();
         });
         yearList.appendChild(btn);
     });
@@ -2366,51 +1803,64 @@ function populateYearDropdown() {
 function populateOrgDropdown() {
     const orgList = document.getElementById('orgList');
     if (!orgList || !allMartyrs) return;
-    
-    // Collect unique organizations
+
     const orgs = new Map();
     allMartyrs.forEach(m => {
         const org = (m.organization || '').trim();
         if (org) {
-            const count = orgs.get(org) || 0;
-            orgs.set(org, count + 1);
+            orgs.set(org, (orgs.get(org) || 0) + 1);
         }
     });
-    
-    // Sort by count (most common first)
+
     const sortedOrgs = [...orgs.entries()]
         .sort((a, b) => b[1] - a[1]);
-    
+
     orgList.innerHTML = '';
+
+    // "All Organizations" reset option
+    const allBtn = document.createElement('button');
+    allBtn.type = 'button';
+    allBtn.dataset.value = '';
+    allBtn.className = !currentFilters.organization ? 'active' : '';
+    allBtn.innerHTML = `<span>All Organizations</span><span class="dropdown-option-count">${allMartyrs.length}</span>`;
+    allBtn.addEventListener('click', () => {
+        currentFilters.organization = '';
+        closeAllDropdowns();
+        applyFilters();
+    });
+    orgList.appendChild(allBtn);
+
     sortedOrgs.forEach(([org, count]) => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.textContent = `${org} (${count})`;
+        btn.dataset.value = org;
+        if (currentFilters.organization === org) btn.classList.add('active');
+        btn.innerHTML = `<span>${escapeHTML(org)}</span><span class="dropdown-option-count">${count}</span>`;
         btn.addEventListener('click', () => {
-            filterByOrganization(org);
+            currentFilters.organization = currentFilters.organization === org ? '' : org;
             closeAllDropdowns();
+            applyFilters();
         });
         orgList.appendChild(btn);
     });
 }
 
-function toggleFilterDropdown(dropdownId, tabElement) {
+function toggleFilterDropdown(dropdownId, chipElement) {
     const dropdown = document.getElementById(dropdownId);
-    if (!dropdown) {
-        console.warn('Dropdown not found:', dropdownId);
-        return;
-    }
-    
+    if (!dropdown) return;
+
     const isVisible = dropdown.classList.contains('show');
-    
-    // Close all dropdowns first
     closeAllDropdowns();
-    
+
     if (!isVisible) {
         dropdown.classList.add('show');
-        // Add active state to the tab
-        if (tabElement) {
-            tabElement.classList.add('dropdown-open');
+        if (chipElement) {
+            chipElement.classList.add('dropdown-open');
+            chipElement.setAttribute('aria-expanded', 'true');
+        }
+        const backdrop = document.getElementById('filterBackdrop');
+        if (backdrop) {
+            backdrop.classList.add('show');
         }
     }
 }
@@ -2419,96 +1869,24 @@ function closeAllDropdowns() {
     document.querySelectorAll('.filter-dropdown-menu').forEach(d => {
         d.classList.remove('show');
     });
-    document.querySelectorAll('.filter-tab').forEach(t => {
-        t.classList.remove('dropdown-open');
+    document.querySelectorAll('.filter-chip').forEach(c => {
+        c.classList.remove('dropdown-open');
+        c.setAttribute('aria-expanded', 'false');
     });
-}
-
-function filterByRegion(region) {
-    // Update tabs
-    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-    const regionTab = document.querySelector('[data-filter="region"]');
-    if (regionTab) regionTab.classList.add('active');
-    
-    // Filter martyrs
-    const filtered = allMartyrs.filter(m => {
-        const place = (m.martyrdomPlace || m.birthPlace || '').toLowerCase();
-        return place.includes(region.toLowerCase());
-    });
-    
-    renderGallery(filtered);
-    updateSearchResultsInfo(filtered.length);
-    
-    // Show active filter badge
-    const resultsInfo = document.getElementById('searchResultsInfo');
-    if (resultsInfo) {
-        resultsInfo.style.display = 'flex';
-        const filtersSpan = document.getElementById('resultsFilters');
-        if (filtersSpan) filtersSpan.textContent = ` | Region: ${region}`;
+    const backdrop = document.getElementById('filterBackdrop');
+    if (backdrop) {
+        backdrop.classList.remove('show');
     }
-    
-    discoveryState.activeQuickFilter = 'region:' + region;
 }
 
-function filterByYear(year) {
-    // Update tabs
-    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-    const yearTab = document.querySelector('[data-filter="year"]');
-    if (yearTab) yearTab.classList.add('active');
-    
-    // Filter martyrs
-    const filtered = allMartyrs.filter(m => {
-        return getYear(m.martyrdomDate) === year;
-    });
-    
-    renderGallery(filtered);
-    updateSearchResultsInfo(filtered.length);
-    
-    // Show active filter badge
-    const resultsInfo = document.getElementById('searchResultsInfo');
-    if (resultsInfo) {
-        resultsInfo.classList.add('show');
-        const filtersSpan = document.getElementById('resultsFilters');
-        if (filtersSpan) filtersSpan.textContent = ` | Year: ${year}`;
-    }
-    
-    discoveryState.activeQuickFilter = 'year:' + year;
-}
-
-function filterByOrganization(org) {
-    // Update tabs
-    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-    const orgTab = document.querySelector('[data-filter="organization"]');
-    if (orgTab) orgTab.classList.add('active');
-    
-    // Filter martyrs
-    const filtered = allMartyrs.filter(m => {
-        return (m.organization || '').toLowerCase() === org.toLowerCase();
-    });
-    
-    renderGallery(filtered);
-    updateSearchResultsInfo(filtered.length);
-    
-    // Show active filter badge
-    const resultsInfo = document.getElementById('searchResultsInfo');
-    if (resultsInfo) {
-        resultsInfo.classList.add('show');
-        const filtersSpan = document.getElementById('resultsFilters');
-        if (filtersSpan) filtersSpan.textContent = ` | Organization: ${org}`;
-    }
-    
-    discoveryState.activeQuickFilter = 'organization:' + org;
-}
-
-// ========== ALPHABET NAVIGATION ==========
+// ========== A–Z CHIP GRID ==========
 function initAlphabetNav() {
     const alphabetNav = document.getElementById('alphabetNav');
     if (!alphabetNav) return;
-    
-    // Generate A-Z buttons
+
     const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     alphabetNav.innerHTML = '';
-    
+
     letters.forEach(letter => {
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -2518,21 +1896,21 @@ function initAlphabetNav() {
         btn.addEventListener('click', () => handleAlphabetClick(letter, btn));
         alphabetNav.appendChild(btn);
     });
-    
-    // Add "Clear" button at the end
+
+    // "All" button spanning 2 columns to complete 7x4 grid cleanly
     const clearBtn = document.createElement('button');
     clearBtn.type = 'button';
-    clearBtn.className = 'letter-btn clear-btn';
-    clearBtn.textContent = 'Clear';
-    clearBtn.title = 'Show all';
+    clearBtn.className = 'letter-btn clear-btn active';
+    clearBtn.textContent = 'All';
+    clearBtn.title = 'All letters';
     clearBtn.dataset.letter = 'all';
     clearBtn.addEventListener('click', () => {
-        resetAlphabetNav();
-        clearAllFilters();
+        currentFilters.letter = '';
+        closeAllDropdowns();
+        applyFilters();
     });
     alphabetNav.appendChild(clearBtn);
-    
-    // Update letter availability when data loads
+
     window.addEventListener('martyrsDataReady', updateAlphabetAvailability);
     if (allMartyrs && allMartyrs.length > 0) {
         updateAlphabetAvailability();
@@ -2541,8 +1919,7 @@ function initAlphabetNav() {
 
 function updateAlphabetAvailability() {
     if (!allMartyrs) return;
-    
-    // Find which letters have martyrs
+
     const availableLetters = new Set();
     allMartyrs.forEach(m => {
         const name = (m.fullName || '').trim();
@@ -2553,70 +1930,32 @@ function updateAlphabetAvailability() {
             }
         }
     });
-    
-    // Update button states
-    document.querySelectorAll('.letter-btn').forEach(btn => {
+
+    document.querySelectorAll('#alphabetNav .letter-btn').forEach(btn => {
         const letter = btn.dataset.letter;
         if (letter && letter !== 'all') {
-            if (availableLetters.has(letter)) {
-                btn.classList.remove('disabled');
-            } else {
-                btn.classList.add('disabled');
-            }
+            btn.classList.toggle('disabled', !availableLetters.has(letter));
         }
     });
 }
 
 function handleAlphabetClick(letter, btnElement) {
     if (btnElement.classList.contains('disabled')) return;
-    
-    // Update active state
-    document.querySelectorAll('.letter-btn').forEach(b => b.classList.remove('active'));
-    btnElement.classList.add('active');
-    
-    // Reset quick filters
-    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-    
-    discoveryState.activeLetter = letter;
-    
-    // Filter martyrs by letter
-    const filtered = allMartyrs.filter(m => {
-        const name = (m.fullName || '').trim();
-        return name && name.charAt(0).toUpperCase() === letter;
-    });
-    
-    renderGallery(filtered);
-    updateSearchResultsInfo(filtered.length);
-    
-    // Show results info
-    const resultsInfo = document.getElementById('searchResultsInfo');
-    if (resultsInfo) {
-        resultsInfo.style.display = 'flex';
-        const filtersSpan = document.getElementById('resultsFilters');
-        if (filtersSpan) filtersSpan.textContent = ` | Names starting with "${letter}"`;
-    }
-}
 
-function resetAlphabetNav() {
-    document.querySelectorAll('.letter-btn').forEach(b => {
-        b.classList.remove('active');
-    });
-    // Reset filter tabs to "All"
-    document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-    const allTab = document.querySelector('.filter-tab[data-filter="all"]');
-    if (allTab) allTab.classList.add('active');
-    discoveryState.activeLetter = null;
+    currentFilters.letter = currentFilters.letter === letter ? '' : letter;
+    closeAllDropdowns();
+    applyFilters();
 }
 
 // ========== AUTOCOMPLETE ==========
 function initAutocomplete() {
     const searchInput = document.getElementById('searchMartyrs');
     const dropdown = document.getElementById('autocompleteDropdown');
-    
+
     if (!searchInput || !dropdown) return;
-    
+
     let debounceTimer = null;
-    
+
     searchInput.addEventListener('input', function() {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
@@ -2628,20 +1967,18 @@ function initAutocomplete() {
             }
         }, 150);
     });
-    
+
     searchInput.addEventListener('focus', function() {
         const query = this.value.trim().toLowerCase();
         if (query.length >= 2) {
             showAutocompleteSuggestions(query);
         }
     });
-    
+
     searchInput.addEventListener('blur', function() {
-        // Delay hiding to allow click on suggestions
         setTimeout(hideAutocomplete, 200);
     });
-    
-    // Keyboard navigation
+
     searchInput.addEventListener('keydown', function(e) {
         handleAutocompleteKeyboard(e);
     });
@@ -2650,60 +1987,57 @@ function initAutocomplete() {
 function showAutocompleteSuggestions(query) {
     const dropdown = document.getElementById('autocompleteDropdown');
     if (!dropdown || !allMartyrs) return;
-    
-    // Find matching martyrs
+
     const matchingMartyrs = allMartyrs.filter(m => {
-        const searchText = `${m.fullName} ${m.birthPlace || ''} ${m.martyrdomPlace || ''} ${m.organization || ''}`.toLowerCase();
+        const searchText = `${m.fullName || ''} ${m.fatherName || ''} ${m.birthPlace || ''} ${m.martyrdomPlace || ''} ${m.organization || ''}`.toLowerCase();
         return searchText.includes(query);
     }).slice(0, 5);
-    
-    // Find matching locations
+
     const locations = new Set();
     allMartyrs.forEach(m => {
         const places = [m.birthPlace, m.martyrdomPlace].filter(Boolean);
         places.forEach(place => {
-            if (place.toLowerCase().includes(query)) {
-                locations.add(place.split(',')[0].trim());
+            const mainRegion = normalizeRegion(place) || place.split(',')[0].trim();
+            if (mainRegion && mainRegion.toLowerCase().includes(query)) {
+                locations.add(mainRegion);
             }
         });
     });
     const matchingLocations = [...locations].slice(0, 3);
-    
+
     if (matchingMartyrs.length === 0 && matchingLocations.length === 0) {
         hideAutocomplete();
         return;
     }
-    
+
     dropdown.innerHTML = '';
-    
-    // Martyrs section
+
     if (matchingMartyrs.length > 0) {
         const section = document.createElement('div');
         section.className = 'autocomplete-section';
-        
+
         const title = document.createElement('div');
         title.className = 'autocomplete-section-title';
         title.textContent = 'Heroes';
         section.appendChild(title);
-        
+
         matchingMartyrs.forEach((martyr, index) => {
             const item = createAutocompleteItem(martyr, index);
             section.appendChild(item);
         });
-        
+
         dropdown.appendChild(section);
     }
-    
-    // Locations section
+
     if (matchingLocations.length > 0) {
         const section = document.createElement('div');
         section.className = 'autocomplete-section';
-        
+
         const title = document.createElement('div');
         title.className = 'autocomplete-section-title';
-        title.textContent = 'Locations';
+        title.textContent = 'Regions';
         section.appendChild(title);
-        
+
         matchingLocations.forEach(location => {
             const item = document.createElement('div');
             item.className = 'autocomplete-item';
@@ -2712,19 +2046,23 @@ function showAutocompleteSuggestions(query) {
                 <div class="autocomplete-item-text">
                     <div class="autocomplete-item-name">${escapeHTML(location)}</div>
                 </div>
-                <span class="autocomplete-item-type">Location</span>
+                <span class="autocomplete-item-type">Region</span>
             `;
             item.addEventListener('click', () => {
-                filterByRegion(location);
+                currentFilters.region = location;
+                currentFilters.general = '';
+                const searchInput = document.getElementById('searchMartyrs');
+                if (searchInput) searchInput.value = '';
+                toggleClearButton();
                 hideAutocomplete();
-                document.getElementById('searchMartyrs').value = '';
+                applyFilters();
             });
             section.appendChild(item);
         });
-        
+
         dropdown.appendChild(section);
     }
-    
+
     dropdown.classList.add('show');
     discoveryState.autocompleteIndex = -1;
 }
@@ -2733,13 +2071,13 @@ function createAutocompleteItem(martyr, index) {
     const item = document.createElement('div');
     item.className = 'autocomplete-item';
     item.dataset.index = index;
-    
-    const iconHtml = martyr.photo 
-        ? `<img src="${martyr.photo}" alt="" loading="lazy" decoding="async" width="32" height="32">` 
+
+    const iconHtml = martyr.photo
+        ? `<img src="${martyr.photo}" alt="" loading="lazy" decoding="async" width="32" height="32">`
         : '👤';
-    
+
     const location = martyr.martyrdomPlace || martyr.birthPlace || 'Unknown';
-    
+
     item.innerHTML = `
         <div class="autocomplete-item-icon">${iconHtml}</div>
         <div class="autocomplete-item-text">
@@ -2748,13 +2086,12 @@ function createAutocompleteItem(martyr, index) {
         </div>
         <span class="autocomplete-item-type">Hero</span>
     `;
-    
+
     item.addEventListener('click', () => {
         showMartyrModal(martyr);
         hideAutocomplete();
-        document.getElementById('searchMartyrs').value = '';
     });
-    
+
     return item;
 }
 
@@ -2769,11 +2106,11 @@ function hideAutocomplete() {
 function handleAutocompleteKeyboard(e) {
     const dropdown = document.getElementById('autocompleteDropdown');
     if (!dropdown || !dropdown.classList.contains('show')) return;
-    
+
     const items = dropdown.querySelectorAll('.autocomplete-item');
     if (items.length === 0) return;
-    
-    switch(e.key) {
+
+    switch (e.key) {
         case 'ArrowDown':
             e.preventDefault();
             discoveryState.autocompleteIndex = Math.min(discoveryState.autocompleteIndex + 1, items.length - 1);
@@ -2785,8 +2122,8 @@ function handleAutocompleteKeyboard(e) {
             updateAutocompleteHighlight(items);
             break;
         case 'Enter':
-            e.preventDefault();
             if (discoveryState.autocompleteIndex >= 0 && items[discoveryState.autocompleteIndex]) {
+                e.preventDefault();
                 items[discoveryState.autocompleteIndex].click();
             }
             break;
@@ -2809,6 +2146,6 @@ function updateAutocompleteHighlight(items) {
 
 // Initialize Search & Discovery on DOM ready
 document.addEventListener('DOMContentLoaded', function() {
-    // Wait a bit for gallery data to be ready
-    setTimeout(initSearchDiscovery, 200);
+    initSearchDiscovery();
 });
+
