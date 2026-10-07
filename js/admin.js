@@ -548,10 +548,40 @@ function initializeAdminControls() {
     window.importData = importData;
     window.clearAllPending = clearAllPending;
     window.loadPendingSubmissions = loadPendingSubmissions;
+    window.loadApprovedMartyrs = loadApprovedMartyrs;
+    window.showAdminToast = showAdminToast;
     console.log('🌎 Admin functions made globally accessible');
 
-    // Initialize pending search/filter controls
+    // Initialize pending & approved search/filter controls
     initPendingSearch();
+    initApprovedSearch();
+}
+
+// Non-blocking toast notification helper
+function showAdminToast(message, type = 'success') {
+    let container = document.getElementById('adminToastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'adminToastContainer';
+        container.className = 'admin-toast-container';
+        document.body.appendChild(container);
+    }
+    const icons = {
+        success: '✅',
+        error: '❌',
+        info: 'ℹ️'
+    };
+    const toast = document.createElement('div');
+    toast.className = `admin-toast ${type}`;
+    toast.innerHTML = `<span>${icons[type] || '✅'}</span><span>${escapeHTML(message)}</span>`;
+    container.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(8px)';
+        setTimeout(() => toast.remove(), 260);
+    }, 4000);
 }
 
 // Simple helper to safely get lowercased strings
@@ -612,7 +642,7 @@ function filterPendingSubmissions(query) {
     if (!status) {
         status = document.createElement('div');
         status.id = 'pendingSearchStatus';
-        status.style.cssText = 'margin: 0.25rem 0 0.75rem 0; font-size: 0.85rem; color: #666;';
+        status.style.cssText = 'margin: 0.25rem 0 0.75rem 0; font-size: 0.85rem; color: #64748b;';
         const searchBar = document.getElementById('pendingSearchBar');
         if (searchBar && searchBar.parentNode) {
             searchBar.parentNode.insertBefore(status, searchBar.nextSibling);
@@ -661,7 +691,7 @@ async function loadPendingSubmissions() {
     console.log('📄 Starting loadPendingSubmissions...');
     
     // Show loading state
-    pendingList.innerHTML = '<div style="text-align: center; padding: 2rem; color: #666;">Loading pending submissions...</div>';
+    pendingList.innerHTML = '<div style="text-align: center; padding: 2rem; color: #64748b;">Loading pending submissions...</div>';
     
     try {
         // Try to load from Firebase first using global instance
@@ -733,7 +763,7 @@ async function loadPendingSubmissions() {
         // Display Firebase connection required message
         const errorDiv = document.createElement('div');
         errorDiv.innerHTML = `
-            <div class="firebase-required-error" style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px; padding: 2rem; margin: 1rem 0; color: #721c24;">
+            <div class="firebase-required-error" style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 12px; padding: 2rem; margin: 1rem 0; color: #721c24;">
                 <h3>🔥 Firebase Database Required</h3>
                 <p><strong>Error:</strong> ${error.message}</p>
                 <p>This memorial's admin panel requires a permanent Firebase database connection to manage submissions properly.</p>
@@ -746,7 +776,7 @@ async function loadPendingSubmissions() {
                         <li>Contact support if this persists</li>
                     </ul>
                 </div>
-                <div style="margin-top: 1rem; padding: 1rem; background: #f1f3f4; border-radius: 4px; font-size: 0.9rem;">
+                <div style="margin-top: 1rem; padding: 1rem; background: #f1f3f4; border-radius: 6px; font-size: 0.9rem;">
                     <strong>Debug Info:</strong><br>
                     • Firebase available: ${!!window.firebaseDB}<br>
                     • Error: ${error.message}<br>
@@ -770,25 +800,27 @@ async function loadPendingSubmissions() {
     
     if (pendingData.length === 0) {
         const debugInfo = `
-            <div class="no-pending" style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 2rem; margin: 1rem 0;">
-                <h3>📎 No pending submissions found</h3>
-                <p><strong>Data source attempted:</strong> ${loadingSource}</p>
-                <p>This could mean:</p>
-                <ul style="text-align: left; margin: 1rem 0;">
-                    <li>All submissions have been reviewed</li>
-                    <li>Firebase database connection issue</li>
-                    <li>Submissions are being stored but not retrieved properly</li>
-                </ul>
-                <div style="margin-top: 1rem; padding: 1rem; background: #e9ecef; border-radius: 4px; font-size: 0.9rem;">
-                    <strong>Debug Info:</strong><br>
-                    • Firebase available: ${!!window.firebaseDB}<br>
-                    • Loading source: ${loadingSource}<br>
-                    • Using localStorage: ${usingLocalStorage}<br>
-                    • Timestamp: ${new Date().toLocaleString()}<br>
+            <div class="no-pending">
+                <div style="font-size: 2.75rem; margin-bottom: 0.5rem;">🎉</div>
+                <h3>All Caught Up — No Pending Submissions</h3>
+                <p>Every submitted martyr profile has been reviewed. Connected to <strong>${escapeHTML(loadingSource)}</strong>.</p>
+                <div style="display: flex; justify-content: center; gap: 0.75rem; flex-wrap: wrap;">
+                    <button onclick="loadPendingSubmissions()" class="btn btn-primary">
+                        🔄 Check Again
+                    </button>
+                    <button onclick="window.switchAdminTab && window.switchAdminTab('approved')" class="btn btn-secondary">
+                        ✅ View Approved Martyrs
+                    </button>
                 </div>
-                <button onclick="loadPendingSubmissions()" class="btn btn-primary" style="margin-top: 1rem;">
-                    🔄 Refresh
-                </button>
+                <details class="debug-details">
+                    <summary>🔧 Technical Connection Info</summary>
+                    <div style="margin-top: 0.5rem; line-height: 1.6;">
+                        • Firebase available: ${!!window.firebaseDB}<br>
+                        • Data source: ${escapeHTML(loadingSource)}<br>
+                        • Using localStorage fallback: ${usingLocalStorage}<br>
+                        • Checked at: ${new Date().toLocaleString()}
+                    </div>
+                </details>
             </div>
         `;
         pendingList.innerHTML = debugInfo;
@@ -800,8 +832,8 @@ async function loadPendingSubmissions() {
     
     // Create header with source info
     const headerDiv = document.createElement('div');
-    headerDiv.style.cssText = 'background: #d1ecf1; padding: 0.75rem 1rem; margin-bottom: 1rem; border-radius: 4px; font-size: 0.9rem;';
-    headerDiv.innerHTML = `📁 Showing ${pendingData.length} pending submission(s) from <strong>${loadingSource}</strong> ${usingLocalStorage ? '(localStorage)' : ''}`;
+    headerDiv.style.cssText = 'background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 0.75rem 1rem; margin-bottom: 1rem; border-radius: 10px; font-size: 0.9rem;';
+    headerDiv.innerHTML = `📁 Showing <strong>${pendingData.length}</strong> pending submission(s) from <strong>${escapeHTML(loadingSource)}</strong> ${usingLocalStorage ? '(localStorage)' : ''}`;
     pendingList.appendChild(headerDiv);
     
     // Add each pending item
@@ -853,61 +885,69 @@ function createPendingItem(martyr) {
 
     item.innerHTML = `
         <div class="pending-header">
-            <strong>Submission ID:</strong> ${safeId}
-            <span style="float: right; color: #666;">Submitted: ${escapeHTML(submittedDate)}</span>
+            <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+                <span class="status-pill pending">⏳ Pending Review</span>
+                <span class="id-code">ID: ${safeId}</span>
+            </div>
+            <span style="color: #64748b; font-size: 0.85rem;">🕒 Submitted: ${escapeHTML(submittedDate)}</span>
         </div>
         <div class="pending-content">
             <div class="pending-image">
                 ${safePhoto ? 
                     `<img src="${safePhoto}" alt="${safeName}">` :
-                    '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #999;">No Photo</div>'
+                    '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #94a3b8; font-size: 0.85rem;">No Photo</div>'
                 }
             </div>
             <div class="pending-details">
                 <h3>${safeName}</h3>
-                <div class="detail-row">
-                    <span class="detail-label">Father's Name:</span> ${safeFatherName}
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Birth:</span> ${escapeHTML(formatDate(martyr.birthDate))} in ${safeBirthPlace}
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Martyrdom:</span> ${escapeHTML(formatDate(martyr.martyrdomDate))} in ${safeMartydomPlace}
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Organization:</span> ${safeOrg}
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Rank:</span> ${safeRank}
+                <div class="pending-meta-grid">
+                    <div class="detail-row">
+                        <span class="detail-label">Father's Name</span>
+                        <span>${safeFatherName}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Birth</span>
+                        <span>${escapeHTML(formatDate(martyr.birthDate))} • ${safeBirthPlace}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Martyrdom</span>
+                        <span>${escapeHTML(formatDate(martyr.martyrdomDate))} • ${safeMartydomPlace}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Organization &amp; Rank</span>
+                        <span>${safeOrg} (${safeRank})</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Submitted By</span>
+                        <span>${safeSubmitter} (${safeEmail})</span>
+                    </div>
+                    ${safeRelation ? `
+                        <div class="detail-row">
+                            <span class="detail-label">Relationship</span>
+                            <span>${safeRelation}</span>
+                        </div>
+                    ` : ''}
                 </div>
                 ${safeBio ? `
-                    <div class="detail-row">
-                        <span class="detail-label">Biography:</span>
+                    <div class="detail-row" style="margin-top: 0.5rem;">
+                        <span class="detail-label">Biography</span>
                         <div class="biography-text">${safeBio}</div>
                     </div>
                 ` : ''}
                 ${safeFamily ? `
-                    <div class="detail-row">
-                        <span class="detail-label">Family Details:</span>
+                    <div class="detail-row" style="margin-top: 0.5rem;">
+                        <span class="detail-label">Family Details</span>
                         <div class="family-text">${safeFamily}</div>
-                    </div>
-                ` : ''}
-                <div class="detail-row">
-                    <span class="detail-label">Submitted by:</span> ${safeSubmitter} (${safeEmail})
-                </div>
-                ${safeRelation ? `
-                    <div class="detail-row">
-                        <span class="detail-label">Relationship:</span> ${safeRelation}
                     </div>
                 ` : ''}
             </div>
         </div>
         <div class="pending-actions">
             <button data-action="approve" data-martyr-id="${safeId}" class="btn btn-approve">
-                ✓ Approve & Publish
+                ✓ Approve &amp; Publish
             </button>
             <button data-action="reject" data-martyr-id="${safeId}" class="btn btn-reject">
-                ✗ Reject & Delete
+                ✗ Reject &amp; Delete
             </button>
             <button data-action="preview" data-martyr-id="${safeId}" class="btn btn-secondary" style="margin-left: auto;">
                 👁 Preview as Visitor
@@ -1122,7 +1162,7 @@ async function executeApproval(martyrId, martyrToApprove, foundInLocalStorage, m
             ? 'Submission approved and published successfully to Firebase and local storage!' 
             : 'Submission approved and published to local storage (Firebase sync failed, but martyr is still approved)!';
         
-        alert(successMessage);
+        showAdminToast(successMessage, 'success');
         
     } catch (error) {
         console.error('Error during approval execution:', error);
@@ -1317,7 +1357,7 @@ async function rejectMartyr(martyrId) {
             ? 'Submission rejected and deleted from Firebase and local storage.' 
             : 'Submission rejected and deleted from local storage (Firebase sync failed, but martyr is still rejected).';
         
-        alert(successMessage);
+        showAdminToast(successMessage, 'info');
 
     } catch (error) {
         console.error('Error rejecting martyr:', error);
@@ -1562,7 +1602,7 @@ function exportData() {
     link.download = `martyrs-data-${new Date().toISOString().split('T')[0]}.json`;
     link.click();
     
-    alert('Data exported successfully!');
+    showAdminToast('Backup data exported successfully!', 'success');
 }
 
 // Import data from JSON file
@@ -1593,7 +1633,7 @@ function importData() {
                         loadPendingSubmissions();
                         updateStats();
                         
-                        alert(`Data imported successfully!\nPending: ${importedData.totalPending}\nApproved: ${importedData.totalApproved}`);
+                        showAdminToast(`Imported ${importedData.totalPending} pending & ${importedData.totalApproved} approved profiles!`, 'success');
                     }
                 } else {
                     alert('Invalid file format!');
@@ -1606,6 +1646,98 @@ function importData() {
     };
     
     input.click();
+}
+
+// State for Approved Martyrs instant search & progressive batch rendering
+let cachedApprovedMartyrs = [];
+let approvedSearchQuery = '';
+let approvedVisibleLimit = 25;
+const APPROVED_BATCH_SIZE = 25;
+
+function initApprovedSearch() {
+    const searchInput = document.getElementById('approvedSearch');
+    const clearBtn = document.getElementById('approvedSearchClear');
+    if (!searchInput) return;
+
+    const applyFilter = () => {
+        approvedSearchQuery = searchInput.value.toLowerCase().trim();
+        approvedVisibleLimit = APPROVED_BATCH_SIZE;
+        if (cachedApprovedMartyrs.length > 0) {
+            renderApprovedMartyrsList();
+        }
+    };
+
+    searchInput.addEventListener('input', () => {
+        window.requestAnimationFrame(applyFilter);
+    });
+
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            applyFilter();
+        });
+    }
+}
+
+function renderApprovedMartyrsList() {
+    const approvedList = document.getElementById('approvedList');
+    if (!approvedList) return;
+
+    const query = approvedSearchQuery;
+    const filtered = !query
+        ? cachedApprovedMartyrs
+        : cachedApprovedMartyrs.filter(m => {
+            const haystack = `${toSearchString(m.fullName)} ${toSearchString(m.fatherName)} ${toSearchString(m.birthPlace)} ${toSearchString(m.martyrdomPlace)} ${toSearchString(m.organization)} ${toSearchString(m.rank)} ${toSearchString(m.id)}`;
+            return haystack.includes(query);
+        });
+
+    approvedList.innerHTML = '';
+
+    // Status summary bar
+    const summaryBar = document.createElement('div');
+    summaryBar.style.cssText = 'display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; padding: 0.65rem 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.88rem; color: #475569;';
+    if (query) {
+        summaryBar.innerHTML = `<span>🔍 Found <strong>${filtered.length}</strong> matching martyr(s) out of ${cachedApprovedMartyrs.length} for "<strong>${escapeHTML(query)}</strong>"</span>`;
+    } else {
+        summaryBar.innerHTML = `<span>📚 Showing <strong>${Math.min(approvedVisibleLimit, filtered.length)}</strong> of <strong>${filtered.length}</strong> published martyrs</span>`;
+    }
+    approvedList.appendChild(summaryBar);
+
+    if (filtered.length === 0) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.className = 'no-pending';
+        emptyDiv.innerHTML = `
+            <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">🔍</div>
+            <h3>No matching published martyrs</h3>
+            <p>No profiles matched "${escapeHTML(query)}". Try searching by another name, region, or organization.</p>
+        `;
+        approvedList.appendChild(emptyDiv);
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    const slice = filtered.slice(0, approvedVisibleLimit);
+    slice.forEach(martyr => {
+        fragment.appendChild(createApprovedMartyrItem(martyr));
+    });
+    approvedList.appendChild(fragment);
+
+    if (filtered.length > approvedVisibleLimit) {
+        const remaining = filtered.length - approvedVisibleLimit;
+        const loadMoreWrap = document.createElement('div');
+        loadMoreWrap.style.cssText = 'text-align: center; padding: 1.25rem 0 2rem;';
+        const loadMoreBtn = document.createElement('button');
+        loadMoreBtn.type = 'button';
+        loadMoreBtn.className = 'btn btn-secondary';
+        loadMoreBtn.style.cssText = 'padding: 0.75rem 1.75rem; font-size: 0.95rem;';
+        loadMoreBtn.textContent = `👇 Show More (${Math.min(APPROVED_BATCH_SIZE, remaining)} more of ${remaining} remaining)`;
+        loadMoreBtn.addEventListener('click', () => {
+            approvedVisibleLimit += APPROVED_BATCH_SIZE;
+            renderApprovedMartyrsList();
+        });
+        loadMoreWrap.appendChild(loadMoreBtn);
+        approvedList.appendChild(loadMoreWrap);
+    }
 }
 
 // Load and display approved martyrs
@@ -1627,18 +1759,18 @@ async function loadApprovedMartyrs() {
         // Try to reconnect Firebase
         loadBtn.disabled = true;
         loadBtn.textContent = 'Reconnecting Firebase...';
-        approvedList.innerHTML = '<p style="text-align: center; color: #orange; padding: 2rem;">Firebase not available. Attempting to reconnect...</p>';
+        approvedList.innerHTML = '<p style="text-align: center; color: #d97706; padding: 2rem;">Firebase not available. Attempting to reconnect...</p>';
         
         const reconnected = await attemptFirebaseReconnection();
         if (!reconnected) {
-            approvedList.innerHTML = `<div style="text-align: center; color: #dc3545; padding: 2rem; background: #f8d7da; border-radius: 8px; margin: 1rem;">
+            approvedList.innerHTML = `<div style="text-align: center; color: #dc3545; padding: 2rem; background: #f8d7da; border-radius: 12px; margin: 1rem;">
                 <h3>❌ Firebase Connection Failed</h3>
                 <p>Unable to connect to Firebase database.</p>
                 <p style="font-size: 0.9rem; color: #666; margin-top: 1rem;">This could be due to network issues or Firebase configuration problems.</p>
                 <button onclick="loadApprovedMartyrs()" class="btn btn-primary" style="margin-top: 1rem;">Try Again</button>
             </div>`;
             loadBtn.disabled = false;
-            loadBtn.textContent = 'Load Approved Martyrs';
+            loadBtn.textContent = '🔄 Reload Approved Martyrs';
             return;
         }
         
@@ -1658,8 +1790,8 @@ async function loadApprovedMartyrs() {
     
     // Show loading state
     loadBtn.disabled = true;
-    loadBtn.textContent = 'Loading...';
-    approvedList.innerHTML = '<p style="text-align: center; padding: 2rem;">Loading approved martyrs...</p>';
+    loadBtn.textContent = '⏳ Loading...';
+    approvedList.innerHTML = '<p style="text-align: center; padding: 2rem; color: #64748b;">Loading approved martyrs from Firebase...</p>';
     
     try {
         console.log('🔥 Firebase DB available:', !!window.firebaseDB);
@@ -1680,19 +1812,14 @@ async function loadApprovedMartyrs() {
         if (result.success) {
             const martyrs = result.data || [];
             console.log(`✅ Found ${martyrs.length} approved martyrs`);
+            cachedApprovedMartyrs = martyrs;
+            approvedVisibleLimit = APPROVED_BATCH_SIZE;
             
             if (martyrs.length > 0) {
-                approvedList.innerHTML = '';
-                
-                martyrs.forEach((martyr, index) => {
-                    console.log(`Creating item ${index + 1}/${martyrs.length}:`, martyr.fullName);
-                    const martyrItem = createApprovedMartyrItem(martyr);
-                    approvedList.appendChild(martyrItem);
-                });
-                
-                console.log('✅ All approved martyrs rendered successfully');
+                renderApprovedMartyrsList();
+                console.log('✅ Approved martyrs rendered with progressive batching');
             } else {
-                approvedList.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">No approved martyrs found in Firebase</p>';
+                approvedList.innerHTML = '<p style="text-align: center; color: #64748b; padding: 2rem;">No approved martyrs found in Firebase</p>';
                 console.log('💭 No approved martyrs found');
             }
         } else {
@@ -1707,10 +1834,7 @@ async function loadApprovedMartyrs() {
             timestamp: new Date().toISOString()
         });
         
-        // Show user-friendly error without causing logout
-        const errorMsg = `Failed to load approved martyrs: ${error.message}\n\nThis might be due to:\n- Firebase connection issues\n- Network connectivity problems\n- Database access restrictions\n\nTry refreshing the page or check your internet connection.`;
-        
-        approvedList.innerHTML = `<div style="text-align: center; color: #dc3545; padding: 2rem; background: #f8d7da; border-radius: 8px; margin: 1rem;">
+        approvedList.innerHTML = `<div style="text-align: center; color: #dc3545; padding: 2rem; background: #f8d7da; border-radius: 12px; margin: 1rem;">
             <h3>❌ Error Loading Data</h3>
             <p><strong>Error:</strong> ${error.message}</p>
             <p style="font-size: 0.9rem; color: #666; margin-top: 1rem;">Check browser console for detailed error information.</p>
@@ -1720,7 +1844,7 @@ async function loadApprovedMartyrs() {
     
     // Reset button
     loadBtn.disabled = false;
-    loadBtn.textContent = 'Refresh Approved Martyrs';
+    loadBtn.textContent = '🔄 Reload Approved Martyrs';
     console.log('🔄 loadApprovedMartyrs function completed');
 }
 
@@ -1734,45 +1858,55 @@ function createApprovedMartyrItem(martyr) {
     const updatedDate = martyr.updatedAt ? new Date(martyr.updatedAt.toDate ? martyr.updatedAt.toDate() : martyr.updatedAt).toLocaleDateString() : null;
     
     item.innerHTML = `
-        <div class="pending-header" style="background: #d4edda; border-color: #c3e6cb;">
-            <strong>✅ PUBLISHED Martyr ID:</strong> ${escapeHTML(martyr.id)}
-            <span style="float: right; color: #155724;">Approved: ${approvedDate}${updatedDate ? ` | Updated: ${updatedDate}` : ''}</span>
+        <div class="pending-header approved-header">
+            <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+                <span class="status-pill published">✅ Published</span>
+                <span class="id-code">ID: ${escapeHTML(martyr.id)}</span>
+            </div>
+            <span style="color: #15803d; font-size: 0.85rem; font-weight: 500;">Approved: ${approvedDate}${updatedDate ? ` • Updated: ${updatedDate}` : ''}</span>
         </div>
         <div class="pending-content">
             <div class="pending-image">
                 ${martyr.photo ? 
-                    `<img src="${martyr.photo}" alt="${escapeHTML(martyr.fullName)}">` :
-                    '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #999;">No Photo</div>'
+                    `<img src="${martyr.photo}" alt="${escapeHTML(martyr.fullName)}" loading="lazy">` :
+                    '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #94a3b8; font-size: 0.85rem;">No Photo</div>'
                 }
             </div>
             <div class="pending-details">
                 <h3>${escapeHTML(martyr.fullName)}</h3>
-                <div class="detail-row">
-                    <span class="detail-label">Birth:</span> ${formatDate(martyr.birthDate)} in ${escapeHTML(martyr.birthPlace || 'Unknown')}
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Martyrdom:</span> ${formatDate(martyr.martyrdomDate)} in ${escapeHTML(martyr.martyrdomPlace || 'Unknown')}
-                </div>
-                <div class="detail-row">
-                    <span class="detail-label">Organization:</span> ${escapeHTML(martyr.organization || 'Not specified')}
-                </div>
-                ${martyr.rank ? `
+                <div class="pending-meta-grid">
                     <div class="detail-row">
-                        <span class="detail-label">Rank:</span> ${escapeHTML(martyr.rank)}
+                        <span class="detail-label">Birth</span>
+                        <span>${formatDate(martyr.birthDate)} • ${escapeHTML(martyr.birthPlace || 'Unknown')}</span>
                     </div>
-                ` : ''}
-                ${martyr.submitterName ? `
                     <div class="detail-row">
-                        <span class="detail-label">Submitted by:</span> ${escapeHTML(martyr.submitterName)}
+                        <span class="detail-label">Martyrdom</span>
+                        <span>${formatDate(martyr.martyrdomDate)} • ${escapeHTML(martyr.martyrdomPlace || 'Unknown')}</span>
                     </div>
-                ` : ''}
+                    <div class="detail-row">
+                        <span class="detail-label">Organization</span>
+                        <span>${escapeHTML(martyr.organization || 'Not specified')}</span>
+                    </div>
+                    ${martyr.rank ? `
+                        <div class="detail-row">
+                            <span class="detail-label">Rank / Role</span>
+                            <span>${escapeHTML(martyr.rank)}</span>
+                        </div>
+                    ` : ''}
+                    ${martyr.submitterName ? `
+                        <div class="detail-row">
+                            <span class="detail-label">Submitted By</span>
+                            <span>${escapeHTML(martyr.submitterName)}</span>
+                        </div>
+                    ` : ''}
+                </div>
             </div>
         </div>
-        <div class="pending-actions" style="background: #e3f2fd; justify-content: flex-start; gap: 0.75rem;">
-            <button data-action="edit" data-martyr-id="${escapeHTML(martyr.id)}" class="btn btn-primary" style="background: #1976d2; border-color: #1976d2;">
+        <div class="pending-actions approved-actions" style="justify-content: flex-start; gap: 0.75rem;">
+            <button data-action="edit" data-martyr-id="${escapeHTML(martyr.id)}" class="btn btn-primary btn-edit-profile">
                 ✏️ Edit Profile
             </button>
-            <button data-action="delete" data-martyr-id="${escapeHTML(martyr.id)}" class="btn btn-outline" style="color: #dc3545; border-color: #dc3545;">
+            <button data-action="delete" data-martyr-id="${escapeHTML(martyr.id)}" class="btn btn-outline" style="color: #dc2626; border-color: #fca5a5;">
                 🗑️ Delete
             </button>
         </div>
@@ -1821,7 +1955,8 @@ async function deleteApprovedMartyr(martyrId, martyrName) {
         const result = await window.firebaseDB.deleteApprovedMartyr(martyrId);
         
         if (result.success) {
-            // Remove from UI
+            // Remove from cached array & UI
+            cachedApprovedMartyrs = cachedApprovedMartyrs.filter(m => m.id !== martyrId);
             const martyrItem = document.querySelector(`[data-martyr-id="${martyrId}"]`);
             if (martyrItem) {
                 martyrItem.remove();
@@ -1830,7 +1965,7 @@ async function deleteApprovedMartyr(martyrId, martyrName) {
             // Update stats
             await updateStats();
             
-            alert(`"${martyrName}" has been successfully deleted from Firebase.`);
+            showAdminToast(`"${martyrName}" has been deleted from Firebase.`, 'info');
             console.log(`Successfully deleted martyr: ${martyrName}`);
         } else {
             alert(`Failed to delete martyr: ${result.error}`);
@@ -2062,7 +2197,7 @@ async function saveEditedMartyr() {
             // Refresh the approved martyrs list
             await loadApprovedMartyrs();
             
-            alert(`"${updatedData.fullName}" has been updated successfully!`);
+            showAdminToast(`"${updatedData.fullName}" has been updated successfully!`, 'success');
         } else {
             console.error('❌ Update failed:', result.error);
             alert(`Failed to update martyr: ${result.error}`);

@@ -19,177 +19,507 @@
             --admin-bg: #f1f5f9;
             --admin-card: #ffffff;
             --admin-border: #e2e8f0;
-            --admin-text: #334155;
+            --admin-text: #1e293b;
             --admin-text-muted: #64748b;
         }
 
         body {
             background: var(--admin-bg);
+            color: var(--admin-text);
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
+        /* ============================================
+           MODERN ADMIN HEADER
+           ============================================ */
         .admin-header {
-            background: linear-gradient(135deg, var(--admin-primary) 0%, var(--admin-primary-light) 100%);
+            background: linear-gradient(135deg, #132c17 0%, var(--admin-primary-light) 100%);
             color: white;
-            padding: 1.5rem 0;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 20px rgba(26, 61, 32, 0.3);
+            padding: 1.25rem 0;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.18);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .admin-header-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+        }
+
+        .admin-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+        }
+
+        .admin-brand-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .admin-brand-icon svg {
+            width: 22px;
+            height: 22px;
+            color: #86efac;
         }
 
         .admin-header h1 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            margin: 0 0 0.25rem 0;
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin: 0 0 0.15rem 0;
             letter-spacing: -0.02em;
+            color: #ffffff;
         }
 
         .admin-header p {
-            opacity: 0.9;
+            opacity: 0.85;
             margin: 0;
-            font-size: 0.95rem;
+            font-size: 0.86rem;
+            color: #e2e8f0;
         }
 
-        .admin-badge {
+        .admin-session-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .admin-meta-pill {
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            background: rgba(255,255,255,0.15);
-            padding: 0.4rem 0.8rem;
-            border-radius: 20px;
+            gap: 0.4rem;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 0.4rem 0.75rem;
+            border-radius: 999px;
             font-size: 0.8rem;
-            backdrop-filter: blur(10px);
+            color: #f8fafc;
+            white-space: nowrap;
         }
 
+        .admin-header-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            height: 34px;
+            padding: 0 0.85rem;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.24);
+            color: #ffffff;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.16s ease;
+        }
+
+        .admin-header-btn:hover {
+            background: rgba(255, 255, 255, 0.24);
+            transform: translateY(-1px);
+        }
+
+        .admin-header-btn.logout-btn:hover {
+            background: rgba(239, 68, 68, 0.85);
+            border-color: rgba(239, 68, 68, 0.95);
+        }
+
+        /* ============================================
+           STREAMLINED TOOLBAR & TOOLS DROPDOWN
+           ============================================ */
         .admin-controls {
             display: flex;
+            align-items: center;
+            justify-content: space-between;
             flex-wrap: wrap;
             gap: 0.75rem;
-            margin-bottom: 2rem;
-            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+            padding: 0.9rem 1.15rem;
             background: var(--admin-card);
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             border: 1px solid var(--admin-border);
         }
 
+        .admin-controls-primary,
+        .admin-controls-secondary {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+
         .admin-controls .btn {
-            font-size: 0.875rem;
-            padding: 0.6rem 1rem;
-            border-radius: 8px;
-            font-weight: 500;
-            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-size: 0.86rem;
+            height: 38px;
+            padding: 0 1rem;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.16s ease;
+            cursor: pointer;
+        }
+
+        .admin-controls .btn svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
         }
 
         .admin-controls .btn:hover {
             transform: translateY(-1px);
         }
 
+        .admin-tools-dropdown {
+            position: relative;
+        }
+
+        .admin-tools-trigger {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            height: 38px;
+            padding: 0 0.95rem;
+            border-radius: 10px;
+            background: #f8fafc;
+            border: 1px solid var(--admin-border);
+            color: var(--admin-text);
+            font-size: 0.86rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.16s ease;
+        }
+
+        .admin-tools-trigger:hover,
+        .admin-tools-trigger.active {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+        }
+
+        .admin-tools-trigger svg {
+            width: 15px;
+            height: 15px;
+            color: var(--admin-text-muted);
+        }
+
+        .admin-tools-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 230px;
+            background: var(--admin-card);
+            border: 1px solid var(--admin-border);
+            border-radius: 12px;
+            box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
+            padding: 0.4rem;
+            z-index: 1000;
+        }
+
+        .admin-tools-menu.show {
+            display: block;
+            animation: toolsMenuFade 0.15s ease;
+        }
+
+        @keyframes toolsMenuFade {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .admin-tools-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            width: 100%;
+            padding: 0.6rem 0.75rem;
+            border: none;
+            background: transparent;
+            color: var(--admin-text);
+            font-size: 0.85rem;
+            font-weight: 500;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.12s ease;
+        }
+
+        .admin-tools-item:hover {
+            background: #f1f5f9;
+        }
+
+        .admin-tools-divider {
+            height: 1px;
+            background: var(--admin-border);
+            margin: 0.35rem 0;
+        }
+
+        .admin-tools-item.danger {
+            color: #dc2626;
+            font-weight: 600;
+        }
+
+        .admin-tools-item.danger:hover {
+            background: #fef2f2;
+        }
+
+        /* ============================================
+           INTERACTIVE KPI TAB CARDS
+           ============================================ */
         .stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            grid-template-columns: repeat(2, 1fr);
             gap: 1rem;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
         }
 
         .stat-card {
             background: var(--admin-card);
-            padding: 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-            border: 1px solid var(--admin-border);
-            text-align: center;
+            padding: 1.15rem 1.35rem;
+            border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border: 2px solid var(--admin-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            cursor: pointer;
+            text-align: left;
             transition: all 0.2s ease;
+            position: relative;
         }
 
         .stat-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+            border-color: #cbd5e1;
+        }
+
+        .stat-card.active {
+            border-color: var(--admin-primary-light);
+            background: linear-gradient(135deg, rgba(44, 85, 48, 0.05) 0%, rgba(44, 85, 48, 0.01) 100%);
+            box-shadow: 0 6px 20px rgba(44, 85, 48, 0.12);
+        }
+
+        .stat-card-left {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+        }
+
+        .stat-card-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            flex-shrink: 0;
+        }
+
+        .stat-card-icon.pending-icon {
+            background: rgba(245, 158, 11, 0.12);
+            color: #d97706;
+        }
+
+        .stat-card-icon.approved-icon {
+            background: rgba(16, 185, 129, 0.12);
+            color: #059669;
+        }
+
+        .stat-card-label {
+            font-size: 0.95rem;
+            color: var(--admin-text);
+            font-weight: 700;
+            margin-bottom: 0.15rem;
+        }
+
+        .stat-card-sub {
+            font-size: 0.78rem;
+            color: var(--admin-text-muted);
+            font-weight: 500;
+        }
+
+        .stat-card.active .stat-card-sub {
+            color: var(--admin-primary-light);
+            font-weight: 600;
         }
 
         .stat-number {
-            font-size: 2.5rem;
+            font-size: 2rem;
             font-weight: 800;
             background: linear-gradient(135deg, var(--admin-primary) 0%, var(--admin-primary-light) 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             line-height: 1;
-            margin-bottom: 0.5rem;
         }
 
-        .stat-card > div:last-child {
-            font-size: 0.875rem;
-            color: var(--admin-text-muted);
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        /* Section Headers */
-        #pendingContainer h2,
-        #approvedContainer h2 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--admin-text);
+        /* ============================================
+           SECTION HEADERS & SEARCH BARS
+           ============================================ */
+        .admin-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
             margin-bottom: 1rem;
+        }
+
+        .admin-section-header h2 {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--admin-text);
+            margin: 0;
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
 
-        #pendingContainer h2::before {
-            content: '⏳';
+        .admin-search-bar {
+            background: var(--admin-card);
+            padding: 0.75rem 0.9rem;
+            border-radius: 12px;
+            border: 1px solid var(--admin-border);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
         }
 
-        #approvedContainer h2::before {
-            content: '✅';
+        .admin-search-input-wrap {
+            position: relative;
+            flex: 1;
+            min-width: 220px;
+            display: flex;
+            align-items: center;
         }
 
-        /* Pending Items */
+        .admin-search-input-wrap svg {
+            position: absolute;
+            left: 0.85rem;
+            width: 17px;
+            height: 17px;
+            color: var(--admin-text-muted);
+            pointer-events: none;
+        }
+
+        .admin-search-input {
+            width: 100%;
+            height: 40px;
+            padding: 0 0.9rem 0 2.45rem;
+            border-radius: 9px;
+            border: 1px solid var(--admin-border);
+            background: #f8fafc;
+            color: var(--admin-text);
+            font-size: 0.9rem;
+            transition: all 0.16s ease;
+        }
+
+        .admin-search-input:focus {
+            outline: none;
+            background: var(--admin-card);
+            border-color: var(--admin-primary-light);
+            box-shadow: 0 0 0 3px rgba(44, 85, 48, 0.12);
+        }
+
+        /* ============================================
+           MODERATION & PUBLISHED CARDS
+           ============================================ */
         .pending-item {
             background: var(--admin-card);
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            border-radius: 14px;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
             border: 1px solid var(--admin-border);
-            margin-bottom: 1.25rem;
+            margin-bottom: 1.1rem;
             overflow: hidden;
-            transition: all 0.2s ease;
+            transition: box-shadow 0.2s ease, border-color 0.2s ease;
         }
 
         .pending-item:hover {
-            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+            border-color: #cbd5e1;
         }
 
         .pending-header {
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            padding: 1rem 1.25rem;
+            background: #f8fafc;
+            padding: 0.75rem 1.25rem;
             border-bottom: 1px solid var(--admin-border);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
             gap: 0.5rem;
+            font-size: 0.82rem;
+            color: var(--admin-text-muted);
         }
 
-        .pending-header strong {
-            font-size: 0.8rem;
-            color: var(--admin-text-muted);
-            font-weight: 600;
+        .pending-header.approved-header {
+            background: rgba(16, 185, 129, 0.07);
+            border-bottom-color: rgba(16, 185, 129, 0.2);
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .status-pill.pending {
+            background: rgba(245, 158, 11, 0.14);
+            color: #b45309;
+        }
+
+        .status-pill.published {
+            background: rgba(16, 185, 129, 0.15);
+            color: #047857;
+        }
+
+        .id-code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.76rem;
+            background: rgba(148, 163, 184, 0.15);
+            padding: 0.15rem 0.45rem;
+            border-radius: 5px;
+            color: var(--admin-text);
         }
 
         .pending-content {
-            padding: 1.5rem;
+            padding: 1.25rem;
             display: grid;
-            grid-template-columns: 180px 1fr;
-            gap: 1.5rem;
+            grid-template-columns: 150px 1fr;
+            gap: 1.35rem;
+            align-items: start;
         }
 
         .pending-image {
-            width: 180px;
-            height: 220px;
+            width: 150px;
+            height: 185px;
             background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
             border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            border: 1px solid var(--admin-border);
         }
 
         .pending-image img {
@@ -200,37 +530,44 @@
 
         .pending-details {
             flex: 1;
+            min-width: 0;
         }
 
         .pending-details h3 {
-            margin: 0 0 1rem 0;
+            margin: 0 0 0.75rem 0;
             color: var(--admin-primary);
-            font-size: 1.35rem;
-            font-weight: 700;
+            font-size: 1.28rem;
+            font-weight: 800;
             letter-spacing: -0.01em;
         }
 
+        .pending-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 0.5rem 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+
         .detail-row {
-            margin-bottom: 0.6rem;
-            font-size: 0.925rem;
+            margin-bottom: 0.35rem;
+            font-size: 0.88rem;
             color: var(--admin-text);
-            line-height: 1.5;
+            line-height: 1.45;
         }
 
         .detail-label {
             font-weight: 600;
             color: var(--admin-text-muted);
-            display: inline-block;
-            min-width: 110px;
+            margin-right: 0.35rem;
         }
 
         .pending-actions {
-            padding: 1rem 1.25rem;
-            background: linear-gradient(135deg, #fafbfc 0%, #f1f5f9 100%);
+            padding: 0.85rem 1.25rem;
+            background: #f8fafc;
             border-top: 1px solid var(--admin-border);
             display: flex;
             flex-wrap: wrap;
-            gap: 0.75rem;
+            gap: 0.65rem;
             align-items: center;
         }
 
@@ -238,99 +575,140 @@
             background: linear-gradient(135deg, var(--admin-success) 0%, #059669 100%);
             color: white;
             border: none;
-            padding: 0.65rem 1.25rem;
-            border-radius: 8px;
+            padding: 0.55rem 1.15rem;
+            border-radius: 9px;
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.86rem;
             cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+            transition: all 0.16s ease;
+            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
         }
 
         .btn-approve:hover {
             background: linear-gradient(135deg, #059669 0%, #047857 100%);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
         }
 
         .btn-reject {
-            background: linear-gradient(135deg, var(--admin-danger) 0%, #dc2626 100%);
-            color: white;
-            border: none;
-            padding: 0.65rem 1.25rem;
-            border-radius: 8px;
+            background: #fef2f2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+            padding: 0.55rem 1.1rem;
+            border-radius: 9px;
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.86rem;
             cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+            transition: all 0.16s ease;
         }
 
         .btn-reject:hover {
-            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            background: #dc2626;
+            color: #ffffff;
+            border-color: #dc2626;
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-edit-profile {
+            background: var(--admin-primary-light);
+            color: #ffffff;
+            border: none;
+            padding: 0.55rem 1.1rem;
+            border-radius: 9px;
+            font-weight: 600;
+            font-size: 0.86rem;
+            cursor: pointer;
+            transition: all 0.16s ease;
+        }
+
+        .btn-edit-profile:hover {
+            background: var(--admin-primary);
+            transform: translateY(-1px);
         }
 
         .no-pending {
             text-align: center;
-            padding: 3rem 2rem;
+            padding: 2.75rem 1.75rem;
             color: var(--admin-text-muted);
             background: var(--admin-card);
-            border-radius: 12px;
-            border: 2px dashed var(--admin-border);
+            border-radius: 16px;
+            border: 1px solid var(--admin-border);
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+        }
+
+        .no-pending-badge {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(16, 185, 129, 0.12);
+            color: #059669;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            margin: 0 auto 1rem;
         }
 
         .biography-text, .family-text {
-            max-height: 100px;
+            max-height: 110px;
             overflow-y: auto;
             background: #f8fafc;
-            padding: 0.75rem;
-            border-radius: 6px;
-            font-size: 0.875rem;
+            padding: 0.7rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
             line-height: 1.6;
             color: var(--admin-text);
             border: 1px solid var(--admin-border);
-            margin-top: 0.25rem;
+            margin-top: 0.3rem;
         }
 
-        /* Search Bar */
-        #pendingSearchBar {
-            background: var(--admin-card);
-            padding: 1rem;
-            border-radius: 10px;
-            border: 1px solid var(--admin-border);
-            margin-bottom: 1rem;
+        /* Non-blocking Toast Notifications */
+        .admin-toast-container {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 10050;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            max-width: 380px;
+            pointer-events: none;
         }
 
-        #pendingSearch {
-            flex: 1;
-            min-width: 250px;
-            padding: 0.65rem 1rem;
-            border-radius: 8px;
-            border: 1px solid var(--admin-border);
-            font-size: 0.925rem;
-            transition: all 0.2s ease;
+        .admin-toast {
+            pointer-events: auto;
+            background: #0f172a;
+            color: #f8fafc;
+            padding: 0.85rem 1.15rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            border-left: 4px solid #10b981;
+            font-size: 0.88rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            animation: toastSlideIn 0.22s ease;
         }
 
-        #pendingSearch:focus {
-            outline: none;
-            border-color: var(--admin-primary-light);
-            box-shadow: 0 0 0 3px rgba(44, 85, 48, 0.1);
+        .admin-toast.error {
+            border-left-color: #ef4444;
         }
 
-        /* Approved Container */
-        #approvedContainer {
-            margin-top: 3rem;
-            padding-top: 2rem;
-            border-top: 2px solid var(--admin-border);
+        .admin-toast.warning {
+            border-left-color: #f59e0b;
+        }
+
+        @keyframes toastSlideIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         /* Firebase Debug Panel */
         #firebaseDebugPanel {
             background: #fffbeb !important;
             border: 1px solid #fcd34d !important;
-            border-radius: 10px !important;
+            border-radius: 12px !important;
         }
 
         /* Responsive Design */
@@ -340,7 +718,20 @@
             }
 
             .admin-header h1 {
-                font-size: 1.35rem;
+                font-size: 1.2rem;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .stat-card {
+                padding: 0.95rem 1.1rem;
+            }
+
+            .stat-number {
+                font-size: 1.65rem;
             }
 
             .pending-content {
@@ -349,47 +740,39 @@
             }
 
             .pending-image {
-                width: 140px;
-                height: 170px;
+                width: 130px;
+                height: 160px;
                 margin: 0 auto;
             }
 
             .admin-controls {
-                flex-direction: column;
-                align-items: stretch;
+                padding: 0.75rem;
             }
 
-            .admin-controls .btn {
+            .admin-controls-primary {
                 width: 100%;
+            }
+
+            .admin-controls-primary .btn {
+                flex: 1;
                 justify-content: center;
+            }
+
+            .admin-controls-secondary {
+                width: 100%;
+                justify-content: space-between;
             }
 
             .pending-actions {
                 flex-direction: column;
+                align-items: stretch;
             }
 
-            .pending-actions .btn {
+            .pending-actions .btn,
+            .pending-actions button {
                 width: 100%;
-            }
-
-            .detail-label {
-                display: block;
-                min-width: unset;
-                margin-bottom: 0.15rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .stats {
-                grid-template-columns: 1fr;
-            }
-
-            .stat-number {
-                font-size: 2rem;
-            }
-
-            .pending-details h3 {
-                font-size: 1.15rem;
+                margin-left: 0 !important;
+                justify-content: center;
             }
         }
 
@@ -403,15 +786,40 @@
         }
 
         [data-theme="dark"] .admin-header {
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            background: linear-gradient(135deg, #09150c 0%, #142e19 100%);
         }
 
-        [data-theme="dark"] .pending-header {
-            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        [data-theme="dark"] .admin-tools-trigger {
+            background: #0f172a;
+            border-color: #334155;
+            color: #e2e8f0;
         }
 
-        [data-theme="dark"] .pending-actions {
-            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        [data-theme="dark"] .admin-tools-menu {
+            background: #1e293b;
+            border-color: #334155;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        [data-theme="dark"] .admin-tools-item:hover {
+            background: #334155;
+        }
+
+        [data-theme="dark"] .admin-tools-item.danger {
+            color: #f87171;
+        }
+
+        [data-theme="dark"] .admin-tools-item.danger:hover {
+            background: rgba(239, 68, 68, 0.15);
+        }
+
+        [data-theme="dark"] .stat-card.active {
+            border-color: #4ade80;
+            background: rgba(74, 222, 128, 0.08);
+        }
+
+        [data-theme="dark"] .stat-card.active .stat-card-sub {
+            color: #86efac;
         }
 
         [data-theme="dark"] .stat-number {
@@ -421,21 +829,52 @@
             background-clip: text;
         }
 
-        [data-theme="dark"] .biography-text,
-        [data-theme="dark"] .family-text {
+        [data-theme="dark"] .pending-header {
             background: #0f172a;
-            border-color: #334155;
         }
 
-        [data-theme="dark"] #pendingSearch {
+        [data-theme="dark"] .pending-header.approved-header {
+            background: rgba(16, 185, 129, 0.12);
+            border-bottom-color: rgba(16, 185, 129, 0.25);
+        }
+
+        [data-theme="dark"] .status-pill.pending {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fcd34d;
+        }
+
+        [data-theme="dark"] .status-pill.published {
+            background: rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+        }
+
+        [data-theme="dark"] .pending-details h3 {
+            color: #86efac;
+        }
+
+        [data-theme="dark"] .pending-actions {
+            background: #0f172a;
+        }
+
+        [data-theme="dark"] .btn-reject {
+            background: rgba(239, 68, 68, 0.12);
+            color: #fca5a5;
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        [data-theme="dark"] .btn-reject:hover {
+            background: #dc2626;
+            color: #ffffff;
+        }
+
+        [data-theme="dark"] .biography-text,
+        [data-theme="dark"] .family-text,
+        [data-theme="dark"] .admin-search-input {
             background: #0f172a;
             border-color: #334155;
             color: #e2e8f0;
         }
 
-        [data-theme="dark"] .no-pending {
-            border-color: #334155;
-        }
 
         /* ============================================
            EDIT MARTYR MODAL STYLES
@@ -1245,19 +1684,24 @@
 <body>
     <header class="admin-header">
         <div class="container">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1>Admin Panel - Moderate Submissions</h1>
-                    <p>Review and approve martyr submissions before they appear on the website</p>
+            <div class="admin-header-inner">
+                <div class="admin-header-brand">
+                    <h1>🕯️ Admin Panel — Moderate Submissions</h1>
+                    <p>Review and manage martyr memorials with care before publishing</p>
                 </div>
-                <div style="text-align: right; color: white;">
-                    <div style="font-size: 0.9rem; margin-bottom: 0.5rem;">
-                        Welcome, <strong id="adminUsername">Admin</strong>
+                <div class="admin-session-bar">
+                    <div class="session-pill">
+                        <span>👤 <strong id="adminUsername">Admin</strong></span>
+                        <span style="opacity: 0.45;">•</span>
+                        <span>⏱️ <span id="sessionTimer">--</span>m left</span>
                     </div>
-                    <div style="font-size: 0.8rem; opacity: 0.8; margin-bottom: 0.5rem;">
-                        Session expires in <span id="sessionTimer">--</span> minutes
-                    </div>
-                    <button id="logoutBtn" class="btn btn-secondary" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); padding: 0.25rem 0.75rem; font-size: 0.8rem;">
+                    <button type="button" id="adminThemeToggle" class="btn-header-action" title="Toggle Dark Mode">
+                        🌙 Theme
+                    </button>
+                    <a href="/" class="btn-header-action" style="text-decoration: none;">
+                        🌐 View Site
+                    </a>
+                    <button id="logoutBtn" class="btn-header-action logout">
                         🚪 Logout
                     </button>
                 </div>
@@ -1267,47 +1711,81 @@
 
     <main class="main-content">
         <div class="container">
+            <!-- Streamlined Primary Action Bar + Tools Dropdown -->
             <div class="admin-controls">
-                <button onclick="refreshData()" class="btn btn-primary">Refresh Data</button>
-                <button onclick="window.location.href='/add-martyr'" class="btn btn-secondary">Add Martyr</button>
-                <button id="testFirebaseBtn" class="btn btn-secondary">Test Firebase</button>
-                <button onclick="exportData()" class="btn btn-secondary">Export Data</button>
-                <button onclick="importData()" class="btn btn-secondary">Import Data</button>
-                <button onclick="clearAllPending()" class="btn btn-outline" style="color: #dc3545; border-color: #dc3545;">Clear All Pending</button>
-                <button onclick="window.location.href='/'" class="btn btn-secondary">Back to Website</button>
+                <div class="admin-controls-primary">
+                    <button onclick="refreshData()" class="btn btn-primary">🔄 Refresh Data</button>
+                    <button onclick="window.location.href='/add-martyr'" class="btn btn-secondary">➕ Add Martyr</button>
+                </div>
+                <div class="admin-controls-secondary">
+                    <div class="admin-tools-dropdown" id="adminToolsDropdown">
+                        <button type="button" class="btn btn-secondary" id="adminToolsBtn" aria-expanded="false">
+                            ⚙️ Tools &amp; Diagnostics ▾
+                        </button>
+                        <div class="admin-tools-menu" role="menu">
+                            <button type="button" id="testFirebaseBtn" class="tools-menu-item">
+                                🧪 Test Firebase Connection
+                            </button>
+                            <button type="button" onclick="exportData()" class="tools-menu-item">
+                                📥 Export Backup (JSON)
+                            </button>
+                            <button type="button" onclick="importData()" class="tools-menu-item">
+                                📤 Import Backup (JSON)
+                            </button>
+                            <div class="tools-menu-divider"></div>
+                            <button type="button" onclick="clearAllPending()" class="tools-menu-item danger">
+                                🗑️ Clear All Pending Queue
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <!-- Firebase Debug Panel (initially hidden) -->
-            <div id="firebaseDebugPanel" style="display: none; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 1rem; margin: 1rem 0;">
-                <h4 style="margin: 0 0 0.5rem 0; color: #495057;">🔧 Firebase Debug Information</h4>
+            <div id="firebaseDebugPanel" style="display: none; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 1.25rem; margin: 0 0 1.5rem 0;">
+                <h4 style="margin: 0 0 0.5rem 0; color: #1e293b;">🔧 Firebase Debug Information</h4>
                 <div id="firebaseDebugContent">
                     <!-- Debug info will be populated here -->
                 </div>
             </div>
 
-            <div class="stats" id="statsContainer">
-                <div class="stat-card">
-                    <div class="stat-number" id="pendingCount">0</div>
-                    <div>Pending Submissions</div>
+            <!-- Interactive KPI Tab Cards -->
+            <div class="stats" id="statsContainer" role="tablist">
+                <div class="stat-card active" id="tabPending" role="tab" aria-selected="true" tabindex="0">
+                    <div>
+                        <div class="stat-number" id="pendingCount">0</div>
+                        <div class="stat-label">⏳ Pending Submissions</div>
+                        <div class="stat-sub">Awaiting moderation review</div>
+                    </div>
+                    <span class="stat-tab-badge">Active View</span>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="approvedCount">0</div>
-                    <div>Approved Martyrs</div>
+                <div class="stat-card" id="tabApproved" role="tab" aria-selected="false" tabindex="0">
+                    <div>
+                        <div class="stat-number" id="approvedCount">0</div>
+                        <div class="stat-label">✅ Approved Martyrs</div>
+                        <div class="stat-sub">Published on the memorial</div>
+                    </div>
+                    <span class="stat-tab-badge">Switch View →</span>
                 </div>
             </div>
 
+            <!-- Pending Submissions Tab View -->
             <div id="pendingContainer">
-                <h2>Pending Submissions</h2>
+                <div class="admin-section-header">
+                    <h2>⏳ Pending Submissions</h2>
+                </div>
 
                 <!-- Pending search/filter controls -->
-                <div id="pendingSearchBar" style="margin: 0 0 1rem 0; display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-                    <input
-                        type="text"
-                        id="pendingSearch"
-                        placeholder="Search pending by martyr name, submitter name, or email..."
-                        style="flex: 1; min-width: 220px; padding: 0.5rem 0.75rem; border-radius: 4px; border: 1px solid #dee2e6; font-size: 0.95rem;"
-                    />
-                    <button id="pendingSearchClear" class="btn btn-secondary" style="font-size: 0.85rem;">
+                <div id="pendingSearchBar" class="admin-search-bar">
+                    <div class="admin-search-input-wrap">
+                        <span class="search-icon">🔍</span>
+                        <input
+                            type="text"
+                            id="pendingSearch"
+                            placeholder="Search pending by martyr name, submitter name, or email..."
+                        />
+                    </div>
+                    <button id="pendingSearchClear" class="btn btn-secondary">
                         Clear Search
                     </button>
                 </div>
@@ -1317,19 +1795,144 @@
                 </div>
             </div>
             
-            <div id="approvedContainer" style="margin-top: 3rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h2>Approved Martyrs (Published)</h2>
+            <!-- Approved Martyrs Tab View -->
+            <div id="approvedContainer" style="display: none;">
+                <div class="admin-section-header">
+                    <h2>✅ Approved Martyrs (Published)</h2>
                     <div>
-                        <button id="loadApprovedBtn" class="btn btn-primary">Load Approved Martyrs</button>
+                        <button id="loadApprovedBtn" class="btn btn-primary">🔄 Reload Approved Martyrs</button>
                     </div>
                 </div>
+
+                <!-- Instant Search Bar for Approved Martyrs -->
+                <div id="approvedSearchBar" class="admin-search-bar">
+                    <div class="admin-search-input-wrap">
+                        <span class="search-icon">🔍</span>
+                        <input
+                            type="text"
+                            id="approvedSearch"
+                            placeholder="Search 1,100+ published martyrs by name, location, organization, or ID..."
+                        />
+                    </div>
+                    <button id="approvedSearchClear" class="btn btn-secondary">
+                        Clear Search
+                    </button>
+                </div>
+
                 <div id="approvedList">
-                    <p style="text-align: center; color: #666; padding: 2rem;">Click "Load Approved Martyrs" to view published martyrs</p>
+                    <p style="text-align: center; color: #64748b; padding: 2rem;">Click "Approved Martyrs" above or "Reload Approved Martyrs" to view published profiles</p>
                 </div>
             </div>
         </div>
     </main>
+
+    <!-- Non-blocking Toast Container -->
+    <div id="adminToastContainer" class="admin-toast-container" aria-live="polite"></div>
+
+    <!-- UI-Only Interactions (Tabs, Tools Menu, Dark Mode) -->
+    <script>
+        (function() {
+            // 1. Dark Mode Toggle (persisted in localStorage)
+            const savedTheme = localStorage.getItem('adminTheme');
+            if (savedTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+            document.addEventListener('DOMContentLoaded', () => {
+                const themeBtn = document.getElementById('adminThemeToggle');
+                const updateThemeBtn = () => {
+                    if (!themeBtn) return;
+                    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                    themeBtn.innerHTML = isDark ? '☀️ Light' : '🌙 Dark';
+                };
+                updateThemeBtn();
+                if (themeBtn) {
+                    themeBtn.addEventListener('click', () => {
+                        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                        if (isDark) {
+                            document.documentElement.removeAttribute('data-theme');
+                            localStorage.setItem('adminTheme', 'light');
+                        } else {
+                            document.documentElement.setAttribute('data-theme', 'dark');
+                            localStorage.setItem('adminTheme', 'dark');
+                        }
+                        updateThemeBtn();
+                    });
+                }
+
+                // 2. Tools Dropdown Toggle
+                const toolsDropdown = document.getElementById('adminToolsDropdown');
+                const toolsBtn = document.getElementById('adminToolsBtn');
+                if (toolsDropdown && toolsBtn) {
+                    toolsBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const isOpen = toolsDropdown.classList.toggle('open');
+                        toolsBtn.setAttribute('aria-expanded', String(isOpen));
+                    });
+                    document.addEventListener('click', (e) => {
+                        if (!toolsDropdown.contains(e.target)) {
+                            toolsDropdown.classList.remove('open');
+                            toolsBtn.setAttribute('aria-expanded', 'false');
+                        }
+                    });
+                    // Close dropdown when a menu item is clicked
+                    toolsDropdown.querySelectorAll('.tools-menu-item').forEach(item => {
+                        item.addEventListener('click', () => {
+                            toolsDropdown.classList.remove('open');
+                            toolsBtn.setAttribute('aria-expanded', 'false');
+                        });
+                    });
+                }
+
+                // 3. Interactive KPI Tab Cards (Pending vs Approved)
+                const tabPending = document.getElementById('tabPending');
+                const tabApproved = document.getElementById('tabApproved');
+                const pendingContainer = document.getElementById('pendingContainer');
+                const approvedContainer = document.getElementById('approvedContainer');
+                let approvedLoadedOnce = false;
+
+                function switchAdminTab(tab) {
+                    if (!tabPending || !tabApproved || !pendingContainer || !approvedContainer) return;
+                    if (tab === 'pending') {
+                        tabPending.classList.add('active');
+                        tabPending.setAttribute('aria-selected', 'true');
+                        tabPending.querySelector('.stat-tab-badge').textContent = 'Active View';
+                        tabApproved.classList.remove('active');
+                        tabApproved.setAttribute('aria-selected', 'false');
+                        tabApproved.querySelector('.stat-tab-badge').textContent = 'Switch View →';
+                        pendingContainer.style.display = 'block';
+                        approvedContainer.style.display = 'none';
+                    } else {
+                        tabApproved.classList.add('active');
+                        tabApproved.setAttribute('aria-selected', 'true');
+                        tabApproved.querySelector('.stat-tab-badge').textContent = 'Active View';
+                        tabPending.classList.remove('active');
+                        tabPending.setAttribute('aria-selected', 'false');
+                        tabPending.querySelector('.stat-tab-badge').textContent = 'Switch View →';
+                        pendingContainer.style.display = 'none';
+                        approvedContainer.style.display = 'block';
+
+                        // Auto-load approved martyrs on first tab switch
+                        if (!approvedLoadedOnce && typeof window.loadApprovedMartyrs === 'function') {
+                            approvedLoadedOnce = true;
+                            window.loadApprovedMartyrs();
+                        }
+                    }
+                }
+
+                if (tabPending && tabApproved) {
+                    tabPending.addEventListener('click', () => switchAdminTab('pending'));
+                    tabApproved.addEventListener('click', () => switchAdminTab('approved'));
+                    tabPending.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); switchAdminTab('pending'); }
+                    });
+                    tabApproved.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); switchAdminTab('approved'); }
+                    });
+                }
+                window.switchAdminTab = switchAdminTab;
+            });
+        })();
+    </script>
 
     <!-- Simple Authentication Check using auth.js -->
     <script type="module">
