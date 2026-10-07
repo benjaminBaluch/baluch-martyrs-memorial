@@ -593,7 +593,8 @@ function toSearchString(value) {
 function initPendingSearch() {
     const searchInput = document.getElementById('pendingSearch');
     const clearBtn = document.getElementById('pendingSearchClear');
-    if (!searchInput) return;
+    if (!searchInput || searchInput.dataset.bound === '1') return;
+    searchInput.dataset.bound = '1';
 
     const applyFilter = () => {
         const query = searchInput.value.toLowerCase().trim();
@@ -609,6 +610,7 @@ function initPendingSearch() {
         clearBtn.addEventListener('click', () => {
             searchInput.value = '';
             applyFilter();
+            searchInput.focus();
         });
     }
 }
@@ -616,12 +618,22 @@ function initPendingSearch() {
 // Filter visible pending submissions in the DOM by martyr or submitter
 function filterPendingSubmissions(query) {
     const list = document.getElementById('pendingList');
+    const clearBtn = document.getElementById('pendingSearchClear');
+    const kbdEl = document.getElementById('pendingSearchKbd');
+    const countEl = document.getElementById('pendingSearchCount');
+    const trimmed = (query || '').toLowerCase().trim();
+
+    if (clearBtn) clearBtn.classList.toggle('visible', Boolean(trimmed));
+    if (kbdEl) kbdEl.style.display = trimmed ? 'none' : '';
+
     if (!list) return;
 
     const items = list.querySelectorAll('.pending-item');
-    if (!items.length) return;
+    if (!items.length) {
+        if (countEl) countEl.style.display = 'none';
+        return;
+    }
 
-    const trimmed = (query || '').toLowerCase().trim();
     let visibleCount = 0;
 
     items.forEach(item => {
@@ -637,21 +649,30 @@ function filterPendingSubmissions(query) {
         if (isMatch) visibleCount++;
     });
 
+    const total = items.length;
+    if (countEl) {
+        if (trimmed) {
+            countEl.style.display = 'inline-flex';
+            countEl.textContent = `${visibleCount} / ${total}`;
+        } else {
+            countEl.style.display = 'none';
+        }
+    }
+
     // Simple status message under the search bar
     let status = document.getElementById('pendingSearchStatus');
     if (!status) {
         status = document.createElement('div');
         status.id = 'pendingSearchStatus';
-        status.style.cssText = 'margin: 0.25rem 0 0.75rem 0; font-size: 0.85rem; color: #64748b;';
+        status.style.cssText = 'margin: -0.5rem 0 0.85rem 0.15rem; font-size: 0.82rem; color: var(--admin-text-muted);';
         const searchBar = document.getElementById('pendingSearchBar');
         if (searchBar && searchBar.parentNode) {
             searchBar.parentNode.insertBefore(status, searchBar.nextSibling);
         }
     }
 
-    const total = items.length;
     if (trimmed && !visibleCount) {
-        status.textContent = 'No pending submissions match your search.';
+        status.textContent = `No pending submissions match "${query}".`;
     } else if (trimmed) {
         status.textContent = `Showing ${visibleCount} of ${total} pending submissions for "${query}".`;
     } else {
@@ -1497,28 +1518,34 @@ async function refreshData() {
     }
     
     try {
-        // Show loading state in refresh button
+        // Show loading state in refresh button while preserving SVG icon
         const refreshBtn = document.querySelector('button[onclick="refreshData()"]') || 
-                          Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('Refresh'));
+                          Array.from(document.querySelectorAll('button')).find(btn => btn.textContent.includes('Refresh Data'));
         
+        let originalHTML = '';
         if (refreshBtn) {
-            const originalText = refreshBtn.textContent;
+            originalHTML = refreshBtn.innerHTML;
             refreshBtn.disabled = true;
-            refreshBtn.textContent = '🔄 Refreshing...';
-            
-            // Restore button after refresh
-            setTimeout(() => {
-                refreshBtn.disabled = false;
-                refreshBtn.textContent = originalText;
-            }, 2000);
+            refreshBtn.innerHTML = '<span>Refreshing...</span>';
         }
         
         console.log('📄 Loading pending submissions...');
         await loadPendingSubmissions();
         
+        const approvedContainer = document.getElementById('approvedContainer');
+        if (approvedContainer && approvedContainer.style.display !== 'none') {
+            await loadApprovedMartyrs();
+        }
+
         console.log('📈 Updating statistics...');
         await updateStats();
         
+        if (refreshBtn && originalHTML) {
+            refreshBtn.disabled = false;
+            refreshBtn.innerHTML = originalHTML;
+        }
+
+        showAdminToast('Memorial data refreshed', 'info');
         console.log('✅ Data refresh completed successfully');
         
     } catch (error) {
@@ -1568,7 +1595,7 @@ async function clearAllPending() {
         await updateStats();
         
         console.log('✅ All pending submissions cleared successfully');
-        alert('All pending submissions have been cleared from Firebase and local storage.');
+        showAdminToast('All pending submissions have been cleared.', 'info');
         
     } catch (error) {
         console.error('❌ Error clearing pending submissions:', error);
@@ -1657,11 +1684,18 @@ const APPROVED_BATCH_SIZE = 25;
 function initApprovedSearch() {
     const searchInput = document.getElementById('approvedSearch');
     const clearBtn = document.getElementById('approvedSearchClear');
-    if (!searchInput) return;
+    if (!searchInput || searchInput.dataset.bound === '1') return;
+    searchInput.dataset.bound = '1';
 
     const applyFilter = () => {
-        approvedSearchQuery = searchInput.value.toLowerCase().trim();
+        const raw = searchInput.value || '';
+        approvedSearchQuery = raw.toLowerCase().trim();
         approvedVisibleLimit = APPROVED_BATCH_SIZE;
+
+        const kbdEl = document.getElementById('approvedSearchKbd');
+        if (clearBtn) clearBtn.classList.toggle('visible', Boolean(approvedSearchQuery));
+        if (kbdEl) kbdEl.style.display = approvedSearchQuery ? 'none' : '';
+
         if (cachedApprovedMartyrs.length > 0) {
             renderApprovedMartyrsList();
         }
@@ -1675,12 +1709,14 @@ function initApprovedSearch() {
         clearBtn.addEventListener('click', () => {
             searchInput.value = '';
             applyFilter();
+            searchInput.focus();
         });
     }
 }
 
 function renderApprovedMartyrsList() {
     const approvedList = document.getElementById('approvedList');
+    const countEl = document.getElementById('approvedSearchCount');
     if (!approvedList) return;
 
     const query = approvedSearchQuery;
@@ -1691,15 +1727,26 @@ function renderApprovedMartyrsList() {
             return haystack.includes(query);
         });
 
+    if (countEl) {
+        if (cachedApprovedMartyrs.length > 0) {
+            countEl.style.display = 'inline-flex';
+            countEl.textContent = query
+                ? `${filtered.length} / ${cachedApprovedMartyrs.length}`
+                : `${cachedApprovedMartyrs.length} profiles`;
+        } else {
+            countEl.style.display = 'none';
+        }
+    }
+
     approvedList.innerHTML = '';
 
     // Status summary bar
     const summaryBar = document.createElement('div');
-    summaryBar.style.cssText = 'display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; padding: 0.65rem 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 0.88rem; color: #475569;';
+    summaryBar.style.cssText = 'display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; padding: 0.65rem 1rem; background: var(--admin-surface-subtle); border: 1px solid var(--admin-border); border-radius: 10px; font-size: 0.85rem; color: var(--admin-text-muted);';
     if (query) {
-        summaryBar.innerHTML = `<span>🔍 Found <strong>${filtered.length}</strong> matching martyr(s) out of ${cachedApprovedMartyrs.length} for "<strong>${escapeHTML(query)}</strong>"</span>`;
+        summaryBar.innerHTML = `<span>Found <strong>${filtered.length}</strong> matching martyr(s) out of ${cachedApprovedMartyrs.length} for "<strong>${escapeHTML(query)}</strong>"</span>`;
     } else {
-        summaryBar.innerHTML = `<span>📚 Showing <strong>${Math.min(approvedVisibleLimit, filtered.length)}</strong> of <strong>${filtered.length}</strong> published martyrs</span>`;
+        summaryBar.innerHTML = `<span>Showing <strong>${Math.min(approvedVisibleLimit, filtered.length)}</strong> of <strong>${filtered.length}</strong> published martyrs</span>`;
     }
     approvedList.appendChild(summaryBar);
 
@@ -1707,7 +1754,6 @@ function renderApprovedMartyrsList() {
         const emptyDiv = document.createElement('div');
         emptyDiv.className = 'no-pending';
         emptyDiv.innerHTML = `
-            <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">🔍</div>
             <h3>No matching published martyrs</h3>
             <p>No profiles matched "${escapeHTML(query)}". Try searching by another name, region, or organization.</p>
         `;
@@ -1728,9 +1774,9 @@ function renderApprovedMartyrsList() {
         loadMoreWrap.style.cssText = 'text-align: center; padding: 1.25rem 0 2rem;';
         const loadMoreBtn = document.createElement('button');
         loadMoreBtn.type = 'button';
-        loadMoreBtn.className = 'btn btn-secondary';
-        loadMoreBtn.style.cssText = 'padding: 0.75rem 1.75rem; font-size: 0.95rem;';
-        loadMoreBtn.textContent = `👇 Show More (${Math.min(APPROVED_BATCH_SIZE, remaining)} more of ${remaining} remaining)`;
+        loadMoreBtn.className = 'admin-btn admin-btn-secondary';
+        loadMoreBtn.style.cssText = 'padding: 0 1.5rem; height: 42px; font-size: 0.9rem;';
+        loadMoreBtn.textContent = `Show More (${Math.min(APPROVED_BATCH_SIZE, remaining)} more of ${remaining} remaining)`;
         loadMoreBtn.addEventListener('click', () => {
             approvedVisibleLimit += APPROVED_BATCH_SIZE;
             renderApprovedMartyrsList();
@@ -1751,63 +1797,56 @@ async function loadApprovedMartyrs() {
     
     const approvedList = document.getElementById('approvedList');
     const loadBtn = document.getElementById('loadApprovedBtn');
+    const originalBtnHTML = loadBtn ? loadBtn.innerHTML : 'Reload Approved Martyrs';
     
     // Check Firebase availability before proceeding
     if (!window.firebaseDB) {
         console.error('❌ Firebase not available for loadApprovedMartyrs');
         
-        // Try to reconnect Firebase
-        loadBtn.disabled = true;
-        loadBtn.textContent = 'Reconnecting Firebase...';
-        approvedList.innerHTML = '<p style="text-align: center; color: #d97706; padding: 2rem;">Firebase not available. Attempting to reconnect...</p>';
+        if (loadBtn) {
+            loadBtn.disabled = true;
+            loadBtn.innerHTML = '<span>Reconnecting Firebase...</span>';
+        }
+        if (approvedList) {
+            approvedList.innerHTML = '<p style="text-align: center; color: #d97706; padding: 2rem;">Firebase not available. Attempting to reconnect...</p>';
+        }
         
         const reconnected = await attemptFirebaseReconnection();
         if (!reconnected) {
-            approvedList.innerHTML = `<div style="text-align: center; color: #dc3545; padding: 2rem; background: #f8d7da; border-radius: 12px; margin: 1rem;">
-                <h3>❌ Firebase Connection Failed</h3>
-                <p>Unable to connect to Firebase database.</p>
-                <p style="font-size: 0.9rem; color: #666; margin-top: 1rem;">This could be due to network issues or Firebase configuration problems.</p>
-                <button onclick="loadApprovedMartyrs()" class="btn btn-primary" style="margin-top: 1rem;">Try Again</button>
-            </div>`;
-            loadBtn.disabled = false;
-            loadBtn.textContent = '🔄 Reload Approved Martyrs';
+            if (approvedList) {
+                approvedList.innerHTML = `<div style="text-align: center; color: #dc3545; padding: 2rem; background: #f8d7da; border-radius: 12px; margin: 1rem;">
+                    <h3>Firebase Connection Failed</h3>
+                    <p>Unable to connect to Firebase database.</p>
+                    <p style="font-size: 0.9rem; color: #666; margin-top: 1rem;">This could be due to network issues or Firebase configuration problems.</p>
+                    <button onclick="loadApprovedMartyrs()" class="admin-btn admin-btn-primary" style="margin-top: 1rem;">Try Again</button>
+                </div>`;
+            }
+            if (loadBtn) {
+                loadBtn.disabled = false;
+                loadBtn.innerHTML = originalBtnHTML;
+            }
             return;
         }
         
         console.log('✅ Firebase reconnection successful, continuing with load...');
     }
     
-    console.log('Elements found:', {
-        approvedList: !!approvedList,
-        loadBtn: !!loadBtn
-    });
-    
     if (!approvedList || !loadBtn) {
         console.error('❌ Required DOM elements not found!');
-        alert('Error: Required elements not found. Please refresh the page.');
         return;
     }
     
     // Show loading state
     loadBtn.disabled = true;
-    loadBtn.textContent = '⏳ Loading...';
-    approvedList.innerHTML = '<p style="text-align: center; padding: 2rem; color: #64748b;">Loading approved martyrs from Firebase...</p>';
+    loadBtn.innerHTML = '<span>Loading...</span>';
+    approvedList.innerHTML = '<p style="text-align: center; padding: 2rem; color: var(--admin-text-muted);">Loading approved martyrs from Firebase...</p>';
     
     try {
-        console.log('🔥 Firebase DB available:', !!window.firebaseDB);
-        console.log('🔥 Firebase DB methods available:', window.firebaseDB ? Object.keys(window.firebaseDB).includes('getApprovedMartyrs') : false);
-        
-        if (!window.firebaseDB) {
-            throw new Error('Firebase DB not available');
-        }
-        
-        if (typeof window.firebaseDB.getApprovedMartyrs !== 'function') {
+        if (!window.firebaseDB || typeof window.firebaseDB.getApprovedMartyrs !== 'function') {
             throw new Error('Firebase getApprovedMartyrs method not available');
         }
         
-        console.log('📋 Calling getApprovedMartyrs...');
         const result = await window.firebaseDB.getApprovedMartyrs();
-        console.log('📊 Firebase result:', result);
         
         if (result.success) {
             const martyrs = result.data || [];
@@ -1819,32 +1858,23 @@ async function loadApprovedMartyrs() {
                 renderApprovedMartyrsList();
                 console.log('✅ Approved martyrs rendered with progressive batching');
             } else {
-                approvedList.innerHTML = '<p style="text-align: center; color: #64748b; padding: 2rem;">No approved martyrs found in Firebase</p>';
-                console.log('💭 No approved martyrs found');
+                approvedList.innerHTML = '<p style="text-align: center; color: var(--admin-text-muted); padding: 2rem;">No approved martyrs found in Firebase</p>';
             }
         } else {
             throw new Error(result.error || 'Unknown Firebase error');
         }
     } catch (error) {
         console.error('❌ Error loading approved martyrs:', error);
-        console.error('🔍 Error details:', {
-            message: error.message,
-            stack: error.stack,
-            firebaseAvailable: !!window.firebaseDB,
-            timestamp: new Date().toISOString()
-        });
-        
         approvedList.innerHTML = `<div style="text-align: center; color: #dc3545; padding: 2rem; background: #f8d7da; border-radius: 12px; margin: 1rem;">
-            <h3>❌ Error Loading Data</h3>
-            <p><strong>Error:</strong> ${error.message}</p>
-            <p style="font-size: 0.9rem; color: #666; margin-top: 1rem;">Check browser console for detailed error information.</p>
-            <button onclick="loadApprovedMartyrs()" class="btn btn-primary" style="margin-top: 1rem;">Try Again</button>
+            <h3>Error Loading Data</h3>
+            <p><strong>Error:</strong> ${escapeHTML(error.message)}</p>
+            <button onclick="loadApprovedMartyrs()" class="admin-btn admin-btn-primary" style="margin-top: 1rem;">Try Again</button>
         </div>`;
     }
     
     // Reset button
     loadBtn.disabled = false;
-    loadBtn.textContent = '🔄 Reload Approved Martyrs';
+    loadBtn.innerHTML = originalBtnHTML;
     console.log('🔄 loadApprovedMartyrs function completed');
 }
 
@@ -2213,12 +2243,27 @@ async function saveEditedMartyr() {
     }
 }
 
-// Make edit functions globally available
+// Make admin & edit functions globally available immediately on module evaluation
+window.refreshData = refreshData;
+window.exportData = exportData;
+window.importData = importData;
+window.clearAllPending = clearAllPending;
+window.loadPendingSubmissions = loadPendingSubmissions;
+window.loadApprovedMartyrs = loadApprovedMartyrs;
+window.showAdminToast = showAdminToast;
 window.openEditMartyrModal = openEditMartyrModal;
 window.saveEditedMartyr = saveEditedMartyr;
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        initPendingSearch();
+        initApprovedSearch();
+    });
+} else {
+    initPendingSearch();
+    initApprovedSearch();
+}
 
 // ============================================
 // END EDIT MARTYR FUNCTIONALITY
 // ============================================
-
-

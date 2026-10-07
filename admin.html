@@ -10,35 +10,40 @@
     <link rel="shortcut icon" type="image/svg+xml" href="/favicon.svg">
     <style>
         :root {
-            --admin-primary: #1a3d20;
-            --admin-primary-light: #2c5530;
+            --admin-primary: #14331a;
+            --admin-primary-light: #23532a;
             --admin-accent: #d4af37;
-            --admin-success: #10b981;
-            --admin-danger: #ef4444;
-            --admin-warning: #f59e0b;
-            --admin-bg: #f1f5f9;
+            --admin-success: #059669;
+            --admin-danger: #dc2626;
+            --admin-warning: #d97706;
+            --admin-bg: #f4f6f8;
             --admin-card: #ffffff;
+            --admin-surface-subtle: #f8fafc;
             --admin-border: #e2e8f0;
-            --admin-text: #1e293b;
+            --admin-border-strong: #cbd5e1;
+            --admin-text: #0f172a;
+            --admin-text-secondary: #334155;
             --admin-text-muted: #64748b;
         }
 
         body {
             background: var(--admin-bg);
             color: var(--admin-text);
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            margin: 0;
         }
 
         /* ============================================
-           MODERN ADMIN HEADER
+           REFINED ADMIN HEADER
            ============================================ */
         .admin-header {
-            background: linear-gradient(135deg, #132c17 0%, var(--admin-primary-light) 100%);
-            color: white;
-            padding: 1.25rem 0;
+            background: linear-gradient(135deg, #0f2614 0%, #1d4624 100%);
+            color: #ffffff;
+            padding: 1.1rem 0;
             margin-bottom: 1.5rem;
-            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.18);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.12);
         }
 
         .admin-header-inner {
@@ -52,91 +57,111 @@
         .admin-brand {
             display: flex;
             align-items: center;
-            gap: 0.9rem;
+            gap: 0.875rem;
         }
 
-        .admin-brand-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.14);
-            border: 1px solid rgba(255, 255, 255, 0.22);
+        .admin-brand-mark {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.18);
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
+            color: #eab308;
         }
 
-        .admin-brand-icon svg {
+        .admin-brand-mark svg {
             width: 22px;
             height: 22px;
-            color: #86efac;
         }
 
         .admin-header h1 {
-            font-size: 1.4rem;
-            font-weight: 800;
+            font-size: 1.25rem;
+            font-weight: 700;
             margin: 0 0 0.15rem 0;
             letter-spacing: -0.02em;
             color: #ffffff;
+            line-height: 1.2;
         }
 
         .admin-header p {
-            opacity: 0.85;
             margin: 0;
-            font-size: 0.86rem;
-            color: #e2e8f0;
+            font-size: 0.82rem;
+            color: rgba(255, 255, 255, 0.72);
+            font-weight: 400;
         }
 
         .admin-session-bar {
             display: flex;
             align-items: center;
-            gap: 0.6rem;
+            gap: 0.5rem;
             flex-wrap: wrap;
         }
 
-        .admin-meta-pill {
+        .session-pill {
             display: inline-flex;
             align-items: center;
-            gap: 0.4rem;
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            padding: 0.4rem 0.75rem;
+            gap: 0.5rem;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            padding: 0.38rem 0.8rem;
             border-radius: 999px;
-            font-size: 0.8rem;
-            color: #f8fafc;
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.92);
             white-space: nowrap;
         }
 
-        .admin-header-btn {
+        .session-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #34d399;
+            box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.2);
+        }
+
+        .session-divider {
+            opacity: 0.35;
+        }
+
+        .btn-header-action {
             display: inline-flex;
             align-items: center;
-            gap: 0.35rem;
+            gap: 0.4rem;
             height: 34px;
-            padding: 0 0.85rem;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.14);
-            border: 1px solid rgba(255, 255, 255, 0.24);
+            padding: 0 0.8rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.18);
             color: #ffffff;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             font-weight: 600;
             cursor: pointer;
             text-decoration: none;
-            transition: all 0.16s ease;
+            transition: all 0.15s ease;
+            white-space: nowrap;
         }
 
-        .admin-header-btn:hover {
-            background: rgba(255, 255, 255, 0.24);
-            transform: translateY(-1px);
+        .btn-header-action svg {
+            width: 14px;
+            height: 14px;
+            opacity: 0.88;
         }
 
-        .admin-header-btn.logout-btn:hover {
-            background: rgba(239, 68, 68, 0.85);
-            border-color: rgba(239, 68, 68, 0.95);
+        .btn-header-action:hover {
+            background: rgba(255, 255, 255, 0.18);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-header-action.logout:hover {
+            background: #dc2626;
+            border-color: #ef4444;
         }
 
         /* ============================================
-           STREAMLINED TOOLBAR & TOOLS DROPDOWN
+           COMMAND BAR (ALL FUNCTIONS 1-CLICK ACCESSIBLE)
            ============================================ */
         .admin-controls {
             display: flex;
@@ -145,134 +170,85 @@
             flex-wrap: wrap;
             gap: 0.75rem;
             margin-bottom: 1.25rem;
-            padding: 0.9rem 1.15rem;
+            padding: 0.75rem 1rem;
             background: var(--admin-card);
-            border-radius: 14px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border-radius: 12px;
             border: 1px solid var(--admin-border);
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         }
 
         .admin-controls-primary,
         .admin-controls-secondary {
             display: flex;
             align-items: center;
-            gap: 0.6rem;
+            gap: 0.5rem;
             flex-wrap: wrap;
         }
 
-        .admin-controls .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.45rem;
-            font-size: 0.86rem;
-            height: 38px;
-            padding: 0 1rem;
-            border-radius: 10px;
-            font-weight: 600;
-            transition: all 0.16s ease;
-            cursor: pointer;
+        .toolbar-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--admin-border);
+            margin: 0 0.25rem;
         }
 
-        .admin-controls .btn svg {
-            width: 16px;
-            height: 16px;
+        .admin-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            height: 38px;
+            padding: 0 0.9rem;
+            border-radius: 8px;
+            font-size: 0.83rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            font-family: inherit;
+        }
+
+        .admin-btn svg {
+            width: 15px;
+            height: 15px;
             flex-shrink: 0;
         }
 
-        .admin-controls .btn:hover {
-            transform: translateY(-1px);
+        .admin-btn-primary {
+            background: var(--admin-primary-light);
+            color: #ffffff;
+            border-color: var(--admin-primary-light);
+            box-shadow: 0 1px 2px rgba(20, 51, 26, 0.15);
         }
 
-        .admin-tools-dropdown {
-            position: relative;
+        .admin-btn-primary:hover {
+            background: var(--admin-primary);
+            border-color: var(--admin-primary);
         }
 
-        .admin-tools-trigger {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.45rem;
-            height: 38px;
-            padding: 0 0.95rem;
-            border-radius: 10px;
-            background: #f8fafc;
-            border: 1px solid var(--admin-border);
-            color: var(--admin-text);
-            font-size: 0.86rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.16s ease;
+        .admin-btn-secondary {
+            background: var(--admin-surface-subtle);
+            color: var(--admin-text-secondary);
+            border-color: var(--admin-border-strong);
         }
 
-        .admin-tools-trigger:hover,
-        .admin-tools-trigger.active {
+        .admin-btn-secondary:hover {
             background: #f1f5f9;
-            border-color: #cbd5e1;
+            color: var(--admin-text);
+            border-color: #94a3b8;
         }
 
-        .admin-tools-trigger svg {
-            width: 15px;
-            height: 15px;
-            color: var(--admin-text-muted);
-        }
-
-        .admin-tools-menu {
-            display: none;
-            position: absolute;
-            top: calc(100% + 6px);
-            right: 0;
-            min-width: 230px;
-            background: var(--admin-card);
-            border: 1px solid var(--admin-border);
-            border-radius: 12px;
-            box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
-            padding: 0.4rem;
-            z-index: 1000;
-        }
-
-        .admin-tools-menu.show {
-            display: block;
-            animation: toolsMenuFade 0.15s ease;
-        }
-
-        @keyframes toolsMenuFade {
-            from { opacity: 0; transform: translateY(-4px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .admin-tools-item {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            width: 100%;
-            padding: 0.6rem 0.75rem;
-            border: none;
+        .admin-btn-danger-ghost {
             background: transparent;
-            color: var(--admin-text);
-            font-size: 0.85rem;
-            font-weight: 500;
-            border-radius: 8px;
-            cursor: pointer;
-            text-align: left;
-            transition: background 0.12s ease;
-        }
-
-        .admin-tools-item:hover {
-            background: #f1f5f9;
-        }
-
-        .admin-tools-divider {
-            height: 1px;
-            background: var(--admin-border);
-            margin: 0.35rem 0;
-        }
-
-        .admin-tools-item.danger {
             color: #dc2626;
-            font-weight: 600;
+            border-color: #fecaca;
         }
 
-        .admin-tools-item.danger:hover {
+        .admin-btn-danger-ghost:hover {
             background: #fef2f2;
+            border-color: #f87171;
+            color: #b91c1c;
         }
 
         /* ============================================
@@ -288,88 +264,118 @@
         .stat-card {
             background: var(--admin-card);
             padding: 1.15rem 1.35rem;
-            border-radius: 14px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            border: 2px solid var(--admin-border);
+            border-radius: 12px;
+            border: 1.5px solid var(--admin-border);
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 1rem;
             cursor: pointer;
-            text-align: left;
-            transition: all 0.2s ease;
+            transition: all 0.18s ease;
             position: relative;
+            user-select: none;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
         }
 
         .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
-            border-color: #cbd5e1;
+            border-color: #94a3b8;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
         }
 
         .stat-card.active {
             border-color: var(--admin-primary-light);
-            background: linear-gradient(135deg, rgba(44, 85, 48, 0.05) 0%, rgba(44, 85, 48, 0.01) 100%);
-            box-shadow: 0 6px 20px rgba(44, 85, 48, 0.12);
+            background: linear-gradient(180deg, rgba(35, 83, 42, 0.04) 0%, rgba(35, 83, 42, 0.01) 100%);
+            box-shadow: 0 4px 14px rgba(20, 51, 26, 0.08);
         }
 
-        .stat-card-left {
+        .stat-card.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1.5px;
+            left: 16px;
+            right: 16px;
+            height: 3px;
+            background: var(--admin-primary-light);
+            border-radius: 3px 3px 0 0;
+        }
+
+        .stat-card-main {
             display: flex;
             align-items: center;
-            gap: 0.9rem;
+            gap: 1rem;
         }
 
-        .stat-card-icon {
-            width: 46px;
-            height: 46px;
-            border-radius: 12px;
+        .stat-icon-box {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.35rem;
             flex-shrink: 0;
         }
 
-        .stat-card-icon.pending-icon {
-            background: rgba(245, 158, 11, 0.12);
+        .stat-icon-box svg {
+            width: 21px;
+            height: 21px;
+        }
+
+        .stat-icon-box.pending {
+            background: #fffbeb;
             color: #d97706;
+            border: 1px solid #fde68a;
         }
 
-        .stat-card-icon.approved-icon {
-            background: rgba(16, 185, 129, 0.12);
+        .stat-icon-box.approved {
+            background: #ecfdf5;
             color: #059669;
-        }
-
-        .stat-card-label {
-            font-size: 0.95rem;
-            color: var(--admin-text);
-            font-weight: 700;
-            margin-bottom: 0.15rem;
-        }
-
-        .stat-card-sub {
-            font-size: 0.78rem;
-            color: var(--admin-text-muted);
-            font-weight: 500;
-        }
-
-        .stat-card.active .stat-card-sub {
-            color: var(--admin-primary-light);
-            font-weight: 600;
+            border: 1px solid #a7f3d0;
         }
 
         .stat-number {
-            font-size: 2rem;
+            font-size: 1.75rem;
             font-weight: 800;
-            background: linear-gradient(135deg, var(--admin-primary) 0%, var(--admin-primary-light) 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            line-height: 1;
+            color: var(--admin-text);
+            line-height: 1.1;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.02em;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--admin-text);
+            margin-top: 0.15rem;
+        }
+
+        .stat-sub {
+            font-size: 0.76rem;
+            color: var(--admin-text-muted);
+            margin-top: 0.1rem;
+        }
+
+        .stat-tab-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.3rem 0.65rem;
+            border-radius: 999px;
+            background: var(--admin-surface-subtle);
+            color: var(--admin-text-muted);
+            border: 1px solid var(--admin-border);
+            white-space: nowrap;
+        }
+
+        .stat-card.active .stat-tab-badge {
+            background: var(--admin-primary-light);
+            color: #ffffff;
+            border-color: var(--admin-primary-light);
         }
 
         /* ============================================
-           SECTION HEADERS & SEARCH BARS
+           SENIOR UI DESIGNER SEARCH BAR
            ============================================ */
         .admin-section-header {
             display: flex;
@@ -377,66 +383,149 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 0.75rem;
-            margin-bottom: 1rem;
+            margin-bottom: 0.85rem;
         }
 
         .admin-section-header h2 {
-            font-size: 1.2rem;
-            font-weight: 800;
+            font-size: 1.1rem;
+            font-weight: 700;
             color: var(--admin-text);
             margin: 0;
+            letter-spacing: -0.01em;
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
 
-        .admin-search-bar {
-            background: var(--admin-card);
-            padding: 0.75rem 0.9rem;
-            border-radius: 12px;
-            border: 1px solid var(--admin-border);
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 0.65rem;
-            flex-wrap: wrap;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        .admin-search-shell {
+            margin-bottom: 1.15rem;
         }
 
-        .admin-search-input-wrap {
+        .admin-search-box {
             position: relative;
-            flex: 1;
-            min-width: 220px;
             display: flex;
             align-items: center;
+            width: 100%;
+            height: 46px;
+            background: var(--admin-card);
+            border: 1.5px solid var(--admin-border-strong);
+            border-radius: 10px;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
 
-        .admin-search-input-wrap svg {
-            position: absolute;
-            left: 0.85rem;
-            width: 17px;
-            height: 17px;
+        .admin-search-box:focus-within {
+            border-color: var(--admin-primary-light);
+            box-shadow: 0 0 0 3.5px rgba(35, 83, 42, 0.13);
+        }
+
+        .admin-search-leading-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding-left: 0.95rem;
+            padding-right: 0.6rem;
             color: var(--admin-text-muted);
+            pointer-events: none;
+            flex-shrink: 0;
+        }
+
+        .admin-search-box:focus-within .admin-search-leading-icon {
+            color: var(--admin-primary-light);
+        }
+
+        .admin-search-leading-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .admin-search-field {
+            flex: 1;
+            height: 100%;
+            border: none;
+            background: transparent;
+            color: var(--admin-text);
+            font-size: 0.9rem;
+            font-weight: 450;
+            font-family: inherit;
+            padding: 0 0.5rem 0 0;
+            min-width: 0;
+        }
+
+        .admin-search-field::placeholder {
+            color: #94a3b8;
+        }
+
+        .admin-search-field:focus {
+            outline: none;
+        }
+
+        .admin-search-trailing {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding-right: 0.65rem;
+            flex-shrink: 0;
+        }
+
+        .admin-search-meta {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--admin-text-muted);
+            background: var(--admin-surface-subtle);
+            border: 1px solid var(--admin-border);
+            padding: 0.18rem 0.55rem;
+            border-radius: 6px;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .admin-search-kbd {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 22px;
+            min-width: 22px;
+            padding: 0 0.35rem;
+            font-size: 0.72rem;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            color: #94a3b8;
+            background: var(--admin-surface-subtle);
+            border: 1px solid var(--admin-border);
+            border-radius: 5px;
             pointer-events: none;
         }
 
-        .admin-search-input {
-            width: 100%;
-            height: 40px;
-            padding: 0 0.9rem 0 2.45rem;
-            border-radius: 9px;
+        .admin-search-clear-btn {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            height: 28px;
+            padding: 0 0.6rem;
+            border-radius: 6px;
             border: 1px solid var(--admin-border);
-            background: #f8fafc;
-            color: var(--admin-text);
-            font-size: 0.9rem;
-            transition: all 0.16s ease;
+            background: var(--admin-surface-subtle);
+            color: var(--admin-text-secondary);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
         }
 
-        .admin-search-input:focus {
-            outline: none;
-            background: var(--admin-card);
-            border-color: var(--admin-primary-light);
-            box-shadow: 0 0 0 3px rgba(44, 85, 48, 0.12);
+        .admin-search-clear-btn.visible {
+            display: inline-flex;
+        }
+
+        .admin-search-clear-btn:hover {
+            background: #fee2e2;
+            border-color: #fca5a5;
+            color: #b91c1c;
+        }
+
+        .admin-search-clear-btn svg {
+            width: 13px;
+            height: 13px;
         }
 
         /* ============================================
@@ -444,35 +533,35 @@
            ============================================ */
         .pending-item {
             background: var(--admin-card);
-            border-radius: 14px;
-            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
             border: 1px solid var(--admin-border);
-            margin-bottom: 1.1rem;
+            margin-bottom: 1rem;
             overflow: hidden;
-            transition: box-shadow 0.2s ease, border-color 0.2s ease;
+            transition: box-shadow 0.18s ease, border-color 0.18s ease;
         }
 
         .pending-item:hover {
-            box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
-            border-color: #cbd5e1;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.07);
+            border-color: var(--admin-border-strong);
         }
 
         .pending-header {
-            background: #f8fafc;
-            padding: 0.75rem 1.25rem;
+            background: var(--admin-surface-subtle);
+            padding: 0.7rem 1.25rem;
             border-bottom: 1px solid var(--admin-border);
             display: flex;
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
             gap: 0.5rem;
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             color: var(--admin-text-muted);
         }
 
         .pending-header.approved-header {
-            background: rgba(16, 185, 129, 0.07);
-            border-bottom-color: rgba(16, 185, 129, 0.2);
+            background: rgba(5, 150, 105, 0.05);
+            border-bottom-color: rgba(5, 150, 105, 0.16);
         }
 
         .status-pill {
@@ -481,44 +570,44 @@
             gap: 0.35rem;
             padding: 0.2rem 0.6rem;
             border-radius: 999px;
-            font-size: 0.75rem;
+            font-size: 0.73rem;
             font-weight: 700;
+            letter-spacing: 0.01em;
         }
 
         .status-pill.pending {
-            background: rgba(245, 158, 11, 0.14);
-            color: #b45309;
+            background: #fef3c7;
+            color: #92400e;
         }
 
         .status-pill.published {
-            background: rgba(16, 185, 129, 0.15);
-            color: #047857;
+            background: #d1fae5;
+            color: #065f46;
         }
 
         .id-code {
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            font-size: 0.76rem;
-            background: rgba(148, 163, 184, 0.15);
+            font-size: 0.75rem;
+            background: rgba(148, 163, 184, 0.14);
             padding: 0.15rem 0.45rem;
             border-radius: 5px;
-            color: var(--admin-text);
+            color: var(--admin-text-secondary);
         }
 
         .pending-content {
             padding: 1.25rem;
             display: grid;
-            grid-template-columns: 150px 1fr;
+            grid-template-columns: 140px 1fr;
             gap: 1.35rem;
             align-items: start;
         }
 
         .pending-image {
-            width: 150px;
-            height: 185px;
-            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            width: 140px;
+            height: 175px;
+            background: var(--admin-surface-subtle);
             border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
             border: 1px solid var(--admin-border);
         }
 
@@ -534,132 +623,148 @@
         }
 
         .pending-details h3 {
-            margin: 0 0 0.75rem 0;
-            color: var(--admin-primary);
-            font-size: 1.28rem;
-            font-weight: 800;
+            margin: 0 0 0.7rem 0;
+            color: var(--admin-text);
+            font-size: 1.2rem;
+            font-weight: 700;
             letter-spacing: -0.01em;
         }
 
         .pending-meta-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
             gap: 0.5rem 1.25rem;
-            margin-bottom: 0.75rem;
+            margin-bottom: 0.65rem;
         }
 
         .detail-row {
-            margin-bottom: 0.35rem;
-            font-size: 0.88rem;
+            margin-bottom: 0.25rem;
+            font-size: 0.86rem;
             color: var(--admin-text);
             line-height: 1.45;
         }
 
         .detail-label {
+            display: block;
+            font-size: 0.73rem;
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
             color: var(--admin-text-muted);
-            margin-right: 0.35rem;
+            margin-bottom: 0.1rem;
         }
 
         .pending-actions {
-            padding: 0.85rem 1.25rem;
-            background: #f8fafc;
+            padding: 0.75rem 1.25rem;
+            background: var(--admin-surface-subtle);
             border-top: 1px solid var(--admin-border);
             display: flex;
             flex-wrap: wrap;
-            gap: 0.65rem;
+            gap: 0.6rem;
             align-items: center;
         }
 
         .btn-approve {
-            background: linear-gradient(135deg, var(--admin-success) 0%, #059669 100%);
+            background: #059669;
             color: white;
-            border: none;
-            padding: 0.55rem 1.15rem;
-            border-radius: 9px;
+            border: 1px solid #047857;
+            padding: 0.5rem 1.1rem;
+            border-radius: 8px;
             font-weight: 600;
-            font-size: 0.86rem;
+            font-size: 0.84rem;
             cursor: pointer;
-            transition: all 0.16s ease;
-            box-shadow: 0 2px 6px rgba(16, 185, 129, 0.25);
+            transition: all 0.15s ease;
         }
 
         .btn-approve:hover {
-            background: linear-gradient(135deg, #059669 0%, #047857 100%);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+            background: #047857;
         }
 
         .btn-reject {
-            background: #fef2f2;
+            background: #ffffff;
             color: #dc2626;
             border: 1px solid #fecaca;
-            padding: 0.55rem 1.1rem;
-            border-radius: 9px;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
             font-weight: 600;
-            font-size: 0.86rem;
+            font-size: 0.84rem;
             cursor: pointer;
-            transition: all 0.16s ease;
+            transition: all 0.15s ease;
         }
 
         .btn-reject:hover {
             background: #dc2626;
             color: #ffffff;
             border-color: #dc2626;
-            transform: translateY(-1px);
         }
 
         .btn-edit-profile {
             background: var(--admin-primary-light);
             color: #ffffff;
-            border: none;
-            padding: 0.55rem 1.1rem;
-            border-radius: 9px;
+            border: 1px solid var(--admin-primary-light);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
             font-weight: 600;
-            font-size: 0.86rem;
+            font-size: 0.84rem;
             cursor: pointer;
-            transition: all 0.16s ease;
+            transition: all 0.15s ease;
         }
 
         .btn-edit-profile:hover {
             background: var(--admin-primary);
-            transform: translateY(-1px);
         }
 
         .no-pending {
             text-align: center;
-            padding: 2.75rem 1.75rem;
+            padding: 2.5rem 1.5rem;
             color: var(--admin-text-muted);
             background: var(--admin-card);
-            border-radius: 16px;
+            border-radius: 12px;
             border: 1px solid var(--admin-border);
-            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
         }
 
-        .no-pending-badge {
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: rgba(16, 185, 129, 0.12);
-            color: #059669;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.6rem;
-            margin: 0 auto 1rem;
+        .no-pending h3 {
+            color: var(--admin-text);
+            font-size: 1.1rem;
+            margin: 0 0 0.4rem 0;
+        }
+
+        .no-pending p {
+            margin: 0 0 1.25rem 0;
+            font-size: 0.9rem;
+        }
+
+        .debug-details {
+            margin-top: 1.25rem;
+            text-align: left;
+            max-width: 480px;
+            margin-left: auto;
+            margin-right: auto;
+            background: var(--admin-surface-subtle);
+            border: 1px solid var(--admin-border);
+            border-radius: 8px;
+            padding: 0.65rem 0.9rem;
+            font-size: 0.8rem;
+            color: var(--admin-text-muted);
+        }
+
+        .debug-details summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--admin-text-secondary);
         }
 
         .biography-text, .family-text {
             max-height: 110px;
             overflow-y: auto;
-            background: #f8fafc;
-            padding: 0.7rem 0.9rem;
+            background: var(--admin-surface-subtle);
+            padding: 0.65rem 0.85rem;
             border-radius: 8px;
-            font-size: 0.85rem;
-            line-height: 1.6;
+            font-size: 0.84rem;
+            line-height: 1.55;
             color: var(--admin-text);
             border: 1px solid var(--admin-border);
-            margin-top: 0.3rem;
+            margin-top: 0.25rem;
         }
 
         /* Non-blocking Toast Notifications */
@@ -679,59 +784,36 @@
             pointer-events: auto;
             background: #0f172a;
             color: #f8fafc;
-            padding: 0.85rem 1.15rem;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            padding: 0.8rem 1.1rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.22);
             border-left: 4px solid #10b981;
-            font-size: 0.88rem;
+            font-size: 0.85rem;
             font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 0.65rem;
-            animation: toastSlideIn 0.22s ease;
+            gap: 0.6rem;
+            animation: toastSlideIn 0.2s ease;
         }
 
         .admin-toast.error {
             border-left-color: #ef4444;
         }
 
-        .admin-toast.warning {
-            border-left-color: #f59e0b;
+        .admin-toast.info {
+            border-left-color: #3b82f6;
         }
 
         @keyframes toastSlideIn {
-            from { opacity: 0; transform: translateY(12px); }
+            from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Firebase Debug Panel */
-        #firebaseDebugPanel {
-            background: #fffbeb !important;
-            border: 1px solid #fcd34d !important;
-            border-radius: 12px !important;
         }
 
         /* Responsive Design */
         @media (max-width: 768px) {
-            .admin-header {
-                padding: 1rem 0;
-            }
-
-            .admin-header h1 {
-                font-size: 1.2rem;
-            }
-
             .stats {
                 grid-template-columns: 1fr;
                 gap: 0.75rem;
-            }
-
-            .stat-card {
-                padding: 0.95rem 1.1rem;
-            }
-
-            .stat-number {
-                font-size: 1.65rem;
             }
 
             .pending-content {
@@ -740,102 +822,68 @@
             }
 
             .pending-image {
-                width: 130px;
-                height: 160px;
-                margin: 0 auto;
+                width: 120px;
+                height: 150px;
             }
 
             .admin-controls {
-                padding: 0.75rem;
-            }
-
-            .admin-controls-primary {
-                width: 100%;
-            }
-
-            .admin-controls-primary .btn {
-                flex: 1;
-                justify-content: center;
-            }
-
-            .admin-controls-secondary {
-                width: 100%;
-                justify-content: space-between;
-            }
-
-            .pending-actions {
                 flex-direction: column;
                 align-items: stretch;
             }
 
-            .pending-actions .btn,
-            .pending-actions button {
+            .admin-controls-primary,
+            .admin-controls-secondary {
                 width: 100%;
-                margin-left: 0 !important;
-                justify-content: center;
+            }
+
+            .admin-controls .admin-btn {
+                flex: 1;
+            }
+
+            .toolbar-divider {
+                display: none;
+            }
+
+            .admin-search-kbd {
+                display: none;
             }
         }
 
-        /* Dark mode support */
+        /* Dark Mode Support */
         [data-theme="dark"] {
-            --admin-bg: #0f172a;
+            --admin-bg: #0b1120;
             --admin-card: #1e293b;
+            --admin-surface-subtle: #0f172a;
             --admin-border: #334155;
-            --admin-text: #e2e8f0;
+            --admin-border-strong: #475569;
+            --admin-text: #f1f5f9;
+            --admin-text-secondary: #cbd5e1;
             --admin-text-muted: #94a3b8;
         }
 
         [data-theme="dark"] .admin-header {
-            background: linear-gradient(135deg, #09150c 0%, #142e19 100%);
-        }
-
-        [data-theme="dark"] .admin-tools-trigger {
-            background: #0f172a;
-            border-color: #334155;
-            color: #e2e8f0;
-        }
-
-        [data-theme="dark"] .admin-tools-menu {
-            background: #1e293b;
-            border-color: #334155;
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
-        }
-
-        [data-theme="dark"] .admin-tools-item:hover {
-            background: #334155;
-        }
-
-        [data-theme="dark"] .admin-tools-item.danger {
-            color: #f87171;
-        }
-
-        [data-theme="dark"] .admin-tools-item.danger:hover {
-            background: rgba(239, 68, 68, 0.15);
+            background: linear-gradient(135deg, #07140a 0%, #112a16 100%);
         }
 
         [data-theme="dark"] .stat-card.active {
             border-color: #4ade80;
-            background: rgba(74, 222, 128, 0.08);
+            background: rgba(74, 222, 128, 0.06);
         }
 
-        [data-theme="dark"] .stat-card.active .stat-card-sub {
-            color: #86efac;
+        [data-theme="dark"] .stat-card.active::after {
+            background: #4ade80;
         }
 
-        [data-theme="dark"] .stat-number {
-            background: linear-gradient(135deg, #86efac 0%, #4ade80 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        [data-theme="dark"] .stat-icon-box.pending {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fbbf24;
+            border-color: rgba(245, 158, 11, 0.3);
         }
 
-        [data-theme="dark"] .pending-header {
-            background: #0f172a;
-        }
-
-        [data-theme="dark"] .pending-header.approved-header {
-            background: rgba(16, 185, 129, 0.12);
-            border-bottom-color: rgba(16, 185, 129, 0.25);
+        [data-theme="dark"] .stat-icon-box.approved {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            border-color: rgba(16, 185, 129, 0.3);
         }
 
         [data-theme="dark"] .status-pill.pending {
@@ -848,31 +896,18 @@
             color: #6ee7b7;
         }
 
-        [data-theme="dark"] .pending-details h3 {
-            color: #86efac;
-        }
-
-        [data-theme="dark"] .pending-actions {
-            background: #0f172a;
-        }
-
         [data-theme="dark"] .btn-reject {
             background: rgba(239, 68, 68, 0.12);
             color: #fca5a5;
             border-color: rgba(239, 68, 68, 0.3);
         }
 
-        [data-theme="dark"] .btn-reject:hover {
-            background: #dc2626;
-            color: #ffffff;
+        [data-theme="dark"] .admin-btn-secondary:hover {
+            background: #334155;
         }
 
-        [data-theme="dark"] .biography-text,
-        [data-theme="dark"] .family-text,
-        [data-theme="dark"] .admin-search-input {
-            background: #0f172a;
-            border-color: #334155;
-            color: #e2e8f0;
+        [data-theme="dark"] .admin-btn-danger-ghost:hover {
+            background: rgba(239, 68, 68, 0.15);
         }
 
 
@@ -1685,24 +1720,35 @@
     <header class="admin-header">
         <div class="container">
             <div class="admin-header-inner">
-                <div class="admin-header-brand">
-                    <h1>🕯️ Admin Panel — Moderate Submissions</h1>
-                    <p>Review and manage martyr memorials with care before publishing</p>
+                <div class="admin-brand">
+                    <div class="admin-brand-mark" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1>Admin Moderation Console</h1>
+                        <p>Baluch Martyrs Memorial • Review &amp; publish submissions</p>
+                    </div>
                 </div>
                 <div class="admin-session-bar">
                     <div class="session-pill">
-                        <span>👤 <strong id="adminUsername">Admin</strong></span>
-                        <span style="opacity: 0.45;">•</span>
-                        <span>⏱️ <span id="sessionTimer">--</span>m left</span>
+                        <span class="session-dot" aria-hidden="true"></span>
+                        <span>Signed in as <strong id="adminUsername">Admin</strong></span>
+                        <span class="session-divider">•</span>
+                        <span>Session: <span id="sessionTimer">--</span>m</span>
                     </div>
                     <button type="button" id="adminThemeToggle" class="btn-header-action" title="Toggle Dark Mode">
-                        🌙 Theme
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                        <span>Dark Mode</span>
                     </button>
-                    <a href="/" class="btn-header-action" style="text-decoration: none;">
-                        🌐 View Site
+                    <a href="/" class="btn-header-action">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        <span>View Site</span>
                     </a>
                     <button id="logoutBtn" class="btn-header-action logout">
-                        🚪 Logout
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        <span>Logout</span>
                     </button>
                 </div>
             </div>
@@ -1711,39 +1757,42 @@
 
     <main class="main-content">
         <div class="container">
-            <!-- Streamlined Primary Action Bar + Tools Dropdown -->
+            <!-- Unified Command Bar (All functions 1-click accessible) -->
             <div class="admin-controls">
                 <div class="admin-controls-primary">
-                    <button onclick="refreshData()" class="btn btn-primary">🔄 Refresh Data</button>
-                    <button onclick="window.location.href='/add-martyr'" class="btn btn-secondary">➕ Add Martyr</button>
+                    <button onclick="refreshData()" class="admin-btn admin-btn-primary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                        <span>Refresh Data</span>
+                    </button>
+                    <button onclick="window.location.href='/add-martyr'" class="admin-btn admin-btn-secondary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        <span>Add Martyr</span>
+                    </button>
+                    <button id="testFirebaseBtn" class="admin-btn admin-btn-secondary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                        <span>Test Firebase</span>
+                    </button>
                 </div>
                 <div class="admin-controls-secondary">
-                    <div class="admin-tools-dropdown" id="adminToolsDropdown">
-                        <button type="button" class="btn btn-secondary" id="adminToolsBtn" aria-expanded="false">
-                            ⚙️ Tools &amp; Diagnostics ▾
-                        </button>
-                        <div class="admin-tools-menu" role="menu">
-                            <button type="button" id="testFirebaseBtn" class="tools-menu-item">
-                                🧪 Test Firebase Connection
-                            </button>
-                            <button type="button" onclick="exportData()" class="tools-menu-item">
-                                📥 Export Backup (JSON)
-                            </button>
-                            <button type="button" onclick="importData()" class="tools-menu-item">
-                                📤 Import Backup (JSON)
-                            </button>
-                            <div class="tools-menu-divider"></div>
-                            <button type="button" onclick="clearAllPending()" class="tools-menu-item danger">
-                                🗑️ Clear All Pending Queue
-                            </button>
-                        </div>
-                    </div>
+                    <button onclick="exportData()" class="admin-btn admin-btn-secondary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <span>Export JSON</span>
+                    </button>
+                    <button onclick="importData()" class="admin-btn admin-btn-secondary">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <span>Import JSON</span>
+                    </button>
+                    <div class="toolbar-divider" aria-hidden="true"></div>
+                    <button onclick="clearAllPending()" class="admin-btn admin-btn-danger-ghost">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        <span>Clear Pending</span>
+                    </button>
                 </div>
             </div>
             
             <!-- Firebase Debug Panel (initially hidden) -->
-            <div id="firebaseDebugPanel" style="display: none; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 1.25rem; margin: 0 0 1.5rem 0;">
-                <h4 style="margin: 0 0 0.5rem 0; color: #1e293b;">🔧 Firebase Debug Information</h4>
+            <div id="firebaseDebugPanel" style="display: none; background: var(--admin-card); border: 1px solid var(--admin-border-strong); border-radius: 12px; padding: 1.25rem; margin: 0 0 1.5rem 0;">
+                <h4 style="margin: 0 0 0.5rem 0; color: var(--admin-text); font-size: 0.95rem;">Firebase Diagnostics Report</h4>
                 <div id="firebaseDebugContent">
                     <!-- Debug info will be populated here -->
                 </div>
@@ -1752,18 +1801,32 @@
             <!-- Interactive KPI Tab Cards -->
             <div class="stats" id="statsContainer" role="tablist">
                 <div class="stat-card active" id="tabPending" role="tab" aria-selected="true" tabindex="0">
-                    <div>
-                        <div class="stat-number" id="pendingCount">0</div>
-                        <div class="stat-label">⏳ Pending Submissions</div>
-                        <div class="stat-sub">Awaiting moderation review</div>
+                    <div class="stat-card-main">
+                        <div class="stat-icon-box pending" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="stat-number" id="pendingCount">0</div>
+                            <div class="stat-label">Pending Submissions</div>
+                            <div class="stat-sub">Awaiting moderation review</div>
+                        </div>
                     </div>
                     <span class="stat-tab-badge">Active View</span>
                 </div>
                 <div class="stat-card" id="tabApproved" role="tab" aria-selected="false" tabindex="0">
-                    <div>
-                        <div class="stat-number" id="approvedCount">0</div>
-                        <div class="stat-label">✅ Approved Martyrs</div>
-                        <div class="stat-sub">Published on the memorial</div>
+                    <div class="stat-card-main">
+                        <div class="stat-icon-box approved" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="stat-number" id="approvedCount">0</div>
+                            <div class="stat-label">Approved Martyrs</div>
+                            <div class="stat-sub">Published on the memorial</div>
+                        </div>
                     </div>
                     <span class="stat-tab-badge">Switch View →</span>
                 </div>
@@ -1772,22 +1835,33 @@
             <!-- Pending Submissions Tab View -->
             <div id="pendingContainer">
                 <div class="admin-section-header">
-                    <h2>⏳ Pending Submissions</h2>
+                    <h2>Pending Submissions</h2>
                 </div>
 
-                <!-- Pending search/filter controls -->
-                <div id="pendingSearchBar" class="admin-search-bar">
-                    <div class="admin-search-input-wrap">
-                        <span class="search-icon">🔍</span>
+                <!-- Senior UI Designer Integrated Search Bar (Pending) -->
+                <div id="pendingSearchBar" class="admin-search-shell">
+                    <div class="admin-search-box">
+                        <span class="admin-search-leading-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                        </span>
                         <input
                             type="text"
                             id="pendingSearch"
-                            placeholder="Search pending by martyr name, submitter name, or email..."
+                            class="admin-search-field"
+                            placeholder="Filter pending queue by martyr name, submitter name, or email..."
+                            autocomplete="off"
                         />
+                        <div class="admin-search-trailing">
+                            <span id="pendingSearchCount" class="admin-search-meta" style="display: none;"></span>
+                            <button type="button" id="pendingSearchClear" class="admin-search-clear-btn" title="Clear search">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                <span>Clear</span>
+                            </button>
+                            <kbd class="admin-search-kbd" id="pendingSearchKbd">/</kbd>
+                        </div>
                     </div>
-                    <button id="pendingSearchClear" class="btn btn-secondary">
-                        Clear Search
-                    </button>
                 </div>
 
                 <div id="pendingList">
@@ -1798,29 +1872,43 @@
             <!-- Approved Martyrs Tab View -->
             <div id="approvedContainer" style="display: none;">
                 <div class="admin-section-header">
-                    <h2>✅ Approved Martyrs (Published)</h2>
+                    <h2>Approved Martyrs (Published)</h2>
                     <div>
-                        <button id="loadApprovedBtn" class="btn btn-primary">🔄 Reload Approved Martyrs</button>
+                        <button id="loadApprovedBtn" class="admin-btn admin-btn-primary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                            <span>Reload Approved Martyrs</span>
+                        </button>
                     </div>
                 </div>
 
-                <!-- Instant Search Bar for Approved Martyrs -->
-                <div id="approvedSearchBar" class="admin-search-bar">
-                    <div class="admin-search-input-wrap">
-                        <span class="search-icon">🔍</span>
+                <!-- Senior UI Designer Integrated Search Bar (Approved) -->
+                <div id="approvedSearchBar" class="admin-search-shell">
+                    <div class="admin-search-box">
+                        <span class="admin-search-leading-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                        </span>
                         <input
                             type="text"
                             id="approvedSearch"
-                            placeholder="Search 1,100+ published martyrs by name, location, organization, or ID..."
+                            class="admin-search-field"
+                            placeholder="Search published martyrs by name, father's name, location, organization, or ID..."
+                            autocomplete="off"
                         />
+                        <div class="admin-search-trailing">
+                            <span id="approvedSearchCount" class="admin-search-meta" style="display: none;"></span>
+                            <button type="button" id="approvedSearchClear" class="admin-search-clear-btn" title="Clear search">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                <span>Clear</span>
+                            </button>
+                            <kbd class="admin-search-kbd" id="approvedSearchKbd">/</kbd>
+                        </div>
                     </div>
-                    <button id="approvedSearchClear" class="btn btn-secondary">
-                        Clear Search
-                    </button>
                 </div>
 
                 <div id="approvedList">
-                    <p style="text-align: center; color: #64748b; padding: 2rem;">Click "Approved Martyrs" above or "Reload Approved Martyrs" to view published profiles</p>
+                    <p style="text-align: center; color: var(--admin-text-muted); padding: 2rem;">Click "Approved Martyrs" above or "Reload Approved Martyrs" to view published profiles</p>
                 </div>
             </div>
         </div>
@@ -1829,7 +1917,7 @@
     <!-- Non-blocking Toast Container -->
     <div id="adminToastContainer" class="admin-toast-container" aria-live="polite"></div>
 
-    <!-- UI-Only Interactions (Tabs, Tools Menu, Dark Mode) -->
+    <!-- UI-Only Interactions (Tabs, Keyboard Shortcuts, Dark Mode) -->
     <script>
         (function() {
             // 1. Dark Mode Toggle (persisted in localStorage)
@@ -1842,7 +1930,9 @@
                 const updateThemeBtn = () => {
                     if (!themeBtn) return;
                     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-                    themeBtn.innerHTML = isDark ? '☀️ Light' : '🌙 Dark';
+                    themeBtn.innerHTML = isDark
+                        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg><span>Light Mode</span>'
+                        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><span>Dark Mode</span>';
                 };
                 updateThemeBtn();
                 if (themeBtn) {
@@ -1859,36 +1949,30 @@
                     });
                 }
 
-                // 2. Tools Dropdown Toggle
-                const toolsDropdown = document.getElementById('adminToolsDropdown');
-                const toolsBtn = document.getElementById('adminToolsBtn');
-                if (toolsDropdown && toolsBtn) {
-                    toolsBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const isOpen = toolsDropdown.classList.toggle('open');
-                        toolsBtn.setAttribute('aria-expanded', String(isOpen));
-                    });
-                    document.addEventListener('click', (e) => {
-                        if (!toolsDropdown.contains(e.target)) {
-                            toolsDropdown.classList.remove('open');
-                            toolsBtn.setAttribute('aria-expanded', 'false');
-                        }
-                    });
-                    // Close dropdown when a menu item is clicked
-                    toolsDropdown.querySelectorAll('.tools-menu-item').forEach(item => {
-                        item.addEventListener('click', () => {
-                            toolsDropdown.classList.remove('open');
-                            toolsBtn.setAttribute('aria-expanded', 'false');
-                        });
-                    });
-                }
-
-                // 3. Interactive KPI Tab Cards (Pending vs Approved)
+                // 2. Interactive KPI Tab Cards (Pending vs Approved)
                 const tabPending = document.getElementById('tabPending');
                 const tabApproved = document.getElementById('tabApproved');
                 const pendingContainer = document.getElementById('pendingContainer');
                 const approvedContainer = document.getElementById('approvedContainer');
                 let approvedLoadedOnce = false;
+                let pendingApprovedLoad = false;
+
+                function triggerApprovedLoadIfNeeded() {
+                    if (approvedLoadedOnce) return;
+                    if (typeof window.loadApprovedMartyrs === 'function' && window.firebaseDB) {
+                        approvedLoadedOnce = true;
+                        pendingApprovedLoad = false;
+                        window.loadApprovedMartyrs();
+                    } else {
+                        pendingApprovedLoad = true;
+                    }
+                }
+
+                window.addEventListener('firebaseReady', () => {
+                    if (pendingApprovedLoad) {
+                        setTimeout(triggerApprovedLoadIfNeeded, 150);
+                    }
+                });
 
                 function switchAdminTab(tab) {
                     if (!tabPending || !tabApproved || !pendingContainer || !approvedContainer) return;
@@ -1910,12 +1994,7 @@
                         tabPending.querySelector('.stat-tab-badge').textContent = 'Switch View →';
                         pendingContainer.style.display = 'none';
                         approvedContainer.style.display = 'block';
-
-                        // Auto-load approved martyrs on first tab switch
-                        if (!approvedLoadedOnce && typeof window.loadApprovedMartyrs === 'function') {
-                            approvedLoadedOnce = true;
-                            window.loadApprovedMartyrs();
-                        }
+                        triggerApprovedLoadIfNeeded();
                     }
                 }
 
@@ -1930,6 +2009,19 @@
                     });
                 }
                 window.switchAdminTab = switchAdminTab;
+
+                // 3. Press "/" to focus the active tab's search bar
+                document.addEventListener('keydown', (e) => {
+                    if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+                    const tag = (document.activeElement && document.activeElement.tagName || '').toLowerCase();
+                    if (tag === 'input' || tag === 'textarea' || tag === 'select' || (document.activeElement && document.activeElement.isContentEditable)) {
+                        return;
+                    }
+                    e.preventDefault();
+                    const isApprovedVisible = approvedContainer && approvedContainer.style.display !== 'none';
+                    const targetInput = document.getElementById(isApprovedVisible ? 'approvedSearch' : 'pendingSearch');
+                    if (targetInput) targetInput.focus();
+                });
             });
         })();
     </script>
