@@ -509,6 +509,203 @@ function normalizeRegion(place) {
         .join(' ');
 }
 
+const galleryCustomOrgCanonicalMap = new Map();
+
+function normalizeOrganization(rawOrg) {
+    const trimmed = (rawOrg || '').toString().trim().replace(/\s+/g, ' ');
+    if (!trimmed) return null;
+
+    const lowerRaw = trimmed.toLowerCase();
+    if (/^(none|n\/a|na|nil|null|undefined|unknown|not\s*specified|unspecified|no\s*affiliation|independent|[-—–]+)$/i.test(lowerRaw)) {
+        return null;
+    }
+
+    const norm = lowerRaw
+        .replace(/baluch/g, 'baloch')
+        .replace(/organisation/g, 'organization')
+        .replace(/[—–]/g, '-');
+
+    if (
+        /\bbla\b/.test(norm) ||
+        norm.includes('baloch liberation army') ||
+        norm.includes('balochistan liberation army') ||
+        norm.includes('majeed brigade') ||
+        norm.includes('majid brigade') ||
+        norm.includes('fateh squad') ||
+        norm.includes('fatah squad') ||
+        norm.includes('special tactical operations squad') ||
+        /\bstos\b/.test(norm) ||
+        /\bzrab\b/.test(norm)
+    ) {
+        return 'Baloch Liberation Army (BLA)';
+    }
+
+    if (
+        /\bblf\b/.test(norm) ||
+        norm.includes('balochistan liberation front') ||
+        norm.includes('baloch liberation front') ||
+        norm.includes('sadozai') ||
+        norm.includes('saddozai')
+    ) {
+        return 'Balochistan Liberation Front (BLF)';
+    }
+
+    if (
+        /\bbra\b/.test(norm) ||
+        norm.includes('baloch republican army') ||
+        norm.includes('balochistan republican army')
+    ) {
+        return 'Baloch Republican Army (BRA)';
+    }
+
+    if (
+        /\bbna\b/.test(norm) ||
+        norm.includes('baloch nationalist army') ||
+        norm.includes('balochistan nationalist army') ||
+        norm.includes('baloch national army') ||
+        norm.includes('balochistan national army')
+    ) {
+        return 'Baloch Nationalist Army (BNA)';
+    }
+
+    if (
+        /\bbrg\b/.test(norm) ||
+        norm.includes('baloch republican guard') ||
+        norm.includes('balochistan republican guard')
+    ) {
+        return 'Baloch Republican Guards (BRG)';
+    }
+
+    if (
+        /\buba\b/.test(norm) ||
+        norm.includes('united baloch army') ||
+        norm.includes('united balochistan army')
+    ) {
+        return 'United Baloch Army (UBA)';
+    }
+
+    if (
+        /\bbras\b/.test(norm) ||
+        norm.includes('raaji aajoi') ||
+        norm.includes('raji ajoi') ||
+        norm.includes('aajoi sangar')
+    ) {
+        return 'Baloch Raaji Aajoi Sangar (BRAS)';
+    }
+
+    if (
+        /\bleb\b/.test(norm) ||
+        norm.includes('lashkar-e-balochistan') ||
+        norm.includes('lashkar e balochistan') ||
+        norm.includes('lashkar balochistan')
+    ) {
+        return 'Lashkar-e-Balochistan (LeB)';
+    }
+
+    if (
+        /\bblt\b/.test(norm) ||
+        norm.includes('baloch liberation tiger') ||
+        norm.includes('balochistan liberation tiger')
+    ) {
+        return 'Baloch Liberation Tigers (BLT)';
+    }
+
+    if (
+        /\bbluf\b/.test(norm) ||
+        norm.includes('liberation united front')
+    ) {
+        return 'Balochistan Liberation United Front (BLUF)';
+    }
+
+    if (
+        /\bbso\b/.test(norm) ||
+        norm.includes('baloch students organization') ||
+        norm.includes('baloch student organization')
+    ) {
+        return 'Baloch Students Organization - Azad (BSO-Azad)';
+    }
+
+    if (
+        /\bbnm\b/.test(norm) ||
+        norm.includes('baloch national movement') ||
+        norm.includes('balochistan national movement')
+    ) {
+        return 'Baloch National Movement (BNM)';
+    }
+
+    if (
+        /\bbrp\b/.test(norm) ||
+        norm.includes('baloch republican party') ||
+        norm.includes('balochistan republican party')
+    ) {
+        return 'Baloch Republican Party (BRP)';
+    }
+
+    if (
+        /\bbnp\b/.test(norm) ||
+        norm.includes('balochistan national party') ||
+        norm.includes('baloch national party')
+    ) {
+        return 'Balochistan National Party (BNP)';
+    }
+
+    if (
+        /\bbyc\b/.test(norm) ||
+        norm.includes('yakjehti committee') ||
+        norm.includes('baloch yakjehti')
+    ) {
+        return 'Baloch Yakjehti Committee (BYC)';
+    }
+
+    if (
+        /\bvbmp\b/.test(norm) ||
+        norm.includes('voice for baloch missing') ||
+        norm.includes('missing persons')
+    ) {
+        return 'Voice for Baloch Missing Persons (VBMP)';
+    }
+
+    if (
+        /\bbwf\b/.test(norm) ||
+        norm.includes('baloch women forum')
+    ) {
+        return 'Baloch Women Forum (BWF)';
+    }
+
+    if (/^(civilian|common citizen|local resident|villager|citizen)/i.test(norm) || norm.includes('no armed affiliation')) {
+        return 'Civilian';
+    }
+    if (/^(student|academic|teacher|professor|scholar)/i.test(norm)) {
+        return 'Student / Academic';
+    }
+    if (/^(journalist|media|reporter|press)/i.test(norm)) {
+        return 'Journalist / Media';
+    }
+    if (norm.includes('human rights') || norm.includes('hr activist') || norm.includes('rights activist')) {
+        return 'Human Rights Activist';
+    }
+    if (norm.includes('political activist') || norm.includes('political worker') || norm.includes('social activist')) {
+        return 'Political Activist';
+    }
+
+    let cleaned = trimmed.split(/\s+\/\s+/)[0].trim();
+    const dashMatch = cleaned.match(/^([A-Z0-9-]{2,10})\s*[—–-]\s*(.+)$/);
+    if (dashMatch) {
+        cleaned = `${dashMatch[2].trim()} (${dashMatch[1].trim()})`;
+    }
+    cleaned = cleaned
+        .replace(/\bBaluch\b/g, 'Baloch')
+        .replace(/\bBaluchistan\b/g, 'Balochistan')
+        .replace(/\bOrganisation\b/g, 'Organization');
+
+    const cacheKey = cleaned.toLowerCase();
+    if (galleryCustomOrgCanonicalMap.has(cacheKey)) {
+        return galleryCustomOrgCanonicalMap.get(cacheKey);
+    }
+    galleryCustomOrgCanonicalMap.set(cacheKey, cleaned);
+    return cleaned;
+}
+
 
 function getYear(dateValue) {
     if (!dateValue) return '';
@@ -1401,8 +1598,15 @@ function matchesChipFilters(martyr, filters = currentFilters) {
     }
 
     if (orgLower) {
-        const org = (martyr.organization || '').trim().toLowerCase();
-        if (org !== orgLower && !org.includes(orgLower)) {
+        const rawOrg = (martyr.organization || '').trim().toLowerCase();
+        const normMartyrOrg = (normalizeOrganization(martyr.organization) || '').toLowerCase();
+        const normTargetOrg = (normalizeOrganization(filters.organization) || filters.organization || '').trim().toLowerCase();
+        if (
+            normMartyrOrg !== normTargetOrg &&
+            normMartyrOrg !== orgLower &&
+            rawOrg !== orgLower &&
+            !rawOrg.includes(orgLower)
+        ) {
             return false;
         }
     }
@@ -2173,7 +2377,7 @@ function populateOrgDropdown() {
 
     const orgs = new Map();
     allMartyrs.forEach(m => {
-        const org = (m.organization || '').trim();
+        const org = normalizeOrganization(m.organization);
         if (org) {
             orgs.set(org, (orgs.get(org) || 0) + 1);
         }

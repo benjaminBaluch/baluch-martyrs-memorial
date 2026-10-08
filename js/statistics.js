@@ -30,17 +30,20 @@
     const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const FULL_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-    // Known organization display labels
+    // Known organization display labels (aligned with normalizeOrg canonical names)
     const ORG_LABELS = {
-        'BLA': 'BLA — Baloch Liberation Army',
-        'BLF': 'BLF — Balochistan Liberation Front',
-        'BRA': 'BRA — Baloch Republican Army',
-        'BRG': 'BRG — Baloch Republican Guards',
-        'UBA': 'UBA — United Baloch Army',
-        'BNA': 'BNA — Baloch Nationalist Army',
-        'BSO-Azad': 'BSO-Azad — Baloch Students Organization',
-        'BNM': 'BNM — Baloch National Movement',
-        'BRP': 'BRP — Baloch Republican Party'
+        'BLA': 'Baloch Liberation Army (BLA)',
+        'BLF': 'Balochistan Liberation Front (BLF)',
+        'BRA': 'Baloch Republican Army (BRA)',
+        'BRG': 'Baloch Republican Guards (BRG)',
+        'UBA': 'United Baloch Army (UBA)',
+        'BNA': 'Baloch Nationalist Army (BNA)',
+        'BRAS': 'Baloch Raaji Aajoi Sangar (BRAS)',
+        'LeB': 'Lashkar-e-Balochistan (LeB)',
+        'BSO-Azad': 'Baloch Students Organization - Azad (BSO-Azad)',
+        'BNM': 'Baloch National Movement (BNM)',
+        'BRP': 'Baloch Republican Party (BRP)',
+        'BNP': 'Balochistan National Party (BNP)'
     };
 
     // Initialize
@@ -468,11 +471,224 @@
         }
     }
 
-    // Normalize organization string
+    // Case-insensitive cache for any custom/unlisted organization names
+    const customOrgCanonicalMap = new Map();
+
+    // Normalize organization string (unifies acronyms, spelling variants, and sub-wings/brigades)
     function normalizeOrg(rawOrg) {
-        const trimmed = (rawOrg || '').trim();
+        const trimmed = (rawOrg || '').toString().trim().replace(/\s+/g, ' ');
         if (!trimmed) return '__none__';
-        return trimmed;
+
+        const lowerRaw = trimmed.toLowerCase();
+        if (/^(none|n\/a|na|nil|null|undefined|unknown|not\s*specified|unspecified|no\s*affiliation|independent|[-—–]+)$/i.test(lowerRaw)) {
+            return '__none__';
+        }
+
+        // Standardize Baluch/Baloch, Organisation/Organization, and dash characters for matching
+        const norm = lowerRaw
+            .replace(/baluch/g, 'baloch')
+            .replace(/organisation/g, 'organization')
+            .replace(/[—–]/g, '-');
+
+        // 1. Baloch Liberation Army (BLA) + all sub-wings (Majeed Brigade, Fateh Squad, STOS, ZRAB, etc.)
+        if (
+            /\bbla\b/.test(norm) ||
+            norm.includes('baloch liberation army') ||
+            norm.includes('balochistan liberation army') ||
+            norm.includes('majeed brigade') ||
+            norm.includes('majid brigade') ||
+            norm.includes('fateh squad') ||
+            norm.includes('fatah squad') ||
+            norm.includes('special tactical operations squad') ||
+            /\bstos\b/.test(norm) ||
+            /\bzrab\b/.test(norm)
+        ) {
+            return 'Baloch Liberation Army (BLA)';
+        }
+
+        // 2. Balochistan Liberation Front (BLF) + all sub-wings/units
+        if (
+            /\bblf\b/.test(norm) ||
+            norm.includes('balochistan liberation front') ||
+            norm.includes('baloch liberation front') ||
+            norm.includes('sadozai') ||
+            norm.includes('saddozai')
+        ) {
+            return 'Balochistan Liberation Front (BLF)';
+        }
+
+        // 3. Baloch Republican Army (BRA) + all sub-wings
+        if (
+            /\bbra\b/.test(norm) ||
+            norm.includes('baloch republican army') ||
+            norm.includes('balochistan republican army')
+        ) {
+            return 'Baloch Republican Army (BRA)';
+        }
+
+        // 4. Baloch Nationalist Army (BNA) + all sub-wings
+        if (
+            /\bbna\b/.test(norm) ||
+            norm.includes('baloch nationalist army') ||
+            norm.includes('balochistan nationalist army') ||
+            norm.includes('baloch national army') ||
+            norm.includes('balochistan national army')
+        ) {
+            return 'Baloch Nationalist Army (BNA)';
+        }
+
+        // 5. Baloch Republican Guards (BRG) + all sub-wings
+        if (
+            /\bbrg\b/.test(norm) ||
+            norm.includes('baloch republican guard') ||
+            norm.includes('balochistan republican guard')
+        ) {
+            return 'Baloch Republican Guards (BRG)';
+        }
+
+        // 6. United Baloch Army (UBA) + all sub-wings
+        if (
+            /\buba\b/.test(norm) ||
+            norm.includes('united baloch army') ||
+            norm.includes('united balochistan army')
+        ) {
+            return 'United Baloch Army (UBA)';
+        }
+
+        // 7. Baloch Raaji Aajoi Sangar (BRAS)
+        if (
+            /\bbras\b/.test(norm) ||
+            norm.includes('raaji aajoi') ||
+            norm.includes('raji ajoi') ||
+            norm.includes('aajoi sangar')
+        ) {
+            return 'Baloch Raaji Aajoi Sangar (BRAS)';
+        }
+
+        // 8. Lashkar-e-Balochistan (LeB)
+        if (
+            /\bleb\b/.test(norm) ||
+            norm.includes('lashkar-e-balochistan') ||
+            norm.includes('lashkar e balochistan') ||
+            norm.includes('lashkar balochistan')
+        ) {
+            return 'Lashkar-e-Balochistan (LeB)';
+        }
+
+        // 9. Baloch Liberation Tigers (BLT)
+        if (
+            /\bblt\b/.test(norm) ||
+            norm.includes('baloch liberation tiger') ||
+            norm.includes('balochistan liberation tiger')
+        ) {
+            return 'Baloch Liberation Tigers (BLT)';
+        }
+
+        // 10. Balochistan Liberation United Front (BLUF)
+        if (
+            /\bbluf\b/.test(norm) ||
+            norm.includes('liberation united front')
+        ) {
+            return 'Balochistan Liberation United Front (BLUF)';
+        }
+
+        // 11. Baloch Students Organization - Azad (BSO-Azad) & BSO variants
+        if (
+            /\bbso\b/.test(norm) ||
+            norm.includes('baloch students organization') ||
+            norm.includes('baloch student organization')
+        ) {
+            return 'Baloch Students Organization - Azad (BSO-Azad)';
+        }
+
+        // 12. Baloch National Movement (BNM)
+        if (
+            /\bbnm\b/.test(norm) ||
+            norm.includes('baloch national movement') ||
+            norm.includes('balochistan national movement')
+        ) {
+            return 'Baloch National Movement (BNM)';
+        }
+
+        // 13. Baloch Republican Party (BRP)
+        if (
+            /\bbrp\b/.test(norm) ||
+            norm.includes('baloch republican party') ||
+            norm.includes('balochistan republican party')
+        ) {
+            return 'Baloch Republican Party (BRP)';
+        }
+
+        // 14. Balochistan National Party (BNP)
+        if (
+            /\bbnp\b/.test(norm) ||
+            norm.includes('balochistan national party') ||
+            norm.includes('baloch national party')
+        ) {
+            return 'Balochistan National Party (BNP)';
+        }
+
+        // 15. Baloch Yakjehti Committee (BYC)
+        if (
+            /\bbyc\b/.test(norm) ||
+            norm.includes('yakjehti committee') ||
+            norm.includes('baloch yakjehti')
+        ) {
+            return 'Baloch Yakjehti Committee (BYC)';
+        }
+
+        // 16. Voice for Baloch Missing Persons (VBMP)
+        if (
+            /\bvbmp\b/.test(norm) ||
+            norm.includes('voice for baloch missing') ||
+            norm.includes('missing persons')
+        ) {
+            return 'Voice for Baloch Missing Persons (VBMP)';
+        }
+
+        // 17. Baloch Women Forum (BWF)
+        if (
+            /\bbwf\b/.test(norm) ||
+            norm.includes('baloch women forum')
+        ) {
+            return 'Baloch Women Forum (BWF)';
+        }
+
+        // 18. Civil Society & Role Affiliations
+        if (/^(civilian|common citizen|local resident|villager|citizen)/i.test(norm) || norm.includes('no armed affiliation')) {
+            return 'Civilian';
+        }
+        if (/^(student|academic|teacher|professor|scholar)/i.test(norm)) {
+            return 'Student / Academic';
+        }
+        if (/^(journalist|media|reporter|press)/i.test(norm)) {
+            return 'Journalist / Media';
+        }
+        if (norm.includes('human rights') || norm.includes('hr activist') || norm.includes('rights activist')) {
+            return 'Human Rights Activist';
+        }
+        if (norm.includes('political activist') || norm.includes('political worker') || norm.includes('social activist')) {
+            return 'Political Activist';
+        }
+
+        // 19. Generic cleanup for any other organization:
+        // Strip sub-wing after " / ", convert "ACRONYM — Full Name" to "Full Name (ACRONYM)", and deduplicate case-insensitively
+        let cleaned = trimmed.split(/\s+\/\s+/)[0].trim();
+        const dashMatch = cleaned.match(/^([A-Z0-9-]{2,10})\s*[—–-]\s*(.+)$/);
+        if (dashMatch) {
+            cleaned = `${dashMatch[2].trim()} (${dashMatch[1].trim()})`;
+        }
+        cleaned = cleaned
+            .replace(/\bBaluch\b/g, 'Baloch')
+            .replace(/\bBaluchistan\b/g, 'Balochistan')
+            .replace(/\bOrganisation\b/g, 'Organization');
+
+        const cacheKey = cleaned.toLowerCase();
+        if (customOrgCanonicalMap.has(cacheKey)) {
+            return customOrgCanonicalMap.get(cacheKey);
+        }
+        customOrgCanonicalMap.set(cacheKey, cleaned);
+        return cleaned;
     }
 
     // Process martyrs data into stats
@@ -1214,10 +1430,10 @@
                 unknownYearCount++;
             }
 
-            // Organization
-            const org = (m.organization || '').trim();
-            if (org) {
-                orgCounts.set(org, (orgCounts.get(org) || 0) + 1);
+            // Organization (normalized so duplicates & sub-wings are unified)
+            const normOrg = normalizeOrg(m.organization);
+            if (normOrg && normOrg !== '__none__') {
+                orgCounts.set(normOrg, (orgCounts.get(normOrg) || 0) + 1);
             } else {
                 noOrgCount++;
             }
@@ -1308,13 +1524,13 @@
                 if (mo === null || mo !== parseInt(selectedMonth, 10)) return false;
             }
 
-            // Organization filter
+            // Organization filter (normalized)
             if (selectedOrg !== 'all') {
-                const org = (m.organization || '').trim();
+                const normOrg = normalizeOrg(m.organization);
                 if (selectedOrg === '__none__') {
-                    if (org.length > 0) return false;
+                    if (normOrg !== '__none__') return false;
                 } else {
-                    if (org.toLowerCase() !== selectedOrg.toLowerCase()) return false;
+                    if (normOrg.toLowerCase() !== selectedOrg.toLowerCase()) return false;
                 }
             }
 
