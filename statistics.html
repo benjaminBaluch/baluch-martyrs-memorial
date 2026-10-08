@@ -900,15 +900,30 @@
         }
 
         /* ============================================
-           5. UNIFORM BREAKDOWN STACK & LEADERBOARDS
+           5. TWO-COLUMN BREAKDOWN GRID & LEADERBOARDS
            ============================================ */
         .stats-grid {
             display: grid;
-            grid-template-columns: minmax(0, 1fr);
-            gap: 0;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            column-gap: 1.5rem;
+            row-gap: 0;
+            align-items: stretch;
             width: 100%;
             max-width: 100%;
             box-sizing: border-box;
+        }
+
+        .stats-grid > .stats-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stats-grid > .stats-section .bar-list {
+            margin-bottom: 0.85rem;
+        }
+
+        .stats-grid > .stats-section .leaderboard-toggle-btn {
+            margin-top: auto;
         }
 
         .stats-grid .full-width {
@@ -1466,6 +1481,7 @@
         @media (max-width: 960px) {
             .stats-grid {
                 grid-template-columns: minmax(0, 1fr);
+                column-gap: 0;
             }
             .key-numbers {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1780,10 +1796,10 @@
                         </div>
                     </div>
 
-                    <!-- Breakdown Sections: Identical Full-Width Containers matching Timeline of Martyrdoms -->
+                    <!-- Breakdown Sections: By Region & By Organization Side-by-Side on Desktop, Full-Width on Mobile -->
                     <div class="stats-grid">
                         <!-- Regions Leaderboard -->
-                        <div class="stats-section full-width">
+                        <div class="stats-section">
                             <div class="section-header-row">
                                 <div class="section-title-group">
                                     <h3 class="section-title">
@@ -1806,7 +1822,7 @@
                         </div>
 
                         <!-- Organizations / Affiliations Leaderboard -->
-                        <div class="stats-section full-width">
+                        <div class="stats-section">
                             <div class="section-header-row">
                                 <div class="section-title-group">
                                     <h3 class="section-title">
