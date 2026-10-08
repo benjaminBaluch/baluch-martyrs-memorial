@@ -867,6 +867,64 @@ async function loadPendingSubmissions() {
     console.log(`✅ Successfully rendered ${pendingData.length} pending submissions in UI`);
 }
 
+// Helper to structure Birth & Martyrdom date + location cleanly (avoids "Unknown • Unknown")
+function formatEventDetailHTML(dateVal, placeVal) {
+    const dateStr = formatDate(dateVal);
+    const rawPlace = (placeVal || '').toString().trim();
+    const hasDate = Boolean(dateStr && dateStr !== 'Unknown');
+    const hasPlace = Boolean(rawPlace && rawPlace.toLowerCase() !== 'unknown');
+
+    if (hasDate && hasPlace) {
+        return `<span class="detail-primary">${escapeHTML(dateStr)}</span><span class="detail-secondary">${escapeHTML(rawPlace)}</span>`;
+    }
+    if (hasDate) {
+        return `<span class="detail-primary">${escapeHTML(dateStr)}</span><span class="detail-secondary detail-muted">Location not recorded</span>`;
+    }
+    if (hasPlace) {
+        return `<span class="detail-primary">${escapeHTML(rawPlace)}</span><span class="detail-secondary detail-muted">Date not recorded</span>`;
+    }
+    return `<span class="detail-primary detail-muted">Not recorded</span>`;
+}
+
+// Helper to structure Organization + Rank cleanly
+function formatOrgDetailHTML(orgVal, rankVal) {
+    const rawOrg = (orgVal || '').toString().trim();
+    const rawRank = (rankVal || '').toString().trim();
+    const hasOrg = Boolean(rawOrg && rawOrg.toLowerCase() !== 'not specified' && rawOrg.toLowerCase() !== 'unknown');
+    const hasRank = Boolean(rawRank && rawRank.toLowerCase() !== 'not specified' && rawRank.toLowerCase() !== 'unknown');
+
+    if (hasOrg && hasRank) {
+        return `<span class="detail-primary">${escapeHTML(rawOrg)}</span><span class="detail-secondary">Role / Rank: ${escapeHTML(rawRank)}</span>`;
+    }
+    if (hasOrg) {
+        return `<span class="detail-primary">${escapeHTML(rawOrg)}</span>`;
+    }
+    if (hasRank) {
+        return `<span class="detail-primary">${escapeHTML(rawRank)}</span>`;
+    }
+    return `<span class="detail-primary detail-muted">Not specified</span>`;
+}
+
+// Helper to structure Submitter + Email/Relationship cleanly
+function formatSubmitterDetailHTML(nameVal, emailVal, relationVal) {
+    const rawName = (nameVal || '').toString().trim();
+    const rawEmail = (emailVal || '').toString().trim();
+    const rawRel = (relationVal || '').toString().trim();
+    const hasName = Boolean(rawName && rawName.toLowerCase() !== 'unknown');
+
+    const primaryHTML = hasName
+        ? `<span class="detail-primary">${escapeHTML(rawName)}</span>`
+        : `<span class="detail-primary detail-muted">Not recorded</span>`;
+
+    const subParts = [];
+    if (rawRel) subParts.push(escapeHTML(rawRel));
+    if (rawEmail) subParts.push(escapeHTML(rawEmail));
+
+    return subParts.length > 0
+        ? `${primaryHTML}<span class="detail-secondary">${subParts.join(' • ')}</span>`
+        : primaryHTML;
+}
+
 // Create a pending item element (with XSS protection)
 function createPendingItem(martyr) {
     const item = document.createElement('div');
@@ -878,7 +936,7 @@ function createPendingItem(martyr) {
 
     const submittedDate = new Date(martyr.submittedAt).toLocaleDateString('en-US', {
         year: 'numeric',
-        month: 'long',
+        month: 'short',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
@@ -887,16 +945,11 @@ function createPendingItem(martyr) {
     // Sanitize all user-provided data before rendering
     const safeId = escapeHTML(martyr.id);
     const safeName = escapeHTML(martyr.fullName);
-    const safeFatherName = escapeHTML(martyr.fatherName || 'Not provided');
-    const safeBirthPlace = escapeHTML(martyr.birthPlace || 'Unknown');
-    const safeMartydomPlace = escapeHTML(martyr.martyrdomPlace || 'Unknown');
-    const safeOrg = escapeHTML(martyr.organization || 'Not specified');
-    const safeRank = escapeHTML(martyr.rank || 'Not specified');
+    const rawFather = (martyr.fatherName || '').toString().trim();
+    const hasFather = Boolean(rawFather && rawFather.toLowerCase() !== 'unknown' && rawFather.toLowerCase() !== 'not provided');
     const safeBio = escapeHTML(martyr.biography || '');
     const safeFamily = escapeHTML(martyr.familyDetails || '');
-    const safeSubmitter = escapeHTML(martyr.submitterName);
-    const safeEmail = escapeHTML(martyr.submitterEmail);
-    const safeRelation = escapeHTML(martyr.submitterRelation || '');
+    const rawOrgBadge = (martyr.organization || '').toString().trim();
     
     // Validate photo URL (only allow data: URLs for base64 images)
     let safePhoto = '';
@@ -907,71 +960,109 @@ function createPendingItem(martyr) {
     item.innerHTML = `
         <div class="pending-header">
             <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
-                <span class="status-pill pending">⏳ Pending Review</span>
+                <span class="status-pill pending">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span>Pending Review</span>
+                </span>
                 <span class="id-code">ID: ${safeId}</span>
             </div>
-            <span style="color: #64748b; font-size: 0.85rem;">🕒 Submitted: ${escapeHTML(submittedDate)}</span>
+            <span class="pending-timestamp">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span>Submitted: ${escapeHTML(submittedDate)}</span>
+            </span>
         </div>
         <div class="pending-content">
             <div class="pending-image">
                 ${safePhoto ? 
                     `<img src="${safePhoto}" alt="${safeName}">` :
-                    '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #94a3b8; font-size: 0.85rem;">No Photo</div>'
+                    `<div class="pending-no-photo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <span>No Photo</span>
+                    </div>`
                 }
             </div>
             <div class="pending-details">
-                <h3>${safeName}</h3>
-                <div class="pending-meta-grid">
-                    <div class="detail-row">
-                        <span class="detail-label">Father's Name</span>
-                        <span>${safeFatherName}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Birth</span>
-                        <span>${escapeHTML(formatDate(martyr.birthDate))} • ${safeBirthPlace}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Martyrdom</span>
-                        <span>${escapeHTML(formatDate(martyr.martyrdomDate))} • ${safeMartydomPlace}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Organization &amp; Rank</span>
-                        <span>${safeOrg} (${safeRank})</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Submitted By</span>
-                        <span>${safeSubmitter} (${safeEmail})</span>
-                    </div>
-                    ${safeRelation ? `
-                        <div class="detail-row">
-                            <span class="detail-label">Relationship</span>
-                            <span>${safeRelation}</span>
-                        </div>
+                <div class="pending-title-row">
+                    <h3>${safeName}</h3>
+                    ${rawOrgBadge ? `
+                        <span class="pending-org-badge">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            <span>${escapeHTML(rawOrgBadge)}</span>
+                        </span>
                     ` : ''}
                 </div>
+                <div class="pending-meta-grid">
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <span>Father's Name</span>
+                        </span>
+                        ${hasFather
+                            ? `<span class="detail-primary">${escapeHTML(rawFather)}</span>`
+                            : `<span class="detail-primary detail-muted">Not recorded</span>`
+                        }
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            <span>Birth</span>
+                        </span>
+                        ${formatEventDetailHTML(martyr.birthDate, martyr.birthPlace)}
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <span>Martyrdom</span>
+                        </span>
+                        ${formatEventDetailHTML(martyr.martyrdomDate, martyr.martyrdomPlace)}
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            <span>Organization &amp; Rank</span>
+                        </span>
+                        ${formatOrgDetailHTML(martyr.organization, martyr.rank)}
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+                            <span>Submitted By</span>
+                        </span>
+                        ${formatSubmitterDetailHTML(martyr.submitterName, martyr.submitterEmail, martyr.submitterRelation)}
+                    </div>
+                </div>
                 ${safeBio ? `
-                    <div class="detail-row" style="margin-top: 0.5rem;">
-                        <span class="detail-label">Biography</span>
+                    <div class="detail-row detail-narrative">
+                        <span class="detail-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            <span>Biography</span>
+                        </span>
                         <div class="biography-text">${safeBio}</div>
                     </div>
                 ` : ''}
                 ${safeFamily ? `
-                    <div class="detail-row" style="margin-top: 0.5rem;">
-                        <span class="detail-label">Family Details</span>
+                    <div class="detail-row detail-narrative">
+                        <span class="detail-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                            <span>Family Details</span>
+                        </span>
                         <div class="family-text">${safeFamily}</div>
                     </div>
                 ` : ''}
             </div>
         </div>
         <div class="pending-actions">
-            <button data-action="approve" data-martyr-id="${safeId}" class="btn btn-approve">
-                ✓ Approve &amp; Publish
+            <button data-action="approve" data-martyr-id="${safeId}" class="btn-approve">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>Approve &amp; Publish</span>
             </button>
-            <button data-action="reject" data-martyr-id="${safeId}" class="btn btn-reject">
-                ✗ Reject &amp; Delete
+            <button data-action="reject" data-martyr-id="${safeId}" class="btn-reject">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <span>Reject &amp; Delete</span>
             </button>
-            <button data-action="preview" data-martyr-id="${safeId}" class="btn btn-secondary" style="margin-left: auto;">
-                👁 Preview as Visitor
+            <button data-action="preview" data-martyr-id="${safeId}" class="btn-preview-visitor">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <span>Preview as Visitor</span>
             </button>
         </div>
     `;
@@ -1886,58 +1977,103 @@ function createApprovedMartyrItem(martyr) {
     
     const approvedDate = martyr.approvedAt ? new Date(martyr.approvedAt.toDate ? martyr.approvedAt.toDate() : martyr.approvedAt).toLocaleDateString() : 'Unknown';
     const updatedDate = martyr.updatedAt ? new Date(martyr.updatedAt.toDate ? martyr.updatedAt.toDate() : martyr.updatedAt).toLocaleDateString() : null;
+    const rawFather = (martyr.fatherName || '').toString().trim();
+    const hasFather = Boolean(rawFather && rawFather.toLowerCase() !== 'unknown' && rawFather.toLowerCase() !== 'not provided');
+    const rawOrgBadge = (martyr.organization || '').toString().trim();
+    const safeBio = escapeHTML(martyr.biography || '');
     
     item.innerHTML = `
         <div class="pending-header approved-header">
             <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
-                <span class="status-pill published">✅ Published</span>
+                <span class="status-pill published">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Published</span>
+                </span>
                 <span class="id-code">ID: ${escapeHTML(martyr.id)}</span>
             </div>
-            <span style="color: #15803d; font-size: 0.85rem; font-weight: 500;">Approved: ${approvedDate}${updatedDate ? ` • Updated: ${updatedDate}` : ''}</span>
+            <span class="pending-timestamp">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span>Approved: ${escapeHTML(approvedDate)}${updatedDate ? ` • Updated: ${escapeHTML(updatedDate)}` : ''}</span>
+            </span>
         </div>
         <div class="pending-content">
             <div class="pending-image">
                 ${martyr.photo ? 
                     `<img src="${martyr.photo}" alt="${escapeHTML(martyr.fullName)}" loading="lazy">` :
-                    '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #94a3b8; font-size: 0.85rem;">No Photo</div>'
+                    `<div class="pending-no-photo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <span>No Photo</span>
+                    </div>`
                 }
             </div>
             <div class="pending-details">
-                <h3>${escapeHTML(martyr.fullName)}</h3>
-                <div class="pending-meta-grid">
-                    <div class="detail-row">
-                        <span class="detail-label">Birth</span>
-                        <span>${formatDate(martyr.birthDate)} • ${escapeHTML(martyr.birthPlace || 'Unknown')}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Martyrdom</span>
-                        <span>${formatDate(martyr.martyrdomDate)} • ${escapeHTML(martyr.martyrdomPlace || 'Unknown')}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Organization</span>
-                        <span>${escapeHTML(martyr.organization || 'Not specified')}</span>
-                    </div>
-                    ${martyr.rank ? `
-                        <div class="detail-row">
-                            <span class="detail-label">Rank / Role</span>
-                            <span>${escapeHTML(martyr.rank)}</span>
-                        </div>
-                    ` : ''}
-                    ${martyr.submitterName ? `
-                        <div class="detail-row">
-                            <span class="detail-label">Submitted By</span>
-                            <span>${escapeHTML(martyr.submitterName)}</span>
-                        </div>
+                <div class="pending-title-row">
+                    <h3>${escapeHTML(martyr.fullName)}</h3>
+                    ${rawOrgBadge ? `
+                        <span class="pending-org-badge">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            <span>${escapeHTML(rawOrgBadge)}</span>
+                        </span>
                     ` : ''}
                 </div>
+                <div class="pending-meta-grid">
+                    ${hasFather ? `
+                        <div class="detail-row">
+                            <span class="detail-label">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                <span>Father's Name</span>
+                            </span>
+                            <span class="detail-primary">${escapeHTML(rawFather)}</span>
+                        </div>
+                    ` : ''}
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            <span>Birth</span>
+                        </span>
+                        ${formatEventDetailHTML(martyr.birthDate, martyr.birthPlace)}
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <span>Martyrdom</span>
+                        </span>
+                        ${formatEventDetailHTML(martyr.martyrdomDate, martyr.martyrdomPlace)}
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                            <span>Organization${martyr.rank ? ' &amp; Rank' : ''}</span>
+                        </span>
+                        ${formatOrgDetailHTML(martyr.organization, martyr.rank)}
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+                            <span>Submitted By</span>
+                        </span>
+                        ${formatSubmitterDetailHTML(martyr.submitterName, martyr.submitterEmail, martyr.submitterRelation)}
+                    </div>
+                </div>
+                ${safeBio ? `
+                    <div class="detail-row detail-narrative">
+                        <span class="detail-label">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                            <span>Biography</span>
+                        </span>
+                        <div class="biography-text">${safeBio}</div>
+                    </div>
+                ` : ''}
             </div>
         </div>
         <div class="pending-actions approved-actions" style="justify-content: flex-start; gap: 0.75rem;">
-            <button data-action="edit" data-martyr-id="${escapeHTML(martyr.id)}" class="btn btn-primary btn-edit-profile">
-                ✏️ Edit Profile
+            <button data-action="edit" data-martyr-id="${escapeHTML(martyr.id)}" class="btn-edit-profile">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                <span>Edit Profile</span>
             </button>
-            <button data-action="delete" data-martyr-id="${escapeHTML(martyr.id)}" class="btn btn-outline" style="color: #dc2626; border-color: #fca5a5;">
-                🗑️ Delete
+            <button data-action="delete" data-martyr-id="${escapeHTML(martyr.id)}" class="btn-delete-profile">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <span>Delete</span>
             </button>
         </div>
     `;
