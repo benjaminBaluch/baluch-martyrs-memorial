@@ -653,16 +653,16 @@
                 if (hasActiveStatsFilter() && grandTotal) {
                     const sharePct = Math.round((stats.total / grandTotal) * 100);
                     insightTotal.innerHTML = `
-                        <span>${sharePct}% of archive</span>
+                        <span>${sharePct}% of total archive</span>
                         <button type="button" class="kpi-insight-btn" data-kpi-year="${peakYearEntry[0]}">
                             Peak: ${peakYearEntry[0]} (${peakYearEntry[1]})
                         </button>
                     `;
                 } else {
                     insightTotal.innerHTML = `
-                        <span>Peak year</span>
+                        <span>Highest year</span>
                         <button type="button" class="kpi-insight-btn" data-kpi-year="${peakYearEntry[0]}" title="Filter by ${peakYearEntry[0]}">
-                            ${peakYearEntry[0]} (${peakYearEntry[1]})
+                            ${peakYearEntry[0]} • ${peakYearEntry[1]} martyrs
                         </button>
                     `;
                 }
@@ -671,7 +671,7 @@
                     btn.addEventListener('click', () => toggleStatsFilter('year', btn.getAttribute('data-kpi-year')));
                 }
             } else {
-                insightTotal.innerHTML = '<span>Verified profiles</span>';
+                insightTotal.innerHTML = '<span>Verified memorial profiles</span>';
             }
         }
 
@@ -682,7 +682,7 @@
                 const [topReg, topCnt] = topRegions[0];
                 const pct = Math.max(1, Math.round((topCnt / stats.total) * 100));
                 insightRegions.innerHTML = `
-                    <span>Top region</span>
+                    <span>Most affected</span>
                     <button type="button" class="kpi-insight-btn" data-kpi-region="${escapeHTML(topReg)}" title="Filter by ${escapeHTML(topReg)}">
                         ${escapeHTML(topReg)} (${pct}%)
                     </button>
@@ -704,7 +704,7 @@
                 insightYears.innerHTML = `
                     <span>Peak month</span>
                     <button type="button" class="kpi-insight-btn" data-kpi-month="${maxMonthIdx}" title="Filter by ${FULL_MONTHS[maxMonthIdx]}">
-                        ${MONTH_NAMES[maxMonthIdx]} (${maxMonthCount})
+                        ${FULL_MONTHS[maxMonthIdx]} (${maxMonthCount})
                     </button>
                 `;
                 const btn = insightYears.querySelector('[data-kpi-month]');
@@ -712,14 +712,14 @@
                     btn.addEventListener('click', () => toggleStatsFilter('month', maxMonthIdx));
                 }
             } else {
-                insightYears.innerHTML = `<span>${stats.years.length} active years</span>`;
+                insightYears.innerHTML = `<span>${stats.years.length} documented years</span>`;
             }
         }
 
         // 4. Contextual Insight on Card 4 (Stories + Portraits count)
         if (insightStories) {
             insightStories.innerHTML = `
-                <span>${stats.withBio.toLocaleString()} bios • ${stats.withPhoto.toLocaleString()} photos</span>
+                <span>${stats.withBio.toLocaleString()} biographies • ${stats.withPhoto.toLocaleString()} portraits</span>
             `;
         }
     }
@@ -760,6 +760,7 @@
         }
 
         const entries = Object.entries(stats.byYear);
+        const maxCount = Math.max(...entries.map(e => e[1]));
         const peakYear = entries.sort((a, b) => b[1] - a[1])[0]?.[0];
 
         // Show active years in descending order (newest first)
@@ -772,6 +773,7 @@
 
         grid.innerHTML = visibleYears.map(year => {
             const count = stats.byYear[year] || 0;
+            const barPct = maxCount > 0 ? Math.max(8, Math.round((count / maxCount) * 100)) : 0;
             const isPeak = String(year) === String(peakYear);
             const isSelected = activeStatsFilter.year === year;
             return `
@@ -779,8 +781,9 @@
                     class="year-card-btn${isPeak ? ' is-peak' : ''}${isSelected ? ' is-active' : ''}"
                     data-year="${year}"
                     title="Filter dashboard by ${year} (${count} documented)">
-                    <span class="year-card-yr">${year}</span>
+                    <span class="year-card-yr">${year}${isPeak ? ' ★' : ''}</span>
                     <span class="year-card-count">${count.toLocaleString()} ${count === 1 ? 'hero' : 'heroes'}</span>
+                    <span class="year-card-bar" style="width: ${barPct}%"></span>
                 </button>
             `;
         }).join('');
