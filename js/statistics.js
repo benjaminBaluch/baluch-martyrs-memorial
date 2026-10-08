@@ -20,7 +20,8 @@
         org: null,       // string | null
         month: null      // number (0-11) | null
     };
-    let currentTimelineRange = 'active'; // 'active' | '2020s' | '2010s' | 'pre2010' | 'all'
+    let currentTimelineRange = 'recent'; // 'recent' (2014–Now) | '2000s' | 'pre2000' | 'active'
+    let showAllYears = false;
     let showAllRegions = false;
     let showAllOrgs = false;
     let uiControlsBound = false;
@@ -88,7 +89,7 @@
             rangeTabsContainer.addEventListener('click', (e) => {
                 const tab = e.target.closest('.timeline-range-tab');
                 if (!tab) return;
-                const range = tab.getAttribute('data-range') || 'active';
+                const range = tab.getAttribute('data-range') || 'recent';
                 currentTimelineRange = range;
                 rangeTabsContainer.querySelectorAll('.timeline-range-tab').forEach(btn => {
                     btn.classList.toggle('active', btn === tab);
@@ -97,7 +98,15 @@
             });
         }
 
-        // 4. Region & Organization expand/collapse toggles
+        // 4. Year, Region & Organization expand/collapse toggles
+        const toggleYearsBtn = document.getElementById('toggleAllYearsBtn');
+        if (toggleYearsBtn) {
+            toggleYearsBtn.addEventListener('click', () => {
+                showAllYears = !showAllYears;
+                refreshDashboardUI();
+            });
+        }
+
         const toggleRegionsBtn = document.getElementById('toggleAllRegionsBtn');
         if (toggleRegionsBtn) {
             toggleRegionsBtn.addEventListener('click', () => {
@@ -111,19 +120,6 @@
             toggleOrgsBtn.addEventListener('click', () => {
                 showAllOrgs = !showAllOrgs;
                 refreshDashboardUI();
-            });
-        }
-
-        // 5. Year strip horizontal scroll buttons
-        const ribbon = document.getElementById('timelineRibbon');
-        const prevBtn = document.getElementById('timelinePrev');
-        const nextBtn = document.getElementById('timelineNext');
-        if (ribbon && prevBtn && nextBtn) {
-            prevBtn.addEventListener('click', () => {
-                ribbon.scrollBy({ left: -280, behavior: 'smooth' });
-            });
-            nextBtn.addEventListener('click', () => {
-                ribbon.scrollBy({ left: 280, behavior: 'smooth' });
             });
         }
     }
@@ -732,74 +728,67 @@
     function getTimelineYearsForRange(stats) {
         if (!stats.years || stats.years.length === 0) return [];
 
-        if (currentTimelineRange === 'all') {
-            const full = [];
-            for (let y = stats.minYear; y <= stats.maxYear; y++) {
-                full.push(y);
-            }
-            return full;
+        if (currentTimelineRange === 'recent') {
+            // 2014–Present (active years >= 2014, fallback to last 12 active years if none >= 2014)
+            const recent = stats.years.filter(y => y >= 2014);
+            return recent.length > 0 ? recent : stats.years.slice(-12);
         }
 
-        if (currentTimelineRange === '2020s') {
-            const list = [];
-            const start = Math.max(2020, stats.minYear);
-            const end = Math.max(2020, stats.maxYear);
-            for (let y = start; y <= end; y++) {
-                if ((stats.byYear[y] || 0) > 0 || y >= 2020) list.push(y);
-            }
-            return list;
+        if (currentTimelineRange === '2000s') {
+            return stats.years.filter(y => y >= 2000 && y <= 2013);
         }
 
-        if (currentTimelineRange === '2010s') {
-            const list = [];
-            for (let y = 2010; y <= 2019; y++) {
-                if ((stats.byYear[y] || 0) > 0 || (stats.minYear <= 2019 && stats.maxYear >= 2010)) {
-                    list.push(y);
-                }
-            }
-            return list;
+        if (currentTimelineRange === 'pre2000') {
+            return stats.years.filter(y => y < 2000);
         }
 
-        if (currentTimelineRange === 'pre2010') {
-            return stats.years.filter(y => y < 2010);
-        }
-
-        // Default 'active': only years with at least 1 documented martyr
+        // 'active': all years with at least 1 documented martyr
         return [...stats.years];
     }
 
-    // Render interactive Year Pill Strip below the Timeline chart
+    // Render responsive 4-col mobile / 8-col desktop Year Card Grid below the Timeline chart
     function renderYearPillStrip(stats) {
-        const ribbon = document.getElementById('timelineRibbon');
-        if (!ribbon) return;
+        const grid = document.getElementById('yearExplorerGrid');
+        const badge = document.getElementById('yearExplorerCountBadge');
+        const toggleBtn = document.getElementById('toggleAllYearsBtn');
+        if (!grid) return;
 
         if (!stats.years || stats.years.length === 0) {
-            ribbon.innerHTML = '<span style="font-size: 0.8rem; color: #64748b;">No chronological data for this filter.</span>';
+            grid.innerHTML = '<span style="font-size: 0.8rem; color: #64748b; grid-column: 1 / -1;">No chronological data for this filter.</span>';
+            if (toggleBtn) toggleBtn.style.display = 'none';
             return;
         }
 
-        const peakYear = Object.entries(stats.byYear)
-            .sort((a, b) => b[1] - a[1])[0]?.[0];
+        const entries = Object.entries(stats.byYear);
+        const maxCount = Math.max(...entries.map(e => e[1]));
+        const peakYear = entries.sort((a, b) => b[1] - a[1])[0]?.[0];
 
-        // Show active years in descending order (newest first) for quick 1-tap filtering
+        // Show active years in descending order (newest first)
         const activeYearsDesc = [...stats.years].sort((a, b) => b - a);
+        const visibleYears = showAllYears ? activeYearsDesc : activeYearsDesc.slice(0, 8);
 
-        ribbon.innerHTML = activeYearsDesc.map(year => {
+        if (badge) {
+            badge.textContent = `${activeYearsDesc.length} ${activeYearsDesc.length === 1 ? 'year' : 'years'} • Tap to filter`;
+        }
+
+        grid.innerHTML = visibleYears.map(year => {
             const count = stats.byYear[year] || 0;
+            const barPct = maxCount > 0 ? Math.max(8, Math.round((count / maxCount) * 100)) : 0;
             const isPeak = String(year) === String(peakYear);
             const isSelected = activeStatsFilter.year === year;
             return `
                 <button type="button"
-                    class="year-pill-btn${isPeak ? ' is-peak' : ''}${isSelected ? ' is-active' : ''}"
+                    class="year-card-btn${isPeak ? ' is-peak' : ''}${isSelected ? ' is-active' : ''}"
                     data-year="${year}"
                     title="Filter dashboard by ${year} (${count} documented)">
-                    <span>${year}${isPeak ? ' ★' : ''}</span>
-                    <span class="year-pill-count">${count}</span>
+                    <span class="year-card-yr">${year}${isPeak ? ' ★' : ''}</span>
+                    <span class="year-card-count">${count.toLocaleString()} ${count === 1 ? 'hero' : 'heroes'}</span>
+                    <span class="year-card-bar" style="width: ${barPct}%"></span>
                 </button>
             `;
         }).join('');
 
-        ribbon.querySelectorAll('.year-pill-btn').forEach(btn => {
+        grid.querySelectorAll('.year-card-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const yr = parseInt(btn.getAttribute('data-year'), 10);
                 if (!isNaN(yr)) {
@@ -807,6 +796,17 @@
                 }
             });
         });
+
+        if (toggleBtn) {
+            if (activeYearsDesc.length > 8) {
+                toggleBtn.style.display = 'block';
+                toggleBtn.textContent = showAllYears
+                    ? 'Show recent 8 years ▴'
+                    : `Show all ${activeYearsDesc.length} documented years ▾`;
+            } else {
+                toggleBtn.style.display = 'none';
+            }
+        }
     }
 
     // Render interactive timeline chart

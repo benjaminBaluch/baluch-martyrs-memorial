@@ -604,7 +604,14 @@
             padding: 0.25rem;
             border-radius: 10px;
             gap: 0.2rem;
-            flex-wrap: wrap;
+            max-width: 100%;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .timeline-range-tabs::-webkit-scrollbar {
+            display: none;
         }
 
         [data-theme="dark"] .timeline-range-tabs {
@@ -617,11 +624,13 @@
             color: #475569;
             font-size: 0.76rem;
             font-weight: 600;
-            padding: 0.38rem 0.72rem;
+            padding: 0.4rem 0.75rem;
             border-radius: 7px;
             cursor: pointer;
             transition: all 0.15s ease;
             font-family: inherit;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
 
         .timeline-range-tab:hover {
@@ -659,135 +668,170 @@
         }
 
         .chart-wrapper.tall {
-            height: 300px;
+            height: 290px;
         }
 
-        /* Interactive Year Pill Strip below Timeline Chart */
-        .timeline-year-strip-wrapper {
-            margin-top: 1.1rem;
-            padding-top: 0.95rem;
+        /* Responsive Year Explorer Grid below Timeline Chart */
+        .year-explorer-wrapper {
+            margin-top: 1.25rem;
+            padding-top: 1.1rem;
             border-top: 1px solid #f1f5f9;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
         }
 
-        [data-theme="dark"] .timeline-year-strip-wrapper {
+        [data-theme="dark"] .year-explorer-wrapper {
             border-top-color: #26354d;
         }
 
-        .year-strip-nav-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            background: #f8fafc;
+        .year-explorer-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .year-explorer-title {
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
             color: #475569;
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            flex-shrink: 0;
-            transition: all 0.15s ease;
+            gap: 0.4rem;
         }
 
-        .year-strip-nav-btn:hover {
-            background: #15803d;
-            color: #ffffff;
-            border-color: #15803d;
-        }
-
-        [data-theme="dark"] .year-strip-nav-btn {
-            background: #0f172a;
-            border-color: #334155;
+        [data-theme="dark"] .year-explorer-title {
             color: #94a3b8;
         }
 
-        [data-theme="dark"] .year-strip-nav-btn:hover {
-            background: #22c55e;
-            color: #0f172a;
-            border-color: #22c55e;
+        .year-explorer-hint {
+            font-size: 0.75rem;
+            color: #64748b;
         }
 
-        .timeline-year-strip {
+        [data-theme="dark"] .year-explorer-hint {
+            color: #94a3b8;
+        }
+
+        .year-explorer-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 0.55rem;
+        }
+
+        @media (max-width: 960px) {
+            .year-explorer-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 420px) {
+            .year-explorer-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 0.45rem;
+            }
+        }
+
+        .year-card-btn {
+            position: relative;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 0.45rem;
-            overflow-x: auto;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-            padding: 0.15rem 0.1rem;
-            scroll-behavior: smooth;
-            flex: 1;
-        }
-
-        .timeline-year-strip::-webkit-scrollbar {
-            display: none;
-        }
-
-        .year-pill-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.38rem;
-            padding: 0.36rem 0.7rem;
-            border-radius: 8px;
+            justify-content: center;
+            padding: 0.6rem 0.35rem 0.65rem;
+            border-radius: 10px;
             border: 1px solid #e2e8f0;
             background: #f8fafc;
-            color: #334155;
-            font-size: 0.78rem;
-            font-weight: 600;
             cursor: pointer;
-            white-space: nowrap;
-            transition: all 0.15s ease;
+            transition: all 0.16s ease;
             font-family: inherit;
-            flex-shrink: 0;
+            overflow: hidden;
+            text-align: center;
         }
 
-        .year-pill-btn:hover {
+        .year-card-btn:hover {
             border-color: #86efac;
             background: #f0fdf4;
-            color: #15803d;
+            transform: translateY(-1px);
         }
 
-        .year-pill-btn.is-peak {
+        .year-card-btn.is-peak {
             border-color: #bbf7d0;
             background: #f0fdf4;
         }
 
-        .year-pill-btn.is-active {
+        .year-card-btn.is-active {
             background: #15803d !important;
             border-color: #15803d !important;
             color: #ffffff !important;
-            box-shadow: 0 2px 8px rgba(21, 128, 61, 0.28);
+            box-shadow: 0 4px 12px rgba(21, 128, 61, 0.28);
         }
 
-        .year-pill-count {
+        .year-card-yr {
+            font-size: 0.92rem;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1.15;
+            letter-spacing: -0.01em;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .year-card-btn.is-peak .year-card-yr {
+            color: #15803d;
+        }
+
+        .year-card-count {
             font-size: 0.72rem;
-            padding: 0.08rem 0.38rem;
-            border-radius: 999px;
-            background: rgba(15, 23, 42, 0.06);
-            color: #475569;
-            font-weight: 700;
+            font-weight: 600;
+            color: #64748b;
+            margin-top: 0.18rem;
+            font-variant-numeric: tabular-nums;
         }
 
-        .year-pill-btn.is-active .year-pill-count {
-            background: rgba(255, 255, 255, 0.22);
-            color: #ffffff;
+        .year-card-btn.is-active .year-card-yr,
+        .year-card-btn.is-active .year-card-count {
+            color: #ffffff !important;
         }
 
-        [data-theme="dark"] .year-pill-btn {
+        .year-card-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #15803d, #22c55e);
+            border-radius: 0 2px 0 0;
+            transition: width 0.3s ease;
+        }
+
+        .year-card-btn.is-active .year-card-bar {
+            background: #86efac;
+        }
+
+        [data-theme="dark"] .year-card-btn {
             background: #0f172a;
             border-color: #26354d;
-            color: #e2e8f0;
         }
 
-        [data-theme="dark"] .year-pill-btn:hover {
+        [data-theme="dark"] .year-card-btn:hover {
             border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.1);
+        }
+
+        [data-theme="dark"] .year-card-btn.is-peak {
+            border-color: rgba(134, 239, 172, 0.4);
+            background: rgba(34, 197, 94, 0.12);
+        }
+
+        [data-theme="dark"] .year-card-yr {
+            color: #f1f5f9;
+        }
+
+        [data-theme="dark"] .year-card-btn.is-peak .year-card-yr {
             color: #86efac;
         }
 
-        [data-theme="dark"] .year-pill-count {
-            background: rgba(255, 255, 255, 0.08);
+        [data-theme="dark"] .year-card-count {
             color: #94a3b8;
         }
 
@@ -1623,14 +1667,13 @@
                                     </svg>
                                     Timeline of Martyrdoms
                                 </h3>
-                                <p class="section-subtitle">Click any bar or year pill below to filter the archive by year</p>
+                                <p class="section-subtitle">Tap any bar or year card below to filter the archive by year</p>
                             </div>
                             <div class="timeline-range-tabs" id="timelineRangeTabs" role="tablist" aria-label="Timeline era range">
-                                <button type="button" class="timeline-range-tab active" data-range="active">Active Years</button>
-                                <button type="button" class="timeline-range-tab" data-range="2020s">2020–Present</button>
-                                <button type="button" class="timeline-range-tab" data-range="2010s">2010–2019</button>
-                                <button type="button" class="timeline-range-tab" data-range="pre2010">Pre-2010</button>
-                                <button type="button" class="timeline-range-tab" data-range="all">All Calendar Years</button>
+                                <button type="button" class="timeline-range-tab active" data-range="recent">2014–Present</button>
+                                <button type="button" class="timeline-range-tab" data-range="2000s">2000–2013</button>
+                                <button type="button" class="timeline-range-tab" data-range="pre2000">Pre-2000</button>
+                                <button type="button" class="timeline-range-tab" data-range="active">All Active Years</button>
                             </div>
                         </div>
 
@@ -1638,20 +1681,25 @@
                             <canvas id="timelineChart"></canvas>
                         </div>
 
-                        <!-- Clickable Year Pills Strip (Newest to Oldest) -->
-                        <div class="timeline-year-strip-wrapper">
-                            <button type="button" class="year-strip-nav-btn" id="timelinePrev" aria-label="Scroll years left">
-                                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-                                </svg>
-                            </button>
-                            <div class="timeline-year-strip" id="timelineRibbon">
-                                <!-- Populated by JS with interactive year pills -->
+                        <!-- Responsive Year Card Grid (4 columns on mobile, 8 on desktop) -->
+                        <div class="year-explorer-wrapper">
+                            <div class="year-explorer-header">
+                                <span class="year-explorer-title">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                                    </svg>
+                                    Browse by Year
+                                </span>
+                                <span class="year-explorer-hint" id="yearExplorerCountBadge">Tap a year to filter</span>
                             </div>
-                            <button type="button" class="year-strip-nav-btn" id="timelineNext" aria-label="Scroll years right">
-                                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
-                                </svg>
+                            <div class="year-explorer-grid" id="yearExplorerGrid">
+                                <!-- Populated by JS with crisp 4-col mobile / 8-col desktop year cards -->
+                            </div>
+                            <button type="button" class="leaderboard-toggle-btn" id="toggleAllYearsBtn" style="display: none;">
+                                Show all documented years
                             </button>
                         </div>
                     </div>
@@ -1849,9 +1897,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
     
-    <script src="js/main.js"></script>
-    <script src="js/mobile-menu.js"></script>
-    <script src="js/statistics.js"></script>
+    <script src="js/main.js?v=20261008d"></script>
+    <script src="js/mobile-menu.js?v=20261008d"></script>
+    <script src="js/statistics.js?v=20261008d"></script>
     <!-- Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav">
         <div class="bottom-nav-inner">
