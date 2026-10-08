@@ -1,6 +1,6 @@
 /**
  * Statistics Dashboard - Baluch Martyrs Memorial
- * Clean, human-centered data visualization
+ * Senior UI/UX Archival Analytics & Interactive Cross-Filtering
  */
 
 (function() {
@@ -10,24 +10,122 @@
     let timelineChart = null;
     let monthlyChart = null;
     
-    // Store martyrs data for PDF generation
+    // Store martyrs data for PDF generation & instant cross-filtering
     let allMartyrsData = [];
+
+    // Interactive dashboard state
+    const activeStatsFilter = {
+        year: null,      // number | null
+        region: null,    // string | null
+        org: null,       // string | null
+        month: null      // number (0-11) | null
+    };
+    let currentTimelineRange = 'active'; // 'active' | '2020s' | '2010s' | 'pre2010' | 'all'
+    let showAllRegions = false;
+    let showAllOrgs = false;
+    let uiControlsBound = false;
 
     // Month names
     const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const FULL_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+    // Known organization display labels
+    const ORG_LABELS = {
+        'BLA': 'BLA — Baloch Liberation Army',
+        'BLF': 'BLF — Balochistan Liberation Front',
+        'BRA': 'BRA — Baloch Republican Army',
+        'BRG': 'BRG — Baloch Republican Guards',
+        'UBA': 'UBA — United Baloch Army',
+        'BNA': 'BNA — Baloch Nationalist Army',
+        'BSO-Azad': 'BSO-Azad — Baloch Students Organization',
+        'BNM': 'BNM — Baloch National Movement',
+        'BRP': 'BRP — Baloch Republican Party'
+    };
 
     // Initialize
     document.addEventListener('DOMContentLoaded', init);
 
     async function init() {
         console.log('📊 Statistics: Initializing...');
+        bindDashboardUIControls();
         
         // Wait a bit for Firebase to be ready
         await waitForFirebase();
         
         // Load data
         loadData();
+    }
+
+    // Bind static UI buttons (Hero jump, Clear filter, Range tabs, Expand toggles)
+    function bindDashboardUIControls() {
+        if (uiControlsBound) return;
+        uiControlsBound = true;
+
+        // 1. Hero "Download PDF Archive" quick-scroll button
+        const heroJumpBtn = document.getElementById('heroDownloadJumpBtn');
+        if (heroJumpBtn) {
+            heroJumpBtn.addEventListener('click', () => {
+                const downloadSec = document.getElementById('downloadSection');
+                if (downloadSec) {
+                    downloadSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    downloadSec.classList.add('highlight-pulse');
+                    setTimeout(() => downloadSec.classList.remove('highlight-pulse'), 1800);
+                }
+            });
+        }
+
+        // 2. Clear all interactive dashboard filters
+        const clearBtn = document.getElementById('clearStatsFilterBtn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                clearAllStatsFilters();
+            });
+        }
+
+        // 3. Timeline Era Range Tabs
+        const rangeTabsContainer = document.getElementById('timelineRangeTabs');
+        if (rangeTabsContainer) {
+            rangeTabsContainer.addEventListener('click', (e) => {
+                const tab = e.target.closest('.timeline-range-tab');
+                if (!tab) return;
+                const range = tab.getAttribute('data-range') || 'active';
+                currentTimelineRange = range;
+                rangeTabsContainer.querySelectorAll('.timeline-range-tab').forEach(btn => {
+                    btn.classList.toggle('active', btn === tab);
+                });
+                refreshDashboardUI();
+            });
+        }
+
+        // 4. Region & Organization expand/collapse toggles
+        const toggleRegionsBtn = document.getElementById('toggleAllRegionsBtn');
+        if (toggleRegionsBtn) {
+            toggleRegionsBtn.addEventListener('click', () => {
+                showAllRegions = !showAllRegions;
+                refreshDashboardUI();
+            });
+        }
+
+        const toggleOrgsBtn = document.getElementById('toggleAllOrgsBtn');
+        if (toggleOrgsBtn) {
+            toggleOrgsBtn.addEventListener('click', () => {
+                showAllOrgs = !showAllOrgs;
+                refreshDashboardUI();
+            });
+        }
+
+        // 5. Year strip horizontal scroll buttons
+        const ribbon = document.getElementById('timelineRibbon');
+        const prevBtn = document.getElementById('timelinePrev');
+        const nextBtn = document.getElementById('timelineNext');
+        if (ribbon && prevBtn && nextBtn) {
+            prevBtn.addEventListener('click', () => {
+                ribbon.scrollBy({ left: -280, behavior: 'smooth' });
+            });
+            nextBtn.addEventListener('click', () => {
+                ribbon.scrollBy({ left: 280, behavior: 'smooth' });
+            });
+        }
     }
 
     // Wait for Firebase to initialize
@@ -62,7 +160,7 @@
             // Method 1: Firebase direct (most reliable)
             if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
                 console.log('📊 Fetching from Firebase...');
-                updateStatus(statusEl, 'Connecting to database...', true);
+                updateStatus(statusEl, 'Connecting to memorial archive...', true);
                 
                 const result = await window.firebaseDB.getApprovedMartyrs();
                 
@@ -76,7 +174,7 @@
             // Method 2: API fallback
             if (martyrs.length === 0) {
                 console.log('📊 Trying API...');
-                updateStatus(statusEl, 'Trying API...', true);
+                updateStatus(statusEl, 'Loading archival records...', true);
                 
                 try {
                     const response = await fetch('/api/get-martyrs', {
@@ -101,7 +199,7 @@
             // Method 3: localStorage fallback
             if (martyrs.length === 0) {
                 console.log('📊 Trying localStorage...');
-                updateStatus(statusEl, 'Using cached data...', true);
+                updateStatus(statusEl, 'Restoring memorial archive...', true);
                 
                 try {
                     const saved = localStorage.getItem('martyrsData');
@@ -123,34 +221,32 @@
 
             // No data?
             if (martyrs.length === 0) {
-                updateStatus(statusEl, 'No data available', false);
+                updateStatus(statusEl, 'Archive awaiting records', false);
                 if (emptyEl) emptyEl.style.display = 'block';
                 return;
             }
 
-            // Show dashboard
+            // Show dashboard with dignified archival status badge
             if (contentEl) contentEl.style.display = 'block';
-            updateStatus(statusEl, `${martyrs.length} records from ${source}`, false);
+            updateStatus(
+                statusEl,
+                `Verified Memorial Archive • ${martyrs.length.toLocaleString()} Documented Heroes`,
+                false
+            );
 
-            // Store martyrs for PDF generation
+            // Store martyrs for PDF generation and interactive filtering
             allMartyrsData = martyrs;
             
-            // Process and render
-            const stats = processData(martyrs);
-            renderKeyNumbers(stats);
-            render3DTimelineRibbon(stats);
-            renderTimeline(stats);
-            renderRegions(stats);
-            renderMonthly(stats);
-            renderInsights(stats);
+            // Render full interactive dashboard
+            refreshDashboardUI();
             
-            // Setup PDF download button
+            // Setup PDF download button & filters
             setupPdfDownload();
             
             // Update download info
             const downloadInfo = document.getElementById('downloadInfo');
             if (downloadInfo) {
-                downloadInfo.textContent = `PDF includes ${martyrs.length} profiles with photos and biographies`;
+                downloadInfo.textContent = `PDF includes ${martyrs.length.toLocaleString()} profiles with photos and biographies`;
             }
 
             console.log('✅ Statistics rendered');
@@ -158,7 +254,7 @@
         } catch (error) {
             console.error('❌ Statistics error:', error);
             if (loadingEl) loadingEl.style.display = 'none';
-            updateStatus(statusEl, 'Error loading data', false);
+            updateStatus(statusEl, 'Unable to reach archive', false);
             if (emptyEl) {
                 emptyEl.style.display = 'block';
                 const title = emptyEl.querySelector('.empty-title');
@@ -182,6 +278,207 @@
         }
     }
 
+    // Check if any interactive filter is active
+    function hasActiveStatsFilter() {
+        return (
+            activeStatsFilter.year !== null ||
+            activeStatsFilter.region !== null ||
+            activeStatsFilter.org !== null ||
+            activeStatsFilter.month !== null
+        );
+    }
+
+    // Clear all interactive filters
+    function clearAllStatsFilters() {
+        activeStatsFilter.year = null;
+        activeStatsFilter.region = null;
+        activeStatsFilter.org = null;
+        activeStatsFilter.month = null;
+        syncInteractiveFiltersToPdf('all', 'all', 'all');
+        refreshDashboardUI();
+    }
+
+    // Toggle a single filter dimension
+    function toggleStatsFilter(type, value) {
+        if (type === 'year') {
+            const yrNum = Number(value);
+            activeStatsFilter.year = (activeStatsFilter.year === yrNum) ? null : yrNum;
+        } else if (type === 'region') {
+            activeStatsFilter.region = (activeStatsFilter.region === value) ? null : value;
+        } else if (type === 'org') {
+            activeStatsFilter.org = (activeStatsFilter.org === value) ? null : value;
+        } else if (type === 'month') {
+            const moNum = Number(value);
+            activeStatsFilter.month = (activeStatsFilter.month === moNum) ? null : moNum;
+        }
+
+        // Also sync Year / Month / Org into the PDF Archive Studio dropdowns for convenience
+        syncInteractiveFiltersToPdf(
+            activeStatsFilter.year !== null ? String(activeStatsFilter.year) : 'all',
+            activeStatsFilter.month !== null ? String(activeStatsFilter.month) : 'all',
+            activeStatsFilter.org !== null ? String(activeStatsFilter.org) : 'all'
+        );
+
+        refreshDashboardUI();
+    }
+
+    // Sync active dashboard filter into the PDF export dropdowns if they exist
+    function syncInteractiveFiltersToPdf(yearVal, monthVal, orgVal) {
+        const yearSelect = document.getElementById('pdfFilterYear');
+        const monthSelect = document.getElementById('pdfFilterMonth');
+        const orgSelect = document.getElementById('pdfFilterOrg');
+
+        if (yearSelect && [...yearSelect.options].some(o => o.value === yearVal)) {
+            yearSelect.value = yearVal;
+        }
+        if (monthSelect && [...monthSelect.options].some(o => o.value === monthVal)) {
+            monthSelect.value = monthVal;
+        }
+        if (orgSelect && [...orgSelect.options].some(o => o.value === orgVal)) {
+            orgSelect.value = orgVal;
+        }
+        if (typeof updatePdfFilterSummary === 'function' && pdfFiltersInitialized) {
+            updatePdfFilterSummary();
+        }
+    }
+
+    // Filter martyrs according to activeStatsFilter (with optional exclusion of one dimension so charts can show context)
+    function getFilteredMartyrs(excludeDimension) {
+        if (!allMartyrsData || allMartyrsData.length === 0) return [];
+        return allMartyrsData.filter(m => {
+            if (excludeDimension !== 'year' && activeStatsFilter.year !== null) {
+                const yr = extractYear(m.martyrdomDate);
+                if (yr !== activeStatsFilter.year) return false;
+            }
+            if (excludeDimension !== 'region' && activeStatsFilter.region !== null) {
+                const reg = normalizeRegion(m.martyrdomPlace || m.birthPlace);
+                if (reg !== activeStatsFilter.region) return false;
+            }
+            if (excludeDimension !== 'org' && activeStatsFilter.org !== null) {
+                const org = normalizeOrg(m.organization);
+                if (org !== activeStatsFilter.org) return false;
+            }
+            if (excludeDimension !== 'month' && activeStatsFilter.month !== null) {
+                const mo = extractMonth(m.martyrdomDate);
+                if (mo !== activeStatsFilter.month) return false;
+            }
+            return true;
+        });
+    }
+
+    // Re-render all dashboard components from in-memory data
+    function refreshDashboardUI() {
+        if (!allMartyrsData || allMartyrsData.length === 0) return;
+
+        const filteredMartyrs = getFilteredMartyrs(null);
+        const timelineContextMartyrs = getFilteredMartyrs('year');
+
+        const currentStats = processData(filteredMartyrs);
+        const timelineStats = processData(timelineContextMartyrs);
+
+        renderActiveFilterBar(filteredMartyrs.length);
+        renderKeyNumbers(currentStats, allMartyrsData.length);
+        renderYearPillStrip(timelineStats);
+        renderTimeline(timelineStats);
+        renderRegions(currentStats);
+        renderOrganizations(currentStats);
+        renderMonthly(currentStats);
+    }
+
+    // Render the sticky Active Filter Bar with Gallery deep-link
+    function renderActiveFilterBar(matchingCount) {
+        const bar = document.getElementById('statsActiveFilterBar');
+        const pillsContainer = document.getElementById('statsActiveFilterPills');
+        const galleryLink = document.getElementById('statsGalleryDeepLink');
+        const galleryLinkText = document.getElementById('statsGalleryDeepLinkText');
+
+        if (!bar || !pillsContainer) return;
+
+        if (!hasActiveStatsFilter()) {
+            bar.classList.remove('is-visible');
+            pillsContainer.innerHTML = '';
+            return;
+        }
+
+        bar.classList.add('is-visible');
+        const pills = [];
+
+        if (activeStatsFilter.year !== null) {
+            pills.push(`
+                <span class="stats-filter-pill">
+                    <span>Year: ${activeStatsFilter.year}</span>
+                    <button type="button" data-clear-dim="year" aria-label="Remove year filter">&times;</button>
+                </span>
+            `);
+        }
+        if (activeStatsFilter.region !== null) {
+            pills.push(`
+                <span class="stats-filter-pill">
+                    <span>Region: ${escapeHTML(activeStatsFilter.region)}</span>
+                    <button type="button" data-clear-dim="region" aria-label="Remove region filter">&times;</button>
+                </span>
+            `);
+        }
+        if (activeStatsFilter.org !== null) {
+            const orgDisplay = activeStatsFilter.org === '__none__' ? 'Independent / Unspecified' : activeStatsFilter.org;
+            pills.push(`
+                <span class="stats-filter-pill">
+                    <span>Affiliation: ${escapeHTML(orgDisplay)}</span>
+                    <button type="button" data-clear-dim="org" aria-label="Remove organization filter">&times;</button>
+                </span>
+            `);
+        }
+        if (activeStatsFilter.month !== null) {
+            pills.push(`
+                <span class="stats-filter-pill">
+                    <span>Month: ${FULL_MONTHS[activeStatsFilter.month]}</span>
+                    <button type="button" data-clear-dim="month" aria-label="Remove month filter">&times;</button>
+                </span>
+            `);
+        }
+
+        pillsContainer.innerHTML = pills.join('');
+
+        // Bind individual pill remove buttons
+        pillsContainer.querySelectorAll('button[data-clear-dim]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const dim = btn.getAttribute('data-clear-dim');
+                if (dim && dim in activeStatsFilter) {
+                    activeStatsFilter[dim] = null;
+                    syncInteractiveFiltersToPdf(
+                        activeStatsFilter.year !== null ? String(activeStatsFilter.year) : 'all',
+                        activeStatsFilter.month !== null ? String(activeStatsFilter.month) : 'all',
+                        activeStatsFilter.org !== null ? String(activeStatsFilter.org) : 'all'
+                    );
+                    refreshDashboardUI();
+                }
+            });
+        });
+
+        // Build Gallery deep-link URL
+        if (galleryLink && galleryLinkText) {
+            const params = new URLSearchParams();
+            if (activeStatsFilter.year !== null) params.set('year', String(activeStatsFilter.year));
+            if (activeStatsFilter.region !== null) params.set('region', activeStatsFilter.region);
+            if (activeStatsFilter.org !== null && activeStatsFilter.org !== '__none__') {
+                params.set('organization', activeStatsFilter.org);
+            }
+            if (activeStatsFilter.month !== null) {
+                params.set('q', FULL_MONTHS[activeStatsFilter.month]);
+            }
+            const qs = params.toString();
+            galleryLink.href = qs ? `/gallery?${qs}` : '/gallery';
+            galleryLinkText.textContent = `View these ${matchingCount.toLocaleString()} ${matchingCount === 1 ? 'profile' : 'profiles'} in Gallery`;
+        }
+    }
+
+    // Normalize organization string
+    function normalizeOrg(rawOrg) {
+        const trimmed = (rawOrg || '').trim();
+        if (!trimmed) return '__none__';
+        return trimmed;
+    }
+
     // Process martyrs data into stats
     function processData(martyrs) {
         const stats = {
@@ -191,6 +488,7 @@
             byYear: {},
             byMonth: new Array(12).fill(0),
             byRegion: {},
+            byOrg: {},
             years: []
         };
 
@@ -225,9 +523,13 @@
             if (region) {
                 stats.byRegion[region] = (stats.byRegion[region] || 0) + 1;
             }
+
+            // Organization
+            const orgKey = normalizeOrg(m.organization);
+            stats.byOrg[orgKey] = (stats.byOrg[orgKey] || 0) + 1;
         });
 
-        // Sort years
+        // Sort years ascending
         stats.years.sort((a, b) => a - b);
 
         // Calculate derived stats
@@ -237,6 +539,7 @@
         }
 
         stats.regionCount = Object.keys(stats.byRegion).length;
+        stats.orgCount = Object.keys(stats.byOrg).filter(k => k !== '__none__').length;
         stats.storyPercent = stats.total > 0 ? Math.round((stats.withBio / stats.total) * 100) : 0;
 
         return stats;
@@ -254,14 +557,14 @@
         
         // ISO format: 2024-01-15
         let match = s.match(/^(\d{4})-/);
-        if (match) return parseInt(match[1]);
+        if (match) return parseInt(match[1], 10);
         
         // Year at end: 15/01/2024
         match = s.match(/(\d{4})$/);
-        if (match) return parseInt(match[1]);
+        if (match) return parseInt(match[1], 10);
         
         // Just year
-        if (/^\d{4}$/.test(s)) return parseInt(s);
+        if (/^\d{4}$/.test(s)) return parseInt(s, 10);
         
         return null;
     }
@@ -278,11 +581,11 @@
         
         // ISO: 2024-03-15
         let match = s.match(/^\d{4}-(\d{2})/);
-        if (match) return parseInt(match[1]) - 1;
+        if (match) return parseInt(match[1], 10) - 1;
         
         // DD/MM/YYYY
         match = s.match(/^\d{2}\/(\d{2})\/\d{4}/);
-        if (match) return parseInt(match[1]) - 1;
+        if (match) return parseInt(match[1], 10) - 1;
         
         return null;
     }
@@ -320,42 +623,228 @@
             .join(' ');
     }
 
-    // Render key numbers
-    function renderKeyNumbers(stats) {
+    // Render 4-Card Executive KPI Strip with integrated contextual insights
+    function renderKeyNumbers(stats, grandTotal) {
         const total = document.getElementById('totalMartyrs');
         const regions = document.getElementById('totalRegions');
         const yearSpan = document.getElementById('yearSpan');
         const stories = document.getElementById('withStories');
 
+        const insightTotal = document.getElementById('kpiInsightTotal');
+        const insightRegions = document.getElementById('kpiInsightRegions');
+        const insightYears = document.getElementById('kpiInsightYears');
+        const insightStories = document.getElementById('kpiInsightStories');
+        const storyBarFill = document.getElementById('kpiStoryBarFill');
+
         if (total) total.textContent = stats.total.toLocaleString();
-        if (regions) regions.textContent = stats.regionCount;
+        if (regions) regions.textContent = stats.regionCount.toLocaleString();
         if (yearSpan) {
-            yearSpan.textContent = stats.years.length > 0 
-                ? `${stats.minYear}–${stats.maxYear}`
-                : '—';
+            if (stats.years.length === 0) {
+                yearSpan.textContent = '—';
+            } else if (stats.minYear === stats.maxYear) {
+                yearSpan.textContent = String(stats.minYear);
+            } else {
+                yearSpan.textContent = `${stats.minYear}–${stats.maxYear}`;
+            }
         }
         if (stories) stories.textContent = `${stats.storyPercent}%`;
-    }
+        if (storyBarFill) storyBarFill.style.width = `${stats.storyPercent}%`;
 
-    // Render timeline chart
-    function renderTimeline(stats) {
-        const canvas = document.getElementById('timelineChart');
-        if (!canvas || stats.years.length === 0) return;
-
-        if (timelineChart) timelineChart.destroy();
-
-        // Build labels and data - fill gaps
-        const labels = [];
-        const data = [];
-        
-        for (let y = stats.minYear; y <= stats.maxYear; y++) {
-            labels.push(y.toString());
-            data.push(stats.byYear[y] || 0);
+        // 1. Contextual Insight on Card 1 (Peak Year or Filtered share)
+        if (insightTotal) {
+            if (stats.years.length > 0) {
+                const peakYearEntry = Object.entries(stats.byYear).sort((a, b) => b[1] - a[1])[0];
+                if (hasActiveStatsFilter() && grandTotal) {
+                    const sharePct = Math.round((stats.total / grandTotal) * 100);
+                    insightTotal.innerHTML = `
+                        <span>${sharePct}% of total archive</span>
+                        <button type="button" class="kpi-insight-btn" data-kpi-year="${peakYearEntry[0]}">
+                            Peak: ${peakYearEntry[0]} (${peakYearEntry[1]})
+                        </button>
+                    `;
+                } else {
+                    insightTotal.innerHTML = `
+                        <span>Highest year</span>
+                        <button type="button" class="kpi-insight-btn" data-kpi-year="${peakYearEntry[0]}" title="Filter by ${peakYearEntry[0]}">
+                            ${peakYearEntry[0]} • ${peakYearEntry[1]} martyrs
+                        </button>
+                    `;
+                }
+                const btn = insightTotal.querySelector('[data-kpi-year]');
+                if (btn) {
+                    btn.addEventListener('click', () => toggleStatsFilter('year', btn.getAttribute('data-kpi-year')));
+                }
+            } else {
+                insightTotal.innerHTML = '<span>Verified memorial profiles</span>';
+            }
         }
 
+        // 2. Contextual Insight on Card 2 (Most Affected Region)
+        if (insightRegions) {
+            const topRegions = Object.entries(stats.byRegion).sort((a, b) => b[1] - a[1]);
+            if (topRegions.length > 0 && stats.total > 0) {
+                const [topReg, topCnt] = topRegions[0];
+                const pct = Math.max(1, Math.round((topCnt / stats.total) * 100));
+                insightRegions.innerHTML = `
+                    <span>Most affected</span>
+                    <button type="button" class="kpi-insight-btn" data-kpi-region="${escapeHTML(topReg)}" title="Filter by ${escapeHTML(topReg)}">
+                        ${escapeHTML(topReg)} (${pct}%)
+                    </button>
+                `;
+                const btn = insightRegions.querySelector('[data-kpi-region]');
+                if (btn) {
+                    btn.addEventListener('click', () => toggleStatsFilter('region', topReg));
+                }
+            } else {
+                insightRegions.innerHTML = '<span>Documented locations</span>';
+            }
+        }
+
+        // 3. Contextual Insight on Card 3 (Peak Month & Active Years count)
+        if (insightYears) {
+            const maxMonthCount = Math.max(...stats.byMonth);
+            const maxMonthIdx = stats.byMonth.indexOf(maxMonthCount);
+            if (maxMonthCount > 0) {
+                insightYears.innerHTML = `
+                    <span>Peak month</span>
+                    <button type="button" class="kpi-insight-btn" data-kpi-month="${maxMonthIdx}" title="Filter by ${FULL_MONTHS[maxMonthIdx]}">
+                        ${FULL_MONTHS[maxMonthIdx]} (${maxMonthCount})
+                    </button>
+                `;
+                const btn = insightYears.querySelector('[data-kpi-month]');
+                if (btn) {
+                    btn.addEventListener('click', () => toggleStatsFilter('month', maxMonthIdx));
+                }
+            } else {
+                insightYears.innerHTML = `<span>${stats.years.length} documented years</span>`;
+            }
+        }
+
+        // 4. Contextual Insight on Card 4 (Stories + Portraits count)
+        if (insightStories) {
+            insightStories.innerHTML = `
+                <span>${stats.withBio.toLocaleString()} biographies • ${stats.withPhoto.toLocaleString()} portraits</span>
+            `;
+        }
+    }
+
+    // Helper: get filtered year list according to currentTimelineRange
+    function getTimelineYearsForRange(stats) {
+        if (!stats.years || stats.years.length === 0) return [];
+
+        if (currentTimelineRange === 'all') {
+            const full = [];
+            for (let y = stats.minYear; y <= stats.maxYear; y++) {
+                full.push(y);
+            }
+            return full;
+        }
+
+        if (currentTimelineRange === '2020s') {
+            const list = [];
+            const start = Math.max(2020, stats.minYear);
+            const end = Math.max(2020, stats.maxYear);
+            for (let y = start; y <= end; y++) {
+                if ((stats.byYear[y] || 0) > 0 || y >= 2020) list.push(y);
+            }
+            return list;
+        }
+
+        if (currentTimelineRange === '2010s') {
+            const list = [];
+            for (let y = 2010; y <= 2019; y++) {
+                if ((stats.byYear[y] || 0) > 0 || (stats.minYear <= 2019 && stats.maxYear >= 2010)) {
+                    list.push(y);
+                }
+            }
+            return list;
+        }
+
+        if (currentTimelineRange === 'pre2010') {
+            return stats.years.filter(y => y < 2010);
+        }
+
+        // Default 'active': only years with at least 1 documented martyr
+        return [...stats.years];
+    }
+
+    // Render interactive Year Pill Strip below the Timeline chart
+    function renderYearPillStrip(stats) {
+        const ribbon = document.getElementById('timelineRibbon');
+        if (!ribbon) return;
+
+        if (!stats.years || stats.years.length === 0) {
+            ribbon.innerHTML = '<span style="font-size: 0.8rem; color: #64748b;">No chronological data for this filter.</span>';
+            return;
+        }
+
+        const peakYear = Object.entries(stats.byYear)
+            .sort((a, b) => b[1] - a[1])[0]?.[0];
+
+        // Show active years in descending order (newest first) for quick 1-tap filtering
+        const activeYearsDesc = [...stats.years].sort((a, b) => b - a);
+
+        ribbon.innerHTML = activeYearsDesc.map(year => {
+            const count = stats.byYear[year] || 0;
+            const isPeak = String(year) === String(peakYear);
+            const isSelected = activeStatsFilter.year === year;
+            return `
+                <button type="button"
+                    class="year-pill-btn${isPeak ? ' is-peak' : ''}${isSelected ? ' is-active' : ''}"
+                    data-year="${year}"
+                    title="Filter dashboard by ${year} (${count} documented)">
+                    <span>${year}${isPeak ? ' ★' : ''}</span>
+                    <span class="year-pill-count">${count}</span>
+                </button>
+            `;
+        }).join('');
+
+        ribbon.querySelectorAll('.year-pill-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const yr = parseInt(btn.getAttribute('data-year'), 10);
+                if (!isNaN(yr)) {
+                    toggleStatsFilter('year', yr);
+                }
+            });
+        });
+    }
+
+    // Render interactive timeline chart
+    function renderTimeline(stats) {
+        const canvas = document.getElementById('timelineChart');
+        if (!canvas) return;
+
+        if (timelineChart) {
+            timelineChart.destroy();
+            timelineChart = null;
+        }
+
+        const yearsList = getTimelineYearsForRange(stats);
+        if (yearsList.length === 0) return;
+
+        const labels = yearsList.map(y => String(y));
+        const data = yearsList.map(y => stats.byYear[y] || 0);
+
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        const gridColor = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+        const gridColor = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(15, 23, 42, 0.06)';
         const textColor = isDark ? '#94a3b8' : '#64748b';
+
+        // Highlight selected year bar if a year filter is active
+        const bgColors = yearsList.map(y => {
+            if (activeStatsFilter.year !== null) {
+                return y === activeStatsFilter.year
+                    ? (isDark ? '#4ade80' : '#15803d')
+                    : (isDark ? 'rgba(134, 239, 172, 0.25)' : 'rgba(21, 128, 61, 0.22)');
+            }
+            return isDark ? 'rgba(74, 222, 128, 0.78)' : 'rgba(21, 128, 61, 0.82)';
+        });
+
+        const borderColors = yearsList.map(y => {
+            if (activeStatsFilter.year !== null && y === activeStatsFilter.year) {
+                return isDark ? '#bbf7d0' : '#0d2110';
+            }
+            return isDark ? '#4ade80' : '#15803d';
+        });
 
         timelineChart = new Chart(canvas, {
             type: 'bar',
@@ -363,29 +852,45 @@
                 labels: labels,
                 datasets: [{
                     data: data,
-                    backgroundColor: isDark ? 'rgba(134, 239, 172, 0.7)' : 'rgba(44, 85, 48, 0.7)',
-                    borderColor: isDark ? '#86efac' : '#2c5530',
+                    backgroundColor: bgColors,
+                    hoverBackgroundColor: isDark ? '#86efac' : '#16a34a',
+                    borderColor: borderColors,
                     borderWidth: 1,
-                    borderRadius: 3,
-                    barPercentage: 0.7
+                    borderRadius: 5,
+                    barPercentage: yearsList.length > 35 ? 0.85 : 0.72,
+                    maxBarThickness: 38
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                onClick: (event, elements) => {
+                    if (elements && elements.length > 0) {
+                        const idx = elements[0].index;
+                        const clickedYear = yearsList[idx];
+                        if (clickedYear) {
+                            toggleStatsFilter('year', clickedYear);
+                        }
+                    }
+                },
+                onHover: (event, chartElement) => {
+                    if (event?.native?.target) {
+                        event.native.target.style.cursor = chartElement.length ? 'pointer' : 'default';
+                    }
+                },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: isDark ? '#1e293b' : '#fff',
-                        titleColor: isDark ? '#f1f5f9' : '#1e293b',
-                        bodyColor: isDark ? '#cbd5e1' : '#475569',
-                        borderColor: isDark ? '#334155' : '#e2e8f0',
+                        backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                        titleColor: isDark ? '#f8fafc' : '#0f172a',
+                        bodyColor: isDark ? '#86efac' : '#15803d',
+                        borderColor: isDark ? '#22c55e' : '#bbf7d0',
                         borderWidth: 1,
-                        padding: 10,
+                        padding: 11,
                         displayColors: false,
                         callbacks: {
-                            title: ctx => ctx[0].label,
-                            label: ctx => `${ctx.raw} documented`
+                            title: ctx => `Year ${ctx[0].label}`,
+                            label: ctx => `${ctx.raw.toLocaleString()} documented — click to filter`
                         }
                     }
                 },
@@ -395,7 +900,7 @@
                         ticks: { 
                             color: textColor,
                             maxRotation: 45,
-                            font: { size: 11 }
+                            font: { size: 11, weight: '600' }
                         }
                     },
                     y: {
@@ -403,7 +908,6 @@
                         grid: { color: gridColor },
                         ticks: {
                             color: textColor,
-                            stepSize: 1,
                             font: { size: 11 },
                             callback: v => Number.isInteger(v) ? v : ''
                         }
@@ -413,56 +917,178 @@
         });
     }
 
-    // Render regions list
+    // Render interactive Regions leaderboard
     function renderRegions(stats) {
         const list = document.getElementById('regionsList');
+        const badge = document.getElementById('regionTotalBadge');
+        const toggleBtn = document.getElementById('toggleAllRegionsBtn');
         if (!list) return;
 
-        // Sort by count, take top 8
-        const sorted = Object.entries(stats.byRegion)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 8);
+        const allSorted = Object.entries(stats.byRegion).sort((a, b) => b[1] - a[1]);
+        if (badge) {
+            badge.textContent = `${allSorted.length} ${allSorted.length === 1 ? 'region' : 'regions'}`;
+        }
 
-        if (sorted.length === 0) {
-            list.innerHTML = '<li class="bar-item"><span style="color: #64748b;">No region data</span></li>';
+        if (allSorted.length === 0) {
+            list.innerHTML = '<li class="bar-item" style="cursor: default;"><span style="color: #64748b;">No region data for current filter</span></li>';
+            if (toggleBtn) toggleBtn.style.display = 'none';
             return;
         }
 
-        const maxCount = sorted[0][1];
+        const visibleItems = showAllRegions ? allSorted : allSorted.slice(0, 8);
+        const maxCount = allSorted[0][1];
 
-        list.innerHTML = sorted.map(([region, count], i) => {
-            const pct = Math.round((count / maxCount) * 100);
+        list.innerHTML = visibleItems.map(([region, count], i) => {
+            const barPct = maxCount > 0 ? Math.round((count / maxCount) * 100) : 0;
+            const sharePct = stats.total > 0 ? Math.max(1, Math.round((count / stats.total) * 100)) : 0;
+            const isSelected = activeStatsFilter.region === region;
             return `
-                <li class="bar-item">
+                <li class="bar-item${isSelected ? ' is-selected' : ''}" data-region="${escapeHTML(region)}" title="Click to filter by ${escapeHTML(region)}">
                     <span class="bar-rank">${i + 1}</span>
                     <div class="bar-info">
-                        <div class="bar-label">${escapeHTML(region)}</div>
+                        <div class="bar-label-row">
+                            <div class="bar-label">${escapeHTML(region)}</div>
+                            <span class="bar-value">${count.toLocaleString()}<span class="bar-pct">(${sharePct}%)</span></span>
+                        </div>
                         <div class="bar-track">
-                            <div class="bar-fill" style="width: ${pct}%"></div>
+                            <div class="bar-fill" style="width: ${barPct}%"></div>
                         </div>
                     </div>
-                    <span class="bar-value">${count}</span>
                 </li>
             `;
         }).join('');
+
+        list.querySelectorAll('.bar-item[data-region]').forEach(item => {
+            item.addEventListener('click', () => {
+                const reg = item.getAttribute('data-region');
+                if (reg) toggleStatsFilter('region', reg);
+            });
+        });
+
+        if (toggleBtn) {
+            if (allSorted.length > 8) {
+                toggleBtn.style.display = 'block';
+                toggleBtn.textContent = showAllRegions
+                    ? 'Show top 8 regions ▴'
+                    : `Show all ${allSorted.length} regions ▾`;
+            } else {
+                toggleBtn.style.display = 'none';
+            }
+        }
+    }
+
+    // Render interactive Organizations & Affiliations leaderboard
+    function renderOrganizations(stats) {
+        const list = document.getElementById('orgsList');
+        const badge = document.getElementById('orgTotalBadge');
+        const toggleBtn = document.getElementById('toggleAllOrgsBtn');
+        if (!list) return;
+
+        // Sort known organizations first by count, keep '__none__' at the bottom if present
+        const entries = Object.entries(stats.byOrg).sort((a, b) => {
+            if (a[0] === '__none__') return 1;
+            if (b[0] === '__none__') return -1;
+            return b[1] - a[1];
+        });
+
+        const namedCount = entries.filter(e => e[0] !== '__none__').length;
+        if (badge) {
+            badge.textContent = `${namedCount} ${namedCount === 1 ? 'affiliation' : 'affiliations'}`;
+        }
+
+        if (entries.length === 0) {
+            list.innerHTML = '<li class="bar-item" style="cursor: default;"><span style="color: #64748b;">No affiliation data for current filter</span></li>';
+            if (toggleBtn) toggleBtn.style.display = 'none';
+            return;
+        }
+
+        const visibleItems = showAllOrgs ? entries : entries.slice(0, 8);
+        const maxCount = Math.max(...entries.map(e => e[1]));
+
+        list.innerHTML = visibleItems.map(([orgKey, count], i) => {
+            const barPct = maxCount > 0 ? Math.round((count / maxCount) * 100) : 0;
+            const sharePct = stats.total > 0 ? Math.max(1, Math.round((count / stats.total) * 100)) : 0;
+            const isSelected = activeStatsFilter.org === orgKey;
+            const displayLabel = orgKey === '__none__'
+                ? 'Independent / Civilian / Unspecified'
+                : (ORG_LABELS[orgKey] || orgKey);
+
+            return `
+                <li class="bar-item${isSelected ? ' is-selected' : ''}" data-org="${escapeHTML(orgKey)}" title="Click to filter by ${escapeHTML(displayLabel)}">
+                    <span class="bar-rank">${i + 1}</span>
+                    <div class="bar-info">
+                        <div class="bar-label-row">
+                            <div class="bar-label">${escapeHTML(displayLabel)}</div>
+                            <span class="bar-value">${count.toLocaleString()}<span class="bar-pct">(${sharePct}%)</span></span>
+                        </div>
+                        <div class="bar-track">
+                            <div class="bar-fill" style="width: ${barPct}%"></div>
+                        </div>
+                    </div>
+                </li>
+            `;
+        }).join('');
+
+        list.querySelectorAll('.bar-item[data-org]').forEach(item => {
+            item.addEventListener('click', () => {
+                const orgKey = item.getAttribute('data-org');
+                if (orgKey) toggleStatsFilter('org', orgKey);
+            });
+        });
+
+        if (toggleBtn) {
+            if (entries.length > 8) {
+                toggleBtn.style.display = 'block';
+                toggleBtn.textContent = showAllOrgs
+                    ? 'Show top 8 affiliations ▴'
+                    : `Show all ${entries.length} affiliations ▾`;
+            } else {
+                toggleBtn.style.display = 'none';
+            }
+        }
     }
 
     // Render monthly chart
     function renderMonthly(stats) {
         const canvas = document.getElementById('monthlyChart');
+        const peakBadge = document.getElementById('monthlyPeakBadge');
         if (!canvas) return;
 
-        if (monthlyChart) monthlyChart.destroy();
+        const maxVal = Math.max(...stats.byMonth);
+        const peakIdx = stats.byMonth.indexOf(maxVal);
+        if (peakBadge) {
+            peakBadge.textContent = maxVal > 0
+                ? `Peak Month: ${FULL_MONTHS[peakIdx]} (${maxVal})`
+                : 'Peak Month: —';
+        }
+
+        if (monthlyChart) {
+            monthlyChart.destroy();
+            monthlyChart = null;
+        }
 
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        const gridColor = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(0, 0, 0, 0.05)';
+        const gridColor = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(15, 23, 42, 0.06)';
         const textColor = isDark ? '#94a3b8' : '#64748b';
 
-        // Create gradient
+        // Create memorial green gradient
         const ctx = canvas.getContext('2d');
-        const gradient = ctx.createLinearGradient(0, 0, 0, 200);
-        gradient.addColorStop(0, isDark ? 'rgba(134, 239, 172, 0.3)' : 'rgba(44, 85, 48, 0.3)');
-        gradient.addColorStop(1, isDark ? 'rgba(134, 239, 172, 0.02)' : 'rgba(44, 85, 48, 0.02)');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 220);
+        gradient.addColorStop(0, isDark ? 'rgba(74, 222, 128, 0.32)' : 'rgba(22, 163, 74, 0.28)');
+        gradient.addColorStop(1, isDark ? 'rgba(74, 222, 128, 0.02)' : 'rgba(22, 163, 74, 0.02)');
+
+        const pointBgColors = MONTHS.map((_, idx) => {
+            if (activeStatsFilter.month === idx) {
+                return isDark ? '#ffffff' : '#0d2110';
+            }
+            return isDark ? '#4ade80' : '#15803d';
+        });
+
+        const pointRadii = MONTHS.map((_, idx) => {
+            if (activeStatsFilter.month === idx) return 6;
+            if (idx === peakIdx && maxVal > 0) return 5;
+            return 3.5;
+        });
 
         monthlyChart = new Chart(canvas, {
             type: 'line',
@@ -472,103 +1098,63 @@
                     data: stats.byMonth,
                     fill: true,
                     backgroundColor: gradient,
-                    borderColor: isDark ? '#86efac' : '#2c5530',
-                    borderWidth: 2,
-                    tension: 0.4,
-                    pointBackgroundColor: isDark ? '#86efac' : '#2c5530',
-                    pointBorderColor: isDark ? '#1e293b' : '#fff',
+                    borderColor: isDark ? '#4ade80' : '#15803d',
+                    borderWidth: 2.5,
+                    tension: 0.38,
+                    pointBackgroundColor: pointBgColors,
+                    pointBorderColor: isDark ? '#0f172a' : '#ffffff',
                     pointBorderWidth: 2,
-                    pointRadius: 3,
-                    pointHoverRadius: 5
+                    pointRadius: pointRadii,
+                    pointHoverRadius: 6
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                onClick: (event, elements) => {
+                    if (elements && elements.length > 0) {
+                        const moIdx = elements[0].index;
+                        toggleStatsFilter('month', moIdx);
+                    }
+                },
+                onHover: (event, chartElement) => {
+                    if (event?.native?.target) {
+                        event.native.target.style.cursor = chartElement.length ? 'pointer' : 'default';
+                    }
+                },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: isDark ? '#1e293b' : '#fff',
-                        titleColor: isDark ? '#f1f5f9' : '#1e293b',
-                        bodyColor: isDark ? '#cbd5e1' : '#475569',
-                        borderColor: isDark ? '#334155' : '#e2e8f0',
+                        backgroundColor: isDark ? '#0f172a' : '#ffffff',
+                        titleColor: isDark ? '#f8fafc' : '#0f172a',
+                        bodyColor: isDark ? '#86efac' : '#15803d',
+                        borderColor: isDark ? '#22c55e' : '#bbf7d0',
                         borderWidth: 1,
-                        padding: 10,
+                        padding: 11,
                         displayColors: false,
                         callbacks: {
                             title: ctx => FULL_MONTHS[ctx[0].dataIndex],
-                            label: ctx => `${ctx.raw} documented`
+                            label: ctx => `${ctx.raw.toLocaleString()} documented — click to filter`
                         }
                     }
                 },
                 scales: {
                     x: {
                         grid: { display: false },
-                        ticks: { color: textColor, font: { size: 10 } }
+                        ticks: { color: textColor, font: { size: 11, weight: '600' } }
                     },
                     y: {
                         beginAtZero: true,
                         grid: { color: gridColor },
                         ticks: {
                             color: textColor,
-                            stepSize: 1,
-                            font: { size: 10 },
+                            font: { size: 11 },
                             callback: v => Number.isInteger(v) ? v : ''
                         }
                     }
                 }
             }
         });
-    }
-
-    // Render insights
-    function renderInsights(stats) {
-        const container = document.getElementById('insightsRow');
-        if (!container) return;
-
-        const insights = [];
-
-        // Peak year
-        if (stats.years.length > 0) {
-            const peakYear = Object.entries(stats.byYear)
-                .sort((a, b) => b[1] - a[1])[0];
-            insights.push({
-                label: 'Highest Year',
-                value: `${peakYear[0]} (${peakYear[1]} martyrs)`
-            });
-        }
-
-        // Top region
-        const topRegions = Object.entries(stats.byRegion).sort((a, b) => b[1] - a[1]);
-        if (topRegions.length > 0) {
-            const pct = Math.round((topRegions[0][1] / stats.total) * 100);
-            insights.push({
-                label: 'Most Affected',
-                value: `${topRegions[0][0]} (${pct}%)`
-            });
-        }
-
-        // Peak month
-        const maxMonthIdx = stats.byMonth.indexOf(Math.max(...stats.byMonth));
-        if (stats.byMonth[maxMonthIdx] > 0) {
-            insights.push({
-                label: 'Peak Month',
-                value: FULL_MONTHS[maxMonthIdx]
-            });
-        }
-
-        // Documentation
-        insights.push({
-            label: 'With Biographies',
-            value: `${stats.withBio} of ${stats.total} (${stats.storyPercent}%)`
-        });
-
-        container.innerHTML = insights.map(i => `
-            <div class="insight-item">
-                <div class="insight-label">${i.label}</div>
-                <div class="insight-value">${i.value}</div>
-            </div>
-        `).join('');
     }
 
     // Escape HTML
@@ -581,241 +1167,11 @@
             .replace(/"/g, '&quot;');
     }
 
-    // ============================================
-    // 3D TIMELINE RIBBON
-    // ============================================
-    
-    function render3DTimelineRibbon(stats) {
-        const ribbon = document.getElementById('timelineRibbon');
-        if (!ribbon) {
-            console.log('Timeline ribbon element not found');
-            return;
-        }
-        
-        console.log('Rendering 3D timeline with stats:', stats.years, stats.byYear);
-        
-        // Check if we have year data
-        if (!stats.years || stats.years.length === 0) {
-            ribbon.innerHTML = '<div class="timeline-empty">No timeline data available yet. Add martyrs with dates to see the timeline.</div>';
-            return;
-        }
-        
-        // Find max count for scaling
-        const maxCount = Math.max(...Object.values(stats.byYear));
-        
-        // Find peak year
-        const peakYear = Object.entries(stats.byYear)
-            .sort((a, b) => b[1] - a[1])[0][0];
-        
-        // Build complete year range (fill gaps) backwards so newest year is on the left
-        const yearCards = [];
-        for (let year = stats.maxYear; year >= stats.minYear; year--) {
-            const count = stats.byYear[year] || 0;
-            const barScale = maxCount > 0 ? (count / maxCount) : 0;
-            const isHighlight = year.toString() === peakYear;
-            
-            yearCards.push(`
-                <div class="timeline-year${isHighlight ? ' highlight' : ''}" data-year="${year}" data-count="${count}">
-                    <div class="year-label">${year}</div>
-                    <div class="year-count">${count}</div>
-                    <div class="year-subtitle">${count === 1 ? 'martyr' : 'martyrs'}</div>
-                    <div class="year-bar" style="transform: scaleX(${barScale})"></div>
-                </div>
-            `);
-        }
-        
-        ribbon.innerHTML = yearCards.join('');
-        
-        // Initialize drag/scroll interaction
-        initTimelineInteraction(ribbon);
-        
-        // Initialize navigation buttons
-        initTimelineNavigation(ribbon);
-        
-        // Add entrance animation
-        animateTimelineEntrance(ribbon);
-    }
-    
-    // Initialize drag-to-scroll interaction
-    function initTimelineInteraction(ribbon) {
-        let isDown = false;
-        let startX;
-        let scrollLeft;
-        let velocity = 0;
-        let animationId = null;
-        
-        // Mouse events
-        ribbon.addEventListener('mousedown', (e) => {
-            isDown = true;
-            ribbon.classList.add('dragging');
-            startX = e.pageX - ribbon.offsetLeft;
-            scrollLeft = ribbon.scrollLeft;
-            velocity = 0;
-            if (animationId) cancelAnimationFrame(animationId);
-        });
-        
-        ribbon.addEventListener('mouseleave', () => {
-            if (isDown) {
-                isDown = false;
-                ribbon.classList.remove('dragging');
-                applyMomentum(ribbon, velocity);
-            }
-        });
-        
-        ribbon.addEventListener('mouseup', () => {
-            isDown = false;
-            ribbon.classList.remove('dragging');
-            applyMomentum(ribbon, velocity);
-        });
-        
-        ribbon.addEventListener('mousemove', (e) => {
-            if (!isDown) return;
-            e.preventDefault();
-            const x = e.pageX - ribbon.offsetLeft;
-            const walk = (x - startX) * 1.5; // Scroll speed multiplier
-            const newScrollLeft = scrollLeft - walk;
-            velocity = ribbon.scrollLeft - newScrollLeft;
-            ribbon.scrollLeft = newScrollLeft;
-        });
-        
-        // Touch events for mobile
-        let touchStartX;
-        let touchScrollLeft;
-        let lastTouchX;
-        let lastTouchTime;
-        
-        ribbon.addEventListener('touchstart', (e) => {
-            touchStartX = e.touches[0].pageX;
-            touchScrollLeft = ribbon.scrollLeft;
-            lastTouchX = touchStartX;
-            lastTouchTime = Date.now();
-            velocity = 0;
-            if (animationId) cancelAnimationFrame(animationId);
-        }, { passive: true });
-        
-        ribbon.addEventListener('touchmove', (e) => {
-            if (!touchStartX) return;
-            const touchX = e.touches[0].pageX;
-            const walk = touchStartX - touchX;
-            ribbon.scrollLeft = touchScrollLeft + walk;
-            
-            // Calculate velocity
-            const now = Date.now();
-            const dt = now - lastTouchTime;
-            if (dt > 0) {
-                velocity = (lastTouchX - touchX) / dt * 16; // Normalize to ~60fps
-            }
-            lastTouchX = touchX;
-            lastTouchTime = now;
-        }, { passive: true });
-        
-        ribbon.addEventListener('touchend', () => {
-            applyMomentum(ribbon, velocity);
-            touchStartX = null;
-        }, { passive: true });
-        
-        // Apply momentum scrolling
-        function applyMomentum(element, initialVelocity) {
-            let vel = initialVelocity * 0.95;
-            
-            function step() {
-                if (Math.abs(vel) < 0.5) return;
-                
-                element.scrollLeft += vel;
-                vel *= 0.95; // Friction
-                animationId = requestAnimationFrame(step);
-            }
-            
-            animationId = requestAnimationFrame(step);
-        }
-        
-        // Mouse wheel horizontal scroll
-        ribbon.addEventListener('wheel', (e) => {
-            if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // Natural horizontal scroll
-            e.preventDefault();
-            ribbon.scrollLeft += e.deltaY;
-        }, { passive: false });
-    }
-    
-    // Initialize navigation buttons
-    function initTimelineNavigation(ribbon) {
-        const prevBtn = document.getElementById('timelinePrev');
-        const nextBtn = document.getElementById('timelineNext');
-        
-        if (!prevBtn || !nextBtn) return;
-        
-        const scrollAmount = 300; // Pixels to scroll per click
-        
-        prevBtn.addEventListener('click', () => {
-            ribbon.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-        });
-        
-        nextBtn.addEventListener('click', () => {
-            ribbon.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-        });
-        
-        // Update button states
-        function updateButtonStates() {
-            prevBtn.disabled = ribbon.scrollLeft <= 0;
-            nextBtn.disabled = ribbon.scrollLeft >= ribbon.scrollWidth - ribbon.clientWidth - 10;
-        }
-        
-        ribbon.addEventListener('scroll', updateButtonStates);
-        updateButtonStates();
-        
-        // Keyboard navigation
-        ribbon.setAttribute('tabindex', '0');
-        ribbon.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowLeft') {
-                ribbon.scrollBy({ left: -150, behavior: 'smooth' });
-            } else if (e.key === 'ArrowRight') {
-                ribbon.scrollBy({ left: 150, behavior: 'smooth' });
-            }
-        });
-    }
-    
-    // Animate entrance of timeline cards
-    function animateTimelineEntrance(ribbon) {
-        const cards = ribbon.querySelectorAll('.timeline-year');
-        
-        // If no cards or reduced motion preference, skip animation
-        if (cards.length === 0) return;
-        
-        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        
-        if (prefersReducedMotion) {
-            // No animation for users who prefer reduced motion
-            cards.forEach(card => {
-                card.style.opacity = '1';
-            });
-            return;
-        }
-        
-        // Limit animation to first 20 cards to avoid performance issues
-        const maxAnimatedCards = Math.min(cards.length, 20);
-        
-        cards.forEach((card, index) => {
-            if (index < maxAnimatedCards) {
-                card.style.opacity = '0';
-                card.style.transform = 'translateZ(-50px) rotateY(15deg)';
-                
-                setTimeout(() => {
-                    card.style.transition = 'all 0.6s cubic-bezier(0.23, 1, 0.32, 1)';
-                    card.style.opacity = '1';
-                    card.style.transform = 'translateZ(0) rotateY(0deg)';
-                }, 50 + (index * 40)); // Staggered animation
-            } else {
-                // Cards beyond limit show immediately
-                card.style.opacity = '1';
-            }
-        });
-    }
-
-    // Re-render on theme change
+    // Re-render charts in-place on theme change (without re-fetching from Firebase)
     const observer = new MutationObserver(mutations => {
         mutations.forEach(m => {
             if (m.attributeName === 'data-theme') {
-                setTimeout(loadData, 50);
+                setTimeout(refreshDashboardUI, 40);
             }
         });
     });

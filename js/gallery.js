@@ -2013,12 +2013,64 @@ function initFilterDropdowns() {
     });
 }
 
+let urlQueryFiltersApplied = false;
+
+function applyUrlQueryFiltersIfPresent() {
+    if (urlQueryFiltersApplied) return false;
+    urlQueryFiltersApplied = true;
+
+    try {
+        const params = new URLSearchParams(window.location.search);
+        let changed = false;
+
+        const yearParam = (params.get('year') || '').trim();
+        const regionParam = (params.get('region') || '').trim();
+        const orgParam = (params.get('organization') || params.get('org') || '').trim();
+        const letterParam = (params.get('letter') || '').trim().toUpperCase();
+        const queryParam = (params.get('q') || params.get('search') || '').trim();
+
+        if (yearParam) {
+            currentFilters.year = yearParam;
+            changed = true;
+        }
+        if (regionParam) {
+            currentFilters.region = regionParam;
+            changed = true;
+        }
+        if (orgParam) {
+            currentFilters.organization = orgParam;
+            changed = true;
+        }
+        if (letterParam && /^[A-Z]$/.test(letterParam)) {
+            currentFilters.letter = letterParam;
+            changed = true;
+        }
+        if (queryParam) {
+            currentFilters.general = queryParam;
+            const searchInput = document.getElementById('searchMartyrs');
+            if (searchInput) searchInput.value = queryParam;
+            toggleClearButton();
+            changed = true;
+        }
+
+        if (changed) {
+            applyFilters();
+            return true;
+        }
+    } catch (e) {
+        console.warn('Could not parse URL query filters:', e);
+    }
+    return false;
+}
+
 function populateFilterDropdowns() {
     populateRegionDropdown();
     populateYearDropdown();
     populateOrgDropdown();
     updateAlphabetAvailability();
-    updateFilterUI(allMartyrs ? allMartyrs.length : 0);
+    if (!applyUrlQueryFiltersIfPresent()) {
+        updateFilterUI(allMartyrs ? allMartyrs.length : 0);
+    }
 }
 
 function populateRegionDropdown() {
