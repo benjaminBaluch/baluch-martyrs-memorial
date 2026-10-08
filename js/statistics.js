@@ -646,23 +646,21 @@
         if (stories) stories.textContent = `${stats.storyPercent}%`;
         if (storyBarFill) storyBarFill.style.width = `${stats.storyPercent}%`;
 
-        // 1. Contextual Insight on Card 1 (Peak Year or Filtered share)
+        // 1. Contextual Insight on Card 1 (Total Documented + Peak Year callout: Highest: YYYY — N martyrs)
         if (insightTotal) {
             if (stats.years.length > 0) {
                 const peakYearEntry = Object.entries(stats.byYear).sort((a, b) => b[1] - a[1])[0];
                 if (hasActiveStatsFilter() && grandTotal) {
                     const sharePct = Math.round((stats.total / grandTotal) * 100);
                     insightTotal.innerHTML = `
-                        <span>${sharePct}% of total archive</span>
-                        <button type="button" class="kpi-insight-btn" data-kpi-year="${peakYearEntry[0]}">
-                            Peak: ${peakYearEntry[0]} (${peakYearEntry[1]})
+                        <button type="button" class="kpi-insight-btn" data-kpi-year="${peakYearEntry[0]}" title="Filter by ${peakYearEntry[0]}">
+                            <span>Highest: ${peakYearEntry[0]} — ${peakYearEntry[1].toLocaleString()} (${sharePct}% share)</span>
                         </button>
                     `;
                 } else {
                     insightTotal.innerHTML = `
-                        <span>Highest year</span>
                         <button type="button" class="kpi-insight-btn" data-kpi-year="${peakYearEntry[0]}" title="Filter by ${peakYearEntry[0]}">
-                            ${peakYearEntry[0]} • ${peakYearEntry[1]} martyrs
+                            <span>Highest: ${peakYearEntry[0]} — ${peakYearEntry[1].toLocaleString()} martyrs</span>
                         </button>
                     `;
                 }
@@ -675,16 +673,14 @@
             }
         }
 
-        // 2. Contextual Insight on Card 2 (Most Affected Region)
+        // 2. Contextual Insight on Card 2 (Affected Regions + Most Affected Region badge: Top: Region — N)
         if (insightRegions) {
             const topRegions = Object.entries(stats.byRegion).sort((a, b) => b[1] - a[1]);
             if (topRegions.length > 0 && stats.total > 0) {
                 const [topReg, topCnt] = topRegions[0];
-                const pct = Math.max(1, Math.round((topCnt / stats.total) * 100));
                 insightRegions.innerHTML = `
-                    <span>Most affected</span>
                     <button type="button" class="kpi-insight-btn" data-kpi-region="${escapeHTML(topReg)}" title="Filter by ${escapeHTML(topReg)}">
-                        ${escapeHTML(topReg)} (${pct}%)
+                        <span>Top: ${escapeHTML(topReg)} — ${topCnt.toLocaleString()}</span>
                     </button>
                 `;
                 const btn = insightRegions.querySelector('[data-kpi-region]');
@@ -696,15 +692,14 @@
             }
         }
 
-        // 3. Contextual Insight on Card 3 (Peak Month & Active Years count)
+        // 3. Contextual Insight on Card 3 (Historical Span + Peak Month indicator: Peak month: Month)
         if (insightYears) {
             const maxMonthCount = Math.max(...stats.byMonth);
             const maxMonthIdx = stats.byMonth.indexOf(maxMonthCount);
             if (maxMonthCount > 0) {
                 insightYears.innerHTML = `
-                    <span>Peak month</span>
                     <button type="button" class="kpi-insight-btn" data-kpi-month="${maxMonthIdx}" title="Filter by ${FULL_MONTHS[maxMonthIdx]}">
-                        ${FULL_MONTHS[maxMonthIdx]} (${maxMonthCount})
+                        <span>Peak month: ${FULL_MONTHS[maxMonthIdx]} (${maxMonthCount.toLocaleString()})</span>
                     </button>
                 `;
                 const btn = insightYears.querySelector('[data-kpi-month]');
@@ -716,10 +711,11 @@
             }
         }
 
-        // 4. Contextual Insight on Card 4 (Stories + Portraits count)
+        // 4. Contextual Insight on Card 4 (Biographical Coverage + photo/story completeness)
         if (insightStories) {
+            const photoPct = stats.total > 0 ? Math.round((stats.withPhoto / stats.total) * 100) : 0;
             insightStories.innerHTML = `
-                <span>${stats.withBio.toLocaleString()} biographies • ${stats.withPhoto.toLocaleString()} portraits</span>
+                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${stats.withBio.toLocaleString()} stories • ${stats.withPhoto.toLocaleString()} photos (${photoPct}%)</span>
             `;
         }
     }

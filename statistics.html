@@ -42,6 +42,10 @@
             min-height: 100vh;
             background: #f4f7f4;
             color: #0f172a;
+            width: 100%;
+            max-width: 100vw;
+            overflow-x: hidden;
+            box-sizing: border-box;
         }
 
         [data-theme="dark"] .stats-page {
@@ -371,9 +375,13 @@
            ============================================ */
         .key-numbers {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-auto-rows: 1fr;
             gap: 1.1rem;
             margin-bottom: 1.5rem;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         .key-number {
@@ -388,6 +396,13 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            height: 100%;
+            min-height: 144px;
+            box-sizing: border-box;
+            overflow: hidden;
         }
 
         .key-number:hover {
@@ -408,6 +423,7 @@
             justify-content: space-between;
             gap: 0.5rem;
             margin-bottom: 0.5rem;
+            min-width: 0;
         }
 
         .key-number-label {
@@ -416,6 +432,10 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.06em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
         }
 
         [data-theme="dark"] .key-number-label {
@@ -445,13 +465,16 @@
         }
 
         .key-number-value {
-            font-size: 2.15rem;
+            font-size: 2.1rem;
             font-weight: 800;
             color: #0f172a;
-            line-height: 1.05;
-            margin-bottom: 0.75rem;
+            line-height: 1.08;
+            margin-bottom: 0.65rem;
             letter-spacing: -0.025em;
             font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         [data-theme="dark"] .key-number-value {
@@ -459,15 +482,18 @@
         }
 
         .kpi-sub-insight {
-            padding-top: 0.65rem;
+            padding-top: 0.6rem;
             border-top: 1px solid #f1f5f9;
-            font-size: 0.78rem;
+            font-size: 0.76rem;
             color: #475569;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 0.4rem;
-            min-height: 28px;
+            gap: 0.35rem;
+            min-height: 30px;
+            width: 100%;
+            min-width: 0;
+            margin-top: auto;
         }
 
         [data-theme="dark"] .kpi-sub-insight {
@@ -479,7 +505,7 @@
             background: #f0fdf4;
             border: 1px solid #bbf7d0;
             color: #166534;
-            padding: 0.2rem 0.55rem;
+            padding: 0.24rem 0.6rem;
             border-radius: 6px;
             font-size: 0.74rem;
             font-weight: 600;
@@ -489,7 +515,21 @@
             font-family: inherit;
             display: inline-flex;
             align-items: center;
-            gap: 0.3rem;
+            justify-content: space-between;
+            gap: 0.35rem;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-sizing: border-box;
+        }
+
+        .kpi-insight-btn span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .kpi-insight-btn:hover {
@@ -529,7 +569,8 @@
         }
 
         /* ============================================
-           4. SECTION CARDS & INTERACTIVE TIMELINE
+           4. UNIFORM FULL-WIDTH SECTION CARDS
+           All containers match Timeline of Martyrdoms
            ============================================ */
         .stats-section {
             background: #ffffff;
@@ -538,6 +579,11 @@
             margin-bottom: 1.5rem;
             border: 1px solid #e2e8f0;
             box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            overflow: hidden;
         }
 
         [data-theme="dark"] .stats-section {
@@ -553,12 +599,15 @@
             gap: 1rem;
             flex-wrap: wrap;
             margin-bottom: 1.15rem;
+            width: 100%;
+            min-width: 0;
         }
 
         .section-title-group {
             display: flex;
             flex-direction: column;
             gap: 0.2rem;
+            min-width: 0;
         }
 
         .section-title {
@@ -661,14 +710,16 @@
             position: relative;
             height: 280px;
             width: 100%;
+            max-width: 100%;
+            overflow: hidden;
         }
 
         .chart-wrapper.short {
-            height: 240px;
+            height: 280px;
         }
 
         .chart-wrapper.tall {
-            height: 290px;
+            height: 280px;
         }
 
         /* Responsive Year Explorer Grid below Timeline Chart */
@@ -676,6 +727,8 @@
             margin-top: 1.25rem;
             padding-top: 1.1rem;
             border-top: 1px solid #f1f5f9;
+            width: 100%;
+            max-width: 100%;
         }
 
         [data-theme="dark"] .year-explorer-wrapper {
@@ -688,6 +741,7 @@
             justify-content: space-between;
             gap: 0.5rem;
             margin-bottom: 0.75rem;
+            flex-wrap: wrap;
         }
 
         .year-explorer-title {
@@ -716,19 +770,23 @@
 
         .year-explorer-grid {
             display: grid;
-            grid-template-columns: repeat(8, 1fr);
+            grid-template-columns: repeat(8, minmax(0, 1fr));
+            grid-auto-rows: 1fr;
             gap: 0.55rem;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         @media (max-width: 960px) {
             .year-explorer-grid {
-                grid-template-columns: repeat(4, 1fr);
+                grid-template-columns: repeat(4, minmax(0, 1fr));
             }
         }
 
         @media (max-width: 420px) {
             .year-explorer-grid {
-                grid-template-columns: repeat(4, 1fr);
+                grid-template-columns: repeat(4, minmax(0, 1fr));
                 gap: 0.45rem;
             }
         }
@@ -739,7 +797,11 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 0.6rem 0.35rem 0.65rem;
+            padding: 0.55rem 0.25rem 0.6rem;
+            height: 60px;
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
             border-radius: 10px;
             border: 1px solid #e2e8f0;
             background: #f8fafc;
@@ -769,12 +831,13 @@
         }
 
         .year-card-yr {
-            font-size: 0.92rem;
+            font-size: 0.9rem;
             font-weight: 800;
             color: #0f172a;
             line-height: 1.15;
             letter-spacing: -0.01em;
             font-variant-numeric: tabular-nums;
+            white-space: nowrap;
         }
 
         .year-card-btn.is-peak .year-card-yr {
@@ -782,11 +845,12 @@
         }
 
         .year-card-count {
-            font-size: 0.72rem;
+            font-size: 0.7rem;
             font-weight: 600;
             color: #64748b;
-            margin-top: 0.18rem;
+            margin-top: 0.16rem;
             font-variant-numeric: tabular-nums;
+            white-space: nowrap;
         }
 
         .year-card-btn.is-active .year-card-yr,
@@ -836,12 +900,15 @@
         }
 
         /* ============================================
-           5. TWO-COLUMN BREAKDOWN GRID & LEADERBOARDS
+           5. UNIFORM BREAKDOWN STACK & LEADERBOARDS
            ============================================ */
         .stats-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1.5rem;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 0;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         .stats-grid .full-width {
@@ -852,14 +919,18 @@
             list-style: none;
             padding: 0;
             margin: 0;
+            width: 100%;
+            max-width: 100%;
         }
 
         .bar-item {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            padding: 0.58rem 0.6rem;
-            margin: 0 -0.6rem;
+            padding: 0.62rem 0.65rem;
+            margin: 0;
+            width: 100%;
+            box-sizing: border-box;
             border-radius: 10px;
             border-bottom: 1px solid #f1f5f9;
             cursor: pointer;
@@ -1029,6 +1100,7 @@
             color: #15803d;
             font-size: 0.75rem;
             font-weight: 600;
+            flex-shrink: 0;
         }
 
         [data-theme="dark"] .section-badge-pill {
@@ -1104,17 +1176,23 @@
         }
 
         /* ============================================
-           7. ELEVATED PDF MEMORIAL ARCHIVE STUDIO
+           7. PDF MEMORIAL ARCHIVE STUDIO (MATCHES .stats-section)
            ============================================ */
         .download-section {
-            background: linear-gradient(180deg, #ffffff 0%, #f8faf8 100%);
+            background: #ffffff;
             border-radius: 16px;
-            padding: 2.25rem 2rem;
-            margin-top: 1.5rem;
-            border: 1.5px solid #bbf7d0;
-            box-shadow: 0 4px 18px rgba(21, 128, 61, 0.06);
-            text-align: center;
+            padding: 1.5rem;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+            text-align: left;
             scroll-margin-top: 90px;
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            overflow: hidden;
             transition: box-shadow 0.3s ease, border-color 0.3s ease;
         }
 
@@ -1124,163 +1202,28 @@
         }
 
         [data-theme="dark"] .download-section {
-            background: linear-gradient(180deg, #162234 0%, #111c2b 100%);
-            border-color: rgba(34, 197, 94, 0.32);
+            background: #162234;
+            border-color: #26354d;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.22);
         }
 
-        .download-header {
-            margin-bottom: 1.5rem;
-        }
-
-        .download-eyebrow {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.28rem 0.75rem;
-            border-radius: 999px;
-            background: #dcfce7;
-            color: #166534;
-            font-size: 0.74rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.65rem;
-        }
-
-        [data-theme="dark"] .download-eyebrow {
-            background: rgba(34, 197, 94, 0.16);
-            color: #86efac;
-        }
-
-        .download-header h3 {
-            font-size: 1.3rem;
-            font-weight: 800;
-            color: #0f172a;
-            margin-bottom: 0.45rem;
-            letter-spacing: -0.015em;
-        }
-
-        [data-theme="dark"] .download-header h3 {
-            color: #f8fafc;
-        }
-
-        .download-header p {
-            font-size: 0.9rem;
-            color: #64748b;
-            max-width: 520px;
-            margin: 0 auto;
-            line-height: 1.5;
-        }
-
-        [data-theme="dark"] .download-header p {
-            color: #94a3b8;
-        }
-
-        .download-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.6rem;
-            padding: 0.9rem 1.85rem;
-            background: linear-gradient(135deg, #15803d 0%, #14532d 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 0.95rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 12px rgba(21, 128, 61, 0.28);
-        }
-
-        .download-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 18px rgba(21, 128, 61, 0.36);
-        }
-
-        .download-btn:active {
-            transform: translateY(0);
-        }
-
-        .download-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .download-btn svg {
-            width: 18px;
-            height: 18px;
-        }
-
-        .download-btn .spinner {
-            width: 18px;
-            height: 18px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        .download-info {
-            margin-top: 1rem;
-            font-size: 0.8rem;
-            color: #64748b;
-        }
-
-        [data-theme="dark"] .download-info {
-            color: #94a3b8;
-        }
-
-        .download-progress {
-            margin-top: 1rem;
-            display: none;
-        }
-
-        .progress-bar {
-            height: 5px;
-            background: #e2e8f0;
-            border-radius: 999px;
-            overflow: hidden;
-            max-width: 320px;
-            margin: 0 auto;
-        }
-
-        [data-theme="dark"] .progress-bar {
-            background: #334155;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #15803d, #22c55e);
-            border-radius: 999px;
-            transition: width 0.3s ease;
-            width: 0%;
-        }
-
-        .progress-text {
-            margin-top: 0.5rem;
-            font-size: 0.8rem;
-            color: #64748b;
-        }
-
-        [data-theme="dark"] .progress-text {
-            color: #94a3b8;
-        }
-
-        /* PDF Download Filters */
+        /* PDF Download Filters — Full Container Width */
         .download-filters-container {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 1.1rem;
-            max-width: 760px;
-            margin: 0 auto 1.5rem auto;
+            width: 100%;
+            max-width: 100%;
+            margin: 0 0 1.25rem 0;
             text-align: left;
+            box-sizing: border-box;
         }
 
         .download-filter-field {
             display: flex;
             flex-direction: column;
             gap: 0.4rem;
+            min-width: 0;
         }
 
         .download-filter-label {
@@ -1310,6 +1253,7 @@
 
         .download-select-wrapper {
             position: relative;
+            width: 100%;
         }
 
         .download-select {
@@ -1318,14 +1262,15 @@
             font-size: 0.88rem;
             font-family: inherit;
             color: #1e293b;
-            background-color: #ffffff;
-            border: 1.5px solid #cbd5e1;
-            border-radius: 8px;
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
             cursor: pointer;
             outline: none;
             transition: all 0.2s ease;
             appearance: none;
             -webkit-appearance: none;
+            box-sizing: border-box;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: right 0.75rem center;
@@ -1334,17 +1279,19 @@
 
         .download-select:hover {
             border-color: #16a34a;
+            background-color: #ffffff;
         }
 
         .download-select:focus {
             border-color: #15803d;
+            background-color: #ffffff;
             box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
         }
 
         [data-theme="dark"] .download-select {
             color: #f1f5f9;
             background-color: #0f172a;
-            border-color: #334155;
+            border-color: #26354d;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
         }
 
@@ -1360,9 +1307,9 @@
         .download-filter-status {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             gap: 0.6rem;
-            margin-bottom: 1.25rem;
+            margin-bottom: 1rem;
             padding: 0.42rem 0.95rem;
             background: #f0fdf4;
             border: 1px solid #bbf7d0;
@@ -1370,6 +1317,7 @@
             font-size: 0.82rem;
             color: #166534;
             font-weight: 600;
+            flex-wrap: wrap;
         }
 
         [data-theme="dark"] .download-filter-status {
@@ -1393,10 +1341,123 @@
             color: #b91c1c;
         }
 
+        .download-footer-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+            padding-top: 1.1rem;
+            border-top: 1px solid #f1f5f9;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        [data-theme="dark"] .download-footer-row {
+            border-top-color: #26354d;
+        }
+
+        .download-info {
+            margin: 0;
+            font-size: 0.82rem;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+
+        [data-theme="dark"] .download-info {
+            color: #94a3b8;
+        }
+
         .download-action-row {
             display: flex;
-            justify-content: center;
+            justify-content: flex-end;
             align-items: center;
+        }
+
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            padding: 0.82rem 1.5rem;
+            background: linear-gradient(135deg, #15803d 0%, #14532d 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(21, 128, 61, 0.24);
+            font-family: inherit;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(21, 128, 61, 0.34);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+        }
+
+        .download-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .download-btn svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .download-btn .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .download-progress {
+            margin-top: 1rem;
+            display: none;
+            width: 100%;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 999px;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        [data-theme="dark"] .progress-bar {
+            background: #334155;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #15803d, #22c55e);
+            border-radius: 999px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .progress-text {
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .progress-text {
+            color: #94a3b8;
         }
 
         /* ============================================
@@ -1404,10 +1465,11 @@
            ============================================ */
         @media (max-width: 960px) {
             .stats-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: minmax(0, 1fr);
             }
             .key-numbers {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-auto-rows: 1fr;
             }
         }
 
@@ -1425,8 +1487,18 @@
                 justify-content: center;
             }
             .download-filters-container {
-                grid-template-columns: 1fr;
+                grid-template-columns: minmax(0, 1fr);
                 gap: 0.85rem;
+            }
+            .download-footer-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .download-action-row {
+                width: 100%;
+            }
+            .download-btn {
+                width: 100%;
             }
             .stats-active-filter-bar {
                 top: 64px;
@@ -1450,28 +1522,32 @@
                 padding: 0 0 3.5rem;
             }
             .key-numbers {
-                grid-template-columns: repeat(2, 1fr);
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-auto-rows: 1fr;
                 gap: 0.75rem;
+                margin-bottom: 1rem;
             }
             .key-number {
-                padding: 1rem 0.9rem;
+                padding: 0.95rem 0.85rem;
+                min-height: 128px;
+                border-radius: 14px;
             }
             .key-number-value {
-                font-size: 1.65rem;
+                font-size: clamp(1.32rem, 4.2vw, 1.65rem);
+                margin-bottom: 0.5rem;
             }
-            .stats-section {
+            .stats-section,
+            .download-section {
                 padding: 1.15rem;
                 border-radius: 14px;
                 margin-bottom: 1rem;
+                width: 100%;
+                max-width: 100%;
             }
-            .chart-wrapper {
-                height: 230px;
-            }
+            .chart-wrapper,
+            .chart-wrapper.short,
             .chart-wrapper.tall {
-                height: 250px;
-            }
-            .download-section {
-                padding: 1.5rem 1.15rem;
+                height: 235px;
             }
             .download-btn {
                 width: 100%;
@@ -1704,10 +1780,10 @@
                         </div>
                     </div>
 
-                    <!-- Breakdown Grid: By Region + By Organization + Monthly Pattern -->
+                    <!-- Breakdown Sections: Identical Full-Width Containers matching Timeline of Martyrdoms -->
                     <div class="stats-grid">
                         <!-- Regions Leaderboard -->
-                        <div class="stats-section">
+                        <div class="stats-section full-width">
                             <div class="section-header-row">
                                 <div class="section-title-group">
                                     <h3 class="section-title">
@@ -1717,7 +1793,7 @@
                                         </svg>
                                         By Region
                                     </h3>
-                                    <p class="section-subtitle">Click a region to filter dashboard</p>
+                                    <p class="section-subtitle">Click a region to filter the archive by location</p>
                                 </div>
                                 <span class="section-badge-pill" id="regionTotalBadge">0 regions</span>
                             </div>
@@ -1730,7 +1806,7 @@
                         </div>
 
                         <!-- Organizations / Affiliations Leaderboard -->
-                        <div class="stats-section">
+                        <div class="stats-section full-width">
                             <div class="section-header-row">
                                 <div class="section-title-group">
                                     <h3 class="section-title">
@@ -1741,7 +1817,7 @@
                                         </svg>
                                         By Organization &amp; Affiliation
                                     </h3>
-                                    <p class="section-subtitle">Click an affiliation to filter dashboard</p>
+                                    <p class="section-subtitle">Click an affiliation to filter the archive by organization</p>
                                 </div>
                                 <span class="section-badge-pill" id="orgTotalBadge">0 affiliations</span>
                             </div>
@@ -1773,17 +1849,24 @@
                         </div>
                     </div>
 
-                    <!-- Download Section -->
-                    <div class="download-section" id="downloadSection">
-                        <div class="download-header">
-                            <div class="download-eyebrow">
+                    <!-- Download Section — Same Full-Width Container & Header Layout as Timeline of Martyrdoms -->
+                    <div class="stats-section full-width download-section" id="downloadSection">
+                        <div class="section-header-row">
+                            <div class="section-title-group">
+                                <h3 class="section-title">
+                                    <svg class="section-title-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                    </svg>
+                                    Download Memorial Archive (PDF)
+                                </h3>
+                                <p class="section-subtitle">Generate and export a print-ready memorial book with portraits, biographies, and historical records</p>
+                            </div>
+                            <span class="section-badge-pill">
                                 <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                 </svg>
                                 Archival Publication Studio
-                            </div>
-                            <h3>Download Memorial Archive (PDF)</h3>
-                            <p>Generate and export a print-ready memorial book with portraits, biographies, and historical records. Export the complete archive or filter by year, month, and organization.</p>
+                            </span>
                         </div>
 
                         <!-- PDF Filter Controls -->
@@ -1843,13 +1926,16 @@
                             <button type="button" class="filter-reset-link" id="pdfResetFilterBtn" title="Reset to all martyrs">Reset Filters</button>
                         </div>
 
-                        <div class="download-action-row">
-                            <button type="button" class="download-btn" id="downloadPdfBtn">
-                                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                </svg>
-                                <span id="downloadBtnText">Download PDF Archive</span>
-                            </button>
+                        <div class="download-footer-row">
+                            <p class="download-info" id="downloadInfo">PDF includes photos, biographies, and dates</p>
+                            <div class="download-action-row">
+                                <button type="button" class="download-btn" id="downloadPdfBtn">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    <span id="downloadBtnText">Download PDF Archive</span>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="download-progress" id="downloadProgress">
@@ -1858,7 +1944,6 @@
                             </div>
                             <p class="progress-text" id="progressText">Preparing document...</p>
                         </div>
-                        <p class="download-info" id="downloadInfo">PDF includes photos, biographies, and dates</p>
                     </div>
                 </div>
             </div>
@@ -1897,9 +1982,9 @@
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
     
-    <script src="js/main.js?v=20261008g"></script>
-    <script src="js/mobile-menu.js?v=20261008g"></script>
-    <script src="js/statistics.js?v=20261008g"></script>
+    <script src="js/main.js?v=20261008j"></script>
+    <script src="js/mobile-menu.js?v=20261008j"></script>
+    <script src="js/statistics.js?v=20261008j"></script>
     <!-- Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav">
         <div class="bottom-nav-inner">
