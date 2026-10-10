@@ -11,130 +11,308 @@
 
     <style>
         /* ========================================================
-           ABOUT PAGE STYLES - Modern Archival & Justified Typography
+           ABOUT PAGE STYLES — Archival Design System (Matching Statistics)
            ======================================================== */
-        .about-section {
-            padding: 3.5rem 0 5.5rem;
-            background: #f8fafc;
+        .about-page {
+            min-height: 100vh;
+            background: #f4f7f4;
+            color: #0f172a;
+            width: 100%;
+            overflow-x: hidden;
+            box-sizing: border-box;
         }
 
-        html[data-theme="dark"] .about-section {
-            background: #090d14;
+        html[data-theme="dark"] .about-page,
+        [data-theme="dark"] .about-page {
+            background: #0b131e;
+            color: #f1f5f9;
         }
 
-        .about-wrapper {
-            max-width: 960px;
+        /* 1. Archival Hero Header (Matching Statistics) */
+        .about-hero {
+            background:
+                radial-gradient(circle at 18% 22%, rgba(34, 197, 94, 0.16) 0%, transparent 45%),
+                radial-gradient(circle at 82% 78%, rgba(22, 163, 74, 0.14) 0%, transparent 50%),
+                linear-gradient(135deg, #16381c 0%, #0e2412 100%);
+            color: #ffffff;
+            padding: 2.75rem 0 4.25rem;
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid rgba(134, 239, 172, 0.16);
+        }
+
+        .about-hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+            background-size: 24px 24px;
+            pointer-events: none;
+        }
+
+        .about-hero .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1120px;
             margin: 0 auto;
             padding: 0 1.25rem;
         }
 
-        /* Modern Page Header */
-        .about-header {
-            text-align: center;
-            margin-bottom: 2.75rem;
+        .about-hero-inner {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 2rem;
+            flex-wrap: wrap;
         }
 
-        .about-header h1 {
+        .about-hero-copy {
+            max-width: 660px;
+            text-align: left;
+        }
+
+        .about-status-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+            margin-bottom: 0.9rem;
+        }
+
+        /* Status Badge */
+        .data-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.38rem 0.85rem;
+            background: rgba(22, 163, 74, 0.22);
+            border: 1px solid rgba(134, 239, 172, 0.35);
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            color: #dcfce7;
+            backdrop-filter: blur(8px);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+            box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.22);
+            flex-shrink: 0;
+        }
+
+        .about-hero h1 {
             font-family: 'EB Garamond', Georgia, serif;
-            font-size: clamp(2.3rem, 4.5vw, 3.2rem);
-            color: var(--primary-color, #2c5530);
-            margin-bottom: 0.85rem;
+            font-size: clamp(2rem, 3.6vw, 2.75rem);
             font-weight: 700;
+            margin: 0 0 0.55rem;
+            letter-spacing: -0.015em;
             line-height: 1.15;
-            letter-spacing: -0.01em;
+            color: #ffffff;
         }
 
-        html[data-theme="dark"] .about-header h1 {
-            color: #86efac;
+        .about-hero p {
+            font-size: 1.05rem;
+            color: rgba(241, 245, 249, 0.88);
+            margin: 0;
+            line-height: 1.6;
+            max-width: 580px;
         }
 
-        .about-header p {
-            font-size: 1.18rem;
-            color: #475569;
-            max-width: 680px;
+        .about-hero-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .hero-action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.72rem 1.15rem;
+            border-radius: 10px;
+            font-size: 0.86rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+
+        .hero-action-btn.primary {
+            background: #16a34a;
+            color: #ffffff;
+            border-color: rgba(134, 239, 172, 0.4);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22);
+        }
+
+        .hero-action-btn.primary:hover {
+            background: #15803d;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+            color: #ffffff;
+        }
+
+        .hero-action-btn.secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #f8fafc;
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .hero-action-btn.secondary:hover {
+            background: rgba(255, 255, 255, 0.18);
+            border-color: rgba(255, 255, 255, 0.32);
+            color: #ffffff;
+        }
+
+        /* 2. Main Content Container (Negative Overlap matching Statistics) */
+        .about-content {
+            padding: 0 0 5.5rem;
+            margin-top: -2.1rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .about-wrapper {
+            max-width: 1020px;
             margin: 0 auto;
-            line-height: 1.65;
-            text-align: center;
+            padding: 0 1.25rem;
         }
 
-        html[data-theme="dark"] .about-header p {
-            color: #94a3b8;
-        }
-
-        /* 3-Card Summary Strip */
+        /* 3-Card Summary Strip (Matching Statistics Key Numbers) */
         .about-metrics-strip {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 1.25rem;
-            margin-bottom: 2.5rem;
+            gap: 1.2rem;
+            margin-bottom: 2rem;
         }
 
         .about-metric-card {
             background: #ffffff;
-            border: 1px solid rgba(44, 85, 48, 0.15);
+            border: 1px solid #e2e8f0;
+            border-top: 3px solid #16a34a;
             border-radius: 14px;
-            padding: 1.5rem 1.25rem;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
-            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            padding: 1.35rem 1.25rem;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
-        html[data-theme="dark"] .about-metric-card {
-            background: #0f172a;
-            border-color: rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+        html[data-theme="dark"] .about-metric-card,
+        [data-theme="dark"] .about-metric-card {
+            background: #162234;
+            border-color: #26354d;
+            border-top-color: #22c55e;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
         }
 
         .about-metric-card:hover {
             transform: translateY(-2px);
-            border-color: rgba(44, 85, 48, 0.35);
-            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+            box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
         }
 
-        .about-metric-num {
-            font-size: 1.65rem;
-            font-weight: 800;
-            color: var(--primary-color, #2c5530);
-            line-height: 1.2;
-            margin-bottom: 0.35rem;
+        .metric-top-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin-bottom: 0.55rem;
         }
 
-        html[data-theme="dark"] .about-metric-num {
-            color: #86efac;
-        }
-
-        .about-metric-label {
-            font-size: 0.92rem;
+        .metric-label {
+            font-size: 0.74rem;
             color: #64748b;
-            line-height: 1.5;
-            margin: 0;
-            text-align: center;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
         }
 
-        html[data-theme="dark"] .about-metric-label {
+        html[data-theme="dark"] .metric-label,
+        [data-theme="dark"] .metric-label {
             color: #94a3b8;
         }
 
-        /* Main Editorial Card */
+        .metric-icon-badge {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #f0fdf4;
+            color: #15803d;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        html[data-theme="dark"] .metric-icon-badge,
+        [data-theme="dark"] .metric-icon-badge {
+            background: rgba(34, 197, 94, 0.14);
+            color: #86efac;
+        }
+
+        .about-metric-num {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1.15;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        html[data-theme="dark"] .about-metric-num,
+        [data-theme="dark"] .about-metric-num {
+            color: #f8fafc;
+        }
+
+        .metric-sub-pill {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.76rem;
+            font-weight: 600;
+            padding: 0.25rem 0.65rem;
+            border-radius: 6px;
+            background: #f0fdf4;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+            width: fit-content;
+        }
+
+        html[data-theme="dark"] .metric-sub-pill,
+        [data-theme="dark"] .metric-sub-pill {
+            background: rgba(34, 197, 94, 0.12);
+            border-color: rgba(134, 239, 172, 0.25);
+            color: #86efac;
+        }
+
+        /* Main Editorial Card (Matching Statistics full-width panels) */
         .about-paper {
             background: #ffffff;
-            border-radius: 20px;
-            border: 1px solid rgba(44, 85, 48, 0.15);
-            box-shadow: 0 4px 24px rgba(15, 23, 42, 0.05);
+            border-radius: 18px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
             padding: 3.25rem 3rem;
             margin-bottom: 2rem;
         }
 
-        html[data-theme="dark"] .about-paper {
-            background: #0f172a;
-            border-color: rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+        html[data-theme="dark"] .about-paper,
+        [data-theme="dark"] .about-paper {
+            background: #162234;
+            border-color: #26354d;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
         }
 
         .about-paper h2 {
             font-family: 'EB Garamond', Georgia, serif;
             font-size: 1.85rem;
-            color: var(--primary-color, #2c5530);
+            color: #0f172a;
             margin: 2.5rem 0 1.2rem;
             line-height: 1.3;
             font-weight: 700;
@@ -144,13 +322,14 @@
             margin-top: 0;
         }
 
-        html[data-theme="dark"] .about-paper h2 {
-            color: #86efac;
+        html[data-theme="dark"] .about-paper h2,
+        [data-theme="dark"] .about-paper h2 {
+            color: #f8fafc;
         }
 
         /* Strictly Justified Paragraphs */
         .about-paper p {
-            font-size: 1.08rem;
+            font-size: 1.05rem;
             line-height: 1.85;
             color: #334155;
             margin-bottom: 1.4rem;
@@ -159,7 +338,8 @@
             text-align-last: left;
         }
 
-        html[data-theme="dark"] .about-paper p {
+        html[data-theme="dark"] .about-paper p,
+        [data-theme="dark"] .about-paper p {
             color: #cbd5e1;
         }
 
@@ -168,81 +348,86 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 1.35rem;
-            margin: 2rem 0;
+            margin: 2.25rem 0;
         }
 
         .about-info-box {
-            background: rgba(44, 85, 48, 0.04);
-            border: 1px solid rgba(44, 85, 48, 0.12);
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
             border-radius: 14px;
             padding: 1.6rem 1.45rem;
             transition: all 0.2s ease;
         }
 
-        html[data-theme="dark"] .about-info-box {
-            background: rgba(15, 23, 42, 0.6);
-            border-color: rgba(255, 255, 255, 0.08);
+        html[data-theme="dark"] .about-info-box,
+        [data-theme="dark"] .about-info-box {
+            background: #0f1a29;
+            border-color: #26354d;
         }
 
         .about-info-box:hover {
-            border-color: rgba(44, 85, 48, 0.3);
-            background: rgba(44, 85, 48, 0.06);
+            border-color: #22c55e;
+            transform: translateY(-1px);
         }
 
         .about-info-icon {
             width: 38px;
             height: 38px;
             border-radius: 10px;
-            background: rgba(44, 85, 48, 0.12);
+            background: #f0fdf4;
+            color: #15803d;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--primary-color, #2c5530);
             margin-bottom: 0.85rem;
         }
 
-        html[data-theme="dark"] .about-info-icon {
-            background: rgba(74, 222, 128, 0.12);
+        html[data-theme="dark"] .about-info-icon,
+        [data-theme="dark"] .about-info-icon {
+            background: rgba(34, 197, 94, 0.14);
             color: #86efac;
         }
 
         .about-info-box h3 {
             font-size: 1.15rem;
-            color: var(--primary-color, #2c5530);
+            color: #0f172a;
             margin-bottom: 0.5rem;
             font-weight: 700;
         }
 
-        html[data-theme="dark"] .about-info-box h3 {
-            color: #86efac;
+        html[data-theme="dark"] .about-info-box h3,
+        [data-theme="dark"] .about-info-box h3 {
+            color: #f8fafc;
         }
 
         .about-info-box p {
-            font-size: 0.98rem;
+            font-size: 0.96rem;
             line-height: 1.7;
-            color: #475569;
+            color: #64748b;
             margin: 0;
             text-align: justify;
             text-justify: inter-word;
             text-align-last: left;
         }
 
-        html[data-theme="dark"] .about-info-box p {
+        html[data-theme="dark"] .about-info-box p,
+        [data-theme="dark"] .about-info-box p {
             color: #94a3b8;
         }
 
         /* Statement Banner */
         .about-statement-box {
-            border-left: 4px solid var(--primary-color, #2c5530);
-            background: rgba(44, 85, 48, 0.05);
+            border-left: 4px solid #16a34a;
+            background: #f0fdf4;
             padding: 1.6rem 1.85rem;
             border-radius: 0 14px 14px 0;
             margin: 2.25rem 0;
         }
 
-        html[data-theme="dark"] .about-statement-box {
-            background: rgba(44, 85, 48, 0.14);
-            border-left-color: #86efac;
+        html[data-theme="dark"] .about-statement-box,
+        [data-theme="dark"] .about-statement-box {
+            background: rgba(34, 197, 94, 0.1);
+            border-left-color: #22c55e;
         }
 
         .about-statement-text {
@@ -250,15 +435,16 @@
             font-size: 1.35rem;
             font-style: italic;
             line-height: 1.65;
-            color: var(--primary-color, #2c5530);
+            color: #166534;
             margin: 0;
             text-align: justify;
             text-justify: inter-word;
             text-align-last: left;
         }
 
-        html[data-theme="dark"] .about-statement-text {
-            color: #d1fae5;
+        html[data-theme="dark"] .about-statement-text,
+        [data-theme="dark"] .about-statement-text {
+            color: #dcfce7;
         }
 
         /* Action Buttons Row */
@@ -270,15 +456,24 @@
             flex-wrap: wrap;
             margin-top: 2.5rem;
             padding-top: 2rem;
-            border-top: 1px solid rgba(44, 85, 48, 0.12);
+            border-top: 1px solid #e2e8f0;
         }
 
-        html[data-theme="dark"] .about-actions {
-            border-top-color: rgba(255, 255, 255, 0.08);
+        html[data-theme="dark"] .about-actions,
+        [data-theme="dark"] .about-actions {
+            border-top-color: #26354d;
         }
 
         /* Responsive Overrides */
         @media (max-width: 860px) {
+            .about-hero {
+                padding: 2.25rem 0 3.75rem;
+            }
+            .about-hero-inner {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1.5rem;
+            }
             .about-paper {
                 padding: 2.25rem 1.75rem;
             }
@@ -293,14 +488,12 @@
         }
 
         @media (max-width: 600px) {
-            .about-section {
-                padding: 2rem 0 3.5rem;
-            }
-            .about-header {
-                margin-bottom: 1.75rem;
+            .about-content {
+                padding: 0 0 3.5rem;
+                margin-top: -1.75rem;
             }
             .about-paper {
-                padding: 1.5rem 1.15rem;
+                padding: 1.65rem 1.25rem;
                 border-radius: 14px;
             }
             .about-actions {
@@ -341,29 +534,70 @@
         </nav>
     </header>
 
-    <!-- Main Content -->
-    <main>
-        <section class="about-section">
-            <div class="about-wrapper">
-                
-                <div class="about-header">
-                    <h1>About Our Memorial</h1>
-                    <p>Preserving the historical records and living memory of our martyrs</p>
+    <div class="about-page">
+        <!-- Archival Hero Header (Matching Statistics) -->
+        <header class="about-hero">
+            <div class="container">
+                <div class="about-hero-inner">
+                    <div class="about-hero-copy">
+                        <div class="about-status-row">
+                            <div class="data-status">
+                                <span class="status-dot"></span>
+                                <span>Verified Memorial Archive • Historical Preservation</span>
+                            </div>
+                        </div>
+                        <h1>About Our Memorial</h1>
+                        <p>Preserving the historical records, living memory, and biographical accounts of our martyrs</p>
+                    </div>
+                    <div class="about-hero-actions">
+                        <a href="/gallery" class="hero-action-btn primary">
+                            Explore Memorial Gallery
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                        </a>
+                        <a href="/statistics" class="hero-action-btn secondary">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                            View Statistics
+                        </a>
+                    </div>
                 </div>
+            </div>
+        </header>
 
-                <!-- 3 Metric Highlights -->
+        <!-- Main Content -->
+        <main class="about-content">
+            <div class="about-wrapper">
+
+                <!-- 3 Metric Highlights (Matching Statistics Cards) -->
                 <div class="about-metrics-strip">
                     <div class="about-metric-card">
+                        <div class="metric-top-row">
+                            <span class="metric-label">Documented Lives</span>
+                            <div class="metric-icon-badge">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                            </div>
+                        </div>
                         <div class="about-metric-num">Thousands</div>
-                        <p class="about-metric-label">Documented lives preserved across modern Baluch history</p>
+                        <div class="metric-sub-pill">Preserved across modern history</div>
                     </div>
                     <div class="about-metric-card">
+                        <div class="metric-top-row">
+                            <span class="metric-label">Geographic Scope</span>
+                            <div class="metric-icon-badge">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                            </div>
+                        </div>
                         <div class="about-metric-num">All Regions</div>
-                        <p class="about-metric-label">Historical records from every district of Baluchistan</p>
+                        <div class="metric-sub-pill">Every district of Baluchistan</div>
                     </div>
                     <div class="about-metric-card">
+                        <div class="metric-top-row">
+                            <span class="metric-label">Primary Source</span>
+                            <div class="metric-icon-badge">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                            </div>
+                        </div>
                         <div class="about-metric-num">Family Sourced</div>
-                        <p class="about-metric-label">Verified through primary community and kinship records</p>
+                        <div class="metric-sub-pill">Community & eyewitness records</div>
                     </div>
                 </div>
 
@@ -440,8 +674,8 @@
                 </article>
 
             </div>
-        </section>
-    </main>
+        </main>
+    </div>
 
     <!-- Footer -->
     <footer class="site-footer">
@@ -459,6 +693,7 @@
                         <li><a href="/gallery">Gallery</a></li>
                         <li><a href="/statistics">Statistics</a></li>
                         <li><a href="/about" class="active">About</a></li>
+                        <li><a href="/contact">Contact</a></li>
                     </ul>
                 </div>
                 <div class="footer-section">
