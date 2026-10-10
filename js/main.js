@@ -329,6 +329,8 @@ async function loadRecentMartyrs() {
                 if (result.success) {
                     martyrsData = result.data || [];
                     console.log(`✅ Loaded ${martyrsData.length} martyrs from Firebase (global)`);
+                    window.allApprovedMartyrs = martyrsData;
+                    window.dispatchEvent(new CustomEvent('martyrsDataLoaded', { detail: martyrsData }));
                     
                     // Cache with enhanced cache management
                     if (martyrsData.length > 0 && window.cacheManager) {
@@ -861,6 +863,7 @@ function showMartyrDetails(martyr, list) {
         try { firstClose.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
     }
 }
+window.showMartyrDetails = showMartyrDetails;
 
 // Create share row for modal
 function createShareRowMain(martyr) {
