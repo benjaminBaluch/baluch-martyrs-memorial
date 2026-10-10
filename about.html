@@ -11,10 +11,10 @@
 
     <style>
         /* ========================================================
-           ABOUT PAGE STYLES - Website Color Matching & Dignified Layout
+           ABOUT PAGE STYLES - Modern Archival & Justified Typography
            ======================================================== */
         .about-section {
-            padding: 3rem 0 5rem;
+            padding: 3.5rem 0 5.5rem;
             background: #f8fafc;
         }
 
@@ -23,12 +23,12 @@
         }
 
         .about-wrapper {
-            max-width: 860px;
+            max-width: 960px;
             margin: 0 auto;
             padding: 0 1.25rem;
         }
 
-        /* Page Header - Clean, matches other pages */
+        /* Modern Page Header */
         .about-header {
             text-align: center;
             margin-bottom: 2.75rem;
@@ -36,11 +36,12 @@
 
         .about-header h1 {
             font-family: 'EB Garamond', Georgia, serif;
-            font-size: clamp(2.2rem, 4vw, 3rem);
+            font-size: clamp(2.3rem, 4.5vw, 3.2rem);
             color: var(--primary-color, #2c5530);
-            margin-bottom: 0.75rem;
+            margin-bottom: 0.85rem;
             font-weight: 700;
-            line-height: 1.2;
+            line-height: 1.15;
+            letter-spacing: -0.01em;
         }
 
         html[data-theme="dark"] .about-header h1 {
@@ -48,66 +49,125 @@
         }
 
         .about-header p {
-            font-size: 1.15rem;
+            font-size: 1.18rem;
             color: #475569;
-            max-width: 620px;
+            max-width: 680px;
             margin: 0 auto;
-            line-height: 1.6;
+            line-height: 1.65;
+            text-align: center;
         }
 
         html[data-theme="dark"] .about-header p {
             color: #94a3b8;
         }
 
-        /* Editorial Paper Card */
+        /* 3-Card Summary Strip */
+        .about-metrics-strip {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.25rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .about-metric-card {
+            background: #ffffff;
+            border: 1px solid rgba(44, 85, 48, 0.15);
+            border-radius: 14px;
+            padding: 1.5rem 1.25rem;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        html[data-theme="dark"] .about-metric-card {
+            background: #0f172a;
+            border-color: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+        }
+
+        .about-metric-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(44, 85, 48, 0.35);
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        .about-metric-num {
+            font-size: 1.65rem;
+            font-weight: 800;
+            color: var(--primary-color, #2c5530);
+            line-height: 1.2;
+            margin-bottom: 0.35rem;
+        }
+
+        html[data-theme="dark"] .about-metric-num {
+            color: #86efac;
+        }
+
+        .about-metric-label {
+            font-size: 0.92rem;
+            color: #64748b;
+            line-height: 1.5;
+            margin: 0;
+            text-align: center;
+        }
+
+        html[data-theme="dark"] .about-metric-label {
+            color: #94a3b8;
+        }
+
+        /* Main Editorial Card */
         .about-paper {
             background: #ffffff;
-            border-radius: 18px;
+            border-radius: 20px;
             border: 1px solid rgba(44, 85, 48, 0.15);
-            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
-            padding: 3rem 2.75rem;
+            box-shadow: 0 4px 24px rgba(15, 23, 42, 0.05);
+            padding: 3.25rem 3rem;
             margin-bottom: 2rem;
         }
 
         html[data-theme="dark"] .about-paper {
             background: #0f172a;
             border-color: rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
         }
 
         .about-paper h2 {
             font-family: 'EB Garamond', Georgia, serif;
             font-size: 1.85rem;
             color: var(--primary-color, #2c5530);
-            margin-bottom: 1.25rem;
+            margin: 2.5rem 0 1.2rem;
             line-height: 1.3;
             font-weight: 700;
+        }
+
+        .about-paper h2:first-child {
+            margin-top: 0;
         }
 
         html[data-theme="dark"] .about-paper h2 {
             color: #86efac;
         }
 
+        /* Strictly Justified Paragraphs */
         .about-paper p {
-            font-size: 1.06rem;
+            font-size: 1.08rem;
             line-height: 1.85;
             color: #334155;
-            margin-bottom: 1.35rem;
+            margin-bottom: 1.4rem;
+            text-align: justify;
+            text-justify: inter-word;
+            text-align-last: left;
         }
 
         html[data-theme="dark"] .about-paper p {
             color: #cbd5e1;
         }
 
-        .about-paper p:last-child {
-            margin-bottom: 0;
-        }
-
-        /* 2 Column Informational Grid */
+        /* Editorial Info Cards Grid */
         .about-info-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 1.25rem;
+            gap: 1.35rem;
             margin: 2rem 0;
         }
 
@@ -115,7 +175,8 @@
             background: rgba(44, 85, 48, 0.04);
             border: 1px solid rgba(44, 85, 48, 0.12);
             border-radius: 14px;
-            padding: 1.5rem 1.4rem;
+            padding: 1.6rem 1.45rem;
+            transition: all 0.2s ease;
         }
 
         html[data-theme="dark"] .about-info-box {
@@ -123,8 +184,30 @@
             border-color: rgba(255, 255, 255, 0.08);
         }
 
+        .about-info-box:hover {
+            border-color: rgba(44, 85, 48, 0.3);
+            background: rgba(44, 85, 48, 0.06);
+        }
+
+        .about-info-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: rgba(44, 85, 48, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary-color, #2c5530);
+            margin-bottom: 0.85rem;
+        }
+
+        html[data-theme="dark"] .about-info-icon {
+            background: rgba(74, 222, 128, 0.12);
+            color: #86efac;
+        }
+
         .about-info-box h3 {
-            font-size: 1.12rem;
+            font-size: 1.15rem;
             color: var(--primary-color, #2c5530);
             margin-bottom: 0.5rem;
             font-weight: 700;
@@ -135,23 +218,26 @@
         }
 
         .about-info-box p {
-            font-size: 0.95rem;
-            line-height: 1.65;
+            font-size: 0.98rem;
+            line-height: 1.7;
             color: #475569;
             margin: 0;
+            text-align: justify;
+            text-justify: inter-word;
+            text-align-last: left;
         }
 
         html[data-theme="dark"] .about-info-box p {
             color: #94a3b8;
         }
 
-        /* Solemn Statement Box */
+        /* Statement Banner */
         .about-statement-box {
             border-left: 4px solid var(--primary-color, #2c5530);
             background: rgba(44, 85, 48, 0.05);
-            padding: 1.5rem 1.75rem;
+            padding: 1.6rem 1.85rem;
             border-radius: 0 14px 14px 0;
-            margin: 2rem 0;
+            margin: 2.25rem 0;
         }
 
         html[data-theme="dark"] .about-statement-box {
@@ -161,25 +247,28 @@
 
         .about-statement-text {
             font-family: 'EB Garamond', Georgia, serif;
-            font-size: 1.3rem;
+            font-size: 1.35rem;
             font-style: italic;
-            line-height: 1.6;
+            line-height: 1.65;
             color: var(--primary-color, #2c5530);
             margin: 0;
+            text-align: justify;
+            text-justify: inter-word;
+            text-align-last: left;
         }
 
         html[data-theme="dark"] .about-statement-text {
             color: #d1fae5;
         }
 
-        /* Action Buttons */
+        /* Action Buttons Row */
         .about-actions {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 1rem;
+            gap: 1.1rem;
             flex-wrap: wrap;
-            margin-top: 2.25rem;
+            margin-top: 2.5rem;
             padding-top: 2rem;
             border-top: 1px solid rgba(44, 85, 48, 0.12);
         }
@@ -188,21 +277,31 @@
             border-top-color: rgba(255, 255, 255, 0.08);
         }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            .about-section {
-                padding: 2rem 0 3.5rem;
-            }
-            .about-header {
-                margin-bottom: 2rem;
-            }
+        /* Responsive Overrides */
+        @media (max-width: 860px) {
             .about-paper {
-                padding: 1.75rem 1.25rem;
-                border-radius: 14px;
+                padding: 2.25rem 1.75rem;
+            }
+            .about-metrics-strip {
+                grid-template-columns: 1fr;
+                gap: 0.85rem;
             }
             .about-info-grid {
                 grid-template-columns: 1fr;
                 gap: 1rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .about-section {
+                padding: 2rem 0 3.5rem;
+            }
+            .about-header {
+                margin-bottom: 1.75rem;
+            }
+            .about-paper {
+                padding: 1.5rem 1.15rem;
+                border-radius: 14px;
             }
             .about-actions {
                 flex-direction: column;
@@ -249,45 +348,84 @@
                 
                 <div class="about-header">
                     <h1>About Our Memorial</h1>
-                    <p>Preserving the historical legacy and remembrance of our martyrs</p>
+                    <p>Preserving the historical records and living memory of our martyrs</p>
+                </div>
+
+                <!-- 3 Metric Highlights -->
+                <div class="about-metrics-strip">
+                    <div class="about-metric-card">
+                        <div class="about-metric-num">Thousands</div>
+                        <p class="about-metric-label">Documented lives preserved across modern Baluch history</p>
+                    </div>
+                    <div class="about-metric-card">
+                        <div class="about-metric-num">All Regions</div>
+                        <p class="about-metric-label">Historical records from every district of Baluchistan</p>
+                    </div>
+                    <div class="about-metric-card">
+                        <div class="about-metric-num">Family Sourced</div>
+                        <p class="about-metric-label">Verified through primary community and kinship records</p>
+                    </div>
                 </div>
 
                 <article class="about-paper">
-                    <h2>Our Origin and Purpose</h2>
-                    <p>The Baluch Martyrs Memorial was created as an independent historical archive and digital sanctuary. Across generations of hardship and historical conflict in Baluchistan, thousands of brave individuals gave their lives for the dignity, survival, and freedom of their people.</p>
-                    <p>In many official historical accounts, the personal stories of these individuals are omitted or forgotten. This memorial exists so that no name is erased from memory. Each person recorded here had a family, a community, an ancestry, and a life story. We gather and preserve these records so that their memory remains accessible to future generations forever.</p>
+                    <h2>Our Origin and Historical Mission</h2>
+                    <p>The Baluch Martyrs Memorial was founded as an independent digital sanctuary and historical archive. For generations, individuals across Baluchistan have given their lives in defense of the survival, dignity, and freedom of their people. In conventional historical records, these individuals are frequently reduced to anonymous statistics or omitted altogether. This memorial exists so that no name is erased from memory. Each person remembered in this sanctuary had a name, a family, a community, an ancestry, and a life story. We gather, verify, and preserve these records so that their memory remains accessible to future generations forever.</p>
 
                     <div class="about-statement-box">
                         <p class="about-statement-text">To remember is an act of human dignity. To preserve history is a duty to truth and future generations.</p>
                     </div>
 
                     <h2>What We Document</h2>
-                    <p>The memorial serves as an open historical reference for families, historians, and researchers. Our documentation focuses on preserving the human truth behind each life:</p>
+                    <p>The memorial functions as a permanent record for families, historians, and researchers. Our documentation focuses on preserving the complete human truth behind each life.</p>
 
                     <div class="about-info-grid">
                         <div class="about-info-box">
-                            <h3>Biographical Records</h3>
-                            <p>Recording full names, parentage, birthplace, and biographical accounts that honor each individual with dignity.</p>
+                            <div class="about-info-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                            </div>
+                            <h3>Biographical Narratives</h3>
+                            <p>Preserving legal names, parentage, birthplaces, and biographical accounts that honor each individual with dignity.</p>
                         </div>
 
                         <div class="about-info-box">
+                            <div class="about-info-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                            </div>
                             <h3>Historical Timelines</h3>
-                            <p>Preserving precise dates of martyrdom to create a reliable chronological register of events across modern Baluch history.</p>
+                            <p>Recording precise dates of martyrdom to establish a reliable chronological register across modern Baluch history.</p>
                         </div>
 
                         <div class="about-info-box">
+                            <div class="about-info-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                                    <circle cx="12" cy="13" r="4"></circle>
+                                </svg>
+                            </div>
                             <h3>Photographic Preservation</h3>
-                            <p>Restoring and cataloging historical portraits, photographs, and personal documents to safeguard them from loss.</p>
+                            <p>Restoring, cataloging, and safeguarding historical portraits, family photographs, and personal documents.</p>
                         </div>
 
                         <div class="about-info-box">
+                            <div class="about-info-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                    <circle cx="12" cy="10" r="3"></circle>
+                                </svg>
+                            </div>
                             <h3>Geographic Documentation</h3>
-                            <p>Documenting records across all districts and historical regions of Baluchistan, preserving the local context of each loss.</p>
+                            <p>Documenting records across every district and historical region of Baluchistan, preserving the local context of each loss.</p>
                         </div>
                     </div>
 
                     <h2>Community Submissions and Verification</h2>
-                    <p>This archive is maintained through the collaborative efforts of families, local elders, and historical researchers. When family members or acquaintances submit a profile through our portal, each record is reviewed to maintain historical consistency, prevent duplicate entries, and ensure accurate details.</p>
+                    <p>This archive is built through the collective contributions of families, local elders, and historical researchers. When family members or acquaintances submit a profile through our portal, each record is reviewed to maintain historical consistency, prevent duplicate entries, and ensure accurate details.</p>
                     <p>Once verified, the profile is permanently recorded in the public memorial gallery and integrated into our demographic records for educational and historical study.</p>
 
                     <h2>Our Commitment to Remembrance and Peace</h2>
