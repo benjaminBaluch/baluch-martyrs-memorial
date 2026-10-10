@@ -625,38 +625,13 @@ function showMartyrDetails(martyr, list) {
         existingModal.remove();
     }
     
-    // Create modal
+    // Create modal overlay and dialog
     const modal = document.createElement('div');
     modal.id = 'martyrDetailsModal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(15, 23, 42, 0.85);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
-        overflow-y: auto;
-    `;
+    modal.className = 'martyr-modal-overlay';
     
     const content = document.createElement('div');
-    content.style.cssText = `
-        background: #f9fafb;
-        max-width: 960px;
-        max-height: 90vh;
-        overflow-y: auto;
-        border-radius: 18px;
-        position: relative;
-        width: 100%;
-        box-shadow: 0 24px 60px rgba(15, 23, 42, 0.55);
-        border: 1px solid rgba(148, 163, 184, 0.35);
-    `;
+    content.className = 'martyr-modal-dialog';
 
     let closed = false;
     const closeModal = () => {
@@ -678,103 +653,103 @@ function showMartyrDetails(martyr, list) {
     const headerDateLabel = martyrdomPretty;
     
     content.innerHTML = `
-        <div style="display: flex; flex-direction: column;">
-            <div class="martyr-modal-header">
+        <div class="martyr-modal-header">
+            <div class="martyr-modal-sheet-handle" aria-hidden="true"></div>
+            <div class="martyr-modal-header-inner">
                 <div class="martyr-modal-header-title">
-                    <h2 style="margin: 0; font-size: 1.4rem; letter-spacing: 0.08em; text-transform: uppercase; color: #f9fafb;">
+                    <h2 class="martyr-modal-header-name">
                         ${escapeHTMLMain(martyr.fullName || 'Unknown martyr')}
                     </h2>
-                    <p style="margin: 0.35rem 0 0; font-size: 0.9rem; opacity: 0.85;">
+                    <p class="martyr-modal-header-date">
                         ${escapeHTMLMain(headerDateLabel)}
                     </p>
                 </div>
                 <div class="martyr-modal-header-actions">
-                    <button class="martyr-voice-btn" type="button">
-                        🔊 Listen
+                    <button class="martyr-voice-btn" type="button" aria-label="Listen to biography">
+                        <span aria-hidden="true">🔊</span> Listen
                     </button>
-                    <button class="close-martyr-modal" type="button">
+                    <button class="close-martyr-modal" type="button" aria-label="Close profile">
                         &times;
                     </button>
                 </div>
             </div>
+        </div>
 
-            <div style="padding: 1.75rem 1.75rem 1.5rem; display: flex; gap: 1.75rem; flex-wrap: wrap; align-items: flex-start;">
-                <div style="flex: 0 0 260px; max-width: 260px;">
-                    ${martyr.photo ? 
-                        `<img src="${martyr.photo}" alt="${escapeHTMLMain(martyr.fullName || 'Martyr photo')}" style="width: 100%; border-radius: 16px; object-fit: cover; box-shadow: 0 16px 35px rgba(15,23,42,0.45);">` :
-                        '<div style="width: 100%; height: 320px; border-radius: 16px; background: radial-gradient(circle at top, #f3f4f6, #d1d5db); display: flex; align-items: center; justify-content: center; font-size: 3.5rem; color: #9ca3af; box-shadow: 0 16px 35px rgba(15,23,42,0.3);">📷</div>'
-                    }
+        <div class="martyr-modal-body">
+            <div class="martyr-modal-photo-col">
+                ${martyr.photo ? 
+                    `<img src="${martyr.photo}" alt="${escapeHTMLMain(martyr.fullName || 'Martyr photo')}" class="martyr-modal-photo" loading="lazy">` :
+                    '<div class="martyr-modal-photo-placeholder" aria-label="No photo available">📷</div>'
+                }
+            </div>
+            
+            <div class="martyr-modal-details-col">
+                <div class="martyr-modal-meta-grid">
+                    ${martyr.fatherName ? `
+                        <div class="martyr-modal-meta-row">
+                            <span class="martyr-modal-meta-label">Father</span>
+                            <span class="martyr-modal-meta-val">${escapeHTMLMain(martyr.fatherName)}</span>
+                        </div>
+                    ` : ''}
+                    <div class="martyr-modal-meta-row">
+                        <span class="martyr-modal-meta-label">Birth</span>
+                        <span class="martyr-modal-meta-val">${escapeHTMLMain(birthPretty)}</span>
+                    </div>
+                    <div class="martyr-modal-meta-row">
+                        <span class="martyr-modal-meta-label">Birth place</span>
+                        <span class="martyr-modal-meta-val">${escapeHTMLMain(martyr.birthPlace || 'Unknown')}</span>
+                    </div>
+                    <div class="martyr-modal-meta-row">
+                        <span class="martyr-modal-meta-label">Martyrdom</span>
+                        <span class="martyr-modal-meta-val">${escapeHTMLMain(martyrdomPretty)}</span>
+                    </div>
+                    <div class="martyr-modal-meta-row">
+                        <span class="martyr-modal-meta-label">Martyrdom place</span>
+                        <span class="martyr-modal-meta-val">${escapeHTMLMain(martyr.martyrdomPlace || 'Unknown')}</span>
+                    </div>
+                    ${martyr.organization ? `
+                        <div class="martyr-modal-meta-row">
+                            <span class="martyr-modal-meta-label">Organization</span>
+                            <span class="martyr-modal-meta-val">${escapeHTMLMain(martyr.organization)}</span>
+                        </div>
+                    ` : ''}
+                    ${martyr.rank ? `
+                        <div class="martyr-modal-meta-row">
+                            <span class="martyr-modal-meta-label">Rank</span>
+                            <span class="martyr-modal-meta-val">${escapeHTMLMain(martyr.rank)}</span>
+                        </div>
+                    ` : ''}
                 </div>
                 
-                <div style="flex: 1; min-width: 280px;">
-                    <div style="display: grid; gap: 0.6rem; font-size: 0.95rem;">
-                        ${martyr.fatherName ? `
-                            <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
-                                <span style="min-width: 120px; font-weight: 600; color: #4b5563;">Father</span>
-                                <span style="color: #111827;">${escapeHTMLMain(martyr.fatherName)}</span>
-                            </div>
-                        ` : ''}
-                        <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
-                            <span style="min-width: 120px; font-weight: 600; color: #4b5563;">Birth</span>
-                            <span style="color: #111827;">${escapeHTMLMain(birthPretty)}</span>
+                ${martyr.biography ? `
+                    <div class="martyr-modal-section">
+                        <h3 class="martyr-modal-section-title">Biography</h3>
+                        <div class="martyr-modal-section-box martyr-modal-bio-text">
+                            ${escapeHTMLMain(martyr.biography)}
                         </div>
-                        <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
-                            <span style="min-width: 120px; font-weight: 600; color: #4b5563;">Birth place</span>
-                            <span style="color: #111827;">${escapeHTMLMain(martyr.birthPlace || 'Unknown')}</span>
-                        </div>
-                        <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
-                            <span style="min-width: 120px; font-weight: 600; color: #4b5563;">Martyrdom</span>
-                            <span style="color: #111827;">${escapeHTMLMain(martyrdomPretty)}</span>
-                        </div>
-                        <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
-                            <span style="min-width: 120px; font-weight: 600; color: #4b5563;">Martyrdom place</span>
-                            <span style="color: #111827;">${escapeHTMLMain(martyr.martyrdomPlace || 'Unknown')}</span>
-                        </div>
-                        ${martyr.organization ? `
-                            <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
-                                <span style="min-width: 120px; font-weight: 600; color: #4b5563;">Organization</span>
-                                <span style="color: #111827;">${escapeHTMLMain(martyr.organization)}</span>
-                            </div>
-                        ` : ''}
-                        ${martyr.rank ? `
-                            <div style="display: flex; gap: 0.6rem; align-items: flex-start;">
-                                <span style="min-width: 120px; font-weight: 600; color: #4b5563;">Rank</span>
-                                <span style="color: #111827;">${escapeHTMLMain(martyr.rank)}</span>
-                            </div>
-                        ` : ''}
                     </div>
-                    
-                    ${martyr.biography ? `
-                        <div style="margin-top: 1.75rem;">
-                            <h3 style="margin: 0 0 0.75rem; font-size: 1.05rem; color: #111827;">Biography</h3>
-                            <div style="background: #f9fafb; padding: 1.3rem 1.2rem; border-radius: 12px; border: 1px solid #e5e7eb; line-height: 1.7; color: #374151; font-size: 0.96rem; text-align: justify;">
-                                ${escapeHTMLMain(martyr.biography)}
-                            </div>
+                ` : ''}
+                
+                ${martyr.familyDetails ? `
+                    <div class="martyr-modal-section">
+                        <h3 class="martyr-modal-section-title">Family Details</h3>
+                        <div class="martyr-modal-section-box">
+                            ${escapeHTMLMain(martyr.familyDetails)}
                         </div>
-                    ` : ''}
-                    
-                    ${martyr.familyDetails ? `
-                        <div style="margin-top: 1.5rem;">
-                            <h3 style="margin: 0 0 0.75rem; font-size: 1.05rem; color: #111827;">Family Details</h3>
-                            <div style="background: #f9fafb; padding: 1.2rem 1.15rem; border-radius: 12px; border: 1px solid #e5e7eb; line-height: 1.7; color: #374151; font-size: 0.95rem;">
-                                ${escapeHTMLMain(martyr.familyDetails)}
-                            </div>
-                        </div>
-                    ` : ''}
-
-
-                    <div style="margin-top: 1.75rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 0.9rem; display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: space-between;">
-                        <p style="margin: 0;"><strong>Submitted by:</strong> ${escapeHTMLMain(martyr.submitterName || 'Unknown')}</p>
-                        <p style="margin: 0;"><strong>Submitted on:</strong> ${escapeHTMLMain(formatDate(martyr.submittedAt) || 'Unknown')}</p>
                     </div>
-                    
-                    <div class="martyr-modal-share-slot"></div>
+                ` : ''}
 
-                    <div class="martyr-modal-actions" style="margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 0.75rem;">
-                        <button class="btn btn-outline martyr-close-btn" type="button">
-                            Close
-                        </button>
-                    </div>
+                <div class="martyr-modal-submit-row">
+                    <p><strong>Submitted by:</strong> ${escapeHTMLMain(martyr.submitterName || 'Unknown')}</p>
+                    <p><strong>Submitted on:</strong> ${escapeHTMLMain(formatDate(martyr.submittedAt) || 'Unknown')}</p>
+                </div>
+                
+                <div class="martyr-modal-share-slot"></div>
+
+                <div class="martyr-modal-actions">
+                    <button class="btn btn-outline martyr-close-btn" type="button">
+                        Close
+                    </button>
                 </div>
             </div>
         </div>
@@ -789,11 +764,17 @@ function showMartyrDetails(martyr, list) {
     // Close buttons
     const closeIcon = content.querySelector('.close-martyr-modal');
     const closeBtn  = content.querySelector('.martyr-close-btn');
+    const sheetHandle = content.querySelector('.martyr-modal-sheet-handle');
     if (closeIcon) {
         closeIcon.setAttribute('aria-label', 'Close profile');
         closeIcon.addEventListener('click', closeModal);
     }
     if (closeBtn)  closeBtn.addEventListener('click', closeModal);
+    if (sheetHandle) {
+        sheetHandle.setAttribute('role', 'button');
+        sheetHandle.setAttribute('aria-label', 'Close sheet');
+        sheetHandle.addEventListener('click', closeModal);
+    }
     
     // Print / Download button
     const printBtn = content.querySelector('.martyr-print-btn');
