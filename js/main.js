@@ -389,18 +389,78 @@ async function loadRecentMartyrs() {
     }
 }
 
+// Universal Date Parser for Firestore Timestamps, serialized objects, and strings
+function parseMartyrDate(dateValue) {
+    if (!dateValue) return null;
+    try {
+        // 1. Duck typing: Firestore Timestamp instance with .toDate()
+        if (typeof dateValue === 'object') {
+            if (typeof dateValue.toDate === 'function') {
+                const d = dateValue.toDate();
+                if (d instanceof Date && !isNaN(d.getTime())) return d;
+            }
+            // 2. Serialized Firestore Timestamp ({ seconds, nanoseconds } or { _seconds, _nanoseconds })
+            const sec = dateValue.seconds !== undefined ? dateValue.seconds : dateValue._seconds;
+            if (sec !== undefined && sec !== null) {
+                const secNum = Number(sec);
+                if (!isNaN(secNum)) {
+                    const d = new Date(secNum * 1000);
+                    if (!isNaN(d.getTime())) return d;
+                }
+            }
+        }
+
+        // 3. Native Date object
+        if (dateValue instanceof Date) {
+            return !isNaN(dateValue.getTime()) ? dateValue : null;
+        }
+
+        // 4. Numeric timestamp (seconds or milliseconds)
+        if (typeof dateValue === 'number' && !isNaN(dateValue)) {
+            const d = dateValue < 1e11 ? new Date(dateValue * 1000) : new Date(dateValue);
+            return !isNaN(d.getTime()) ? d : null;
+        }
+
+        // 5. String parsing
+        if (typeof dateValue === 'string') {
+            const trimmed = dateValue.trim();
+            if (!trimmed) return null;
+
+            // YYYY-MM-DD
+            if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+                const d = new Date(trimmed + 'T00:00:00');
+                if (!isNaN(d.getTime())) return d;
+            }
+
+            // DD/MM/YYYY or DD-MM-YYYY
+            const dmy = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+            if (dmy) {
+                const day = parseInt(dmy[1], 10);
+                const month = parseInt(dmy[2], 10) - 1;
+                const year = parseInt(dmy[3], 10);
+                const d = new Date(year, month, day);
+                if (!isNaN(d.getTime())) return d;
+            }
+
+            // Generic string parse
+            const d = new Date(trimmed);
+            if (!isNaN(d.getTime())) return d;
+        }
+    } catch (e) {
+        console.warn('Error in parseMartyrDate:', dateValue, e);
+    }
+    return null;
+}
+
 function getYearMain(dateValue) {
     if (!dateValue) return '';
     try {
-        if (dateValue && typeof dateValue.toDate === 'function') {
-            return dateValue.toDate().getFullYear().toString();
-        }
-        if (dateValue instanceof Date) {
-            return dateValue.getFullYear().toString();
+        const parsed = parseMartyrDate(dateValue);
+        if (parsed) {
+            return parsed.getFullYear().toString();
         }
         if (typeof dateValue === 'string') {
-            const trimmed = dateValue.trim();
-            const m = trimmed.match(/^(\d{4})/);
+            const m = dateValue.match(/\b(19\d{2}|20\d{2})\b/);
             if (m) return m[1];
         }
     } catch (e) { /* ignore */ }
@@ -427,7 +487,8 @@ function createMartyrCard(martyr, list) {
     photoOverlay.className = 'martyr-photo-overlay';
 
     // Floating year badge if date is recorded
-    const martyrdomYear = martyr.martyrdomDate ? getYearMain(martyr.martyrdomDate) : '';
+    const rawMartyrdomDate = martyr.martyrdomDate || martyr.dateOfMartyrdom || martyr.martyrdom_date || martyr.martyrdomYear || martyr.year;
+    const martyrdomYear = rawMartyrdomDate ? getYearMain(rawMartyrdomDate) : '';
     if (martyrdomYear) {
         const yearBadge = document.createElement('span');
         yearBadge.className = 'martyr-year-badge';
@@ -495,7 +556,7 @@ function createMartyrCard(martyr, list) {
     dateIcon.setAttribute('aria-hidden', 'true');
     dateIcon.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
     const dateText = document.createElement('span');
-    const martyrdomPretty = formatDate(martyr.martyrdomDate);
+    const martyrdomPretty = formatDate(rawMartyrdomDate);
     if (martyrdomPretty && martyrdomPretty !== 'Unknown') {
         dateText.textContent = martyrdomPretty;
     } else if (martyrdomYear) {
@@ -551,45 +612,14 @@ function createMartyrCard(martyr, list) {
     return card;
 }
 
-// Format Date Helper - Handles Firestore Timestamps and strings
+// Format Date Helper - Handles Firestore Timestamps, serialized objects, and strings
 function formatDate(dateValue) {
     if (!dateValue) return 'Unknown';
-    
+    const parsed = parseMartyrDate(dateValue);
+    if (!parsed) return 'Unknown';
     try {
-        let date;
-        
-        // Handle Firestore Timestamp objects
-        if (dateValue && typeof dateValue === 'object' && typeof dateValue.toDate === 'function') {
-            date = dateValue.toDate();
-        }
-        // If it's already a Date object
-        else if (dateValue instanceof Date) {
-            date = dateValue;
-        }
-        // Handle date strings
-        else if (typeof dateValue === 'string') {
-            if (dateValue.trim() === '') return 'Unknown';
-            
-            // Handle YYYY-MM-DD format (HTML date input)
-            if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue.trim())) {
-                date = new Date(dateValue + 'T00:00:00'); // Add time to avoid timezone issues
-            } else {
-                date = new Date(dateValue);
-            }
-        }
-        // Try direct conversion for other types
-        else {
-            date = new Date(dateValue);
-        }
-        
-        // Check if date is valid
-        if (!date || isNaN(date.getTime())) {
-            console.warn('Invalid date format in formatDate:', dateValue);
-            return 'Unknown';
-        }
-        
-        const options = { year: 'numeric', month: 'short', day: 'numeric' };
-        return date.toLocaleDateString('en-US', options);
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        return parsed.toLocaleDateString('en-US', options);
     } catch (error) {
         console.error('Error formatting date:', dateValue, error);
         return 'Unknown';
@@ -598,46 +628,8 @@ function formatDate(dateValue) {
 
 // Format date year helper - safely extract year from date string or Firestore Timestamp
 function formatDateYear(dateValue) {
-    if (!dateValue) return '?';
-    
-    try {
-        let date;
-        
-        // Handle Firestore Timestamp objects
-        if (dateValue && typeof dateValue === 'object' && typeof dateValue.toDate === 'function') {
-            date = dateValue.toDate();
-        }
-        // If it's already a Date object
-        else if (dateValue instanceof Date) {
-            date = dateValue;
-        }
-        // Handle date strings
-        else if (typeof dateValue === 'string') {
-            if (dateValue.trim() === '') return '?';
-            
-            // Handle YYYY-MM-DD format (HTML date input)
-            if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue.trim())) {
-                date = new Date(dateValue + 'T00:00:00'); // Add time to avoid timezone issues
-            } else {
-                date = new Date(dateValue);
-            }
-        }
-        // Try direct conversion for other types
-        else {
-            date = new Date(dateValue);
-        }
-        
-        // Check if date is valid
-        if (!date || isNaN(date.getTime())) {
-            console.warn('Invalid date format in formatDateYear:', dateValue);
-            return '?';
-        }
-        
-        return date.getFullYear();
-    } catch (error) {
-        console.error('Error parsing date year:', dateValue, error);
-        return '?';
-    }
+    const yr = getYearMain(dateValue);
+    return yr || '?';
 }
 
 // HTML escape helper to prevent XSS
@@ -1285,25 +1277,8 @@ function getUpcomingAnniversaries(martyrs) {
     martyrs.forEach(martyr => {
         if (!martyr.martyrdomDate) return;
         
-        let martyrdomDate;
-        try {
-            // Handle Firestore Timestamp objects
-            if (martyr.martyrdomDate && typeof martyr.martyrdomDate === 'object' && typeof martyr.martyrdomDate.toDate === 'function') {
-                martyrdomDate = martyr.martyrdomDate.toDate();
-            } else if (typeof martyr.martyrdomDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(martyr.martyrdomDate.trim())) {
-                martyrdomDate = new Date(martyr.martyrdomDate + 'T00:00:00');
-            } else {
-                martyrdomDate = new Date(martyr.martyrdomDate);
-            }
-            
-            if (!martyrdomDate || isNaN(martyrdomDate.getTime())) {
-                console.warn('Invalid martyrdom date for', martyr.fullName, martyr.martyrdomDate);
-                return;
-            }
-        } catch (error) {
-            console.error('Error parsing martyrdom date for', martyr.fullName, error);
-            return;
-        }
+        const martyrdomDate = parseMartyrDate(martyr.martyrdomDate);
+        if (!martyrdomDate) return;
         
         const martyrdomMonth = martyrdomDate.getMonth();
         const martyrdomDay = martyrdomDate.getDate();
@@ -1452,25 +1427,10 @@ function createAnniversaryCard(martyr, list) {
 // Get anniversary text
 function getAnniversaryText(martyr) {
     if (!martyr.daysUntil && martyr.daysUntil !== 0) {
-        try {
-            let martyrdomDate;
-            
-            // Handle Firestore Timestamp objects
-            if (martyr.martyrdomDate && typeof martyr.martyrdomDate === 'object' && typeof martyr.martyrdomDate.toDate === 'function') {
-                martyrdomDate = martyr.martyrdomDate.toDate();
-            } else if (typeof martyr.martyrdomDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(martyr.martyrdomDate.trim())) {
-                martyrdomDate = new Date(martyr.martyrdomDate + 'T00:00:00');
-            } else {
-                martyrdomDate = new Date(martyr.martyrdomDate);
-            }
-            
-            if (martyrdomDate && !isNaN(martyrdomDate.getTime())) {
-                return `<strong>Anniversary:</strong> ${martyrdomDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`;
-            } else {
-                return `<strong>Anniversary:</strong> Date not available`;
-            }
-        } catch (error) {
-            console.error('Error formatting anniversary date:', error);
+        const martyrdomDate = parseMartyrDate(martyr.martyrdomDate);
+        if (martyrdomDate) {
+            return `<strong>Anniversary:</strong> ${martyrdomDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })}`;
+        } else {
             return `<strong>Anniversary:</strong> Date not available`;
         }
     }
