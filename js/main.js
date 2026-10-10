@@ -1623,7 +1623,7 @@ window.initScrollReveal = initScrollReveal;
 function initImageLightbox() {
     document.addEventListener('click', function(e) {
         // Target images inside profile detail panels
-        const modalImg = e.target.closest('#martyrModal img, #martyrDetailsModal img, .martyr-photo-wrapper img, .martyr-image img');
+        const modalImg = e.target.closest('#martyrModal img, #martyrDetailsModal img');
         if (modalImg && !e.target.closest('.martyr-share-actions, .suggestion-btn')) {
             e.preventDefault();
             

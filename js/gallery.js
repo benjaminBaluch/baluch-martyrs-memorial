@@ -1498,10 +1498,15 @@ function createGalleryCard(martyr) {
         infoDiv.appendChild(orgLine);
     }
 
-    // View profile button for visual affordance
-    const viewBtn = document.createElement('div');
-    viewBtn.className = 'martyr-card-button';
-    viewBtn.innerHTML = `<span>View Profile</span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`;
+    // View profile button
+    const viewBtn = document.createElement('button');
+    viewBtn.className = 'btn btn-small martyr-card-button';
+    viewBtn.type = 'button';
+    viewBtn.innerHTML = `<span>View Details</span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`;
+    viewBtn.onclick = function (e) {
+        e.stopPropagation();
+        showMartyrModal(martyr);
+    };
     infoDiv.appendChild(viewBtn);
 
     inner.appendChild(photoWrapper);
@@ -1509,12 +1514,12 @@ function createGalleryCard(martyr) {
     card.appendChild(inner);
 
     // Full Card Interactive Tap Handler (Smooth mobile & desktop experience)
-    card.addEventListener('click', function (e) {
-        if (e.target.closest('.martyr-share-icon') || e.target.closest('.martyr-share-actions')) {
+    card.onclick = function (e) {
+        if (e.target.closest('.martyr-share-icon, .martyr-share-actions')) {
             return;
         }
         showMartyrModal(martyr);
-    });
+    };
 
     card.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' || e.key === ' ') {
