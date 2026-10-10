@@ -1380,10 +1380,13 @@ function renderGallery(martyrsData) {
 }
 
 // Create gallery card (front of gallery)
-// Modern, respectful design for gallery grid
+// Modern, respectful archival design for gallery grid
 function createGalleryCard(martyr) {
     const card = document.createElement('div');
     card.className = 'martyr-card';
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', `View memorial record of ${martyr.fullName || 'martyr'}`);
 
     // Enhanced search data attributes (used by filters)
     card.dataset.searchText = `${martyr.fullName} ${martyr.birthPlace || ''} ${martyr.martyrdomPlace || ''} ${martyr.organization || ''} ${martyr.fatherName || ''}`.toLowerCase();
@@ -1403,6 +1406,15 @@ function createGalleryCard(martyr) {
     const photoOverlay = document.createElement('div');
     photoOverlay.className = 'martyr-photo-overlay';
 
+    // Floating year badge if date is recorded
+    const martyrdomYear = martyr.martyrdomDate ? getYear(martyr.martyrdomDate) : '';
+    if (martyrdomYear) {
+        const yearBadge = document.createElement('span');
+        yearBadge.className = 'martyr-year-badge';
+        yearBadge.textContent = martyrdomYear;
+        photoWrapper.appendChild(yearBadge);
+    }
+
     if (martyr.photo) {
         const img = document.createElement('img');
         img.src = martyr.photo;
@@ -1410,13 +1422,19 @@ function createGalleryCard(martyr) {
         img.loading = 'lazy';
         img.decoding = 'async';
         img.width = 300;
-        img.height = 200;
+        img.height = 220;
         photoWrapper.appendChild(img);
     } else {
-        // Fallback gradient with icon when no photo is provided
+        // Dignified memorial silhouette placeholder (no cartoon emojis)
         const placeholder = document.createElement('div');
         placeholder.className = 'martyr-photo-placeholder';
-        placeholder.textContent = '📷';
+        placeholder.innerHTML = `
+            <svg class="placeholder-crest-svg" viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span class="placeholder-text">Memorial Archive</span>
+        `;
         photoWrapper.appendChild(placeholder);
     }
     photoWrapper.appendChild(photoOverlay);
@@ -1425,43 +1443,39 @@ function createGalleryCard(martyr) {
     const infoDiv = document.createElement('div');
     infoDiv.className = 'martyr-info';
 
-    // Name with symbolic icon
+    // Martyr Name (Crisp Garamond typography)
     const nameRow = document.createElement('div');
     nameRow.className = 'martyr-name-row';
-
-    const symbol = document.createElement('span');
-    symbol.className = 'martyr-symbol';
-    symbol.textContent = '✦';
 
     const name = document.createElement('h3');
     name.className = 'martyr-name';
     name.textContent = martyr.fullName || 'Unknown martyr';
 
-    nameRow.appendChild(symbol);
     nameRow.appendChild(name);
     infoDiv.appendChild(nameRow);
 
-    // Location line
+    // Location line with clean vector pin icon
     const locationLine = document.createElement('p');
     locationLine.className = 'martyr-meta martyr-location';
     const locIcon = document.createElement('span');
     locIcon.className = 'martyr-meta-icon';
-    locIcon.textContent = '📍';
+    locIcon.setAttribute('aria-hidden', 'true');
+    locIcon.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
     const locText = document.createElement('span');
     locText.textContent = martyr.martyrdomPlace || martyr.birthPlace || 'Location unknown';
     locationLine.appendChild(locIcon);
     locationLine.appendChild(locText);
     infoDiv.appendChild(locationLine);
 
-    // Date line (martyrdom)
+    // Date line with clean vector chronology icon
     const dateLine = document.createElement('p');
     dateLine.className = 'martyr-meta martyr-date';
     const dateIcon = document.createElement('span');
     dateIcon.className = 'martyr-meta-icon';
-    dateIcon.textContent = '🕊️';
+    dateIcon.setAttribute('aria-hidden', 'true');
+    dateIcon.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
     const dateText = document.createElement('span');
     const martyrdomPretty = formatDate(martyr.martyrdomDate);
-    const martyrdomYear = getYear(martyr.martyrdomDate);
     if (martyrdomPretty) {
         dateText.textContent = martyrdomPretty;
     } else if (martyrdomYear) {
@@ -1473,34 +1487,41 @@ function createGalleryCard(martyr) {
     dateLine.appendChild(dateText);
     infoDiv.appendChild(dateLine);
 
-    // Organization line (optional)
+    // Organization badge pill (if recorded)
     if (martyr.organization) {
-        const orgLine = document.createElement('p');
-        orgLine.className = 'martyr-meta martyr-organization';
-        const orgIcon = document.createElement('span');
-        orgIcon.className = 'martyr-meta-icon';
-        orgIcon.textContent = '🏳️';
-        const orgText = document.createElement('span');
-        orgText.textContent = martyr.organization;
-        orgLine.appendChild(orgIcon);
-        orgLine.appendChild(orgText);
+        const orgLine = document.createElement('div');
+        orgLine.className = 'martyr-org-pill';
+        orgLine.innerHTML = `
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+            <span>${escapeHTML(martyr.organization)}</span>
+        `;
         infoDiv.appendChild(orgLine);
     }
 
-    // View details button
-    const viewBtn = document.createElement('button');
-    viewBtn.className = 'btn btn-small martyr-card-button';
-    viewBtn.type = 'button';
-    viewBtn.textContent = 'View Details';
-    // Open the original gallery-specific martyr modal
-    viewBtn.onclick = function () {
-        showMartyrModal(martyr);
-    };
+    // View profile button for visual affordance
+    const viewBtn = document.createElement('div');
+    viewBtn.className = 'martyr-card-button';
+    viewBtn.innerHTML = `<span>View Profile</span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`;
     infoDiv.appendChild(viewBtn);
 
     inner.appendChild(photoWrapper);
     inner.appendChild(infoDiv);
     card.appendChild(inner);
+
+    // Full Card Interactive Tap Handler (Smooth mobile & desktop experience)
+    card.addEventListener('click', function (e) {
+        if (e.target.closest('.martyr-share-icon') || e.target.closest('.martyr-share-actions')) {
+            return;
+        }
+        showMartyrModal(martyr);
+    });
+
+    card.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            showMartyrModal(martyr);
+        }
+    });
 
     return card;
 }
