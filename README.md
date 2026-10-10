@@ -70,7 +70,7 @@ Gallery page includes search functionality to filter martyrs by name, location, 
 
 ## Footer Attribution
 
-**Powered by Benjamin Baluch**
+**Data managed by Baluch Martyrs Memorial • Powered by BBaluch**
 
 ## Future Enhancements
 
