@@ -174,12 +174,28 @@
             return;
         }
 
-        // Focus styling
+        // Focus styling & restore
         input.addEventListener('focus', () => {
             if (searchBar) searchBar.classList.add('is-focused');
             const q = input.value.trim();
             if (q.length >= 2) {
-                executeSearch(q);
+                if (currentResults && currentResults.length > 0) {
+                    showDropdown();
+                } else {
+                    executeSearch(q);
+                }
+            }
+        });
+
+        // Re-show dropdown on input tap/click if user already has a query
+        input.addEventListener('click', () => {
+            const q = input.value.trim();
+            if (q.length >= 2) {
+                if (currentResults && currentResults.length > 0) {
+                    showDropdown();
+                } else {
+                    executeSearch(q);
+                }
             }
         });
 
@@ -275,13 +291,6 @@
                 hideDropdown();
             }
         });
-
-        // Close dropdown when scrolling significantly
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 450 && dropdown.style.display !== 'none') {
-                hideDropdown();
-            }
-        }, { passive: true });
 
         // Execute search and render results
         async function executeSearch(query) {

@@ -848,14 +848,16 @@ html[data-theme="dark"] .theme-toggle:hover {
     justify-content: center;
     text-align: center;
     color: white;
-    overflow: hidden;
+    overflow: visible;
+    z-index: 40;
 }
 
 /* Hero: full-viewport on mobile */
 @media (max-width: 768px) {
     .hero {
-        height: 85vh;
+        height: auto;
         min-height: 420px;
+        overflow: visible;
     }
     .hero-overlay {
         background: rgba(0, 0, 0, 0.38);
@@ -896,6 +898,7 @@ html[data-theme="dark"] .theme-toggle:hover {
     height: 100%;
     object-fit: cover;
     z-index: 0;
+    clip-path: inset(0);
 }
 
 .hero-overlay {
@@ -906,6 +909,7 @@ html[data-theme="dark"] .theme-toggle:hover {
     bottom: 0;
     background: rgba(0, 0, 0, 0.45);
     z-index: 1;
+    clip-path: inset(0);
 }
 
 .hero-content {
@@ -924,6 +928,7 @@ html[data-theme="dark"] .theme-toggle:hover {
     height: 100%;
     pointer-events: none;
     z-index: 2;
+    clip-path: inset(0);
 }
 
 /* Play button shown when autoplay is blocked */

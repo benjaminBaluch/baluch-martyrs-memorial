@@ -24,7 +24,7 @@
     <link rel="shortcut icon" href="/favicon.svg">
     
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="css/styles.css?v=20261010i">
+    <link rel="stylesheet" href="css/styles.css?v=20261018d">
     
     <!-- Three.js for 3D effects -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js" defer></script>
@@ -92,9 +92,19 @@
 
         /* Hero Container Dimensions */
         .hero {
+            position: relative;
             min-height: 640px;
             height: auto;
             padding: 4.5rem 1rem 4rem;
+            overflow: visible !important;
+            z-index: 50;
+        }
+
+        /* Ensure background video, canvas, and overlay are clipped cleanly to hero bounds */
+        .hero-video,
+        .hero-overlay,
+        .hero-3d-canvas {
+            clip-path: inset(0);
         }
 
         /* Hero Instant Search Bar */
@@ -103,7 +113,7 @@
             max-width: 580px;
             width: 100%;
             margin: 0 auto 1.75rem;
-            z-index: 60;
+            z-index: 100;
         }
 
         .hero-search-bar {
@@ -261,16 +271,16 @@
             top: calc(100% + 8px);
             left: 0;
             right: 0;
-            background: rgba(15, 23, 42, 0.96);
-            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: rgba(15, 23, 42, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.22);
             border-radius: 20px;
-            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 
-                        0 4px 16px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 28px 70px rgba(0, 0, 0, 0.8), 
+                        0 8px 24px rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
             overflow: hidden;
-            z-index: 1000;
-            animation: heroDropdownSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 9999;
+            animation: heroDropdownSlide 0.22s cubic-bezier(0.16, 1, 0.3, 1);
             text-align: left;
         }
 
@@ -286,10 +296,12 @@
         }
 
         .hero-search-results-list {
-            max-height: 340px;
+            max-height: min(52vh, 360px);
             overflow-y: auto;
             overscroll-behavior: contain;
-            padding: 0.45rem;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y;
+            padding: 0.5rem;
         }
 
         .hero-search-results-list::-webkit-scrollbar {
@@ -303,6 +315,7 @@
         .hero-search-item {
             display: flex;
             align-items: center;
+            min-height: 50px;
             gap: 0.9rem;
             padding: 0.7rem 0.9rem;
             border-radius: 12px;
@@ -501,9 +514,11 @@
             .hero {
                 min-height: 600px;
                 padding: 3rem 1rem 3.25rem;
+                overflow: visible !important;
             }
             .hero-search-wrapper {
                 margin: 0 auto 1.5rem;
+                z-index: 100;
             }
             .hero-search-bar {
                 padding: 0.3rem 0.35rem 0.3rem 1rem;
@@ -519,9 +534,12 @@
             }
             .hero-search-dropdown {
                 border-radius: 16px;
+                z-index: 9999;
             }
             .hero-search-results-list {
-                max-height: 280px;
+                max-height: min(50vh, 320px);
+                overscroll-behavior: contain;
+                -webkit-overflow-scrolling: touch;
             }
             .hero-search-item-action span {
                 display: none;
@@ -532,6 +550,7 @@
             .hero {
                 min-height: 570px;
                 padding: 2.5rem 0.85rem 3rem;
+                overflow: visible !important;
             }
             .hero-search-bar {
                 padding: 0.25rem 0.3rem 0.25rem 0.85rem;
@@ -546,6 +565,7 @@
             .hero-search-item {
                 padding: 0.6rem 0.65rem;
                 gap: 0.65rem;
+                min-height: 48px;
             }
         }
 
@@ -3125,7 +3145,7 @@
     <script src="js/main.js?v=20261010-datefix"></script>
     <script src="js/hero-3d.js"></script>
     <script src="js/mobile-menu.js"></script>
-    <script src="js/hero-search.js?v=20261010"></script>
+    <script src="js/hero-search.js?v=20261018d"></script>
 
     <!-- Initialize Professional Asset Refresh System -->
     <script>
