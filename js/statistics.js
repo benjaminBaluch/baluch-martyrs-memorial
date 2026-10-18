@@ -149,33 +149,52 @@
         if (!activeViews.hasOwnProperty(target)) return;
         activeViews[target] = mode;
 
-        // Update toggle button active styling
-        const toggleGroup = document.querySelector(`.chart-view-toggle[data-toggle-target="${target}"]`);
-        if (toggleGroup) {
-            toggleGroup.querySelectorAll('.view-toggle-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.getAttribute('data-view') === mode);
-            });
-        }
+        // Update toggle button active styling across all matching groups
+        document.querySelectorAll(`.chart-view-toggle[data-toggle-target="${target}"] .view-toggle-btn`).forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-view') === mode);
+        });
 
-        // Toggle container visibility
+        // Toggle container visibility using both inline display and class
         if (target === 'timeline') {
             const chartWrap = document.getElementById('timelineChartWrapper');
             const tableWrap = document.getElementById('timelineTableWrapper');
-            if (chartWrap) chartWrap.style.display = mode === 'chart' ? 'block' : 'none';
-            if (tableWrap) tableWrap.classList.toggle('is-visible', mode === 'table');
+            if (chartWrap) chartWrap.style.display = (mode === 'chart') ? 'block' : 'none';
+            if (tableWrap) {
+                tableWrap.style.display = (mode === 'table') ? 'block' : 'none';
+                tableWrap.classList.toggle('is-visible', mode === 'table');
+            }
             if (mode === 'chart' && timelineChart) {
-                timelineChart.resize();
+                setTimeout(() => timelineChart && timelineChart.resize(), 20);
             }
         } else if (target === 'monthly') {
             const chartWrap = document.getElementById('monthlyChartWrapper');
             const tableWrap = document.getElementById('monthlyTableWrapper');
-            if (chartWrap) chartWrap.style.display = mode === 'chart' ? 'block' : 'none';
-            if (tableWrap) tableWrap.classList.toggle('is-visible', mode === 'table');
+            if (chartWrap) chartWrap.style.display = (mode === 'chart') ? 'block' : 'none';
+            if (tableWrap) {
+                tableWrap.style.display = (mode === 'table') ? 'block' : 'none';
+                tableWrap.classList.toggle('is-visible', mode === 'table');
+            }
             if (mode === 'chart' && monthlyChart) {
-                monthlyChart.resize();
+                setTimeout(() => monthlyChart && monthlyChart.resize(), 20);
             }
         }
     }
+
+    // Expose globally so inline HTML onclick handlers work unconditionally
+    window.setStatsViewMode = setViewMode;
+
+    // Bulletproof document-level delegated listener for view toggle buttons
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.view-toggle-btn');
+        if (!btn) return;
+        const group = btn.closest('.chart-view-toggle');
+        const target = group ? group.getAttribute('data-toggle-target') : null;
+        const view = btn.getAttribute('data-view') || 'chart';
+        if (target) {
+            e.preventDefault();
+            setViewMode(target, view);
+        }
+    });
 
     // Wait for Firebase to initialize
     function waitForFirebase() {

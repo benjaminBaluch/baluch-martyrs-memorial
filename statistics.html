@@ -861,11 +861,17 @@
             font-size: 0.78rem;
             font-weight: 600;
             color: #64748b;
-            cursor: pointer;
+            cursor: pointer !important;
             transition: all 0.15s ease;
             font-family: inherit;
             min-height: 32px;
             white-space: nowrap;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .view-toggle-btn * {
+            pointer-events: none;
         }
 
         .view-toggle-btn svg {
@@ -919,7 +925,7 @@
         }
 
         .stats-table-wrapper.is-visible {
-            display: block;
+            display: block !important;
             animation: fadeInTable 0.2s ease-out;
         }
 
@@ -2136,11 +2142,11 @@
                             </div>
                             <div class="section-header-actions">
                                 <div class="chart-view-toggle" data-toggle-target="timeline">
-                                    <button type="button" class="view-toggle-btn active" data-view="chart" aria-label="Show chart view">
+                                    <button type="button" class="view-toggle-btn active" data-view="chart" aria-label="Show chart view" onclick="window.setStatsViewMode &amp;&amp; window.setStatsViewMode('timeline', 'chart')">
                                         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 20V10M12 20V4M6 20v-6"/></svg>
                                         <span>Chart</span>
                                     </button>
-                                    <button type="button" class="view-toggle-btn" data-view="table" aria-label="Show table view">
+                                    <button type="button" class="view-toggle-btn" data-view="table" aria-label="Show table view" onclick="window.setStatsViewMode &amp;&amp; window.setStatsViewMode('timeline', 'table')">
                                         <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                                         <span>Table</span>
                                     </button>
@@ -2260,11 +2266,11 @@
                                 </div>
                                 <div class="section-header-actions">
                                     <div class="chart-view-toggle" data-toggle-target="monthly">
-                                        <button type="button" class="view-toggle-btn active" data-view="chart" aria-label="Show chart view">
+                                        <button type="button" class="view-toggle-btn active" data-view="chart" aria-label="Show chart view" onclick="window.setStatsViewMode &amp;&amp; window.setStatsViewMode('monthly', 'chart')">
                                             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 20V10M12 20V4M6 20v-6"/></svg>
                                             <span>Chart</span>
                                         </button>
-                                        <button type="button" class="view-toggle-btn" data-view="table" aria-label="Show table view">
+                                        <button type="button" class="view-toggle-btn" data-view="table" aria-label="Show table view" onclick="window.setStatsViewMode &amp;&amp; window.setStatsViewMode('monthly', 'table')">
                                             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                                             <span>Table</span>
                                         </button>
@@ -2431,7 +2437,7 @@
     
     <script src="js/main.js?v=20261008k"></script>
     <script src="js/mobile-menu.js?v=20261008k"></script>
-    <script src="js/statistics.js?v=20261008k"></script>
+    <script src="js/statistics.js?v=20261018c"></script>
     <!-- Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav">
         <div class="bottom-nav-inner">
