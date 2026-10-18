@@ -446,7 +446,6 @@
 
         renderActiveFilterBar(filteredMartyrs.length);
         renderKeyNumbers(currentStats, allMartyrsData.length);
-        renderHumanContext(currentStats, allMartyrsData.length);
         renderYearPillStrip(timelineStats);
         renderTimeline(timelineStats);
         renderTimelineTable(timelineStats);
@@ -1008,72 +1007,8 @@
         }
     }
 
-    // Render Human Context Archival Highlights (Peak Era, Heartlands, Biographical preservation)
-    function renderHumanContext(stats, grandTotal) {
-        const peakHeadline = document.getElementById('hcPeakHeadline');
-        const peakNarrative = document.getElementById('hcPeakNarrative');
-        const regionHeadline = document.getElementById('hcRegionHeadline');
-        const regionNarrative = document.getElementById('hcRegionNarrative');
-        const storyHeadline = document.getElementById('hcStoryHeadline');
-        const storyNarrative = document.getElementById('hcStoryNarrative');
-
-        if (!peakHeadline || !regionHeadline || !storyHeadline) return;
-
-        // 1. Chronological Highlight
-        if (stats.years.length > 0) {
-            const sortedYearEntries = Object.entries(stats.byYear).sort((a, b) => b[1] - a[1]);
-            const [topYr, topYrCount] = sortedYearEntries[0];
-            const recentCount = stats.years.filter(y => y >= 2010).reduce((acc, y) => acc + (stats.byYear[y] || 0), 0);
-            const recentShare = stats.total > 0 ? Math.round((recentCount / stats.total) * 100) : 0;
-
-            peakHeadline.textContent = `Peak Year: ${topYr} (${topYrCount.toLocaleString()} heroes)`;
-            peakNarrative.textContent = `Spanning ${stats.years.length} documented years (${stats.minYear}–${stats.maxYear}). ${recentShare}% of recorded sacrifices occurred from 2010 onwards, capturing modern archival history.`;
-
-            const peakCard = document.getElementById('hcCardPeak');
-            if (peakCard) {
-                peakCard.style.cursor = 'pointer';
-                peakCard.title = `Click to filter by peak year ${topYr}`;
-                peakCard.onclick = () => toggleStatsFilter('year', parseInt(topYr, 10));
-            }
-        } else {
-            peakHeadline.textContent = 'Chronological Archive';
-            peakNarrative.textContent = 'Records are continually gathered across all eras of Baloch history.';
-        }
-
-        // 2. Regional Heartlands
-        const sortedRegions = Object.entries(stats.byRegion).sort((a, b) => b[1] - a[1]);
-        if (sortedRegions.length > 0 && stats.total > 0) {
-            const [topReg, topCnt] = sortedRegions[0];
-            const topShare = Math.round((topCnt / stats.total) * 100);
-            const secondReg = sortedRegions.length > 1 ? sortedRegions[1] : null;
-
-            if (secondReg) {
-                const combinedShare = Math.round(((topCnt + secondReg[1]) / stats.total) * 100);
-                regionHeadline.textContent = `${escapeHTML(topReg)} & ${escapeHTML(secondReg[0])}`;
-                regionNarrative.textContent = `${escapeHTML(topReg)} (${topShare}%) and ${escapeHTML(secondReg[0])} account for ${combinedShare}% of recorded entries across ${stats.regionCount} districts.`;
-            } else {
-                regionHeadline.textContent = `${escapeHTML(topReg)} Heartland`;
-                regionNarrative.textContent = `${escapeHTML(topReg)} accounts for ${topShare}% of verified records across ${stats.regionCount} documented locations.`;
-            }
-
-            const regCard = document.getElementById('hcCardRegion');
-            if (regCard) {
-                regCard.style.cursor = 'pointer';
-                regCard.title = `Click to filter by ${escapeHTML(topReg)}`;
-                regCard.onclick = () => toggleStatsFilter('region', topReg);
-            }
-        } else {
-            regionHeadline.textContent = 'Geographical Footprint';
-            regionNarrative.textContent = 'Documenting locations and districts throughout historical Balochistan.';
-        }
-
-        // 3. Biographical & Living Memory
-        const bioPct = stats.total > 0 ? Math.round((stats.withBio / stats.total) * 100) : 0;
-        const photoPct = stats.total > 0 ? Math.round((stats.withPhoto / stats.total) * 100) : 0;
-
-        storyHeadline.textContent = `${bioPct}% Biographical Preservation`;
-        storyNarrative.textContent = `Preserving ${stats.withBio.toLocaleString()} verified life biographies and ${stats.withPhoto.toLocaleString()} portraits (${photoPct}%), ensuring every hero is remembered beyond numbers.`;
-    }
+    // Render Human Context Archival Highlights (Removed per user request)
+    function renderHumanContext() {}
 
     // Helper: get filtered year list according to currentTimelineRange
     function getTimelineYearsForRange(stats) {
