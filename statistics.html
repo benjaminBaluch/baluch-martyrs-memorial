@@ -569,6 +569,118 @@
         }
 
         /* ============================================
+           3.5 HUMAN CONTEXT ARCHIVAL HIGHLIGHTS STRIP
+           ============================================ */
+        .human-context-strip {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 1.1rem;
+            margin-bottom: 1.5rem;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .human-context-card {
+            background: #ffffff;
+            border-radius: 14px;
+            padding: 1.15rem 1.2rem;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #16a34a;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            box-sizing: border-box;
+            min-height: 120px;
+        }
+
+        .human-context-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+            border-color: #cbd5e1;
+            border-left-color: #15803d;
+        }
+
+        [data-theme="dark"] .human-context-card {
+            background: #162234;
+            border-color: #26354d;
+            border-left-color: #22c55e;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.22);
+        }
+
+        [data-theme="dark"] .human-context-card:hover {
+            border-color: #334155;
+            border-left-color: #4ade80;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+        }
+
+        .hc-card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.45rem;
+        }
+
+        .hc-card-icon {
+            width: 26px;
+            height: 26px;
+            border-radius: 7px;
+            background: #f0fdf4;
+            color: #15803d;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .hc-card-icon svg {
+            width: 15px;
+            height: 15px;
+        }
+
+        [data-theme="dark"] .hc-card-icon {
+            background: rgba(34, 197, 94, 0.15);
+            color: #86efac;
+        }
+
+        .hc-card-tag {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #15803d;
+        }
+
+        [data-theme="dark"] .hc-card-tag {
+            color: #86efac;
+        }
+
+        .hc-card-headline {
+            font-size: 1.02rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0 0 0.35rem 0;
+            line-height: 1.3;
+        }
+
+        [data-theme="dark"] .hc-card-headline {
+            color: #f8fafc;
+        }
+
+        .hc-card-narrative {
+            font-size: 0.8rem;
+            color: #475569;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        [data-theme="dark"] .hc-card-narrative {
+            color: #94a3b8;
+        }
+
+        /* ============================================
            4. UNIFORM FULL-WIDTH SECTION CARDS
            All containers match Timeline of Martyrdoms
            ============================================ */
@@ -720,6 +832,202 @@
 
         .chart-wrapper.tall {
             height: 280px;
+        }
+
+        /* Chart vs Table View Toggle Controls */
+        .chart-view-toggle {
+            display: inline-flex;
+            align-items: center;
+            background: #f1f5f9;
+            border-radius: 9px;
+            padding: 3px;
+            gap: 2px;
+            border: 1px solid #e2e8f0;
+        }
+
+        [data-theme="dark"] .chart-view-toggle {
+            background: #0f172a;
+            border-color: #26354d;
+        }
+
+        .view-toggle-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.34rem 0.72rem;
+            border-radius: 7px;
+            border: none;
+            background: transparent;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-family: inherit;
+            min-height: 32px;
+            white-space: nowrap;
+        }
+
+        .view-toggle-btn svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+        }
+
+        .view-toggle-btn:hover {
+            color: #1e293b;
+        }
+
+        [data-theme="dark"] .view-toggle-btn {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .view-toggle-btn:hover {
+            color: #f1f5f9;
+        }
+
+        .view-toggle-btn.active {
+            background: #ffffff;
+            color: #15803d;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.09);
+            font-weight: 700;
+        }
+
+        [data-theme="dark"] .view-toggle-btn.active {
+            background: #1e293b;
+            color: #4ade80;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+        }
+
+        /* Accessible Responsive Data Tables */
+        .stats-table-wrapper {
+            display: none;
+            width: 100%;
+            max-width: 100%;
+            margin-top: 0.5rem;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            box-sizing: border-box;
+            background: #ffffff;
+        }
+
+        [data-theme="dark"] .stats-table-wrapper {
+            background: #162234;
+            border-color: #26354d;
+        }
+
+        .stats-table-wrapper.is-visible {
+            display: block;
+            animation: fadeInTable 0.2s ease-out;
+        }
+
+        @keyframes fadeInTable {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stats-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.84rem;
+            text-align: left;
+        }
+
+        .stats-data-table th {
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 700;
+            font-size: 0.74rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.75rem 0.95rem;
+            border-bottom: 1px solid #e2e8f0;
+            white-space: nowrap;
+        }
+
+        [data-theme="dark"] .stats-data-table th {
+            background: #0f172a;
+            color: #94a3b8;
+            border-bottom-color: #26354d;
+        }
+
+        .stats-data-table td {
+            padding: 0.72rem 0.95rem;
+            border-bottom: 1px solid #f1f5f9;
+            color: #1e293b;
+            vertical-align: middle;
+        }
+
+        [data-theme="dark"] .stats-data-table td {
+            border-bottom-color: #26354d;
+            color: #e2e8f0;
+        }
+
+        .stats-data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .stats-data-table tr:hover td {
+            background: #f0fdf4;
+        }
+
+        [data-theme="dark"] .stats-data-table tr:hover td {
+            background: rgba(34, 197, 94, 0.08);
+        }
+
+        .stats-data-table tr.is-selected td {
+            background: #dcfce7;
+            font-weight: 600;
+        }
+
+        [data-theme="dark"] .stats-data-table tr.is-selected td {
+            background: rgba(34, 197, 94, 0.22);
+        }
+
+        .table-filter-btn {
+            padding: 0.28rem 0.65rem;
+            font-size: 0.74rem;
+            font-weight: 600;
+            border-radius: 6px;
+            border: 1px solid #bbf7d0;
+            background: #f0fdf4;
+            color: #15803d;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .table-filter-btn:hover {
+            background: #dcfce7;
+            border-color: #86efac;
+        }
+
+        .table-filter-btn.is-active {
+            background: #15803d;
+            color: #ffffff;
+            border-color: #15803d;
+        }
+
+        [data-theme="dark"] .table-filter-btn {
+            background: rgba(34, 197, 94, 0.12);
+            border-color: rgba(134, 239, 172, 0.3);
+            color: #86efac;
+        }
+
+        [data-theme="dark"] .table-filter-btn:hover {
+            background: rgba(34, 197, 94, 0.22);
+        }
+
+        [data-theme="dark"] .table-filter-btn.is-active {
+            background: #22c55e;
+            color: #0b131e;
+            border-color: #22c55e;
         }
 
         /* Responsive Year Explorer Grid below Timeline Chart */
@@ -1487,6 +1795,10 @@
                 grid-template-columns: repeat(2, minmax(0, 1fr));
                 grid-auto-rows: 1fr;
             }
+            .human-context-strip {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 0.85rem;
+            }
         }
 
         @media (max-width: 720px) {
@@ -1528,6 +1840,12 @@
                 width: 100%;
                 justify-content: center;
             }
+            .section-header-actions {
+                width: 100%;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.6rem;
+            }
         }
 
         @media (max-width: 600px) {
@@ -1552,6 +1870,13 @@
                 font-size: clamp(1.32rem, 4.2vw, 1.65rem);
                 margin-bottom: 0.5rem;
             }
+            .human-context-strip {
+                gap: 0.75rem;
+                margin-bottom: 1rem;
+            }
+            .human-context-card {
+                padding: 1rem 0.95rem;
+            }
             .stats-section,
             .download-section {
                 padding: 1.15rem;
@@ -1564,6 +1889,18 @@
             .chart-wrapper.short,
             .chart-wrapper.tall {
                 height: 235px;
+            }
+            .stats-data-table th,
+            .stats-data-table td {
+                padding: 0.6rem 0.65rem;
+                font-size: 0.78rem;
+            }
+            .chart-view-toggle {
+                width: 100%;
+            }
+            .view-toggle-btn {
+                flex: 1;
+                justify-content: center;
             }
             .download-btn {
                 width: 100%;
@@ -1749,6 +2086,42 @@
                         </div>
                     </div>
 
+                    <!-- Human Context Archival Highlights Strip -->
+                    <div class="human-context-strip" id="humanContextStrip">
+                        <div class="human-context-card" id="hcCardPeak">
+                            <div class="hc-card-header">
+                                <span class="hc-card-icon" aria-hidden="true">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                </span>
+                                <span class="hc-card-tag">Chronological Record</span>
+                            </div>
+                            <h4 class="hc-card-headline" id="hcPeakHeadline">Peak Documentation</h4>
+                            <p class="hc-card-narrative" id="hcPeakNarrative">Calculating archival timeline...</p>
+                        </div>
+
+                        <div class="human-context-card" id="hcCardRegion">
+                            <div class="hc-card-header">
+                                <span class="hc-card-icon" aria-hidden="true">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                </span>
+                                <span class="hc-card-tag">Regional Heartlands</span>
+                            </div>
+                            <h4 class="hc-card-headline" id="hcRegionHeadline">Primary Epicenters</h4>
+                            <p class="hc-card-narrative" id="hcRegionNarrative">Mapping documented districts...</p>
+                        </div>
+
+                        <div class="human-context-card" id="hcCardStory">
+                            <div class="hc-card-header">
+                                <span class="hc-card-icon" aria-hidden="true">
+                                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                                </span>
+                                <span class="hc-card-tag">Archival Mission</span>
+                            </div>
+                            <h4 class="hc-card-headline" id="hcStoryHeadline">Preserved Legacies</h4>
+                            <p class="hc-card-narrative" id="hcStoryNarrative">Preserving personal histories and verified records...</p>
+                        </div>
+                    </div>
+
                     <!-- Interactive Chronological Timeline Card -->
                     <div class="stats-section full-width">
                         <div class="section-header-row">
@@ -1759,18 +2132,46 @@
                                     </svg>
                                     Timeline of Martyrdoms
                                 </h3>
-                                <p class="section-subtitle">Tap any bar or year card below to filter the archive by year</p>
+                                <p class="section-subtitle">Tap any bar, year card, or table row to filter the archive by year</p>
                             </div>
-                            <div class="timeline-range-tabs" id="timelineRangeTabs" role="tablist" aria-label="Timeline era range">
-                                <button type="button" class="timeline-range-tab active" data-range="recent">2014–Present</button>
-                                <button type="button" class="timeline-range-tab" data-range="2000s">2000–2013</button>
-                                <button type="button" class="timeline-range-tab" data-range="pre2000">Pre-2000</button>
-                                <button type="button" class="timeline-range-tab" data-range="active">All Active Years</button>
+                            <div class="section-header-actions">
+                                <div class="chart-view-toggle" data-toggle-target="timeline">
+                                    <button type="button" class="view-toggle-btn active" data-view="chart" aria-label="Show chart view">
+                                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                                        <span>Chart</span>
+                                    </button>
+                                    <button type="button" class="view-toggle-btn" data-view="table" aria-label="Show table view">
+                                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                                        <span>Table</span>
+                                    </button>
+                                </div>
+                                <div class="timeline-range-tabs" id="timelineRangeTabs" role="tablist" aria-label="Timeline era range">
+                                    <button type="button" class="timeline-range-tab active" data-range="recent">2014–Present</button>
+                                    <button type="button" class="timeline-range-tab" data-range="2000s">2000–2013</button>
+                                    <button type="button" class="timeline-range-tab" data-range="pre2000">Pre-2000</button>
+                                    <button type="button" class="timeline-range-tab" data-range="active">All Active Years</button>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="chart-wrapper tall">
+                        <div class="chart-wrapper tall" id="timelineChartWrapper">
                             <canvas id="timelineChart"></canvas>
+                        </div>
+
+                        <div class="stats-table-wrapper" id="timelineTableWrapper">
+                            <table class="stats-data-table" id="timelineDataTable">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Year</th>
+                                        <th scope="col">Documented Heroes</th>
+                                        <th scope="col">Relative Share</th>
+                                        <th scope="col" style="text-align: right;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="timelineTableBody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
                         </div>
 
                         <!-- Responsive Year Card Grid (4 columns on mobile, 8 on desktop) -->
@@ -1857,10 +2258,38 @@
                                     </h3>
                                     <p class="section-subtitle">Seasonal distribution of documented martyrdoms (click any month to filter)</p>
                                 </div>
-                                <span class="section-badge-pill" id="monthlyPeakBadge">Peak Month: —</span>
+                                <div class="section-header-actions">
+                                    <div class="chart-view-toggle" data-toggle-target="monthly">
+                                        <button type="button" class="view-toggle-btn active" data-view="chart" aria-label="Show chart view">
+                                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                                            <span>Chart</span>
+                                        </button>
+                                        <button type="button" class="view-toggle-btn" data-view="table" aria-label="Show table view">
+                                            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                                            <span>Table</span>
+                                        </button>
+                                    </div>
+                                    <span class="section-badge-pill" id="monthlyPeakBadge">Peak Month: —</span>
+                                </div>
                             </div>
-                            <div class="chart-wrapper short">
+                            <div class="chart-wrapper short" id="monthlyChartWrapper">
                                 <canvas id="monthlyChart"></canvas>
+                            </div>
+
+                            <div class="stats-table-wrapper" id="monthlyTableWrapper">
+                                <table class="stats-data-table" id="monthlyDataTable">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Month</th>
+                                            <th scope="col">Documented Heroes</th>
+                                            <th scope="col">Seasonal Share</th>
+                                            <th scope="col" style="text-align: right;">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="monthlyTableBody">
+                                        <!-- Populated by JS -->
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>

@@ -26,6 +26,12 @@
     let showAllOrgs = false;
     let uiControlsBound = false;
 
+    // View mode state ('chart' | 'table') for mobile accessibility
+    const activeViews = {
+        timeline: 'chart',
+        monthly: 'chart'
+    };
+
     // Month names
     const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const FULL_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -124,6 +130,50 @@
                 showAllOrgs = !showAllOrgs;
                 refreshDashboardUI();
             });
+        }
+
+        // 5. Chart vs Table View Toggles (Mobile Accessibility)
+        document.querySelectorAll('.chart-view-toggle').forEach(group => {
+            const target = group.getAttribute('data-toggle-target');
+            group.querySelectorAll('.view-toggle-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const view = btn.getAttribute('data-view') || 'chart';
+                    setViewMode(target, view);
+                });
+            });
+        });
+    }
+
+    // Switch between Chart and Table modes
+    function setViewMode(target, mode) {
+        if (!activeViews.hasOwnProperty(target)) return;
+        activeViews[target] = mode;
+
+        // Update toggle button active styling
+        const toggleGroup = document.querySelector(`.chart-view-toggle[data-toggle-target="${target}"]`);
+        if (toggleGroup) {
+            toggleGroup.querySelectorAll('.view-toggle-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-view') === mode);
+            });
+        }
+
+        // Toggle container visibility
+        if (target === 'timeline') {
+            const chartWrap = document.getElementById('timelineChartWrapper');
+            const tableWrap = document.getElementById('timelineTableWrapper');
+            if (chartWrap) chartWrap.style.display = mode === 'chart' ? 'block' : 'none';
+            if (tableWrap) tableWrap.classList.toggle('is-visible', mode === 'table');
+            if (mode === 'chart' && timelineChart) {
+                timelineChart.resize();
+            }
+        } else if (target === 'monthly') {
+            const chartWrap = document.getElementById('monthlyChartWrapper');
+            const tableWrap = document.getElementById('monthlyTableWrapper');
+            if (chartWrap) chartWrap.style.display = mode === 'chart' ? 'block' : 'none';
+            if (tableWrap) tableWrap.classList.toggle('is-visible', mode === 'table');
+            if (mode === 'chart' && monthlyChart) {
+                monthlyChart.resize();
+            }
         }
     }
 
@@ -377,11 +427,14 @@
 
         renderActiveFilterBar(filteredMartyrs.length);
         renderKeyNumbers(currentStats, allMartyrsData.length);
+        renderHumanContext(currentStats, allMartyrsData.length);
         renderYearPillStrip(timelineStats);
         renderTimeline(timelineStats);
+        renderTimelineTable(timelineStats);
         renderRegions(currentStats);
         renderOrganizations(currentStats);
         renderMonthly(currentStats);
+        renderMonthlyTable(currentStats);
     }
 
     // Render the sticky Active Filter Bar with Gallery deep-link
@@ -936,6 +989,73 @@
         }
     }
 
+    // Render Human Context Archival Highlights (Peak Era, Heartlands, Biographical preservation)
+    function renderHumanContext(stats, grandTotal) {
+        const peakHeadline = document.getElementById('hcPeakHeadline');
+        const peakNarrative = document.getElementById('hcPeakNarrative');
+        const regionHeadline = document.getElementById('hcRegionHeadline');
+        const regionNarrative = document.getElementById('hcRegionNarrative');
+        const storyHeadline = document.getElementById('hcStoryHeadline');
+        const storyNarrative = document.getElementById('hcStoryNarrative');
+
+        if (!peakHeadline || !regionHeadline || !storyHeadline) return;
+
+        // 1. Chronological Highlight
+        if (stats.years.length > 0) {
+            const sortedYearEntries = Object.entries(stats.byYear).sort((a, b) => b[1] - a[1]);
+            const [topYr, topYrCount] = sortedYearEntries[0];
+            const recentCount = stats.years.filter(y => y >= 2010).reduce((acc, y) => acc + (stats.byYear[y] || 0), 0);
+            const recentShare = stats.total > 0 ? Math.round((recentCount / stats.total) * 100) : 0;
+
+            peakHeadline.textContent = `Peak Year: ${topYr} (${topYrCount.toLocaleString()} heroes)`;
+            peakNarrative.textContent = `Spanning ${stats.years.length} documented years (${stats.minYear}–${stats.maxYear}). ${recentShare}% of recorded sacrifices occurred from 2010 onwards, capturing modern archival history.`;
+
+            const peakCard = document.getElementById('hcCardPeak');
+            if (peakCard) {
+                peakCard.style.cursor = 'pointer';
+                peakCard.title = `Click to filter by peak year ${topYr}`;
+                peakCard.onclick = () => toggleStatsFilter('year', parseInt(topYr, 10));
+            }
+        } else {
+            peakHeadline.textContent = 'Chronological Archive';
+            peakNarrative.textContent = 'Records are continually gathered across all eras of Baloch history.';
+        }
+
+        // 2. Regional Heartlands
+        const sortedRegions = Object.entries(stats.byRegion).sort((a, b) => b[1] - a[1]);
+        if (sortedRegions.length > 0 && stats.total > 0) {
+            const [topReg, topCnt] = sortedRegions[0];
+            const topShare = Math.round((topCnt / stats.total) * 100);
+            const secondReg = sortedRegions.length > 1 ? sortedRegions[1] : null;
+
+            if (secondReg) {
+                const combinedShare = Math.round(((topCnt + secondReg[1]) / stats.total) * 100);
+                regionHeadline.textContent = `${escapeHTML(topReg)} & ${escapeHTML(secondReg[0])}`;
+                regionNarrative.textContent = `${escapeHTML(topReg)} (${topShare}%) and ${escapeHTML(secondReg[0])} account for ${combinedShare}% of recorded entries across ${stats.regionCount} districts.`;
+            } else {
+                regionHeadline.textContent = `${escapeHTML(topReg)} Heartland`;
+                regionNarrative.textContent = `${escapeHTML(topReg)} accounts for ${topShare}% of verified records across ${stats.regionCount} documented locations.`;
+            }
+
+            const regCard = document.getElementById('hcCardRegion');
+            if (regCard) {
+                regCard.style.cursor = 'pointer';
+                regCard.title = `Click to filter by ${escapeHTML(topReg)}`;
+                regCard.onclick = () => toggleStatsFilter('region', topReg);
+            }
+        } else {
+            regionHeadline.textContent = 'Geographical Footprint';
+            regionNarrative.textContent = 'Documenting locations and districts throughout historical Balochistan.';
+        }
+
+        // 3. Biographical & Living Memory
+        const bioPct = stats.total > 0 ? Math.round((stats.withBio / stats.total) * 100) : 0;
+        const photoPct = stats.total > 0 ? Math.round((stats.withPhoto / stats.total) * 100) : 0;
+
+        storyHeadline.textContent = `${bioPct}% Biographical Preservation`;
+        storyNarrative.textContent = `Preserving ${stats.withBio.toLocaleString()} verified life biographies and ${stats.withPhoto.toLocaleString()} portraits (${photoPct}%), ensuring every hero is remembered beyond numbers.`;
+    }
+
     // Helper: get filtered year list according to currentTimelineRange
     function getTimelineYearsForRange(stats) {
         if (!stats.years || stats.years.length === 0) return [];
@@ -1024,6 +1144,12 @@
     // Render interactive timeline chart
     function renderTimeline(stats) {
         const canvas = document.getElementById('timelineChart');
+        const chartWrapper = document.getElementById('timelineChartWrapper');
+        const tableWrapper = document.getElementById('timelineTableWrapper');
+        if (chartWrapper && tableWrapper) {
+            chartWrapper.style.display = activeViews.timeline === 'chart' ? 'block' : 'none';
+            tableWrapper.classList.toggle('is-visible', activeViews.timeline === 'table');
+        }
         if (!canvas) return;
 
         if (timelineChart) {
@@ -1126,6 +1252,75 @@
                     }
                 }
             }
+        });
+    }
+
+    // Render accessible, mobile-friendly data table for Timeline of Martyrdoms
+    function renderTimelineTable(stats) {
+        const tbody = document.getElementById('timelineTableBody');
+        if (!tbody) return;
+
+        const yearsList = getTimelineYearsForRange(stats);
+        if (yearsList.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" style="text-align: center; color: #64748b; padding: 1.5rem;">
+                        No timeline records found for current selection.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        const maxCount = Math.max(...yearsList.map(y => stats.byYear[y] || 0));
+        // Sort descending so newest records appear first for easy mobile scanning
+        const sortedYears = [...yearsList].sort((a, b) => b - a);
+
+        tbody.innerHTML = sortedYears.map(year => {
+            const count = stats.byYear[year] || 0;
+            const sharePct = stats.total > 0 ? Math.max(1, Math.round((count / stats.total) * 100)) : 0;
+            const barWidth = maxCount > 0 ? Math.round((count / maxCount) * 100) : 0;
+            const isSelected = activeStatsFilter.year === year;
+
+            return `
+                <tr class="${isSelected ? 'is-selected' : ''}" data-row-year="${year}">
+                    <td style="font-weight: 700; white-space: nowrap;">
+                        ${year} ${count === maxCount && count > 0 ? '<span style="color:#eab308;" title="Peak Year">★</span>' : ''}
+                    </td>
+                    <td style="font-variant-numeric: tabular-nums; font-weight: 600;">
+                        ${count.toLocaleString()} ${count === 1 ? 'hero' : 'heroes'}
+                    </td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.55rem;">
+                            <div class="bar-track" style="flex: 1; min-width: 60px; max-width: 140px; margin: 0;">
+                                <div class="bar-fill" style="width: ${barWidth}%;"></div>
+                            </div>
+                            <span style="font-size: 0.76rem; color: #64748b; font-weight: 600; min-width: 32px;">${sharePct}%</span>
+                        </div>
+                    </td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <button type="button" class="table-filter-btn${isSelected ? ' is-active' : ''}" data-filter-year="${year}">
+                            ${isSelected ? '✓ Filtered' : 'Filter Year'}
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        tbody.querySelectorAll('[data-filter-year]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const yr = parseInt(btn.getAttribute('data-filter-year'), 10);
+                if (!isNaN(yr)) toggleStatsFilter('year', yr);
+            });
+        });
+
+        tbody.querySelectorAll('tr[data-row-year]').forEach(row => {
+            row.addEventListener('click', () => {
+                const yr = parseInt(row.getAttribute('data-row-year'), 10);
+                if (!isNaN(yr)) toggleStatsFilter('year', yr);
+            });
+            row.style.cursor = 'pointer';
         });
     }
 
@@ -1264,6 +1459,12 @@
     function renderMonthly(stats) {
         const canvas = document.getElementById('monthlyChart');
         const peakBadge = document.getElementById('monthlyPeakBadge');
+        const chartWrapper = document.getElementById('monthlyChartWrapper');
+        const tableWrapper = document.getElementById('monthlyTableWrapper');
+        if (chartWrapper && tableWrapper) {
+            chartWrapper.style.display = activeViews.monthly === 'chart' ? 'block' : 'none';
+            tableWrapper.classList.toggle('is-visible', activeViews.monthly === 'table');
+        }
         if (!canvas) return;
 
         const maxVal = Math.max(...stats.byMonth);
@@ -1366,6 +1567,64 @@
                     }
                 }
             }
+        });
+    }
+
+    // Render accessible, mobile-friendly data table for Monthly Distribution
+    function renderMonthlyTable(stats) {
+        const tbody = document.getElementById('monthlyTableBody');
+        if (!tbody) return;
+
+        const maxVal = Math.max(...stats.byMonth);
+        const peakIdx = stats.byMonth.indexOf(maxVal);
+        const monthlyTotal = stats.byMonth.reduce((a, b) => a + b, 0);
+
+        tbody.innerHTML = FULL_MONTHS.map((monthName, idx) => {
+            const count = stats.byMonth[idx] || 0;
+            const sharePct = monthlyTotal > 0 ? Math.max(1, Math.round((count / monthlyTotal) * 100)) : 0;
+            const barWidth = maxVal > 0 ? Math.round((count / maxVal) * 100) : 0;
+            const isSelected = activeStatsFilter.month === idx;
+            const isPeak = idx === peakIdx && maxVal > 0;
+
+            return `
+                <tr class="${isSelected ? 'is-selected' : ''}" data-row-month="${idx}">
+                    <td style="font-weight: 700; white-space: nowrap;">
+                        ${monthName} ${isPeak ? '<span style="color:#eab308;" title="Peak Month">★ Peak</span>' : ''}
+                    </td>
+                    <td style="font-variant-numeric: tabular-nums; font-weight: 600;">
+                        ${count.toLocaleString()} ${count === 1 ? 'hero' : 'heroes'}
+                    </td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.55rem;">
+                            <div class="bar-track" style="flex: 1; min-width: 60px; max-width: 140px; margin: 0;">
+                                <div class="bar-fill" style="width: ${barWidth}%;"></div>
+                            </div>
+                            <span style="font-size: 0.76rem; color: #64748b; font-weight: 600; min-width: 32px;">${sharePct}%</span>
+                        </div>
+                    </td>
+                    <td style="text-align: right; white-space: nowrap;">
+                        <button type="button" class="table-filter-btn${isSelected ? ' is-active' : ''}" data-filter-month="${idx}">
+                            ${isSelected ? '✓ Filtered' : 'Filter Month'}
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        tbody.querySelectorAll('[data-filter-month]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const mo = parseInt(btn.getAttribute('data-filter-month'), 10);
+                if (!isNaN(mo)) toggleStatsFilter('month', mo);
+            });
+        });
+
+        tbody.querySelectorAll('tr[data-row-month]').forEach(row => {
+            row.addEventListener('click', () => {
+                const mo = parseInt(row.getAttribute('data-row-month'), 10);
+                if (!isNaN(mo)) toggleStatsFilter('month', mo);
+            });
+            row.style.cursor = 'pointer';
         });
     }
 
