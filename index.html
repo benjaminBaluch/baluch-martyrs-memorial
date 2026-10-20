@@ -29,7 +29,7 @@
     <link rel="modulepreload" href="js/firebase-config.js?v=20261020a">
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="css/styles.css?v=20261020b">
+    <link rel="stylesheet" href="css/styles.css?v=20261020c">
     
     <!-- Three.js for 3D effects -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js" defer></script>
@@ -999,6 +999,7 @@
             color: #94a3b8 !important;
         }
 
+        .featured-martyrs .martyrs-showcase,
         .martyrs-showcase {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -2117,7 +2118,6 @@
                 height: 145px;
                 width: 130px;
             }
-        }
             
             /* Tighter padding */
             .anniversary-card .martyr-info {
@@ -2175,12 +2175,10 @@
                 height: 8px;
             }
 
-            .featured-martyrs .martyrs-showcase {
-                grid-template-columns: 1fr;
-            }
             .featured-martyrs .placeholder {
                 padding: 3rem 1.5rem;
             }
+        }
         /* ========================================================
            MODERN MARTYR DETAILS MODAL & MOBILE BOTTOM SHEET
            ======================================================== */
@@ -3232,10 +3230,10 @@
             window.addEventListener('firebaseReady', updateHomepageStats);
         }
     </script>
-    <script src="js/main.js?v=20261020b"></script>
+    <script src="js/main.js?v=20261020c"></script>
     <script src="js/hero-3d.js"></script>
     <script src="js/mobile-menu.js"></script>
-    <script src="js/hero-search.js?v=20261020b"></script>
+    <script src="js/hero-search.js?v=20261020c"></script>
 
     <!-- Initialize Professional Asset Refresh System -->
     <script>
