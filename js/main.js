@@ -42,6 +42,23 @@ function initTheme() {
         }
     }
 
+    // Ensure a direct 1-tap theme toggle exists in the mobile top header next to .hamburger
+    try {
+        const navContainer = document.querySelector('.navbar .container');
+        const hamburger = navContainer ? navContainer.querySelector('.hamburger') : null;
+        if (navContainer && hamburger && !navContainer.querySelector('.mobile-theme-quick-btn')) {
+            const quickBtn = document.createElement('button');
+            quickBtn.type = 'button';
+            quickBtn.className = 'theme-toggle mobile-theme-quick-btn';
+            quickBtn.setAttribute('data-theme-toggle', '');
+            quickBtn.setAttribute('aria-label', 'Toggle dark mode');
+            quickBtn.textContent = '🌙';
+            navContainer.insertBefore(quickBtn, hamburger);
+        }
+    } catch (e) {
+        // Non-critical
+    }
+
     applyTheme(initial);
 
     // Attach toggle handlers
