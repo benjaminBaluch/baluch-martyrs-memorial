@@ -4,10 +4,14 @@
 // Firebase v9+ modular SDK - Updated to latest stable version
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import { 
-    getFirestore, 
+    getFirestore,
+    initializeFirestore,
+    persistentLocalCache,
+    persistentMultipleTabManager,
     collection, 
     addDoc, 
-    getDocs, 
+    getDocs,
+    getCountFromServer,
     doc, 
     updateDoc, 
     deleteDoc,
@@ -38,11 +42,18 @@ try {
     console.log('✅ Firebase app initialized successfully');
     
     console.log('🗺 Initializing Firestore...');
-    db = getFirestore(app);
+    try {
+        db = initializeFirestore(app, {
+            localCache: persistentLocalCache({
+                tabManager: persistentMultipleTabManager()
+            })
+        });
+        console.log('✅ Firestore initialized with persistent IndexedDB localCache');
+    } catch (cacheInitError) {
+        console.warn('⚠️ Falling back to standard getFirestore:', cacheInitError.message);
+        db = getFirestore(app);
+    }
     console.log('✅ Firestore initialized successfully');
-    
-    // Verify connection immediately
-    console.log('🧪 Testing immediate Firestore connection...');
     
 } catch (error) {
     console.error('❌ Firebase initialization failed:', error);
@@ -52,6 +63,465 @@ try {
         config: firebaseConfig
     });
     throw error;
+}
+
+// ============================================================================
+// HIGH-CAPACITY INDEXEDDB ARCHIVE CACHE + LIVE FIREBASE DELTA SYNC
+// Stores all 1,305+ martyr profiles (including Base64 portraits, ~82 MB)
+// in browser IndexedDB (which supports 500+ MB, unlike 5 MB localStorage)
+// and synchronizes additions, edits, and deletions with Firebase in the background.
+// ============================================================================
+
+const IDB_DB_NAME = 'bmm_memorial_archive_db';
+const IDB_STORE_NAME = 'martyrs_cache';
+const IDB_CACHE_KEY = 'approved_martyrs_v1';
+const FULL_REVALIDATE_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const CLOCK_SKEW_BUFFER_MS = 2 * 60 * 1000; // 2-minute safety window for delta queries
+
+let memoryCache = null; // { data, rawCollectionSize, maxApprovedMs, maxUpdatedMs, syncedAt, fullSyncAt }
+let inFlightApprovedPromise = null;
+let backgroundSyncPromise = null;
+
+function toMillisSafe(val) {
+    if (!val) return 0;
+    if (typeof val === 'number') return val < 1e11 ? val * 1000 : val;
+    if (typeof val === 'string') {
+        const parsed = Date.parse(val);
+        return isNaN(parsed) ? 0 : parsed;
+    }
+    if (typeof val === 'object') {
+        if (typeof val.toMillis === 'function') {
+            try { return val.toMillis(); } catch (e) { /* ignore */ }
+        }
+        if (typeof val.toDate === 'function') {
+            try { return val.toDate().getTime(); } catch (e) { /* ignore */ }
+        }
+        const sec = val.seconds !== undefined ? val.seconds : val._seconds;
+        if (typeof sec === 'number' && !isNaN(sec)) {
+            return sec * 1000 + Math.floor((val.nanoseconds || 0) / 1e6);
+        }
+    }
+    return 0;
+}
+
+function serializeFieldForIDB(val) {
+    if (!val || typeof val !== 'object') return val;
+    if (typeof val.toDate === 'function' && typeof val.seconds === 'number') {
+        return {
+            __bmmTimestamp: true,
+            seconds: val.seconds,
+            nanoseconds: typeof val.nanoseconds === 'number' ? val.nanoseconds : 0
+        };
+    }
+    if (typeof val.seconds === 'number' && typeof val.nanoseconds === 'number' && Object.keys(val).length <= 3) {
+        return {
+            __bmmTimestamp: true,
+            seconds: val.seconds,
+            nanoseconds: val.nanoseconds
+        };
+    }
+    if (val instanceof Date && !isNaN(val.getTime())) {
+        return {
+            __bmmTimestamp: true,
+            seconds: Math.floor(val.getTime() / 1000),
+            nanoseconds: (val.getTime() % 1000) * 1e6
+        };
+    }
+    if (Array.isArray(val)) {
+        return val.map(serializeFieldForIDB);
+    }
+    const out = {};
+    for (const [k, v] of Object.entries(val)) {
+        if (typeof v !== 'function') {
+            out[k] = serializeFieldForIDB(v);
+        }
+    }
+    return out;
+}
+
+function rehydrateFieldFromIDB(val) {
+    if (!val || typeof val !== 'object') return val;
+    if (
+        (val.__bmmTimestamp || ('seconds' in val && 'nanoseconds' in val && Object.keys(val).length <= 3)) &&
+        typeof val.seconds === 'number'
+    ) {
+        const sec = val.seconds;
+        const ns = typeof val.nanoseconds === 'number' ? val.nanoseconds : 0;
+        try {
+            return new Timestamp(sec, ns);
+        } catch (e) {
+            return {
+                seconds: sec,
+                nanoseconds: ns,
+                toDate: () => new Date(sec * 1000 + Math.floor(ns / 1e6)),
+                toMillis: () => sec * 1000 + Math.floor(ns / 1e6)
+            };
+        }
+    }
+    if (Array.isArray(val)) {
+        return val.map(rehydrateFieldFromIDB);
+    }
+    const out = {};
+    for (const [k, v] of Object.entries(val)) {
+        out[k] = rehydrateFieldFromIDB(v);
+    }
+    return out;
+}
+
+function computeWatermarks(martyrs, fallbackMs = Date.now()) {
+    let maxApprovedMs = 0;
+    let maxUpdatedMs = 0;
+    for (let i = 0; i < martyrs.length; i++) {
+        const m = martyrs[i];
+        const appMs = toMillisSafe(m.approvedAt) || toMillisSafe(m.submittedAt);
+        const updMs = toMillisSafe(m.updatedAt) || appMs;
+        if (appMs > maxApprovedMs) maxApprovedMs = appMs;
+        if (updMs > maxUpdatedMs) maxUpdatedMs = updMs;
+    }
+    return {
+        maxApprovedMs: maxApprovedMs || fallbackMs,
+        maxUpdatedMs: maxUpdatedMs || fallbackMs
+    };
+}
+
+function openArchiveIDB() {
+    return new Promise((resolve, reject) => {
+        if (typeof indexedDB === 'undefined') {
+            reject(new Error('IndexedDB not supported'));
+            return;
+        }
+        try {
+            const request = indexedDB.open(IDB_DB_NAME, 1);
+            request.onupgradeneeded = (event) => {
+                const database = event.target.result;
+                if (!database.objectStoreNames.contains(IDB_STORE_NAME)) {
+                    database.createObjectStore(IDB_STORE_NAME);
+                }
+            };
+            request.onsuccess = (event) => resolve(event.target.result);
+            request.onerror = (event) => reject(event.target.error || new Error('IndexedDB open error'));
+            request.onblocked = () => reject(new Error('IndexedDB blocked'));
+        } catch (err) {
+            reject(err);
+        }
+    });
+}
+
+async function readMartyrsFromIDB() {
+    try {
+        const database = await openArchiveIDB();
+        return await new Promise((resolve, reject) => {
+            const tx = database.transaction(IDB_STORE_NAME, 'readonly');
+            const store = tx.objectStore(IDB_STORE_NAME);
+            const req = store.get(IDB_CACHE_KEY);
+            req.onsuccess = () => {
+                database.close();
+                const record = req.result;
+                if (!record || !Array.isArray(record.data) || record.data.length === 0) {
+                    resolve(null);
+                    return;
+                }
+                const rehydrated = record.data.map(rehydrateFieldFromIDB);
+                resolve({
+                    data: rehydrated,
+                    rawCollectionSize: typeof record.rawCollectionSize === 'number' ? record.rawCollectionSize : rehydrated.length,
+                    maxApprovedMs: record.maxApprovedMs || record.syncedAt || Date.now(),
+                    maxUpdatedMs: record.maxUpdatedMs || record.syncedAt || Date.now(),
+                    syncedAt: record.syncedAt || Date.now(),
+                    fullSyncAt: record.fullSyncAt || record.syncedAt || Date.now()
+                });
+            };
+            req.onerror = () => {
+                database.close();
+                reject(req.error);
+            };
+        });
+    } catch (err) {
+        console.warn('⚠️ IndexedDB cache read skipped:', err.message);
+        return null;
+    }
+}
+
+async function writeMartyrsToIDB(martyrs, rawCollectionSize, isFullSync = false) {
+    try {
+        if (!Array.isArray(martyrs) || martyrs.length === 0) return;
+        const now = Date.now();
+        const { maxApprovedMs, maxUpdatedMs } = computeWatermarks(martyrs, now);
+        const fullSyncAt = isFullSync ? now : (memoryCache?.fullSyncAt || now);
+
+        memoryCache = {
+            data: martyrs,
+            rawCollectionSize: typeof rawCollectionSize === 'number' ? rawCollectionSize : martyrs.length,
+            maxApprovedMs: Math.max(maxApprovedMs, now),
+            maxUpdatedMs: Math.max(maxUpdatedMs, now),
+            syncedAt: now,
+            fullSyncAt
+        };
+
+        if (typeof window !== 'undefined') {
+            window.allApprovedMartyrs = martyrs;
+            window.martyrsDataFromFirebase = martyrs;
+        }
+
+        const serializedData = martyrs.map(serializeFieldForIDB);
+        const database = await openArchiveIDB();
+        await new Promise((resolve, reject) => {
+            const tx = database.transaction(IDB_STORE_NAME, 'readwrite');
+            const store = tx.objectStore(IDB_STORE_NAME);
+            store.put({
+                data: serializedData,
+                rawCollectionSize: memoryCache.rawCollectionSize,
+                maxApprovedMs: memoryCache.maxApprovedMs,
+                maxUpdatedMs: memoryCache.maxUpdatedMs,
+                syncedAt: now,
+                fullSyncAt
+            }, IDB_CACHE_KEY);
+            tx.oncomplete = () => {
+                database.close();
+                resolve();
+            };
+            tx.onerror = () => {
+                database.close();
+                reject(tx.error);
+            };
+        });
+    } catch (err) {
+        console.warn('⚠️ IndexedDB cache write skipped:', err.message);
+    }
+}
+
+async function clearMartyrsCache() {
+    memoryCache = null;
+    try {
+        const database = await openArchiveIDB();
+        await new Promise((resolve) => {
+            const tx = database.transaction(IDB_STORE_NAME, 'readwrite');
+            tx.objectStore(IDB_STORE_NAME).delete(IDB_CACHE_KEY);
+            tx.oncomplete = () => {
+                database.close();
+                resolve();
+            };
+            tx.onerror = () => {
+                database.close();
+                resolve();
+            };
+        });
+    } catch (err) {
+        // Ignore cleanup errors
+    }
+}
+
+function broadcastMartyrsUpdate(martyrs, source = 'firebase-live-sync') {
+    if (typeof window === 'undefined' || !Array.isArray(martyrs)) return;
+    window.allApprovedMartyrs = martyrs;
+    window.martyrsDataFromFirebase = martyrs;
+    window.dispatchEvent(new CustomEvent('martyrsDataUpdated', {
+        detail: {
+            data: martyrs,
+            source,
+            connected: true,
+            total_found: martyrs.length
+        }
+    }));
+    window.dispatchEvent(new CustomEvent('martyrsDataLoaded', { detail: martyrs }));
+}
+
+// Authoritative full collection fetch from Firestore
+async function fetchApprovedMartyrsFromFirestore() {
+    let allMartyrs = [];
+    let rawCollectionSize = 0;
+
+    // Check main 'martyrs' collection first
+    try {
+        console.log('🔍 Checking main martyrs collection...');
+        const martyrsCollection = collection(db, 'martyrs');
+        const martyrsSnapshot = await getDocs(martyrsCollection);
+        rawCollectionSize = martyrsSnapshot.size;
+
+        martyrsSnapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            if (!data.status || data.status === 'approved') {
+                allMartyrs.push({
+                    id: docSnap.id,
+                    ...data,
+                    status: data.status || 'approved'
+                });
+            }
+        });
+
+        console.log(`📋 Found ${martyrsSnapshot.size} total docs in martyrs collection, ${allMartyrs.length} approved`);
+    } catch (error) {
+        console.warn('⚠️ Error accessing martyrs collection:', error.message);
+    }
+
+    // If no martyrs found, check pendingMartyrs collection for any approved ones
+    if (allMartyrs.length === 0) {
+        try {
+            console.log('🔍 Checking pendingMartyrs collection for approved items...');
+            const pendingCollection = collection(db, 'pendingMartyrs');
+            const pendingSnapshot = await getDocs(pendingCollection);
+
+            pendingSnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                if (data.status === 'approved') {
+                    allMartyrs.push({
+                        id: docSnap.id,
+                        ...data
+                    });
+                }
+            });
+
+            console.log(`📋 Found ${pendingSnapshot.size} pending docs, ${allMartyrs.length} approved from pending`);
+        } catch (error) {
+            console.warn('⚠️ Error accessing pendingMartyrs collection:', error.message);
+        }
+    }
+
+    // If still no martyrs, check if collections exist and are accessible
+    if (allMartyrs.length === 0) {
+        console.log('📊 No martyrs found. Checking Firebase connectivity and permissions...');
+        try {
+            const testCollection = collection(db, 'test');
+            await getDocs(testCollection);
+            console.log('✅ Firestore read access confirmed - collections may be empty');
+        } catch (testError) {
+            console.error('❌ Firestore read access failed:', testError);
+            throw new Error(`Firebase access denied: ${testError.message}`);
+        }
+    }
+
+    if (allMartyrs.length > 0) {
+        await writeMartyrsToIDB(allMartyrs, rawCollectionSize, true);
+    }
+
+    return {
+        success: true,
+        data: allMartyrs,
+        source: 'firebase',
+        collections_checked: ['martyrs', 'pendingMartyrs'],
+        total_found: allMartyrs.length
+    };
+}
+
+// Phase 2: Background Delta Sync + Server Count Verification
+// Checks Firebase for any newly approved, edited, or deleted profiles since cache was saved.
+function syncWithFirebaseInBackground(cachedEntry) {
+    if (backgroundSyncPromise) return backgroundSyncPromise;
+    if (!cachedEntry || !Array.isArray(cachedEntry.data) || cachedEntry.data.length === 0) {
+        return Promise.resolve(null);
+    }
+
+    backgroundSyncPromise = (async () => {
+        try {
+            const now = Date.now();
+            // If full collection hasn't been revalidated in >24 hours, run full sync in background
+            if (now - (cachedEntry.fullSyncAt || cachedEntry.syncedAt || 0) > FULL_REVALIDATE_INTERVAL_MS) {
+                const fullRes = await fetchApprovedMartyrsFromFirestore();
+                if (fullRes.success && fullRes.data.length > 0) {
+                    broadcastMartyrsUpdate(fullRes.data, 'firebase-full-revalidate');
+                }
+                return fullRes;
+            }
+
+            const baseWatermarkMs = Math.max(1700000000000, (cachedEntry.syncedAt || now) - CLOCK_SKEW_BUFFER_MS);
+            const sinceApprovedMs = Math.max(1700000000000, (cachedEntry.maxApprovedMs || baseWatermarkMs) - CLOCK_SKEW_BUFFER_MS);
+            const sinceUpdatedMs = Math.max(1700000000000, (cachedEntry.maxUpdatedMs || baseWatermarkMs) - CLOCK_SKEW_BUFFER_MS);
+
+            const martyrsCol = collection(db, 'martyrs');
+            const approvedDeltaQuery = query(martyrsCol, where('approvedAt', '>', Timestamp.fromMillis(sinceApprovedMs)));
+            const updatedDeltaQuery = query(martyrsCol, where('updatedAt', '>', Timestamp.fromMillis(sinceUpdatedMs)));
+
+            const [countResult, approvedSnap, updatedSnap] = await Promise.all([
+                getCountFromServer(martyrsCol).catch(() => null),
+                getDocs(approvedDeltaQuery).catch(() => null),
+                getDocs(updatedDeltaQuery).catch(() => null)
+            ]);
+
+            const serverTotalDocs = countResult && countResult.data ? countResult.data().count : null;
+            const deltaMap = new Map();
+
+            if (approvedSnap) {
+                approvedSnap.forEach((docSnap) => {
+                    deltaMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
+                });
+            }
+            if (updatedSnap) {
+                updatedSnap.forEach((docSnap) => {
+                    deltaMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
+                });
+            }
+
+            // Merge delta documents into cached list
+            const existingIndexById = new Map();
+            const merged = cachedEntry.data.slice();
+            for (let i = 0; i < merged.length; i++) {
+                if (merged[i] && merged[i].id) {
+                    existingIndexById.set(merged[i].id, i);
+                }
+            }
+
+            let addedCount = 0;
+            let modifiedCount = 0;
+
+            for (const [docId, docData] of deltaMap.entries()) {
+                const isApproved = !docData.status || docData.status === 'approved';
+                const normalizedDoc = { ...docData, id: docId, status: docData.status || 'approved' };
+
+                if (existingIndexById.has(docId)) {
+                    const idx = existingIndexById.get(docId);
+                    if (isApproved) {
+                        merged[idx] = normalizedDoc;
+                        modifiedCount++;
+                    } else {
+                        merged.splice(idx, 1);
+                        modifiedCount++;
+                    }
+                } else if (isApproved) {
+                    merged.push(normalizedDoc);
+                    addedCount++;
+                }
+            }
+
+            const expectedCollectionSize = (cachedEntry.rawCollectionSize || cachedEntry.data.length) + addedCount;
+
+            // If server document count differs from expected (e.g. a deletion occurred or console addition without Timestamp),
+            // perform a full Firestore fetch so cache and UI stay 100% accurate.
+            if (serverTotalDocs !== null && serverTotalDocs !== expectedCollectionSize) {
+                console.log(`🔄 Archive count changed on server (${expectedCollectionSize} → ${serverTotalDocs}); running full sync...`);
+                const fullRes = await fetchApprovedMartyrsFromFirestore();
+                if (fullRes.success && fullRes.data.length > 0) {
+                    broadcastMartyrsUpdate(fullRes.data, 'firebase-count-sync');
+                }
+                return fullRes;
+            }
+
+            // If delta queries found new or edited profiles, keep deterministic Firestore doc.id order, update cache & UI
+            if (addedCount > 0 || modifiedCount > 0) {
+                if (addedCount > 0) {
+                    merged.sort((a, b) => {
+                        const idA = String(a?.id || '');
+                        const idB = String(b?.id || '');
+                        return idA < idB ? -1 : (idA > idB ? 1 : 0);
+                    });
+                }
+                const newRawSize = serverTotalDocs !== null ? serverTotalDocs : expectedCollectionSize;
+                console.log(`✨ Live Firebase delta sync applied: +${addedCount} added, ${modifiedCount} updated (Total: ${merged.length})`);
+                await writeMartyrsToIDB(merged, newRawSize, false);
+                broadcastMartyrsUpdate(merged, 'firebase-delta-sync');
+            } else if (memoryCache) {
+                memoryCache.syncedAt = Date.now();
+            }
+
+            return { success: true, data: merged };
+        } catch (syncErr) {
+            console.warn('⚠️ Background Firebase sync skipped:', syncErr.message);
+            return null;
+        } finally {
+            backgroundSyncPromise = null;
+        }
+    })();
+
+    return backgroundSyncPromise;
 }
 
 // Database helper functions
@@ -84,98 +554,92 @@ export const firebaseDB = {
         }
     },
 
-    // Get all approved martyrs with comprehensive collection checking
-    async getApprovedMartyrs() {
-        try {
-            console.log('🔍 Fetching martyrs from Firebase collections...');
-            
-            let allMartyrs = [];
-            
-            // Check main 'martyrs' collection first
-            try {
-                console.log('🔍 Checking main martyrs collection...');
-                const martyrsCollection = collection(db, 'martyrs');
-                const martyrsSnapshot = await getDocs(martyrsCollection);
-                
-                martyrsSnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    // Include all martyrs or only approved ones
-                    if (!data.status || data.status === 'approved') {
-                        allMartyrs.push({
-                            id: doc.id,
-                            ...data,
-                            status: data.status || 'approved' // Default to approved
-                        });
-                    }
-                });
-                
-                console.log(`📋 Found ${martyrsSnapshot.size} total docs in martyrs collection, ${allMartyrs.length} approved`);
-            } catch (error) {
-                console.warn('⚠️ Error accessing martyrs collection:', error.message);
+    // Clear in-memory and IndexedDB archive cache
+    async clearCache() {
+        await clearMartyrsCache();
+        return { success: true };
+    },
+
+    // Get all approved martyrs with Instant IndexedDB Cache + Live Firebase Background Sync
+    async getApprovedMartyrs(options = {}) {
+        const forceRefresh = Boolean(options && options.forceRefresh);
+
+        // 1. Instant In-Memory Cache Hit (0ms within same page session)
+        if (!forceRefresh && memoryCache && Array.isArray(memoryCache.data) && memoryCache.data.length > 0) {
+            if (Date.now() - (memoryCache.syncedAt || 0) > 5000) {
+                syncWithFirebaseInBackground(memoryCache);
             }
-            
-            // If no martyrs found, check pendingMartyrs collection for any approved ones
-            if (allMartyrs.length === 0) {
-                try {
-                    console.log('🔍 Checking pendingMartyrs collection for approved items...');
-                    const pendingCollection = collection(db, 'pendingMartyrs');
-                    const pendingSnapshot = await getDocs(pendingCollection);
-                    
-                    pendingSnapshot.forEach((doc) => {
-                        const data = doc.data();
-                        if (data.status === 'approved') {
-                            allMartyrs.push({
-                                id: doc.id,
-                                ...data
-                            });
-                        }
-                    });
-                    
-                    console.log(`📋 Found ${pendingSnapshot.size} pending docs, ${allMartyrs.length} approved from pending`);
-                } catch (error) {
-                    console.warn('⚠️ Error accessing pendingMartyrs collection:', error.message);
-                }
-            }
-            
-            // If still no martyrs, check if collections exist and are accessible
-            if (allMartyrs.length === 0) {
-                console.log('📊 No martyrs found. Checking Firebase connectivity and permissions...');
-                
-                // Test basic Firestore read access
-                try {
-                    const testCollection = collection(db, 'test');
-                    const testSnapshot = await getDocs(testCollection);
-                    console.log('✅ Firestore read access confirmed - collections may be empty');
-                } catch (testError) {
-                    console.error('❌ Firestore read access failed:', testError);
-                    throw new Error(`Firebase access denied: ${testError.message}`);
-                }
-            }
-            
-            console.log(`✅ Final result: ${allMartyrs.length} martyrs total`);
-            return { 
-                success: true, 
-                data: allMartyrs,
+            return {
+                success: true,
+                data: memoryCache.data,
+                source: 'memory-cache',
                 collections_checked: ['martyrs', 'pendingMartyrs'],
-                total_found: allMartyrs.length
-            };
-            
-        } catch (error) {
-            console.error('❌ Error getting martyrs from Firebase:', error);
-            console.error('🔎 Detailed error info:', {
-                code: error.code,
-                message: error.message,
-                name: error.name,
-                stack: error.stack?.substring(0, 500)
-            });
-            
-            return { 
-                success: false, 
-                error: error.message,
-                code: error.code,
-                details: error 
+                total_found: memoryCache.data.length
             };
         }
+
+        // 2. Deduplicate concurrent requests on the same page load
+        if (!forceRefresh && inFlightApprovedPromise) {
+            return inFlightApprovedPromise;
+        }
+
+        const loaderPromise = (async () => {
+            try {
+                // Phase 1: Check High-Capacity IndexedDB Archive Cache (~25-40ms)
+                if (!forceRefresh) {
+                    const cachedEntry = await readMartyrsFromIDB();
+                    if (cachedEntry && Array.isArray(cachedEntry.data) && cachedEntry.data.length > 0) {
+                        memoryCache = cachedEntry;
+                        if (typeof window !== 'undefined') {
+                            window.allApprovedMartyrs = cachedEntry.data;
+                            window.martyrsDataFromFirebase = cachedEntry.data;
+                        }
+                        console.log(`⚡ Instant IndexedDB Archive Cache hit: ${cachedEntry.data.length} martyrs loaded immediately`);
+
+                        // Phase 2: Asynchronously verify & sync any additions, edits, or deletions with Firebase
+                        syncWithFirebaseInBackground(cachedEntry);
+
+                        return {
+                            success: true,
+                            data: cachedEntry.data,
+                            source: 'idb-cache',
+                            collections_checked: ['martyrs', 'pendingMartyrs'],
+                            total_found: cachedEntry.data.length
+                        };
+                    }
+                }
+
+                // Cold start or explicit forceRefresh: Fetch full collection from Firestore and populate IndexedDB
+                console.log('🔍 Fetching martyrs from Firebase collections...');
+                const result = await fetchApprovedMartyrsFromFirestore();
+                console.log(`✅ Final result: ${result.data.length} martyrs total`);
+                return result;
+
+            } catch (error) {
+                console.error('❌ Error getting martyrs from Firebase:', error);
+                console.error('🔎 Detailed error info:', {
+                    code: error.code,
+                    message: error.message,
+                    name: error.name,
+                    stack: error.stack?.substring(0, 500)
+                });
+
+                return { 
+                    success: false, 
+                    error: error.message,
+                    code: error.code,
+                    details: error 
+                };
+            } finally {
+                inFlightApprovedPromise = null;
+            }
+        })();
+
+        if (!forceRefresh) {
+            inFlightApprovedPromise = loaderPromise;
+        }
+
+        return loaderPromise;
     },
 
     // Get all pending martyrs (admin only) - simplified
@@ -222,6 +686,9 @@ export const firebaseDB = {
             
             // Delete from pending collection
             await deleteDoc(doc(db, 'pendingMartyrs', martyrId));
+            
+            // Invalidate local archive cache so the newly approved martyr is fetched immediately
+            await clearMartyrsCache();
             
             console.log('Martyr approved with ID: ', docRef.id);
             return { success: true, id: docRef.id };
@@ -326,6 +793,9 @@ export const firebaseDB = {
             const martyrRef = doc(db, 'martyrs', martyrId);
             await updateDoc(martyrRef, processedData);
             
+            // Invalidate local archive cache so updated profile fields appear immediately
+            await clearMartyrsCache();
+            
             console.log(`✅ Approved martyr updated: ${martyrId}`);
             return { success: true, id: martyrId };
         } catch (error) {
@@ -339,6 +809,7 @@ export const firebaseDB = {
         try {
             console.log(`🗑️ Deleting approved martyr: ${martyrId}`);
             await deleteDoc(doc(db, 'martyrs', martyrId));
+            await clearMartyrsCache();
             console.log(`✅ Approved martyr deleted: ${martyrId}`);
             return { success: true };
         } catch (error) {
@@ -380,6 +851,7 @@ export const firebaseDB = {
             });
             
             await Promise.all(deletePromises);
+            await clearMartyrsCache();
             console.log(`✅ Cleared ${deletePromises.length} approved martyrs from Firebase`);
             return { success: true, deletedCount: deletePromises.length };
         } catch (error) {
@@ -443,6 +915,7 @@ export const firebaseDB = {
             }
 
             await Promise.all(deletePromises);
+            await clearMartyrsCache();
             console.log(`✅ Deleted ${deletePromises.length} seeded historical martyrs`);
             return { success: true, deletedCount: deletePromises.length };
         } catch (error) {
@@ -545,26 +1018,4 @@ if (typeof window !== 'undefined') {
     } else {
         console.log('✅ Domain authorized for Firebase access');
     }
-    
-    // Test Firebase immediately when loaded and clean up any old seeded demo martyrs
-    firebaseDB.testConnection().then(result => {
-        if (result.success) {
-            console.log('✅ Initial Firebase connectivity test passed');
-            // Clean up previously seeded historical martyrs that were added by old demo code
-            return firebaseDB.cleanupSeededHistoricalMartyrs();
-        } else {
-            console.warn('⚠️ Initial Firebase connectivity test failed:', result.error);
-            return null;
-        }
-    }).then(cleanupResult => {
-        if (cleanupResult && typeof cleanupResult.deletedCount === 'number') {
-            if (cleanupResult.deletedCount > 0) {
-                console.log(`🧹 Removed ${cleanupResult.deletedCount} seeded historical martyrs from Firebase`);
-            } else {
-                console.log('🧹 No seeded historical martyrs needed cleanup');
-            }
-        }
-    }).catch(error => {
-        console.error('❌ Firebase initialization/cleanup error:', error);
-    });
 }

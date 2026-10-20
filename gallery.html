@@ -18,7 +18,12 @@
     <link rel="manifest" href="/site.webmanifest">
     <link rel="shortcut icon" href="/favicon.svg">
     
-    <link rel="stylesheet" href="css/styles.css?v=20261010i">
+    <!-- Preconnect & Modulepreload for Instant Firebase Connection -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="modulepreload" href="js/firebase-config.js?v=20261020a">
+    
+    <link rel="stylesheet" href="css/styles.css?v=20261020a">
 
     <style>
         /* ========================================================
@@ -36,6 +41,8 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            content-visibility: auto;
+            contain-intrinsic-size: auto 380px;
         }
 
         .gallery-grid .martyr-card:hover {
@@ -919,14 +926,16 @@
         </div>
     </footer>
 
-    <!-- Firebase SDK - Direct CDN Loading (compat libs; main.js uses modular firebase-config.js) -->
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <!-- Preload & Initialize Modular Firebase (non-blocking) -->
+    <script type="module">
+        import { firebaseDB } from './js/firebase-config.js?v=20261020a';
+        window.firebaseDB = firebaseDB;
+    </script>
     
-    <!-- Load main scripts; main.js will initialize Firebase via js/firebase-config.js -->
-    <script src="js/main.js?v=20261010-datefix"></script>
-    <script src="js/mobile-menu.js?v=20261010i"></script>
-    <script src="js/gallery.js?v=20261010-datefix"></script>
+    <!-- Load main scripts; gallery.js renders immediately from Instant Cache and syncs live with Firebase -->
+    <script src="js/main.js?v=20261020a"></script>
+    <script src="js/mobile-menu.js?v=20261020a"></script>
+    <script src="js/gallery.js?v=20261020a"></script>
 
     <!-- Initialize Professional Asset Refresh System -->
     <script>

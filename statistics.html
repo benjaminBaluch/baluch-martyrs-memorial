@@ -13,13 +13,18 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/baluch-flag-logo.png">
     <link rel="manifest" href="/site.webmanifest">
     
-    <link rel="stylesheet" href="css/styles.css">
+    <!-- Preconnect & Modulepreload for Instant Firebase Connection -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="modulepreload" href="js/firebase-config.js?v=20261020a">
+
+    <link rel="stylesheet" href="css/styles.css?v=20261020a">
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     
-    <!-- jsPDF for PDF generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- jsPDF for PDF generation (deferred so it never blocks initial render) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
     
     <style>
         /* ============================================
@@ -2395,13 +2400,15 @@
         </div>
     </footer>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <!-- Preload & Initialize Modular Firebase (non-blocking) -->
+    <script type="module">
+        import { firebaseDB } from './js/firebase-config.js?v=20261020a';
+        window.firebaseDB = firebaseDB;
+    </script>
     
-    <script src="js/main.js?v=20261008k"></script>
-    <script src="js/mobile-menu.js?v=20261008k"></script>
-    <script src="js/statistics.js?v=20261018e"></script>
+    <script src="js/main.js?v=20261020a"></script>
+    <script src="js/mobile-menu.js?v=20261020a"></script>
+    <script src="js/statistics.js?v=20261020a"></script>
     <!-- Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav">
         <div class="bottom-nav-inner">

@@ -58,11 +58,26 @@
     async function init() {
         console.log('📊 Statistics: Initializing...');
         bindDashboardUIControls();
-        
-        // Wait a bit for Firebase to be ready
-        await waitForFirebase();
-        
-        // Load data
+
+        // Listen for live background Firebase delta sync updates
+        window.addEventListener('martyrsDataUpdated', (event) => {
+            const updatedMartyrs = event?.detail?.data;
+            if (Array.isArray(updatedMartyrs) && updatedMartyrs.length > 0) {
+                console.log(`🔄 Statistics live-updating with ${updatedMartyrs.length} martyrs from Firebase sync`);
+                applyLoadedMartyrs(updatedMartyrs);
+            }
+        });
+
+        // When Firebase module finishes loading, trigger background sync if we already rendered from instant cache
+        window.addEventListener('firebaseReady', () => {
+            if (allMartyrsData.length === 0) {
+                loadData();
+            } else if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
+                window.firebaseDB.getApprovedMartyrs();
+            }
+        });
+
+        // Load data immediately (checks instant IndexedDB cache first, then Firebase)
         loadData();
     }
 
@@ -214,17 +229,67 @@
         });
     }
 
-    // Load all martyrs data
-    async function loadData() {
+    // Apply loaded martyrs to the dashboard UI and PDF generator
+    function applyLoadedMartyrs(martyrs) {
+        if (!Array.isArray(martyrs) || martyrs.length === 0) return;
+
         const loadingEl = document.getElementById('statsLoading');
         const emptyEl = document.getElementById('statsEmpty');
         const contentEl = document.getElementById('dashboardContent');
         const statusEl = document.getElementById('dataStatus');
 
+        if (loadingEl) loadingEl.style.display = 'none';
+        if (emptyEl) emptyEl.style.display = 'none';
+        if (contentEl) contentEl.style.display = 'block';
+
+        updateStatus(
+            statusEl,
+            `Verified Memorial Archive • ${martyrs.length.toLocaleString()} Documented Heroes`,
+            false
+        );
+
+        // Store martyrs for PDF generation and interactive filtering
+        allMartyrsData = martyrs;
+
+        // Render full interactive dashboard
+        refreshDashboardUI();
+
+        // Setup PDF download button & filters
+        setupPdfDownload();
+
+        console.log('✅ Statistics rendered');
+    }
+
+    // Load all martyrs data
+    async function loadData() {
+        const loadingEl = document.getElementById('statsLoading');
+        const emptyEl = document.getElementById('statsEmpty');
+        const statusEl = document.getElementById('dataStatus');
+
         let martyrs = [];
-        let source = 'unknown';
 
         try {
+            // Method 0: Zero-Wait Instant IndexedDB Archive Cache (renders before Firebase CDN finishes loading)
+            if (window.bmmInstantCache && typeof window.bmmInstantCache.read === 'function') {
+                const cached = await window.bmmInstantCache.read();
+                if (Array.isArray(cached) && cached.length > 0) {
+                    martyrs = cached;
+                    console.log(`⚡ Statistics loaded ${martyrs.length} martyrs from Instant Cache`);
+                    applyLoadedMartyrs(martyrs);
+                    // Trigger background Firebase sync if firebaseDB is already ready
+                    if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
+                        window.firebaseDB.getApprovedMartyrs();
+                    }
+                    return;
+                }
+            }
+
+            // If instant cache is empty (first-time visitor), wait briefly for Firebase module if not yet loaded
+            if (!window.firebaseDB) {
+                updateStatus(statusEl, 'Connecting to memorial archive...', true);
+                await waitForFirebase();
+            }
+
             // Method 1: Firebase direct (most reliable)
             if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
                 console.log('📊 Fetching from Firebase...');
@@ -234,7 +299,6 @@
                 
                 if (result && result.success && Array.isArray(result.data) && result.data.length > 0) {
                     martyrs = result.data;
-                    source = 'database';
                     console.log(`✅ Firebase: ${martyrs.length} martyrs`);
                 }
             }
@@ -255,7 +319,6 @@
                         const data = await response.json();
                         if (Array.isArray(data) && data.length > 0) {
                             martyrs = data;
-                            source = 'database';
                             console.log(`✅ API: ${martyrs.length} martyrs`);
                         }
                     }
@@ -275,7 +338,6 @@
                         const parsed = JSON.parse(saved);
                         if (Array.isArray(parsed)) {
                             martyrs = parsed.filter(m => !m.status || m.status === 'approved');
-                            source = 'cache';
                             console.log(`✅ Cache: ${martyrs.length} martyrs`);
                         }
                     }
@@ -294,30 +356,7 @@
                 return;
             }
 
-            // Show dashboard with dignified archival status badge
-            if (contentEl) contentEl.style.display = 'block';
-            updateStatus(
-                statusEl,
-                `Verified Memorial Archive • ${martyrs.length.toLocaleString()} Documented Heroes`,
-                false
-            );
-
-            // Store martyrs for PDF generation and interactive filtering
-            allMartyrsData = martyrs;
-            
-            // Render full interactive dashboard
-            refreshDashboardUI();
-            
-            // Setup PDF download button & filters
-            setupPdfDownload();
-            
-            // Update download info
-            const downloadInfo = document.getElementById('downloadInfo');
-            if (downloadInfo) {
-                downloadInfo.textContent = `PDF includes ${martyrs.length.toLocaleString()} profiles with photos and biographies`;
-            }
-
-            console.log('✅ Statistics rendered');
+            applyLoadedMartyrs(martyrs);
 
         } catch (error) {
             console.error('❌ Statistics error:', error);

@@ -81,6 +81,92 @@ function initCopyrightYear() {
     });
 }
 
+// Zero-dependency Instant IndexedDB Archive Reader (allows instant ~25ms rendering before CDN modules finish loading)
+const BMM_IDB_NAME = 'bmm_memorial_archive_db';
+const BMM_IDB_STORE = 'martyrs_cache';
+const BMM_IDB_KEY = 'approved_martyrs_v1';
+
+function rehydrateCachedValueMain(val) {
+    if (!val || typeof val !== 'object') return val;
+    if (
+        (val.__bmmTimestamp || ('seconds' in val && 'nanoseconds' in val && Object.keys(val).length <= 3)) &&
+        typeof val.seconds === 'number'
+    ) {
+        const sec = val.seconds;
+        const ns = typeof val.nanoseconds === 'number' ? val.nanoseconds : 0;
+        return {
+            seconds: sec,
+            nanoseconds: ns,
+            toDate: () => new Date(sec * 1000 + Math.floor(ns / 1e6)),
+            toMillis: () => sec * 1000 + Math.floor(ns / 1e6)
+        };
+    }
+    if (Array.isArray(val)) return val.map(rehydrateCachedValueMain);
+    const out = {};
+    for (const [k, v] of Object.entries(val)) {
+        out[k] = rehydrateCachedValueMain(v);
+    }
+    return out;
+}
+
+window.bmmInstantCache = {
+    _promise: null,
+    read() {
+        if (Array.isArray(window.allApprovedMartyrs) && window.allApprovedMartyrs.length > 0) {
+            return Promise.resolve(window.allApprovedMartyrs);
+        }
+        if (this._promise) return this._promise;
+        this._promise = new Promise((resolve) => {
+            if (typeof indexedDB === 'undefined') {
+                resolve(null);
+                return;
+            }
+            try {
+                const req = indexedDB.open(BMM_IDB_NAME, 1);
+                req.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(BMM_IDB_STORE)) {
+                        db.createObjectStore(BMM_IDB_STORE);
+                    }
+                };
+                req.onsuccess = (e) => {
+                    try {
+                        const db = e.target.result;
+                        const tx = db.transaction(BMM_IDB_STORE, 'readonly');
+                        const getReq = tx.objectStore(BMM_IDB_STORE).get(BMM_IDB_KEY);
+                        getReq.onsuccess = () => {
+                            db.close();
+                            const rec = getReq.result;
+                            if (rec && Array.isArray(rec.data) && rec.data.length > 0) {
+                                const rehydrated = rec.data.map(rehydrateCachedValueMain);
+                                if (!window.allApprovedMartyrs || window.allApprovedMartyrs.length === 0) {
+                                    window.allApprovedMartyrs = rehydrated;
+                                }
+                                resolve(rehydrated);
+                            } else {
+                                resolve(null);
+                            }
+                        };
+                        getReq.onerror = () => {
+                            db.close();
+                            resolve(null);
+                        };
+                    } catch (txErr) {
+                        resolve(null);
+                    }
+                };
+                req.onerror = () => resolve(null);
+                req.onblocked = () => resolve(null);
+            } catch (err) {
+                resolve(null);
+            }
+        }).finally(() => {
+            this._promise = null;
+        });
+        return this._promise;
+    }
+};
+
 // Initialize Firebase if not already available
 if (!window.firebaseDB) {
     import('./firebase-config.js').then(async (module) => {
@@ -137,6 +223,21 @@ document.addEventListener('DOMContentLoaded', function() {
     loadRecentMartyrs();
     initAnniversarySlider();
     initImageLightbox();
+
+    // Ensure homepage sections also load/sync once Firebase module finishes initializing
+    window.addEventListener('firebaseReady', () => {
+        loadRecentMartyrs();
+        loadAnniversaryMartyrs();
+    });
+
+    // Live update homepage sections if background Firebase delta sync detects new/edited/deleted profiles
+    window.addEventListener('martyrsDataUpdated', (event) => {
+        const updatedList = event?.detail?.data;
+        if (Array.isArray(updatedList) && updatedList.length > 0) {
+            renderRecentMartyrsToDOM(updatedList);
+            renderAnniversaryMartyrsFromList(updatedList);
+        }
+    });
 });
 
 // ============================================
@@ -312,81 +413,90 @@ function initSmoothScroll() {
     });
 }
 
-// Load Recent Martyrs (approved only) - Global data from Firebase
+// Render recent martyrs into #recentMartyrs container
+function renderRecentMartyrsToDOM(martyrsData) {
+    const recentMartyrsContainer = document.getElementById('recentMartyrs');
+    if (!recentMartyrsContainer) return;
+
+    if (Array.isArray(martyrsData) && martyrsData.length > 0) {
+        recentMartyrsContainer.innerHTML = '';
+
+        // Display up to 6 recent martyrs (preserving exact organization)
+        const recentMartyrs = martyrsData.slice(-6).reverse();
+        const fragment = document.createDocumentFragment();
+
+        recentMartyrs.forEach(martyr => {
+            const martyrCard = createMartyrCard(martyr, recentMartyrs);
+            fragment.appendChild(martyrCard);
+        });
+        recentMartyrsContainer.appendChild(fragment);
+
+        console.log(`🏠 Displayed ${recentMartyrs.length} recent martyrs on homepage`);
+    } else if (window.firebaseDB) {
+        console.log('😔 No approved martyrs found');
+        recentMartyrsContainer.innerHTML = `
+            <div class="martyr-card placeholder">
+                <div class="martyr-image"></div>
+                <div class="martyr-info">
+                    <h3>🎯 Start Building Our Memorial</h3>
+                    <p>Be the first to honor a hero by adding their story to our digital memorial</p>
+                    <a href="/add-martyr" class="btn btn-small">➕ Honor a Hero</a>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// Load Recent Martyrs (approved only) - Instant Cache + Global Firebase Sync
 async function loadRecentMartyrs() {
     const recentMartyrsContainer = document.getElementById('recentMartyrs');
-    
-    if (recentMartyrsContainer) {
-        let martyrsData = [];
-        
-        try {
-            console.log('🌍 Loading recent martyrs from Firebase (global database)...');
-            
-            // Try Firebase first - this shows global data to all users
-            if (window.firebaseDB) {
-                const result = await window.firebaseDB.getApprovedMartyrs();
-                
-                if (result.success) {
-                    martyrsData = result.data || [];
-                    console.log(`✅ Loaded ${martyrsData.length} martyrs from Firebase (global)`);
-                    window.allApprovedMartyrs = martyrsData;
-                    window.dispatchEvent(new CustomEvent('martyrsDataLoaded', { detail: martyrsData }));
-                    
-                    // Cache with enhanced cache management
-                    if (martyrsData.length > 0 && window.cacheManager) {
-                        window.cacheManager.setCache('martyrsData', martyrsData, 6); // 6 hour cache
-                        console.log('💾 Cached homepage martyrs with expiration');
-                    } else if (martyrsData.length > 0) {
-                        // Fallback to localStorage
-                        localStorage.setItem('martyrsData', JSON.stringify(martyrsData));
-                        console.log('💾 Cached homepage martyrs to localStorage (fallback)');
-                    }
-                } else {
-                    throw new Error('Firebase failed: ' + result.error);
-                }
-            } else {
-                throw new Error('Firebase not available');
+    if (!recentMartyrsContainer) return;
+
+    let martyrsData = [];
+
+    try {
+        // 1. Try instant IndexedDB cache first if Firebase module is still loading
+        if (!window.firebaseDB && window.bmmInstantCache) {
+            const instantCached = await window.bmmInstantCache.read();
+            if (Array.isArray(instantCached) && instantCached.length > 0) {
+                martyrsData = instantCached;
+                window.allApprovedMartyrs = martyrsData;
+                window.dispatchEvent(new CustomEvent('martyrsDataLoaded', { detail: martyrsData }));
+                renderRecentMartyrsToDOM(martyrsData);
+                return;
             }
-            
-        } catch (error) {
-            console.warn('⚠️  Firebase failed, using localStorage backup:', error.message);
-            
-            // Fallback to localStorage only if Firebase fails
+        }
+
+        // 2. Load via Firebase (uses instant IndexedDB/memory cache + background delta sync)
+        if (window.firebaseDB) {
+            console.log('🌍 Loading recent martyrs from Firebase (global database)...');
+            const result = await window.firebaseDB.getApprovedMartyrs();
+
+            if (result.success) {
+                martyrsData = result.data || [];
+                console.log(`✅ Loaded ${martyrsData.length} martyrs from Firebase (${result.source || 'global'})`);
+                window.allApprovedMartyrs = martyrsData;
+                window.dispatchEvent(new CustomEvent('martyrsDataLoaded', { detail: martyrsData }));
+            } else {
+                throw new Error('Firebase failed: ' + result.error);
+            }
+        } else {
+            // Firebase module not loaded yet and IndexedDB empty; wait for firebaseReady event
+            return;
+        }
+    } catch (error) {
+        console.warn('⚠️  Firebase failed, checking localStorage backup:', error.message);
+        try {
             const savedMartyrs = localStorage.getItem('martyrsData');
             if (savedMartyrs) {
                 const allMartyrs = JSON.parse(savedMartyrs);
                 martyrsData = allMartyrs.filter(m => !m.status || m.status === 'approved');
                 console.log(`Using localStorage backup: ${martyrsData.length} martyrs`);
             }
-        }
-        
-        // Display martyrs if we have any
-        if (martyrsData.length > 0) {
-            recentMartyrsContainer.innerHTML = '';
-            
-            // Display up to 6 recent martyrs
-            const recentMartyrs = martyrsData.slice(-6).reverse();
-            
-            recentMartyrs.forEach(martyr => {
-                const martyrCard = createMartyrCard(martyr, recentMartyrs);
-                recentMartyrsContainer.appendChild(martyrCard);
-            });
-            
-            console.log(`🏠 Displayed ${recentMartyrs.length} recent martyrs on homepage`);
-        } else {
-            console.log('😔 No approved martyrs found');
-            recentMartyrsContainer.innerHTML = `
-                <div class="martyr-card placeholder">
-                    <div class="martyr-image"></div>
-                    <div class="martyr-info">
-                        <h3>🎯 Start Building Our Memorial</h3>
-                        <p>Be the first to honor a hero by adding their story to our digital memorial</p>
-                        <a href="/add-martyr" class="btn btn-small">➕ Honor a Hero</a>
-                    </div>
-                </div>
-            `;
-        }
+        } catch (e) { /* ignore */ }
     }
+
+    renderRecentMartyrsToDOM(martyrsData);
 }
 
 // Universal Date Parser for Firestore Timestamps, serialized objects, and strings
@@ -1208,50 +1318,22 @@ function initAnniversarySlider() {
 
 let currentSlide = 0;
 let anniversaryMartyrs = [];
+let anniversarySliderInterval = null;
 
-// Load martyrs with upcoming anniversaries - Global data from Firebase
-async function loadAnniversaryMartyrs() {
+function renderAnniversaryMartyrsFromList(approvedMartyrs) {
     const slider = document.getElementById('anniversary-slider');
     if (!slider) return;
-    
-    let approvedMartyrs = [];
-    
-    try {
-        console.log('🎆 Loading anniversary data from Firebase (global database)...');
-        
-        // Try Firebase first for global data
+
+    if (!Array.isArray(approvedMartyrs) || approvedMartyrs.length === 0) {
         if (window.firebaseDB) {
-            const result = await window.firebaseDB.getApprovedMartyrs();
-            
-            if (result.success) {
-                approvedMartyrs = result.data || [];
-                console.log(`✅ Loaded ${approvedMartyrs.length} martyrs for anniversaries from Firebase`);
-            } else {
-                throw new Error('Firebase failed: ' + result.error);
-            }
-        } else {
-            throw new Error('Firebase not available');
+            showEmptyAnniversarySlider();
         }
-        
-    } catch (error) {
-        console.warn('⚠️  Firebase failed for anniversaries, using localStorage:', error.message);
-        
-        // Fallback to localStorage
-        const savedMartyrs = localStorage.getItem('martyrsData');
-        if (savedMartyrs) {
-            const allMartyrs = JSON.parse(savedMartyrs);
-            approvedMartyrs = allMartyrs.filter(m => !m.status || m.status === 'approved');
-        }
-    }
-    
-    if (approvedMartyrs.length === 0) {
-        showEmptyAnniversarySlider();
         return;
     }
-    
+
     // Find martyrs with anniversaries in the next 30 days
     anniversaryMartyrs = getUpcomingAnniversaries(approvedMartyrs);
-    
+
     if (anniversaryMartyrs.length === 0) {
         // If no upcoming anniversaries, show recent martyrs instead
         anniversaryMartyrs = approvedMartyrs.slice(-6);
@@ -1259,12 +1341,63 @@ async function loadAnniversaryMartyrs() {
     } else {
         console.log(`🎆 Found ${anniversaryMartyrs.length} upcoming anniversaries`);
     }
-    
+
+    currentSlide = 0;
     renderAnniversarySlider();
     setupSliderControls();
+
+    // Auto-play slider (prevent duplicate intervals on live sync)
+    if (anniversarySliderInterval) {
+        clearInterval(anniversarySliderInterval);
+    }
+    anniversarySliderInterval = setInterval(nextSlide, 5000);
+}
+
+// Load martyrs with upcoming anniversaries - Instant Cache + Global Firebase Sync
+async function loadAnniversaryMartyrs() {
+    const slider = document.getElementById('anniversary-slider');
+    if (!slider) return;
     
-    // Auto-play slider
-    setInterval(nextSlide, 5000); // Change slide every 5 seconds
+    let approvedMartyrs = [];
+    
+    try {
+        // 1. Try instant IndexedDB cache first if Firebase module is still loading
+        if (!window.firebaseDB && window.bmmInstantCache) {
+            const instantCached = await window.bmmInstantCache.read();
+            if (Array.isArray(instantCached) && instantCached.length > 0) {
+                renderAnniversaryMartyrsFromList(instantCached);
+                return;
+            }
+        }
+
+        // 2. Load via Firebase (uses instant IndexedDB/memory cache + background delta sync)
+        if (window.firebaseDB) {
+            console.log('🎆 Loading anniversary data from Firebase (global database)...');
+            const result = await window.firebaseDB.getApprovedMartyrs();
+            
+            if (result.success) {
+                approvedMartyrs = result.data || [];
+                console.log(`✅ Loaded ${approvedMartyrs.length} martyrs for anniversaries (${result.source || 'global'})`);
+            } else {
+                throw new Error('Firebase failed: ' + result.error);
+            }
+        } else {
+            // Wait for firebaseReady event
+            return;
+        }
+        
+    } catch (error) {
+        console.warn('⚠️  Firebase failed for anniversaries, checking localStorage:', error.message);
+        try {
+            const savedMartyrs = localStorage.getItem('martyrsData');
+            if (savedMartyrs) {
+                const allMartyrs = JSON.parse(savedMartyrs);
+                approvedMartyrs = allMartyrs.filter(m => !m.status || m.status === 'approved');
+            }
+        } catch (e) { /* ignore */ }
+    }
+    
+    renderAnniversaryMartyrsFromList(approvedMartyrs);
 }
 
 // Get martyrs with upcoming anniversaries

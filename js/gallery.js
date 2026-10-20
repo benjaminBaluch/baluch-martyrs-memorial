@@ -155,23 +155,71 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Multiple loading attempts
-    setTimeout(() => loadGallery(), 100);   // Immediate
-    setTimeout(() => { if (allMartyrs.length === 0) loadGallery(); }, 500);  // Quick retry
-    setTimeout(() => { if (allMartyrs.length === 0) loadGallery(); }, 2000); // Patient retry
-    setTimeout(() => { if (allMartyrs.length === 0) loadGallery(); }, 5000); // Final retry
+    // Listen for live background updates from Firebase Delta Sync
+    window.addEventListener('martyrsDataUpdated', (event) => {
+        const updatedData = event?.detail?.data;
+        if (Array.isArray(updatedData) && updatedData.length > 0) {
+            console.log(`🔄 Gallery live-updating with ${updatedData.length} martyrs from Firebase sync`);
+            allMartyrs = updatedData;
+            galleryLoaded = true;
+            galleryLoading = false;
+            hideOfflineWarning();
+            populateFilterDropdowns();
+            applyFilters();
+        }
+    });
+
+    // Start loading immediately (uses Instant IndexedDB Cache + Firebase)
+    loadGallery();
+    
+    // Retry safeguards if initial network connection is slow
+    setTimeout(() => { if (allMartyrs.length === 0) loadGallery(); }, 800);
+    setTimeout(() => { if (allMartyrs.length === 0) loadGallery(); }, 2500);
     
     // Listen for Firebase ready
     window.addEventListener('firebaseReady', () => {
-        console.log('🔥 Firebase ready event - loading gallery');
-        loadGallery();
+        console.log('🔥 Firebase ready event - checking gallery sync');
+        if (!galleryLoaded || allMartyrs.length === 0) {
+            loadGallery();
+        } else if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
+            // Trigger background Firebase delta sync if initial render came from instant cache
+            window.firebaseDB.getApprovedMartyrs();
+        }
     });
 });
+
+// Helper: Wait briefly for Firebase module if IndexedDB cache is cold
+function waitForFirebaseInGallery(timeoutMs = 3500) {
+    if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
+        return Promise.resolve(true);
+    }
+    return new Promise((resolve) => {
+        let settled = false;
+        const finish = (ready) => {
+            if (settled) return;
+            settled = true;
+            window.removeEventListener('firebaseReady', onReady);
+            clearInterval(pollTimer);
+            clearTimeout(timeoutTimer);
+            resolve(ready);
+        };
+        const onReady = () => finish(true);
+        window.addEventListener('firebaseReady', onReady, { once: true });
+        const pollTimer = setInterval(() => {
+            if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
+                finish(true);
+            }
+        }, 50);
+        const timeoutTimer = setTimeout(() => {
+            finish(Boolean(window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function'));
+        }, timeoutMs);
+    });
+}
 
 // Main gallery loader
 async function loadGallery() {
     // Prevent multiple concurrent or repeated loads
-    if (galleryLoaded) {
+    if (galleryLoaded && allMartyrs.length > 0) {
         console.log('📦 Gallery already loaded, skipping extra load request.');
         return;
     }
@@ -186,39 +234,58 @@ async function loadGallery() {
     const galleryGrid = document.getElementById('galleryGrid');
     if (!galleryGrid) {
         console.error('❌ Gallery grid element not found!');
+        galleryLoading = false;
         return;
     }
     
     try {
-        // Method 1: Pre-loaded Firebase data (if some other script populated it)
+        // Method 1: Pre-loaded in-memory data (0ms)
         if (window.martyrsDataFromFirebase && window.martyrsDataFromFirebase.length > 0) {
             console.log(`✨ Using pre-loaded data: ${window.martyrsDataFromFirebase.length} martyrs`);
             allMartyrs = window.martyrsDataFromFirebase;
-            renderGallery(allMartyrs);
+            populateFilterDropdowns();
+            if (!hasAnyActiveFilter()) {
+                renderGallery(allMartyrs);
+            }
             window.dispatchEvent(new Event('martyrsDataReady'));
             galleryLoaded = true;
             galleryLoading = false;
             return;
         }
 
-        // Method 2: Direct Firebase call from browser (primary path)
+        // Method 1B: Instant IndexedDB Cache (~25ms) before CDN module finishes loading
+        if (!window.firebaseDB && window.bmmInstantCache) {
+            const instantCached = await window.bmmInstantCache.read();
+            if (Array.isArray(instantCached) && instantCached.length > 0) {
+                console.log(`⚡ Instant IndexedDB cache hit: ${instantCached.length} martyrs`);
+                allMartyrs = instantCached;
+                hideOfflineWarning();
+                populateFilterDropdowns();
+                if (!hasAnyActiveFilter()) {
+                    renderGallery(allMartyrs);
+                }
+                window.dispatchEvent(new Event('martyrsDataReady'));
+                galleryLoaded = true;
+                galleryLoading = false;
+                return;
+            }
+        }
+
+        // Method 2: Direct Firebase call from browser (primary path; waits for module on cold cache)
+        await waitForFirebaseInGallery(3500);
         if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
-            console.log('🔥 Trying direct Firebase call (firebaseDB.getApprovedMartyrs)...');
+            console.log('🔥 Calling firebaseDB.getApprovedMartyrs...');
             const result = await window.firebaseDB.getApprovedMartyrs();
 
             if (result && result.success && Array.isArray(result.data) && result.data.length > 0) {
-                console.log(`✅ Firebase success: ${result.data.length} martyrs`);
+                console.log(`✅ Firebase success (${result.source || 'live'}): ${result.data.length} martyrs`);
                 allMartyrs = result.data;
 
-                // Cache for backup
-                try {
-                    localStorage.setItem('martyrsData', JSON.stringify(allMartyrs));
-                } catch (storageError) {
-                    console.warn('⚠️ Failed to cache martyrsData to localStorage:', storageError);
-                }
-
-                renderGallery(allMartyrs);
                 hideOfflineWarning();
+                populateFilterDropdowns();
+                if (!hasAnyActiveFilter()) {
+                    renderGallery(allMartyrs);
+                }
                 window.dispatchEvent(new Event('martyrsDataReady'));
                 galleryLoaded = true;
                 galleryLoading = false;
@@ -230,9 +297,9 @@ async function loadGallery() {
             console.warn('⚠️ window.firebaseDB.getApprovedMartyrs is not available – skipping direct Firebase path');
         }
 
-        // Method 3: Netlify serverless API fallback (still uses Firebase on the server)
+        // Method 3: Serverless API fallback (still uses Firebase on the server)
         try {
-            console.log('🌐 Trying Netlify API fallback at /api/get-martyrs ...');
+            console.log('🌐 Trying API fallback at /api/get-martyrs ...');
             const response = await fetch('/api/get-martyrs', {
                 method: 'GET',
                 headers: { 'Accept': 'application/json' },
@@ -242,30 +309,26 @@ async function loadGallery() {
             if (response.ok) {
                 const apiData = await response.json();
                 if (Array.isArray(apiData) && apiData.length > 0) {
-                    console.log(`✅ Netlify API success: ${apiData.length} martyrs`);
+                    console.log(`✅ API success: ${apiData.length} martyrs`);
                     allMartyrs = apiData;
 
-                    // Cache for backup
-                    try {
-                        localStorage.setItem('martyrsData', JSON.stringify(allMartyrs));
-                    } catch (storageError) {
-                        console.warn('⚠️ Failed to cache martyrsData from API to localStorage:', storageError);
-                    }
-
-                    renderGallery(allMartyrs);
                     hideOfflineWarning();
+                    populateFilterDropdowns();
+                    if (!hasAnyActiveFilter()) {
+                        renderGallery(allMartyrs);
+                    }
                     window.dispatchEvent(new Event('martyrsDataReady'));
                     galleryLoaded = true;
                     galleryLoading = false;
                     return;
                 } else {
-                    console.warn('⚠️ Netlify API returned empty martyrs list');
+                    console.warn('⚠️ API returned empty martyrs list');
                 }
             } else {
-                console.warn('⚠️ Netlify API /api/get-martyrs HTTP error:', response.status, response.statusText);
+                console.warn('⚠️ API /api/get-martyrs HTTP error:', response.status, response.statusText);
             }
         } catch (apiError) {
-            console.warn('⚠️ Netlify API /api/get-martyrs failed:', apiError);
+            console.warn('⚠️ API /api/get-martyrs failed:', apiError);
         }
 
         // Method 4: LocalStorage fallback (cached data from previous successful visit)
@@ -1361,16 +1424,19 @@ function renderGallery(martyrsData) {
     galleryNavList = sortedMartyrs;
     galleryGrid.innerHTML = '';
 
+    // Batch insert all cards in a single DocumentFragment reflow for instant mobile & desktop rendering
+    const fragment = document.createDocumentFragment();
     let renderedCount = 0;
     sortedMartyrs.forEach((martyr, index) => {
         try {
-            const card = createGalleryCard(martyr);
-            galleryGrid.appendChild(card);
+            const card = createGalleryCard(martyr, index);
+            fragment.appendChild(card);
             renderedCount++;
         } catch (error) {
             console.error(`❌ Error rendering martyr ${index}:`, error, martyr);
         }
     });
+    galleryGrid.appendChild(fragment);
 
     console.log(`✅ Successfully rendered ${renderedCount} out of ${sortedMartyrs.length} martyrs`);
     updateSearchResultsInfo(sortedMartyrs.length);
@@ -1383,7 +1449,7 @@ function renderGallery(martyrsData) {
 
 // Create gallery card (front of gallery)
 // Modern, respectful archival design for gallery grid
-function createGalleryCard(martyr) {
+function createGalleryCard(martyr, index = 99) {
     const card = document.createElement('div');
     card.className = 'martyr-card';
     card.setAttribute('role', 'button');
@@ -1422,7 +1488,7 @@ function createGalleryCard(martyr) {
         const img = document.createElement('img');
         img.src = martyr.photo;
         img.alt = martyr.fullName || 'Martyr portrait';
-        img.loading = 'lazy';
+        img.loading = index < 8 ? 'eager' : 'lazy';
         img.decoding = 'async';
         img.width = 300;
         img.height = 220;

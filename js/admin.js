@@ -1283,11 +1283,15 @@ async function executeApproval(martyrId, martyrToApprove, foundInLocalStorage, m
             console.log('🔄 Martyr was Firebase-only, no localStorage removal needed');
         }
 
-        // Always add to approved martyrs in localStorage (for compatibility)
-        const approvedData = JSON.parse(localStorage.getItem('martyrsData') || '[]');
-        approvedData.push(martyrToApprove);
-        localStorage.setItem('martyrsData', JSON.stringify(approvedData));
-        console.log('Added to localStorage approved:', approvedData.length);
+        // Always add to approved martyrs in localStorage (for compatibility, wrapped in try/catch for 5MB quota)
+        try {
+            const approvedData = JSON.parse(localStorage.getItem('martyrsData') || '[]');
+            approvedData.push(martyrToApprove);
+            localStorage.setItem('martyrsData', JSON.stringify(approvedData));
+            console.log('Added to localStorage approved:', approvedData.length);
+        } catch (lsError) {
+            console.warn('localStorage quota exceeded while caching approved martyr (IndexedDB cache is used instead):', lsError);
+        }
 
         // Remove the item from UI
         const pendingItem = document.querySelector(`[data-martyr-id="${martyrId}"]`);
@@ -1649,6 +1653,10 @@ async function refreshData() {
             refreshBtn.innerHTML = '<span>Refreshing...</span>';
         }
         
+        if (window.firebaseDB && typeof window.firebaseDB.clearCache === 'function') {
+            await window.firebaseDB.clearCache();
+        }
+
         console.log('📄 Loading pending submissions...');
         await loadPendingSubmissions();
         

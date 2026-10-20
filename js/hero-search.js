@@ -79,22 +79,30 @@
         isFetching = true;
 
         try {
-            if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
-                const res = await window.firebaseDB.getApprovedMartyrs();
-                if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
-                    window.allApprovedMartyrs = res.data;
-                    try { localStorage.setItem('martyrsData', JSON.stringify(res.data)); } catch (e) {}
+            // 1. Check Zero-Wait Instant IndexedDB Cache first
+            if (window.bmmInstantCache && typeof window.bmmInstantCache.read === 'function') {
+                const instantData = await window.bmmInstantCache.read();
+                if (Array.isArray(instantData) && instantData.length > 0) {
+                    window.allApprovedMartyrs = instantData;
                     return window.allApprovedMartyrs;
                 }
             }
 
-            // Fallback to Netlify API
+            // 2. Check Firebase Direct
+            if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
+                const res = await window.firebaseDB.getApprovedMartyrs();
+                if (res && res.success && Array.isArray(res.data) && res.data.length > 0) {
+                    window.allApprovedMartyrs = res.data;
+                    return window.allApprovedMartyrs;
+                }
+            }
+
+            // 3. Fallback to Netlify API
             const resp = await fetch('/api/get-martyrs', { headers: { 'Accept': 'application/json' } });
             if (resp.ok) {
                 const apiData = await resp.json();
                 if (Array.isArray(apiData) && apiData.length > 0) {
                     window.allApprovedMartyrs = apiData;
-                    try { localStorage.setItem('martyrsData', JSON.stringify(apiData)); } catch (e) {}
                     return window.allApprovedMartyrs;
                 }
             }
@@ -446,8 +454,14 @@
             }
         });
 
+        window.addEventListener('martyrsDataUpdated', (e) => {
+            if (e.detail && e.detail.data && Array.isArray(e.detail.data)) {
+                window.allApprovedMartyrs = e.detail.data;
+            }
+        });
+
         // Pre-warm data asynchronously in background after page is interactive
-        setTimeout(ensureMartyrsData, 400);
+        setTimeout(ensureMartyrsData, 100);
     }
 
     if (document.readyState === 'loading') {

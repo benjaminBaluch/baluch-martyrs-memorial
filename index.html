@@ -23,8 +23,13 @@
     <link rel="manifest" href="/site.webmanifest">
     <link rel="shortcut icon" href="/favicon.svg">
     
+    <!-- Preconnect & Modulepreload for Instant Firebase Connection -->
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="modulepreload" href="js/firebase-config.js?v=20261020a">
+
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="css/styles.css?v=20261018d">
+    <link rel="stylesheet" href="css/styles.css?v=20261020a">
     
     <!-- Three.js for 3D effects -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js" defer></script>
@@ -3058,15 +3063,66 @@
 
     <script type="module">
         // Import Firebase for global martyr data
-        import { firebaseDB } from './js/firebase-config.js';
+        import { firebaseDB } from './js/firebase-config.js?v=20261020a';
         
         // Make Firebase available globally for main.js
         window.firebaseDB = firebaseDB;
         
+        let statsObserverInitialized = false;
+
+        function renderHomepageStatsFromMartyrs(martyrs) {
+            if (!Array.isArray(martyrs) || martyrs.length === 0) return;
+
+            const total = martyrs.length;
+            const withStories = martyrs.filter(m => m.biography).length;
+            window.allApprovedMartyrs = martyrs;
+
+            // Animated count-up helper
+            function animateCount(el, target) {
+                if (!el) return;
+                const duration = 1200;
+                const start = performance.now();
+                function step(now) {
+                    const p = Math.min((now - start) / duration, 1);
+                    const eased = 1 - Math.pow(1 - p, 3); // ease-out-cubic
+                    el.textContent = Math.floor(eased * target).toLocaleString();
+                    if (p < 1) requestAnimationFrame(step);
+                    else el.textContent = target.toLocaleString();
+                }
+                requestAnimationFrame(step);
+            }
+
+            const impactSection = document.querySelector('.impact-section');
+            const totalCount   = document.getElementById('totalMartyrsCount');
+            const storiesCount = document.getElementById('totalStoriesCount');
+
+            if (impactSection && (totalCount || storiesCount) && !statsObserverInitialized) {
+                statsObserverInitialized = true;
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const currentMartyrs = window.allApprovedMartyrs || martyrs;
+                            animateCount(totalCount, currentMartyrs.length);
+                            animateCount(storiesCount, currentMartyrs.filter(m => m.biography).length);
+                            observer.disconnect();
+                        }
+                    });
+                }, { threshold: 0.3 });
+                observer.observe(impactSection);
+            } else {
+                if (totalCount) totalCount.textContent = total.toLocaleString();
+                if (storiesCount) storiesCount.textContent = withStories.toLocaleString();
+            }
+
+            // Hero live counter (instant)
+            const heroCount = document.getElementById('heroMartyrCount');
+            if (heroCount) heroCount.textContent = total.toLocaleString();
+        }
+
         // Function to update homepage statistics
         async function updateHomepageStats() {
             try {
-                // Get martyrs data
+                // Get martyrs data (uses instant cache + background delta sync)
                 const result = await firebaseDB.getApprovedMartyrs();
                 const martyrs = result.success ? result.data || [] : [];
                 
@@ -3079,73 +3135,49 @@
                     }
                 }
                 
-                const total = martyrs.length;
-                const withStories = martyrs.filter(m => m.biography).length;
-                window.allApprovedMartyrs = martyrs;
-                window.dispatchEvent(new CustomEvent('martyrsDataLoaded', { detail: martyrs }));
-
-                // Animated count-up helper
-                function animateCount(el, target) {
-                    if (!el) return;
-                    const duration = 1600;
-                    const start = performance.now();
-                    function step(now) {
-                        const p = Math.min((now - start) / duration, 1);
-                        const eased = 1 - Math.pow(1 - p, 3); // ease-out-cubic
-                        el.textContent = Math.floor(eased * target).toLocaleString();
-                        if (p < 1) requestAnimationFrame(step);
-                        else el.textContent = target.toLocaleString();
-                    }
-                    requestAnimationFrame(step);
+                if (martyrs.length > 0) {
+                    renderHomepageStatsFromMartyrs(martyrs);
+                    window.dispatchEvent(new CustomEvent('martyrsDataLoaded', { detail: martyrs }));
+                    console.log(`✅ Homepage stats updated: ${martyrs.length} total martyrs`);
                 }
-
-                // Count-up triggers on scroll (IntersectionObserver)
-                const impactSection = document.querySelector('.impact-section');
-                const totalCount   = document.getElementById('totalMartyrsCount');
-                const storiesCount = document.getElementById('totalStoriesCount');
-
-                if (impactSection && (totalCount || storiesCount)) {
-                    const observer = new IntersectionObserver((entries) => {
-                        entries.forEach(entry => {
-                            if (entry.isIntersecting) {
-                                animateCount(totalCount, total);
-                                animateCount(storiesCount, withStories);
-                                observer.disconnect();
-                            }
-                        });
-                    }, { threshold: 0.3 });
-                    observer.observe(impactSection);
-                } else {
-                    if (totalCount) totalCount.textContent = total.toLocaleString();
-                    if (storiesCount) storiesCount.textContent = withStories.toLocaleString();
-                }
-
-                // Hero live counter (no animation — instant feels alive)
-                const heroCount = document.getElementById('heroMartyrCount');
-                if (heroCount) heroCount.textContent = total.toLocaleString();
-                
-                console.log(`✅ Homepage stats updated: ${total} total martyrs`);
             } catch (error) {
                 console.error('❌ Error updating homepage stats:', error);
                 const heroCount = document.getElementById('heroMartyrCount');
-                if (heroCount) heroCount.textContent = '—';
+                if (heroCount && (!window.allApprovedMartyrs || window.allApprovedMartyrs.length === 0)) {
+                    heroCount.textContent = '—';
+                }
             }
         }
+
+        // Listen for instant cache data or background Firebase delta sync updates
+        window.addEventListener('martyrsDataLoaded', (e) => {
+            if (e.detail && Array.isArray(e.detail) && e.detail.length > 0) {
+                renderHomepageStatsFromMartyrs(e.detail);
+            }
+        });
+
+        window.addEventListener('martyrsDataUpdated', (e) => {
+            if (e.detail && Array.isArray(e.detail.data) && e.detail.data.length > 0) {
+                renderHomepageStatsFromMartyrs(e.detail.data);
+            }
+        });
         
-        // Update stats when Firebase is ready
+        // Update stats immediately if main.js already populated window.allApprovedMartyrs
+        if (Array.isArray(window.allApprovedMartyrs) && window.allApprovedMartyrs.length > 0) {
+            renderHomepageStatsFromMartyrs(window.allApprovedMartyrs);
+        }
+
+        // Update stats via Firebase (triggers background sync if served from cache)
         if (firebaseDB) {
             updateHomepageStats();
         } else {
             window.addEventListener('firebaseReady', updateHomepageStats);
         }
-        
-        // Also update after a short delay to ensure Firebase is fully loaded
-        setTimeout(updateHomepageStats, 2000);
     </script>
-    <script src="js/main.js?v=20261010-datefix"></script>
+    <script src="js/main.js?v=20261020a"></script>
     <script src="js/hero-3d.js"></script>
     <script src="js/mobile-menu.js"></script>
-    <script src="js/hero-search.js?v=20261018d"></script>
+    <script src="js/hero-search.js?v=20261020a"></script>
 
     <!-- Initialize Professional Asset Refresh System -->
     <script>
