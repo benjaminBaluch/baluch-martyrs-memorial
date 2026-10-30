@@ -1397,6 +1397,78 @@ function showEmptyGalleryMessage() {
 }
 
 
+let currentGalleryRenderList = [];
+let currentGalleryRenderedCount = 0;
+const GALLERY_BATCH_SIZE = 36;
+let gallerySentinelObserver = null;
+
+function renderGalleryNextBatch() {
+    const galleryGrid = document.getElementById('galleryGrid');
+    if (!galleryGrid || currentGalleryRenderedCount >= currentGalleryRenderList.length) return;
+
+    const nextBatch = currentGalleryRenderList.slice(
+        currentGalleryRenderedCount,
+        currentGalleryRenderedCount + GALLERY_BATCH_SIZE
+    );
+
+    const fragment = document.createDocumentFragment();
+    nextBatch.forEach((martyr, i) => {
+        try {
+            const card = createGalleryCard(martyr, currentGalleryRenderedCount + i);
+            fragment.appendChild(card);
+        } catch (error) {
+            console.error(`❌ Error rendering martyr ${currentGalleryRenderedCount + i}:`, error, martyr);
+        }
+    });
+
+    galleryGrid.appendChild(fragment);
+    currentGalleryRenderedCount += nextBatch.length;
+
+    // Trigger lazy scroll reveal setup for newly created cards
+    if (typeof window.initScrollReveal === 'function') {
+        window.initScrollReveal();
+    }
+}
+
+function setupGallerySentinelObserver() {
+    let sentinel = document.getElementById('gallerySentinel');
+    if (!sentinel) {
+        const galleryGrid = document.getElementById('galleryGrid');
+        if (galleryGrid && galleryGrid.parentNode) {
+            sentinel = document.createElement('div');
+            sentinel.id = 'gallerySentinel';
+            sentinel.style.cssText = 'height: 40px; margin: 1.5rem 0; width: 100%;';
+            sentinel.setAttribute('aria-hidden', 'true');
+            galleryGrid.parentNode.insertBefore(sentinel, galleryGrid.nextSibling);
+        }
+    }
+
+    if (!sentinel) return;
+
+    if (gallerySentinelObserver) {
+        gallerySentinelObserver.disconnect();
+    }
+
+    if ('IntersectionObserver' in window) {
+        gallerySentinelObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && currentGalleryRenderedCount < currentGalleryRenderList.length) {
+                    renderGalleryNextBatch();
+                }
+            });
+        }, {
+            root: null,
+            rootMargin: '400px 0px',
+            threshold: 0.01
+        });
+        gallerySentinelObserver.observe(sentinel);
+    } else {
+        while (currentGalleryRenderedCount < currentGalleryRenderList.length) {
+            renderGalleryNextBatch();
+        }
+    }
+}
+
 // Render martyrs in gallery
 function renderGallery(martyrsData) {
     const galleryGrid = document.getElementById('galleryGrid');
@@ -1407,44 +1479,25 @@ function renderGallery(martyrsData) {
 
     const list = Array.isArray(martyrsData) ? martyrsData : [];
 
-    // Frontend-only: always show martyrs in alphabetical order by name
-    const sortedMartyrs = [...list].sort((a, b) => {
-        const aName = ((a && a.fullName) ? String(a.fullName) : '').trim();
-        const bName = ((b && b.fullName) ? String(b.fullName) : '').trim();
+    // If searching by query, list is already sorted by relevance score.
+    // If browsing / filtering by chips, sort alphabetically by name (A–Z).
+    let sortedMartyrs;
+    if (currentFilters.general && list.length > 0 && typeof list[0]._searchScore === 'number') {
+        sortedMartyrs = list;
+    } else {
+        sortedMartyrs = [...list].sort(compareMartyrNames);
+    }
 
-        // Put empty/unknown names at the end
-        if (!aName && !bName) return 0;
-        if (!aName) return 1;
-        if (!bName) return -1;
-
-        return aName.localeCompare(bName, undefined, { sensitivity: 'base' });
-    });
-
-    console.log(`🎨 Rendering ${sortedMartyrs.length} martyrs to gallery (alphabetical)...`);
+    console.log(`🎨 Rendering ${sortedMartyrs.length} martyrs to gallery...`);
     galleryNavList = sortedMartyrs;
+    currentGalleryRenderList = sortedMartyrs;
+    currentGalleryRenderedCount = 0;
     galleryGrid.innerHTML = '';
 
-    // Batch insert all cards in a single DocumentFragment reflow for instant mobile & desktop rendering
-    const fragment = document.createDocumentFragment();
-    let renderedCount = 0;
-    sortedMartyrs.forEach((martyr, index) => {
-        try {
-            const card = createGalleryCard(martyr, index);
-            fragment.appendChild(card);
-            renderedCount++;
-        } catch (error) {
-            console.error(`❌ Error rendering martyr ${index}:`, error, martyr);
-        }
-    });
-    galleryGrid.appendChild(fragment);
+    renderGalleryNextBatch();
+    setupGallerySentinelObserver();
 
-    console.log(`✅ Successfully rendered ${renderedCount} out of ${sortedMartyrs.length} martyrs`);
     updateSearchResultsInfo(sortedMartyrs.length);
-    
-    // Trigger lazy scroll reveal setup for newly created cards
-    if (typeof window.initScrollReveal === 'function') {
-        window.initScrollReveal();
-    }
 }
 
 // Create gallery card (front of gallery)
@@ -1606,16 +1659,35 @@ function initSearchFilter() {
     const clearSearch = document.getElementById('clearSearch');
     const clearAllBtn = document.getElementById('clearAllFilters');
 
+    let searchDebounceTimer = null;
+
     if (searchInput) {
         searchInput.addEventListener('input', function(e) {
-            currentFilters.general = e.target.value.trim();
-            applyFilters();
+            const val = e.target.value;
             toggleClearButton();
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(() => {
+                currentFilters.general = val.trim();
+                applyFilters();
+            }, 150);
+        });
+
+        // Mobile keyboard Search / Enter handler
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                clearTimeout(searchDebounceTimer);
+                currentFilters.general = this.value.trim();
+                hideAutocomplete();
+                applyFilters();
+                this.blur(); // Dismiss mobile keyboard
+            }
         });
     }
 
     if (clearSearch) {
         clearSearch.addEventListener('click', function() {
+            clearTimeout(searchDebounceTimer);
             if (searchInput) {
                 searchInput.value = '';
                 searchInput.focus();
@@ -1629,6 +1701,7 @@ function initSearchFilter() {
 
     if (clearAllBtn) {
         clearAllBtn.addEventListener('click', function() {
+            clearTimeout(searchDebounceTimer);
             clearAllFilters();
         });
     }
@@ -1644,31 +1717,64 @@ function hasAnyActiveFilter() {
     );
 }
 
-// Common transliteration equivalents for Baluch names & places (full-word equivalents, not typos)
+// Fallback Baluch name equivalents in case main.js helper is not loaded
 const TRANSLITERATION_EQUIVALENTS = {
-    'ahmed': ['ahmed', 'ahmad'],
-    'ahmad': ['ahmad', 'ahmed'],
-    'mohammad': ['mohammad', 'muhammad', 'mohammed', 'muhammed'],
-    'muhammad': ['muhammad', 'mohammad', 'mohammed', 'muhammed'],
-    'mohammed': ['mohammed', 'mohammad', 'muhammad'],
-    'baluch': ['baluch', 'baloch'],
-    'baloch': ['baloch', 'baluch'],
+    'ahmed': ['ahmed', 'ahmad', 'ahmd'],
+    'ahmad': ['ahmad', 'ahmed', 'ahmd'],
+    'mohammad': ['mohammad', 'muhammad', 'mohammed', 'muhammed', 'md', 'mohd'],
+    'muhammad': ['muhammad', 'mohammad', 'mohammed', 'muhammed', 'md', 'mohd'],
+    'mohammed': ['mohammed', 'mohammad', 'muhammad', 'muhammed', 'md', 'mohd'],
+    'baluch': ['baluch', 'baloch', 'balochi'],
+    'baloch': ['baloch', 'baluch', 'balochi'],
     'qambar': ['qambar', 'kambar', 'quambar'],
     'kambar': ['kambar', 'qambar'],
-    'yousuf': ['yousuf', 'yusuf', 'yousaf'],
-    'yusuf': ['yusuf', 'yousuf', 'yousaf']
+    'yousuf': ['yousuf', 'yusuf', 'yousaf', 'yousif'],
+    'yusuf': ['yusuf', 'yousuf', 'yousaf', 'yousif'],
+    'abdul': ['abdul', 'abdool', 'abdel'],
+    'rahim': ['rahim', 'raheem'],
+    'raheem': ['raheem', 'rahim'],
+    'karim': ['karim', 'kareem'],
+    'kareem': ['kareem', 'karim'],
+    'hussain': ['hussain', 'hussein', 'husein'],
+    'ali': ['ali', 'aly'],
+    'nawab': ['nawab', 'navab'],
+    'bugti': ['bugti', 'bogti'],
+    'marri': ['marri', 'mari'],
+    'deen': ['deen', 'din'],
+    'din': ['din', 'deen'],
+    'mir': ['mir', 'meer'],
+    'meer': ['meer', 'mir'],
+    'ghulam': ['ghulam', 'gulam'],
+    'rashid': ['rashid', 'rasheed'],
+    'rasheed': ['rasheed', 'rashid'],
+    'majeed': ['majeed', 'majid'],
+    'majid': ['majid', 'majeed'],
+    'waheed': ['waheed', 'wahid'],
+    'wahid': ['wahid', 'waheed'],
+    'jameel': ['jameel', 'jamil'],
+    'jamil': ['jamil', 'jameel'],
+    'shabir': ['shabir', 'shabeer'],
+    'shabeer': ['shabeer', 'shabir']
 };
 
-function matchesSearchQuery(martyr, queryLower) {
-    if (!queryLower) return true;
-    const searchText = `${martyr.fullName || ''} ${martyr.fatherName || ''} ${martyr.birthPlace || ''} ${martyr.martyrdomPlace || ''} ${martyr.organization || ''} ${getYear(martyr.martyrdomDate)}`.toLowerCase();
-    if (searchText.includes(queryLower)) return true;
-
-    const equivalents = TRANSLITERATION_EQUIVALENTS[queryLower];
-    if (equivalents) {
-        return equivalents.some(eq => searchText.includes(eq));
+function scoreMartyrSearch(martyr, query) {
+    if (typeof window !== 'undefined' && window.BMM_SEARCH && typeof window.BMM_SEARCH.scoreMartyrRecord === 'function') {
+        return window.BMM_SEARCH.scoreMartyrRecord(martyr, query);
     }
-    return false;
+    // Local fallback
+    if (!query) return 1;
+    const qLower = query.toLowerCase().trim();
+    const name = (martyr.fullName || '').toLowerCase();
+    if (name.includes(qLower)) return 100;
+    const other = `${martyr.fatherName || ''} ${martyr.birthPlace || ''} ${martyr.martyrdomPlace || ''} ${martyr.organization || ''}`.toLowerCase();
+    return other.includes(qLower) ? 50 : 0;
+}
+
+function matchesSearchQuery(martyr, query) {
+    if (!query) return true;
+    const score = scoreMartyrSearch(martyr, query);
+    martyr._searchScore = score;
+    return score > 0;
 }
 
 function matchesChipFilters(martyr, filters = currentFilters) {
@@ -1716,6 +1822,45 @@ function matchesChipFilters(martyr, filters = currentFilters) {
     return true;
 }
 
+// Sync active filters to browser URL address bar using replaceState
+function syncFiltersToUrl() {
+    try {
+        if (typeof window === 'undefined' || !window.location || !window.history) return;
+        const url = new URL(window.location.href);
+        const p = url.searchParams;
+
+        if (currentFilters.general) {
+            p.set('q', currentFilters.general);
+            p.delete('search');
+        } else {
+            p.delete('q');
+            p.delete('search');
+        }
+
+        if (currentFilters.region) p.set('region', currentFilters.region);
+        else p.delete('region');
+
+        if (currentFilters.year) p.set('year', currentFilters.year);
+        else p.delete('year');
+
+        if (currentFilters.organization) p.set('organization', currentFilters.organization);
+        else p.delete('organization');
+
+        if (currentFilters.letter) p.set('letter', currentFilters.letter);
+        else p.delete('letter');
+
+        const newSearch = p.toString();
+        const newRelative = url.pathname + (newSearch ? '?' + newSearch : '') + url.hash;
+        const currentRelative = window.location.pathname + window.location.search + window.location.hash;
+
+        if (newRelative !== currentRelative) {
+            window.history.replaceState(null, '', newRelative);
+        }
+    } catch (e) {
+        // Safe fail-silent
+    }
+}
+
 // Apply all active filters (combinable: Search + Region + Year + Organization + A–Z)
 function applyFilters() {
     if (!allMartyrs || !allMartyrs.length) {
@@ -1728,20 +1873,32 @@ function applyFilters() {
         renderGallery(allMartyrs);
         updateFilterUI(allMartyrs.length);
         hideNoResultsMessage();
+        syncFiltersToUrl();
         return;
     }
 
-    const queryLower = (currentFilters.general || '').toLowerCase();
+    const query = (currentFilters.general || '').trim();
 
     const filteredMartyrs = allMartyrs.filter(martyr => {
-        if (queryLower && !matchesSearchQuery(martyr, queryLower)) {
+        if (query && !matchesSearchQuery(martyr, query)) {
             return false;
         }
         return matchesChipFilters(martyr, currentFilters);
     });
 
+    // If query search is active, sort by relevance score descending!
+    if (query && filteredMartyrs.length > 0) {
+        filteredMartyrs.sort((a, b) => {
+            const scoreA = a._searchScore || 0;
+            const scoreB = b._searchScore || 0;
+            if (scoreB !== scoreA) return scoreB - scoreA;
+            return compareMartyrNames(a, b);
+        });
+    }
+
     renderGallery(filteredMartyrs);
     updateFilterUI(filteredMartyrs.length);
+    syncFiltersToUrl();
 
     if (filteredMartyrs.length === 0 && allMartyrs.length > 0 && hasActive) {
         showNoResultsMessage();
@@ -2654,17 +2811,24 @@ function showAutocompleteSuggestions(query) {
     const dropdown = document.getElementById('autocompleteDropdown');
     if (!dropdown || !allMartyrs) return;
 
-    const matchingMartyrs = allMartyrs.filter(m => {
-        const searchText = `${m.fullName || ''} ${m.fatherName || ''} ${m.birthPlace || ''} ${m.martyrdomPlace || ''} ${m.organization || ''}`.toLowerCase();
-        return searchText.includes(query);
-    }).slice(0, 5);
+    const scoredMatches = [];
+    allMartyrs.forEach(m => {
+        const score = scoreMartyrSearch(m, query);
+        if (score > 0) {
+            scoredMatches.push({ martyr: m, score });
+        }
+    });
+
+    scoredMatches.sort((a, b) => b.score - a.score);
+    const matchingMartyrs = scoredMatches.slice(0, 5).map(x => x.martyr);
 
     const locations = new Set();
+    const qLower = query.toLowerCase();
     allMartyrs.forEach(m => {
         const places = [m.birthPlace, m.martyrdomPlace].filter(Boolean);
         places.forEach(place => {
             const mainRegion = normalizeRegion(place) || place.split(',')[0].trim();
-            if (mainRegion && mainRegion.toLowerCase().includes(query)) {
+            if (mainRegion && mainRegion.toLowerCase().includes(qLower)) {
                 locations.add(mainRegion);
             }
         });

@@ -25,12 +25,14 @@
             .replace(/'/g, '&#39;');
     }
 
-    // Helper: Highlight matching substring
+    // Helper: Highlight matching word tokens
     function highlightMatch(text, query) {
         if (!text) return '';
         if (!query) return escapeHtml(text);
-        const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        const regex = new RegExp(`(${escapedQuery})`, 'gi');
+        const tokens = query.trim().split(/\s+/).filter(Boolean);
+        if (tokens.length === 0) return escapeHtml(text);
+        const pattern = tokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+        const regex = new RegExp(`(${pattern})`, 'gi');
         return escapeHtml(text).replace(regex, '<mark>$1</mark>');
     }
 
@@ -115,9 +117,24 @@
         return getMartyrsCache();
     }
 
+    // Fallback scoring in case main.js helper hasn't loaded
+    function scoreMartyrHero(martyr, query) {
+        if (typeof window !== 'undefined' && window.BMM_SEARCH && typeof window.BMM_SEARCH.scoreMartyrRecord === 'function') {
+            return window.BMM_SEARCH.scoreMartyrRecord(martyr, query);
+        }
+        const q = (query || '').trim().toLowerCase();
+        if (!q) return 0;
+        const name = (martyr.fullName || '').toLowerCase();
+        if (name === q) return 1000;
+        if (name.startsWith(q)) return 500;
+        if (name.includes(q)) return 200;
+        const other = `${martyr.fatherName || ''} ${martyr.birthPlace || ''} ${martyr.martyrdomPlace || ''} ${martyr.organization || ''}`.toLowerCase();
+        return other.includes(q) ? 80 : 0;
+    }
+
     // Perform Ranked Search
     function performSearch(query, martyrs) {
-        const q = query.trim().toLowerCase();
+        const q = (query || '').trim();
         if (!q || q.length < 2) return [];
 
         const scored = [];
@@ -126,31 +143,9 @@
             const m = martyrs[i];
             if (m.status && m.status !== 'approved') continue;
 
-            const fullName = (m.fullName || '').toLowerCase();
-            const fatherName = (m.fatherName || '').toLowerCase();
-            const martyrdomPlace = (m.martyrdomPlace || '').toLowerCase();
-            const birthPlace = (m.birthPlace || '').toLowerCase();
-            const organization = (m.organization || '').toLowerCase();
-            const year = extractYear(m.martyrdomDate);
-
-            let score = 0;
-
-            if (fullName === q) {
-                score += 1000;
-            } else if (fullName.startsWith(q)) {
-                score += 500;
-            } else if (fullName.split(/\s+/).some(w => w.startsWith(q))) {
-                score += 300;
-            } else if (fullName.includes(q)) {
-                score += 200;
-            }
-
-            if (fatherName.includes(q)) score += 120;
-            if (organization.includes(q)) score += 100;
-            if (martyrdomPlace.includes(q) || birthPlace.includes(q)) score += 80;
-            if (year && year.includes(q)) score += 70;
-
+            const score = scoreMartyrHero(m, q);
             if (score > 0) {
+                const year = extractYear(m.martyrdomDate);
                 scored.push({ martyr: m, score, year });
             }
         }

@@ -1,5 +1,181 @@
 // Main JavaScript for Baluch Martyrs Memorial
 
+// ============================================
+// UNIFIED BALUCH SEARCH & TRANSLITERATION ENGINE
+// Shared by Hero Search and Gallery Search
+// ============================================
+(function() {
+    const TRANSLITERATION_EQUIVALENTS = {
+        'ahmed': ['ahmed', 'ahmad', 'ahmd'],
+        'ahmad': ['ahmad', 'ahmed', 'ahmd'],
+        'mohammad': ['mohammad', 'muhammad', 'mohammed', 'muhammed', 'md', 'mohd'],
+        'muhammad': ['muhammad', 'mohammad', 'mohammed', 'muhammed', 'md', 'mohd'],
+        'mohammed': ['mohammed', 'mohammad', 'muhammad', 'muhammed', 'md', 'mohd'],
+        'baluch': ['baluch', 'baloch', 'balochi'],
+        'baloch': ['baloch', 'baluch', 'balochi'],
+        'qambar': ['qambar', 'kambar', 'quambar'],
+        'kambar': ['kambar', 'qambar'],
+        'yousuf': ['yousuf', 'yusuf', 'yousaf', 'yousif'],
+        'yusuf': ['yusuf', 'yousuf', 'yousaf', 'yousif'],
+        'abdul': ['abdul', 'abdool', 'abdel'],
+        'rahim': ['rahim', 'raheem'],
+        'raheem': ['raheem', 'rahim'],
+        'karim': ['karim', 'kareem'],
+        'kareem': ['kareem', 'karim'],
+        'hussain': ['hussain', 'hussein', 'husein'],
+        'ali': ['ali', 'aly'],
+        'nawab': ['nawab', 'navab'],
+        'bugti': ['bugti', 'bogti'],
+        'marri': ['marri', 'mari'],
+        'deen': ['deen', 'din'],
+        'din': ['din', 'deen'],
+        'mir': ['mir', 'meer'],
+        'meer': ['meer', 'mir'],
+        'ghulam': ['ghulam', 'gulam'],
+        'rashid': ['rashid', 'rasheed'],
+        'rasheed': ['rasheed', 'rashid'],
+        'majeed': ['majeed', 'majid'],
+        'majid': ['majid', 'majeed'],
+        'waheed': ['waheed', 'wahid'],
+        'wahid': ['wahid', 'waheed'],
+        'jameel': ['jameel', 'jamil'],
+        'jamil': ['jamil', 'jameel'],
+        'shabir': ['shabir', 'shabeer'],
+        'shabeer': ['shabeer', 'shabir'],
+        'suleman': ['suleman', 'sulaiman', 'soliman'],
+        'sulaiman': ['sulaiman', 'suleman', 'soliman'],
+        'farooq': ['farooq', 'faruq', 'farouq'],
+        'zahid': ['zahid', 'zahed'],
+        'nasir': ['nasir', 'naser'],
+        'khalil': ['khalil', 'khaleel'],
+        'khaleel': ['khaleel', 'khalil'],
+        'panjgur': ['panjgur', 'panjgoor'],
+        'turbat': ['turbat', 'torbat'],
+        'kech': ['kech', 'ketch'],
+        'khuzdar': ['khuzdar', 'xuzdar'],
+        'noshki': ['noshki', 'naushki']
+    };
+
+    function normalizeString(str) {
+        if (!str) return '';
+        return str.toString()
+            .toLowerCase()
+            .replace(/['’`\-.]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function tokenize(str) {
+        const norm = normalizeString(str);
+        if (!norm) return [];
+        return norm.split(' ').filter(Boolean);
+    }
+
+    function wordMatchesToken(word, token) {
+        if (!word || !token) return false;
+        if (word === token || word.startsWith(token)) return true;
+        const eqList = TRANSLITERATION_EQUIVALENTS[token];
+        if (eqList) {
+            for (let i = 0; i < eqList.length; i++) {
+                const eq = eqList[i];
+                if (word === eq || word.startsWith(eq)) return true;
+            }
+        }
+        return false;
+    }
+
+    function scoreMartyrRecord(martyr, query) {
+        if (!query) return 1;
+        const qTokens = tokenize(query);
+        if (qTokens.length === 0) return 1;
+
+        const fullName = normalizeString(martyr.fullName);
+        const fatherName = normalizeString(martyr.fatherName);
+        const place = normalizeString(`${martyr.martyrdomPlace || ''} ${martyr.birthPlace || ''}`);
+        const org = normalizeString(martyr.organization);
+        const rawDate = martyr.martyrdomDate || martyr.dateOfMartyrdom || '';
+        let year = '';
+        if (typeof rawDate === 'string') {
+            year = rawDate.match(/\b(19\d\d|20\d\d)\b/)?.[1] || '';
+        } else if (rawDate && typeof rawDate === 'object') {
+            try {
+                if (rawDate.toDate) year = String(rawDate.toDate().getFullYear());
+                else if (rawDate.seconds) year = String(new Date(rawDate.seconds * 1000).getFullYear());
+            } catch (e) {}
+        }
+
+        const nameTokens = tokenize(martyr.fullName);
+        const allTokens = tokenize(`${martyr.fullName || ''} ${martyr.fatherName || ''} ${martyr.martyrdomPlace || ''} ${martyr.birthPlace || ''} ${martyr.organization || ''} ${year}`);
+
+        let matchAll = true;
+        let score = 0;
+
+        for (let i = 0; i < qTokens.length; i++) {
+            const qTok = qTokens[i];
+            let tokenMatched = false;
+
+            // Exact full name match bonus
+            if (fullName === qTok) {
+                score += 1000;
+                tokenMatched = true;
+            }
+
+            // Match in martyr's own name tokens (highest weight)
+            for (let j = 0; j < nameTokens.length; j++) {
+                const nTok = nameTokens[j];
+                if (nTok === qTok) {
+                    score += 300;
+                    tokenMatched = true;
+                } else if (wordMatchesToken(nTok, qTok)) {
+                    score += 200;
+                    tokenMatched = true;
+                }
+            }
+
+            // Match in father's name or place or org or year
+            if (!tokenMatched) {
+                for (let k = 0; k < allTokens.length; k++) {
+                    const aTok = allTokens[k];
+                    if (wordMatchesToken(aTok, qTok)) {
+                        score += 50;
+                        tokenMatched = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!tokenMatched) {
+                matchAll = false;
+                break;
+            }
+        }
+
+        if (!matchAll) return 0;
+
+        // Phrase bonus if query matches contiguous substring
+        const normQuery = normalizeString(query);
+        if (fullName === normQuery) {
+            score += 500;
+        } else if (fullName.startsWith(normQuery)) {
+            score += 300;
+        } else if (fullName.includes(normQuery)) {
+            score += 150;
+        }
+
+        return score;
+    }
+
+    if (typeof window !== 'undefined') {
+        window.BMM_SEARCH = {
+            TRANSLITERATION_EQUIVALENTS,
+            normalizeString,
+            tokenize,
+            wordMatchesToken,
+            scoreMartyrRecord
+        };
+    }
+})();
+
 // Theme management
 const THEME_STORAGE_KEY = 'bmm_theme_v1';
 
