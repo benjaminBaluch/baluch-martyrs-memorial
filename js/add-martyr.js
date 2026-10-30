@@ -1162,7 +1162,7 @@ function showDuplicateModal(newMartyr, duplicates, onProceed, onCancel) {
                     </div>
                     <div class="dup-alert-text">
                         <strong>Please review carefully before submitting.</strong>
-                        Compare your submission against the published archive record below. If this hero is already documented, please cancel to avoid duplicate records.
+                        Compare your submission against the published archive record below. If this martyr is already documented, please cancel to avoid duplicate records.
                     </div>
                 </div>
                 
@@ -2045,7 +2045,7 @@ function showSuccessMessage() {
         // Personalize with the submitted martyr's name
         const name = (document.getElementById('fullName')?.value || '').trim();
         const nameEl = document.getElementById('successNameDisplay');
-        if (nameEl) nameEl.textContent = name || 'This hero';
+        if (nameEl) nameEl.textContent = name || 'This martyr';
 
         // Hide step progress indicator
         const stepProgress = document.getElementById('stepProgress');

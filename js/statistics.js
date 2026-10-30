@@ -244,7 +244,7 @@
 
         updateStatus(
             statusEl,
-            `Verified Memorial Archive • ${martyrs.length.toLocaleString()} Documented Heroes`,
+            `Verified Memorial Archive • ${martyrs.length.toLocaleString()} Documented Martyrs`,
             false
         );
 
@@ -1107,7 +1107,7 @@
                     data-year="${year}"
                     title="Filter dashboard by ${year} (${count} documented)">
                     <span class="year-card-yr">${year}${isPeak ? ' ★' : ''}</span>
-                    <span class="year-card-count">${count.toLocaleString()} ${count === 1 ? 'hero' : 'heroes'}</span>
+                    <span class="year-card-count">${count.toLocaleString()} ${count === 1 ? 'martyr' : 'martyrs'}</span>
                     <span class="year-card-bar" style="width: ${barPct}%"></span>
                 </button>
             `;
@@ -1281,7 +1281,7 @@
                         ${year} ${count === maxCount && count > 0 ? '<span style="color:#eab308;" title="Peak Year">★</span>' : ''}
                     </td>
                     <td style="font-variant-numeric: tabular-nums; font-weight: 600;">
-                        ${count.toLocaleString()} ${count === 1 ? 'hero' : 'heroes'}
+                        ${count.toLocaleString()} ${count === 1 ? 'martyr' : 'martyrs'}
                     </td>
                     <td>
                         <div style="display: flex; align-items: center; gap: 0.55rem;">
@@ -1585,7 +1585,7 @@
                         ${monthName} ${isPeak ? '<span style="color:#eab308;" title="Peak Month">★ Peak</span>' : ''}
                     </td>
                     <td style="font-variant-numeric: tabular-nums; font-weight: 600;">
-                        ${count.toLocaleString()} ${count === 1 ? 'hero' : 'heroes'}
+                        ${count.toLocaleString()} ${count === 1 ? 'martyr' : 'martyrs'}
                     </td>
                     <td>
                         <div style="display: flex; align-items: center; gap: 0.55rem;">
@@ -1831,7 +1831,7 @@
         const scopeSummary = isFiltered ? parts.join(' • ') : 'Complete Archive';
 
         let coverTitle = 'Baluch Martyrs Memorial';
-        let coverSubtitle = 'A Digital Archive of Heroes';
+        let coverSubtitle = 'A Digital Archive of Martyrs';
         let sectionHeader = 'Memorial Archive';
 
         if (orgTitle && timeTitle) {
@@ -1844,7 +1844,7 @@
             coverSubtitle = `${timeTitle} Archive`;
             sectionHeader = `${timeTitle} Archive`;
         } else {
-            coverSubtitle = 'A Digital Archive of Heroes';
+            coverSubtitle = 'A Digital Archive of Martyrs';
             sectionHeader = 'Complete Memorial Archive';
         }
 

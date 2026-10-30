@@ -46,7 +46,7 @@ function createShareRow(martyr, variant = 'card') {
     const heroIdentifier = encodeURIComponent(martyr.id || martyr.fullName || '');
     const targetUrl = `${siteOrigin}/gallery.html?hero=${heroIdentifier}`;
     const encodedUrl = encodeURIComponent(targetUrl);
-    const shareText = encodeURIComponent(`Honoring ${martyr.fullName || 'a Baluch hero'} on the Baluch Martyrs Memorial`);
+    const shareText = encodeURIComponent(`Honoring ${martyr.fullName || 'a Baluch martyr'} on the Baluch Martyrs Memorial`);
 
     const shareNetworks = [
         { name: 'X', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>', url: `https://twitter.com/intent/tweet?text=${shareText}&url=${encodedUrl}` },
@@ -66,7 +66,7 @@ function createShareRow(martyr, variant = 'card') {
         btn.type = 'button';
         btn.className = 'martyr-share-icon';
         btn.innerHTML = icon;
-        btn.setAttribute('aria-label', `Share ${martyr.fullName || 'this hero'} on ${name}`);
+        btn.setAttribute('aria-label', `Share ${martyr.fullName || 'this martyr'} on ${name}`);
         btn.title = `Share on ${name}`;
         btn.addEventListener('click', () => {
             if (action) {
@@ -442,10 +442,10 @@ function showEmptyMessage() {
             <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: #f8f9fa; border-radius: 8px;">
                 <h3>🌹 Memorial Gallery</h3>
                 <p>Our memorial gallery is currently being prepared.</p>
-                <p style="color: #666;">New martyr profiles are being added regularly to honor our heroes.</p>
+                <p style="color: #666;">New martyr profiles are being added regularly to honor our martyrs.</p>
                 <a href="add-martyr.html" style="display: inline-block; margin-top: 1.5rem; background: #2c5530; color: white; text-decoration: none; padding: 0.75rem 1.5rem; border-radius: 4px; font-weight: 500;">Submit a Martyr Profile</a>
                 <br>
-                <small style="color: #888; margin-top: 1rem; display: inline-block;">Help us build this memorial by contributing profiles of our heroes.</small>
+                <small style="color: #888; margin-top: 1rem; display: inline-block;">Help us build this memorial by contributing profiles of our martyrs.</small>
             </div>
         `;
     }
@@ -460,7 +460,7 @@ function showErrorMessage(errorDetails) {
         galleryGrid.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: #f8f9fa; border-radius: 8px;">
                 <h3>🔄 Loading Memorial Gallery</h3>
-                <p>We're connecting to our memorial database to honor our heroes.</p>
+                <p>We're connecting to our memorial database to honor our martyrs.</p>
                 <p style="color: #666; margin-top: 1rem;">This may take a moment...</p>
                 <button onclick="loadGallery()" style="margin: 1rem 0.5rem; background: #2c5530; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 4px; cursor: pointer; font-size: 14px;">Refresh Gallery</button>
                 <br>
@@ -1799,7 +1799,7 @@ function updateSearchResultsInfo(count) {
     const resultsLabel = document.getElementById('resultsLabel');
 
     if (resultsCount) resultsCount.textContent = count;
-    if (resultsLabel) resultsLabel.textContent = count === 1 ? 'hero' : 'heroes';
+    if (resultsLabel) resultsLabel.textContent = count === 1 ? 'martyr' : 'martyrs';
 
     updateFilterUI(count);
 }
@@ -1809,7 +1809,7 @@ function updateFilterUI(count) {
     const resultsCount = document.getElementById('resultsCount');
     const resultsLabel = document.getElementById('resultsLabel');
     if (resultsCount && typeof count === 'number') resultsCount.textContent = count;
-    if (resultsLabel && typeof count === 'number') resultsLabel.textContent = count === 1 ? 'hero' : 'heroes';
+    if (resultsLabel && typeof count === 'number') resultsLabel.textContent = count === 1 ? 'martyr' : 'martyrs';
 
     const hasActive = hasAnyActiveFilter();
 
@@ -2684,7 +2684,7 @@ function showAutocompleteSuggestions(query) {
 
         const title = document.createElement('div');
         title.className = 'autocomplete-section-title';
-        title.textContent = 'Heroes';
+        title.textContent = 'Martyrs';
         section.appendChild(title);
 
         matchingMartyrs.forEach((martyr, index) => {
@@ -2750,7 +2750,7 @@ function createAutocompleteItem(martyr, index) {
             <div class="autocomplete-item-name">${escapeHTML(martyr.fullName || 'Unknown')}</div>
             <div class="autocomplete-item-meta">${escapeHTML(location)}</div>
         </div>
-        <span class="autocomplete-item-type">Hero</span>
+        <span class="autocomplete-item-type">Martyr</span>
     `;
 
     item.addEventListener('click', () => {

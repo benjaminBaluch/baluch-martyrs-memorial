@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Honor a hero — preserve the legacy of a Baluch martyr by adding their story to the memorial">
-    <title>Honor a Hero — Baluch Martyrs Memorial</title>
+    <meta name="description" content="Honor a martyr — preserve the legacy of a Baluch martyr by adding their story to the memorial">
+    <title>Honor a Martyr — Baluch Martyrs Memorial</title>
     <link rel="stylesheet" href="css/styles.css?v=20261020c">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" sizes="any">
     <link rel="shortcut icon" type="image/svg+xml" href="/favicon.svg">
@@ -221,7 +221,7 @@
         <div class="container">
             <div class="candle-row" aria-hidden="true">🕯️ 🕯️ 🕯️</div>
             <span class="banner-eyebrow">Baluch Martyrs Memorial</span>
-            <h1>Honor a Hero</h1>
+            <h1>Honor a Martyr</h1>
             <p class="banner-subtitle">Every name you add becomes a flame that never goes out.</p>
         </div>
     </div>
@@ -460,10 +460,10 @@
                                 has been added to the memorial.
                             </h2>
                             <div class="success-divider"></div>
-                            <p class="success-subtitle">Their story will now live alongside the heroes of the Baluch nation — forever preserved, forever honoured.</p>
+                            <p class="success-subtitle">Their story will now live alongside the martyrs of the Baluch nation — forever preserved, forever honoured.</p>
                             <div class="success-actions">
                                 <a href="/gallery" class="btn btn-primary">View Memorial Gallery</a>
-                                <button onclick="location.reload()" class="btn btn-outline">Honor Another Hero</button>
+                                <button onclick="location.reload()" class="btn btn-outline">Honor Another Martyr</button>
                             </div>
                         </div>
                     </div>
@@ -527,7 +527,7 @@
             <div class="footer-content">
                 <div class="footer-section">
                     <h3>Baluch Martyrs Memorial</h3>
-                    <p>Preserving the memory of our heroes who gave their lives for freedom.</p>
+                    <p>Preserving the memory of our martyrs who gave their lives for freedom.</p>
                 </div>
                 <div class="footer-section">
                     <h3>Quick Links</h3>
@@ -562,9 +562,9 @@
         <div class="mobile-preview-content" id="mobilePreviewContent"></div>
     </div>
 
-    <script src="js/main.js?v=20261008i"></script>
+    <script src="js/main.js?v=20261030a"></script>
     <script src="js/mobile-menu.js?v=20261008i"></script>
-    <script type="module" src="js/add-martyr.js?v=20261008i"></script>
+    <script type="module" src="js/add-martyr.js?v=20261030a"></script>
 
     <script>
     (function(){
@@ -774,7 +774,7 @@
         if(form)form.addEventListener('submit',function(){var btn=document.getElementById('btnSubmitLegacy');if(btn)btn.classList.add('loading');});
 
         window.addEventListener('martyrSubmitSuccess',function(e){
-            var name=(e.detail&&e.detail.name)||((document.getElementById('fullName')||{}).value||'').trim()||'The hero';
+            var name=(e.detail&&e.detail.name)||((document.getElementById('fullName')||{}).value||'').trim()||'The martyr';
             var nameEl=document.getElementById('successNameDisplay');
             if(nameEl)nameEl.textContent=name;
             var sp=document.getElementById('stepProgress');if(sp)sp.style.display='none';

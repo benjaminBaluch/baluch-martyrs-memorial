@@ -333,7 +333,7 @@
                         <p class="hero-search-no-sub">Try searching by district (e.g. Kohlu, Gwadar, Quetta), martyrdom year, or organization.</p>
                         <div class="hero-search-no-actions">
                             <a href="/gallery?search=${encodeURIComponent(query)}" class="btn btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.88rem;">Search Gallery</a>
-                            <a href="/add-martyr" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.88rem;">Honor a Hero</a>
+                            <a href="/add-martyr" class="btn btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.88rem;">Honor a Martyr</a>
                         </div>
                     </div>
                 `;
@@ -394,7 +394,7 @@
             // Update footer
             if (dropdownFooter && footerCount && viewAllLink) {
                 dropdownFooter.style.display = 'flex';
-                footerCount.innerHTML = `Showing <strong>${topMatches.length}</strong> of <strong>${matches.length}</strong> matching heroes`;
+                footerCount.innerHTML = `Showing <strong>${topMatches.length}</strong> of <strong>${matches.length}</strong> matching martyrs`;
                 viewAllLink.href = `/gallery?search=${encodeURIComponent(query)}`;
             }
 

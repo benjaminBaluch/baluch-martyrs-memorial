@@ -456,8 +456,8 @@ function renderRecentMartyrsToDOM(martyrsData) {
                 <div class="martyr-image"></div>
                 <div class="martyr-info">
                     <h3>🎯 Start Building Our Memorial</h3>
-                    <p>Be the first to honor a hero by adding their story to our digital memorial</p>
-                    <a href="/add-martyr" class="btn btn-small">➕ Honor a Hero</a>
+                    <p>Be the first to honor a martyr by adding their story to our digital memorial</p>
+                    <a href="/add-martyr" class="btn btn-small">➕ Honor a Martyr</a>
                 </div>
             </div>
         `;
@@ -1023,7 +1023,7 @@ function createShareRowMain(martyr) {
     const heroIdentifier = encodeURIComponent(martyr.id || martyr.fullName || '');
     const targetUrl = `${siteOrigin}/gallery.html?hero=${heroIdentifier}`;
     const encodedUrl = encodeURIComponent(targetUrl);
-    const shareText = encodeURIComponent(`Honoring ${martyr.fullName || 'a Baluch hero'} on the Baluch Martyrs Memorial`);
+    const shareText = encodeURIComponent(`Honoring ${martyr.fullName || 'a Baluch martyr'} on the Baluch Martyrs Memorial`);
 
     const shareNetworks = [
         { name: 'X', icon: '𝕏', url: `https://twitter.com/intent/tweet?text=${shareText}&url=${encodedUrl}` },
@@ -1044,7 +1044,7 @@ function createShareRowMain(martyr) {
         btn.type = 'button';
         btn.style.cssText = 'width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(15, 23, 42, 0.12); background: #f9fafb; color: var(--primary-color, #2c5530); display: inline-flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);';
         btn.innerHTML = icon;
-        btn.setAttribute('aria-label', `Share ${martyr.fullName || 'this hero'} on ${name}`);
+        btn.setAttribute('aria-label', `Share ${martyr.fullName || 'this martyr'} on ${name}`);
         btn.title = `Share on ${name}`;
         btn.addEventListener('click', () => {
             if (action) {
