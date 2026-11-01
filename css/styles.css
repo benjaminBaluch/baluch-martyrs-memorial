@@ -6089,3 +6089,298 @@ html[data-theme="dark"] .bottom-nav-item.active {
     }
 }
 
+/* ==========================================================================
+   ARCHIVAL PRINT & PDF STYLES (Single Martyr Profile Isolation)
+   Supports iOS Safari, Android Chrome, and Desktop Save-as-PDF
+   ========================================================================== */
+.martyr-print-watermark {
+    display: none;
+}
+
+@media print {
+    @page {
+        size: portrait;
+        margin: 12mm 15mm 15mm 15mm;
+    }
+
+    /* 1. When a martyr modal is active or being printed, hide all background elements */
+    body.martyr-modal-open > *:not(.martyr-modal-overlay):not(#martyrModal):not(#martyrDetailsModal):not(#martyrPrintFrame),
+    body:has(.martyr-modal-overlay) > *:not(.martyr-modal-overlay):not(#martyrModal):not(#martyrDetailsModal):not(#martyrPrintFrame),
+    body.martyr-modal-open header,
+    body.martyr-modal-open footer,
+    body.martyr-modal-open nav,
+    body.martyr-modal-open .site-header,
+    body.martyr-modal-open .site-footer,
+    body.martyr-modal-open .hero,
+    body.martyr-modal-open .hero-section,
+    body.martyr-modal-open .hero-banner,
+    body.martyr-modal-open .hero-3d-canvas,
+    body.martyr-modal-open .gallery-section,
+    body.martyr-modal-open .gallery-controls-sticky,
+    body.martyr-modal-open .filter-tabs,
+    body.martyr-modal-open .alphabet-bar,
+    body.martyr-modal-open .back-to-top,
+    body.martyr-modal-open .theme-toggle-btn,
+    body.martyr-modal-open .slider-btn,
+    body.martyr-modal-open .chatbot-widget,
+    body.martyr-modal-open #chatbotContainer,
+    body.martyr-modal-open #heroSearchDropdown,
+    body.martyr-modal-open .mobile-bottom-nav,
+    body.martyr-modal-open .stats-container,
+    body:has(.martyr-modal-overlay) header,
+    body:has(.martyr-modal-overlay) footer,
+    body:has(.martyr-modal-overlay) nav,
+    body:has(.martyr-modal-overlay) .site-header,
+    body:has(.martyr-modal-overlay) .site-footer,
+    body:has(.martyr-modal-overlay) .hero,
+    body:has(.martyr-modal-overlay) .hero-section,
+    body:has(.martyr-modal-overlay) .hero-banner,
+    body:has(.martyr-modal-overlay) .hero-3d-canvas,
+    body:has(.martyr-modal-overlay) .gallery-section,
+    body:has(.martyr-modal-overlay) .gallery-controls-sticky,
+    body:has(.martyr-modal-overlay) .filter-tabs,
+    body:has(.martyr-modal-overlay) .alphabet-bar,
+    body:has(.martyr-modal-overlay) .back-to-top,
+    body:has(.martyr-modal-overlay) .theme-toggle-btn,
+    body:has(.martyr-modal-overlay) .slider-btn,
+    body:has(.martyr-modal-overlay) .chatbot-widget,
+    body:has(.martyr-modal-overlay) #chatbotContainer,
+    body:has(.martyr-modal-overlay) #heroSearchDropdown,
+    body:has(.martyr-modal-overlay) .mobile-bottom-nav,
+    body:has(.martyr-modal-overlay) .stats-container {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    body {
+        background: #ffffff !important;
+        color: #111827 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        padding-bottom: 0 !important;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* 2. Format the Modal as a Clean, High-DPI Document */
+    .martyr-modal-overlay {
+        position: static !important;
+        display: block !important;
+        width: 100% !important;
+        height: auto !important;
+        background: #ffffff !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        overflow: visible !important;
+        z-index: auto !important;
+    }
+
+    .martyr-modal-dialog {
+        position: static !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        max-height: none !important;
+        height: auto !important;
+        overflow: visible !important;
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        background: #ffffff !important;
+        color: #111827 !important;
+        animation: none !important;
+        transform: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* 3. Hide non-printable interactive controls */
+    .martyr-modal-sheet-handle,
+    .close-martyr-modal,
+    .modal-close,
+    .martyr-voice-btn,
+    .modal-voice-btn,
+    .martyr-modal-actions,
+    .martyr-nav-arrow,
+    .martyr-modal-share-slot,
+    .martyr-share-row,
+    .martyr-print-btn,
+    .martyr-print-btn-header,
+    .martyr-close-btn {
+        display: none !important;
+    }
+
+    /* 4. Header for Memorial Document */
+    .martyr-modal-header {
+        position: static !important;
+        background: transparent !important;
+        border-bottom: 3px solid #2c5530 !important;
+        color: #2c5530 !important;
+        padding: 0 0 10px 0 !important;
+        margin-bottom: 20px !important;
+        box-shadow: none !important;
+    }
+
+    .martyr-modal-header-inner {
+        display: block !important;
+    }
+
+    .martyr-modal-header-name {
+        color: #2c5530 !important;
+        font-size: 24px !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.03em !important;
+        text-transform: uppercase !important;
+        margin: 0 !important;
+    }
+
+    .martyr-modal-header-date {
+        color: #64748b !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        margin: 4px 0 0 !important;
+    }
+
+    /* 5. Body Layout */
+    .martyr-modal-body {
+        padding: 0 !important;
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 22px !important;
+        align-items: flex-start !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    .martyr-modal-photo-col {
+        flex: 0 0 210px !important;
+        max-width: 210px !important;
+        width: 210px !important;
+    }
+
+    .martyr-modal-photo {
+        width: 100% !important;
+        height: 250px !important;
+        object-fit: cover !important;
+        border-radius: 8px !important;
+        border: 3px solid #d4af37 !important;
+        box-shadow: none !important;
+        display: block !important;
+    }
+
+    .martyr-modal-photo-placeholder {
+        width: 100% !important;
+        height: 250px !important;
+        border-radius: 8px !important;
+        border: 3px solid #d4af37 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: #f1f5f9 !important;
+        font-size: 50px !important;
+        color: #94a3b8 !important;
+    }
+
+    .martyr-modal-details-col {
+        flex: 1 !important;
+        width: calc(100% - 232px) !important;
+    }
+
+    .martyr-modal-meta-grid,
+    .martyr-modal-details-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+    }
+
+    .martyr-modal-meta-item,
+    .martyr-modal-field {
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 6px !important;
+        padding: 6px 10px !important;
+    }
+
+    .martyr-modal-meta-label,
+    .martyr-modal-label {
+        font-size: 11px !important;
+        color: #64748b !important;
+        text-transform: uppercase !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.04em !important;
+        margin: 0 !important;
+    }
+
+    .martyr-modal-meta-val,
+    .martyr-modal-value {
+        font-size: 13.5px !important;
+        color: #0f172a !important;
+        font-weight: 600 !important;
+        margin-top: 2px !important;
+    }
+
+    /* 6. Section Boxes (Biography, Family Details) */
+    .martyr-modal-section {
+        margin-top: 18px !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    .martyr-modal-section-title {
+        color: #2c5530 !important;
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.04em !important;
+        border-bottom: 1.5px solid #e2e8f0 !important;
+        padding-bottom: 4px !important;
+        margin: 0 0 6px !important;
+    }
+
+    .martyr-modal-section-box,
+    .martyr-modal-section-body,
+    .martyr-modal-bio-text {
+        color: #334155 !important;
+        font-size: 13px !important;
+        line-height: 1.65 !important;
+        white-space: pre-wrap !important;
+        background: transparent !important;
+        border: none !important;
+        padding: 0 !important;
+    }
+
+    .martyr-modal-submit-row {
+        margin-top: 20px !important;
+        padding-top: 8px !important;
+        border-top: 1px solid #e2e8f0 !important;
+        font-size: 11px !important;
+        color: #64748b !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    .martyr-modal-submit-row p {
+        margin: 0 !important;
+    }
+
+    /* Archival Watermark */
+    .martyr-print-watermark {
+        display: block !important;
+        margin-top: 22px !important;
+        padding-top: 8px !important;
+        border-top: 1px solid #cbd5e1 !important;
+        font-size: 11px !important;
+        color: #64748b !important;
+        text-align: center !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+}
+
+

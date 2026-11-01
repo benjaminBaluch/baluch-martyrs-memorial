@@ -973,6 +973,7 @@ function showMartyrDetails(martyr, list) {
     const closeModal = () => {
         if (closed) return;
         closed = true;
+        document.body.classList.remove('martyr-modal-open');
         stopMartyrSpeechMain();
         if (typeof modal._pnCleanup === 'function') modal._pnCleanup();
         modal.remove();
@@ -1080,6 +1081,10 @@ function showMartyrDetails(martyr, list) {
                     <p><strong>Submitted on:</strong> ${escapeHTMLMain(formatDate(martyr.submittedAt) || 'Unknown')}</p>
                 </div>
                 
+                <div class="martyr-print-watermark" aria-hidden="true">
+                    Baluch Martyrs Memorial • Verified Archival Record • baluchmartyrs.com
+                </div>
+
                 <div class="martyr-modal-share-slot"></div>
 
                 <div class="martyr-modal-actions">
@@ -1118,7 +1123,7 @@ function showMartyrDetails(martyr, list) {
     [printBtn, printHeaderBtn].forEach((btn) => {
         if (btn) {
             btn.addEventListener('click', () => {
-                printMartyrProfileMain(martyr);
+                printMartyrProfile(martyr);
             });
         }
     });
@@ -1143,6 +1148,7 @@ function showMartyrDetails(martyr, list) {
     modal.setAttribute('aria-label', 'Martyr profile');
     modal.appendChild(content);
     document.body.appendChild(modal);
+    document.body.classList.add('martyr-modal-open');
     document.body.style.overflow = 'hidden';
     
     // Close on background click
@@ -1209,6 +1215,8 @@ function createShareRowMain(martyr) {
         { name: 'Print / PDF', icon: '🖨️', action: () => {
             if (typeof printMartyrProfile === 'function') {
                 printMartyrProfile(martyr);
+            } else if (typeof printMartyrProfileMain === 'function') {
+                printMartyrProfileMain(martyr);
             } else {
                 window.print();
             }
@@ -1365,52 +1373,179 @@ function toggleMartyrSpeechMain(martyr, buttonEl) {
     }
 }
 
-// Print martyr profile (opens printable view for PDF download)
-function printMartyrProfileMain(martyr) {
-    try {
-        const printWindow = window.open('', '_blank', 'width=900,height=1100');
-        if (!printWindow) {
-            alert('Please allow pop-ups to print or download the martyr profile.');
-            return;
-        }
+// Open a printable view for a single martyr (uses zero-popup hidden iframe + Save as PDF)
+function printMartyrProfile(martyr) {
+    if (!martyr) return;
 
-        const birth      = formatDate(martyr.birthDate) || 'Unknown';
-        const martyrdom  = formatDate(martyr.martyrdomDate) || 'Unknown';
-        const submitted  = formatDate(martyr.submittedAt) || 'Unknown';
-        const birthPlace = martyr.birthPlace || 'Unknown';
+    try {
+        const safe = (val) => {
+            if (val === null || val === undefined) return '';
+            return String(val)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        };
+
+        const birth          = (typeof formatDate === 'function' ? formatDate(martyr.birthDate) : martyr.birthDate) || 'Unknown';
+        const martyrdom      = (typeof formatDate === 'function' ? formatDate(martyr.martyrdomDate) : martyr.martyrdomDate) || 'Unknown';
+        const submitted      = (typeof formatDate === 'function' ? formatDate(martyr.submittedAt) : martyr.submittedAt) || 'Unknown';
+        const birthPlace     = martyr.birthPlace || 'Unknown';
         const martyrdomPlace = martyr.martyrdomPlace || 'Unknown';
         const organization   = martyr.organization || 'Unknown';
         const rank           = martyr.rank || '—';
         const fatherName     = martyr.fatherName || '—';
-
-        const safe = (val) => (val || '').toString().replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const printDate      = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
         const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<title>${safe(martyr.fullName)} - Martyr Profile</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>${safe(martyr.fullName)} - Martyr Profile | Baluch Martyrs Memorial</title>
 <style>
-  body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 40px; background: #f5f5f5; }
-  .page { background: #fff; max-width: 800px; margin: 0 auto; padding: 40px; box-shadow: 0 0 8px rgba(0,0,0,0.15); }
-  .header { text-align: center; border-bottom: 3px solid #2c5530; padding-bottom: 10px; margin-bottom: 20px; }
-  .header h1 { margin: 0; font-size: 26px; color: #2c5530; }
-  .header h2 { margin: 8px 0 0; font-size: 18px; color: #555; }
-  .photo-row { display: flex; gap: 24px; margin-top: 20px; }
-  .photo-box { flex: 0 0 220px; }
-  .photo-box img { width: 100%; border-radius: 8px; border: 3px solid #d4af37; object-fit: cover; height: 260px; }
-  .photo-placeholder { width: 100%; height: 260px; border-radius: 8px; border: 3px solid #d4af37; display: flex; align-items: center; justify-content: center; font-size: 60px; color: #999; background: linear-gradient(135deg,#f0f0f0,#dcdcdc); }
-  .details { flex: 1; font-size: 14px; }
-  .details table { width: 100%; border-collapse: collapse; }
-  .details th { text-align: left; padding: 4px 8px; width: 32%; color: #444; }
-  .details td { padding: 4px 8px; }
-  .section { margin-top: 24px; }
-  .section h3 { margin: 0 0 8px; color: #2c5530; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
-  .section p { margin: 0; line-height: 1.6; color: #333; white-space: pre-wrap; }
-  .footer { margin-top: 32px; font-size: 11px; color: #777; text-align: center; border-top: 1px solid #eee; padding-top: 8px; }
+  @page {
+    size: portrait;
+    margin: 12mm 15mm 15mm 15mm;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 24px;
+    background: #ffffff;
+    color: #111827;
+    line-height: 1.5;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page {
+    max-width: 820px;
+    margin: 0 auto;
+    background: #ffffff;
+  }
+  .header {
+    text-align: center;
+    border-bottom: 3px solid #2c5530;
+    padding-bottom: 12px;
+    margin-bottom: 22px;
+  }
+  .header h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 800;
+    color: #2c5530;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .header h2 {
+    margin: 4px 0 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: #64748b;
+  }
+  .photo-row {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    margin-bottom: 22px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .photo-box {
+    flex: 0 0 210px;
+    width: 210px;
+  }
+  .photo-box img {
+    width: 100%;
+    height: 250px;
+    border-radius: 10px;
+    border: 3px solid #d4af37;
+    object-fit: cover;
+    display: block;
+    background: #f8fafc;
+  }
+  .photo-placeholder {
+    width: 100%;
+    height: 250px;
+    border-radius: 10px;
+    border: 3px solid #d4af37;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 54px;
+    color: #94a3b8;
+    background: #f1f5f9;
+  }
+  .details-box {
+    flex: 1;
+  }
+  .details-name {
+    margin: 0 0 10px;
+    font-size: 22px;
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: 0.02em;
+  }
+  .details-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  .details-table tr {
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .details-table th {
+    text-align: left;
+    padding: 6px 10px 6px 0;
+    width: 32%;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+  .details-table td {
+    padding: 6px 0;
+    color: #0f172a;
+    font-weight: 600;
+  }
+  .section {
+    margin-top: 18px;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .section h3 {
+    margin: 0 0 6px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #2c5530;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1.5px solid #e2e8f0;
+    padding-bottom: 4px;
+  }
+  .section p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.65;
+    color: #334155;
+    white-space: pre-wrap;
+  }
+  .footer {
+    margin-top: 26px;
+    padding-top: 10px;
+    border-top: 1px solid #cbd5e1;
+    font-size: 11px;
+    color: #64748b;
+    text-align: center;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
   @media print {
-    body { background: #fff; padding: 0; }
-    .page { box-shadow: none; margin: 0; max-width: 100%; }
+    body { padding: 0; }
+    .page { max-width: 100%; }
   }
 </style>
 </head>
@@ -1418,21 +1553,21 @@ function printMartyrProfileMain(martyr) {
   <div class="page">
     <div class="header">
       <h1>Baluch Martyrs Memorial</h1>
-      <h2>Martyr Profile</h2>
+      <h2>Verified Archival Record • baluchmartyrs.com</h2>
     </div>
 
     <div class="photo-row">
       <div class="photo-box">
         ${martyr.photo ? 
-          `<img src="${martyr.photo}" alt="${safe(martyr.fullName)}" />` :
+          `<img src="${safe(martyr.photo)}" alt="${safe(martyr.fullName)}" />` :
           '<div class="photo-placeholder">📸</div>'}
       </div>
-      <div class="details">
-        <table>
-          <tr><th>Name</th><td>${safe(martyr.fullName)}</td></tr>
-          <tr><th>Father</th><td>${safe(fatherName)}</td></tr>
-          <tr><th>Birth</th><td>${safe(birth)} (${safe(birthPlace)})</td></tr>
-          <tr><th>Martyrdom</th><td>${safe(martyrdom)} (${safe(martyrdomPlace)})</td></tr>
+      <div class="details-box">
+        <h2 class="details-name">${safe(martyr.fullName || 'Unknown Martyr')}</h2>
+        <table class="details-table">
+          <tr><th>Father's Name</th><td>${safe(fatherName)}</td></tr>
+          <tr><th>Date of Birth</th><td>${safe(birth)} (${safe(birthPlace)})</td></tr>
+          <tr><th>Martyrdom Date</th><td>${safe(martyrdom)} (${safe(martyrdomPlace)})</td></tr>
           <tr><th>Organization</th><td>${safe(organization)}</td></tr>
           <tr><th>Rank / Role</th><td>${safe(rank)}</td></tr>
         </table>
@@ -1452,21 +1587,61 @@ function printMartyrProfileMain(martyr) {
     </div>` : ''}
 
     <div class="footer">
-      Submitted by: ${safe(martyr.submitterName || 'Unknown')} | Submitted on: ${safe(submitted)}<br>
-      Generated from Baluch Martyrs Memorial – baluchmartyrs.com
+      Submitted by: ${safe(martyr.submitterName || 'Unknown')} • Documented on: ${safe(submitted)}<br>
+      Archival Record generated from Baluch Martyrs Memorial (baluchmartyrs.com) on ${safe(printDate)}
     </div>
   </div>
-  <script>window.onload = function() { window.print(); };<\/script>
 </body>
 </html>`;
 
-        printWindow.document.write(html);
-        printWindow.document.close();
-    } catch (e) {
-        console.error('Error printing martyr profile:', e);
-        alert('Failed to open print view. Please try again.');
+        // Use a hidden iframe to print cleanly without popup blockers on iOS Safari and Android Chrome
+        let printFrame = document.getElementById('martyrPrintFrame');
+        if (printFrame) printFrame.remove();
+
+        printFrame = document.createElement('iframe');
+        printFrame.id = 'martyrPrintFrame';
+        printFrame.setAttribute('aria-hidden', 'true');
+        printFrame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+        document.body.appendChild(printFrame);
+
+        const frameDoc = printFrame.contentWindow.document;
+        frameDoc.open();
+        frameDoc.write(html);
+        frameDoc.close();
+
+        const executePrint = () => {
+            try {
+                if (printFrame && printFrame.contentWindow) {
+                    printFrame.contentWindow.focus();
+                    printFrame.contentWindow.print();
+                }
+            } catch (err) {
+                console.warn('Iframe print error, falling back to window.print():', err);
+                window.print();
+            }
+        };
+
+        const img = frameDoc.querySelector('img');
+        if (img && !img.complete) {
+            img.onload = () => setTimeout(executePrint, 120);
+            img.onerror = () => setTimeout(executePrint, 120);
+            setTimeout(executePrint, 1200);
+        } else {
+            setTimeout(executePrint, 200);
+        }
+    } catch (error) {
+        console.error('❌ Error preparing martyr print view:', error);
+        window.print();
     }
 }
+
+// Function aliases for complete universal compatibility
+function printMartyrProfileMain(martyr) {
+    return printMartyrProfile(martyr);
+}
+
+window.printMartyrProfile = printMartyrProfile;
+window.printMartyrProfileMain = printMartyrProfile;
 
 // Close Modal Function (legacy, kept for compatibility)
 function closeMartyrModal() {
