@@ -2831,6 +2831,7 @@ function toggleFilterDropdown(dropdownId, chipElement) {
 
     if (!isVisible) {
         dropdown.classList.add('show');
+        document.body.classList.add('filter-sheet-open');
         if (chipElement) {
             chipElement.classList.add('dropdown-open');
             chipElement.setAttribute('aria-expanded', 'true');
@@ -2850,6 +2851,7 @@ function closeAllDropdowns() {
         c.classList.remove('dropdown-open');
         c.setAttribute('aria-expanded', 'false');
     });
+    document.body.classList.remove('filter-sheet-open');
     const backdrop = document.getElementById('filterBackdrop');
     if (backdrop) {
         backdrop.classList.remove('show');

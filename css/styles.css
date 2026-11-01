@@ -2464,6 +2464,12 @@ html[data-theme="dark"] .file-upload-text {
         padding: 0.2rem 0.28rem 0.2rem 0.55rem;
     }
 
+    /* Mobile Discovery Bar Stacking Context Fix */
+    .discovery-bar:has(.filter-dropdown-menu.show),
+    body.filter-sheet-open .discovery-bar {
+        z-index: 10005 !important;
+    }
+
     /* Mobile Backdrop Overlay */
     .filter-mobile-backdrop.show {
         display: block;
@@ -2495,9 +2501,17 @@ html[data-theme="dark"] .file-upload-text {
         max-height: 75vh;
         border-radius: 22px 22px 0 0;
         border: none;
-        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25);
-        z-index: 10001;
-        padding-bottom: env(safe-area-inset-bottom, 16px);
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.35);
+        z-index: 10010 !important;
+        background: #ffffff !important;
+        padding-bottom: calc(16px + env(safe-area-inset-bottom, 16px));
+        -webkit-overflow-scrolling: touch;
+    }
+
+    html[data-theme="dark"] .filter-dropdown-menu,
+    html[data-theme="dark"] .filter-dropdown-menu.filter-dropdown-az {
+        background: #1e293b !important;
+        color: #f1f5f9 !important;
     }
 
     .filter-dropdown-menu.show {
