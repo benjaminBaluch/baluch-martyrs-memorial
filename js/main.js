@@ -1,6 +1,29 @@
 // Main JavaScript for Baluch Martyrs Memorial
 
 // ============================================
+// AUTOMATIC LEGACY COOKIE PURGE
+// Cleans up legacy asset-refresh tracking cookies from mobile browsers
+// ============================================
+(function purgeLegacyCookies() {
+    try {
+        if (typeof document === 'undefined' || !document.cookie) return;
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            const eqPos = cookie.indexOf('=');
+            const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+            if (name.startsWith('bmm_') || name.startsWith('bmm_cache_') || name.startsWith('bmm_refresh_')) {
+                document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`;
+                document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Lax`;
+                document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+            }
+        }
+    } catch (e) {
+        // Non-blocking safety
+    }
+})();
+
+// ============================================
 // UNIFIED BALUCH SEARCH & TRANSLITERATION ENGINE
 // Shared by Hero Search and Gallery Search
 // ============================================

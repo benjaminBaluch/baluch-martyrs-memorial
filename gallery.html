@@ -783,9 +783,6 @@
             }
         }
     </style>
-
-    <!-- Professional Static Asset Refresh System -->
-    <script src="js/asset-refresh.js"></script>
 </head>
 <body>
     <!-- Header Section -->
@@ -967,33 +964,10 @@
     </script>
     
     <!-- Load main scripts; gallery.js renders immediately from Instant Cache and syncs live with Firebase -->
-    <script src="js/main.js?v=20261031a"></script>
+    <script src="js/main.js?v=20261101b"></script>
     <script src="js/mobile-menu.js?v=20261020c"></script>
-    <script src="js/gallery.js?v=20261031a"></script>
+    <script src="js/gallery.js?v=20261101b"></script>
 
-    <!-- Initialize Professional Asset Refresh System -->
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        if (typeof StaticAssetRefresh !== 'undefined') {
-            try {
-                window.initAutoRefresh({
-                    enableLogging: false,
-                    refreshInterval: 30 * 60 * 1000,
-                    cookiePrefix: 'bmm_cache_',
-                    autoRefresh: true
-                });
-                
-                window.forceRefreshAssets = async function() {
-                    const results = await window.refreshStaticAssets({ enableLogging: true });
-                    console.log('✅ Gallery assets refreshed:', results);
-                    return results;
-                };
-            } catch (error) {
-                console.warn('⚠️ Asset refresh failed:', error);
-            }
-        }
-    });
-    </script>
     <!-- Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav">
         <div class="bottom-nav-inner">
