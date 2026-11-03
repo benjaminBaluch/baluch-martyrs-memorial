@@ -242,6 +242,33 @@ async function readMartyrsFromIDB() {
     }
 }
 
+async function readMartyrsFromSeed() {
+    try {
+        const resp = await fetch('/assets/martyrs-seed.json', {
+            headers: { 'Accept': 'application/json' },
+            cache: 'default'
+        });
+        if (!resp.ok) return null;
+        const record = await resp.json();
+        if (!record || !Array.isArray(record.data) || record.data.length === 0) {
+            return null;
+        }
+        const rehydrated = record.data.map(rehydrateFieldFromIDB);
+        return {
+            data: rehydrated,
+            rawCollectionSize: typeof record.rawCollectionSize === 'number' ? record.rawCollectionSize : rehydrated.length,
+            maxApprovedMs: record.maxApprovedMs || record.syncedAt || Date.now(),
+            maxUpdatedMs: record.maxUpdatedMs || record.syncedAt || Date.now(),
+            syncedAt: record.syncedAt || Date.now(),
+            fullSyncAt: record.fullSyncAt || record.syncedAt || Date.now(),
+            fromSeed: true
+        };
+    } catch (err) {
+        console.warn('⚠️ Seed archive read skipped:', err.message);
+        return null;
+    }
+}
+
 async function writeMartyrsToIDB(martyrs, rawCollectionSize, isFullSync = false) {
     try {
         if (!Array.isArray(martyrs) || martyrs.length === 0) return;
@@ -587,14 +614,25 @@ export const firebaseDB = {
             try {
                 // Phase 1: Check High-Capacity IndexedDB Archive Cache (~25-40ms)
                 if (!forceRefresh) {
-                    const cachedEntry = await readMartyrsFromIDB();
+                    let cachedEntry = await readMartyrsFromIDB();
+
+                    // If IndexedDB is empty (first-time visitor), fetch the fast instant seed archive (~100ms)
+                    if (!cachedEntry || !Array.isArray(cachedEntry.data) || cachedEntry.data.length === 0) {
+                        cachedEntry = await readMartyrsFromSeed();
+                        if (cachedEntry && Array.isArray(cachedEntry.data) && cachedEntry.data.length > 0) {
+                            console.log(`⚡ Instant Seed Archive hit: ${cachedEntry.data.length} martyrs loaded immediately`);
+                            // Save to IndexedDB in background so all future page loads are ~20ms
+                            writeMartyrsToIDB(cachedEntry.data, cachedEntry.rawCollectionSize, false);
+                        }
+                    }
+
                     if (cachedEntry && Array.isArray(cachedEntry.data) && cachedEntry.data.length > 0) {
                         memoryCache = cachedEntry;
                         if (typeof window !== 'undefined') {
                             window.allApprovedMartyrs = cachedEntry.data;
                             window.martyrsDataFromFirebase = cachedEntry.data;
                         }
-                        console.log(`⚡ Instant IndexedDB Archive Cache hit: ${cachedEntry.data.length} martyrs loaded immediately`);
+                        console.log(`⚡ Instant Memorial Archive hit (${cachedEntry.fromSeed ? 'CDN Seed' : 'IndexedDB Cache'}): ${cachedEntry.data.length} martyrs loaded immediately`);
 
                         // Phase 2: Asynchronously verify & sync any additions, edits, or deletions with Firebase
                         syncWithFirebaseInBackground(cachedEntry);
@@ -602,7 +640,7 @@ export const firebaseDB = {
                         return {
                             success: true,
                             data: cachedEntry.data,
-                            source: 'idb-cache',
+                            source: cachedEntry.fromSeed ? 'seed-archive' : 'idb-cache',
                             collections_checked: ['martyrs', 'pendingMartyrs'],
                             total_found: cachedEntry.data.length
                         };

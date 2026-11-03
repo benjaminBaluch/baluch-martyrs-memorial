@@ -350,8 +350,9 @@
 
                 // Avatar
                 const initial = (m.fullName || 'B').trim().charAt(0).toUpperCase();
-                const avatarHtml = m.photo
-                    ? `<img src="${escapeHtml(m.photo)}" alt="" loading="lazy">`
+                const photoSrc = m.photo || (m.id ? `/assets/photos/${encodeURIComponent(m.id)}.jpg` : '');
+                const avatarHtml = photoSrc
+                    ? `<img src="${escapeHtml(photoSrc)}" alt="" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<span class=\\'hero-search-avatar-fallback\\'>${escapeHtml(initial)}</span>';">`
                     : `<span class="hero-search-avatar-fallback">${escapeHtml(initial)}</span>`;
 
                 // Meta details

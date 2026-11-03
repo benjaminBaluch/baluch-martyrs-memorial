@@ -325,6 +325,17 @@ function rehydrateCachedValueMain(val) {
     return out;
 }
 
+function getMartyrPhotoSrcMain(martyr) {
+    if (!martyr) return '';
+    if (martyr.photo && typeof martyr.photo === 'string' && martyr.photo.trim().length > 0) {
+        return martyr.photo.trim();
+    }
+    if (martyr.id) {
+        return '/assets/photos/' + encodeURIComponent(martyr.id) + '.jpg';
+    }
+    return '';
+}
+
 window.bmmInstantCache = {
     _promise: null,
     read() {
@@ -332,51 +343,93 @@ window.bmmInstantCache = {
             return Promise.resolve(window.allApprovedMartyrs);
         }
         if (this._promise) return this._promise;
-        this._promise = new Promise((resolve) => {
-            if (typeof indexedDB === 'undefined') {
-                resolve(null);
-                return;
-            }
-            try {
-                const req = indexedDB.open(BMM_IDB_NAME, 1);
-                req.onupgradeneeded = (e) => {
-                    const db = e.target.result;
-                    if (!db.objectStoreNames.contains(BMM_IDB_STORE)) {
-                        db.createObjectStore(BMM_IDB_STORE);
-                    }
-                };
-                req.onsuccess = (e) => {
+        this._promise = (async () => {
+            // 1. Check instant IndexedDB Cache (~20ms)
+            let idbMartyrs = null;
+            if (typeof indexedDB !== 'undefined') {
+                idbMartyrs = await new Promise((resolve) => {
                     try {
-                        const db = e.target.result;
-                        const tx = db.transaction(BMM_IDB_STORE, 'readonly');
-                        const getReq = tx.objectStore(BMM_IDB_STORE).get(BMM_IDB_KEY);
-                        getReq.onsuccess = () => {
-                            db.close();
-                            const rec = getReq.result;
-                            if (rec && Array.isArray(rec.data) && rec.data.length > 0) {
-                                const rehydrated = rec.data.map(rehydrateCachedValueMain);
-                                if (!window.allApprovedMartyrs || window.allApprovedMartyrs.length === 0) {
-                                    window.allApprovedMartyrs = rehydrated;
-                                }
-                                resolve(rehydrated);
-                            } else {
+                        const req = indexedDB.open(BMM_IDB_NAME, 1);
+                        req.onupgradeneeded = (e) => {
+                            const db = e.target.result;
+                            if (!db.objectStoreNames.contains(BMM_IDB_STORE)) {
+                                db.createObjectStore(BMM_IDB_STORE);
+                            }
+                        };
+                        req.onsuccess = (e) => {
+                            try {
+                                const db = e.target.result;
+                                const tx = db.transaction(BMM_IDB_STORE, 'readonly');
+                                const getReq = tx.objectStore(BMM_IDB_STORE).get(BMM_IDB_KEY);
+                                getReq.onsuccess = () => {
+                                    db.close();
+                                    const rec = getReq.result;
+                                    if (rec && Array.isArray(rec.data) && rec.data.length > 0) {
+                                        resolve(rec.data.map(rehydrateCachedValueMain));
+                                    } else {
+                                        resolve(null);
+                                    }
+                                };
+                                getReq.onerror = () => {
+                                    db.close();
+                                    resolve(null);
+                                };
+                            } catch (_) {
                                 resolve(null);
                             }
                         };
-                        getReq.onerror = () => {
-                            db.close();
-                            resolve(null);
-                        };
-                    } catch (txErr) {
+                        req.onerror = () => resolve(null);
+                        req.onblocked = () => resolve(null);
+                    } catch (_) {
                         resolve(null);
                     }
-                };
-                req.onerror = () => resolve(null);
-                req.onblocked = () => resolve(null);
-            } catch (err) {
-                resolve(null);
+                });
             }
-        }).finally(() => {
+
+            if (Array.isArray(idbMartyrs) && idbMartyrs.length > 0) {
+                if (!window.allApprovedMartyrs || window.allApprovedMartyrs.length === 0) {
+                    window.allApprovedMartyrs = idbMartyrs;
+                }
+                return idbMartyrs;
+            }
+
+            // 2. Cold cache / First-time visitor: Load pre-generated instant seed archive (~100ms)
+            try {
+                const resp = await fetch('/assets/martyrs-seed.json', {
+                    headers: { 'Accept': 'application/json' },
+                    cache: 'default'
+                });
+                if (resp.ok) {
+                    const record = await resp.json();
+                    if (record && Array.isArray(record.data) && record.data.length > 0) {
+                        const rehydrated = record.data.map(rehydrateCachedValueMain);
+                        if (!window.allApprovedMartyrs || window.allApprovedMartyrs.length === 0) {
+                            window.allApprovedMartyrs = rehydrated;
+                        }
+                        // Seed IndexedDB asynchronously so subsequent reads take ~15ms
+                        if (typeof indexedDB !== 'undefined') {
+                            try {
+                                const seedReq = indexedDB.open(BMM_IDB_NAME, 1);
+                                seedReq.onsuccess = (e) => {
+                                    try {
+                                        const db = e.target.result;
+                                        const tx = db.transaction(BMM_IDB_STORE, 'readwrite');
+                                        tx.objectStore(BMM_IDB_STORE).put(record, BMM_IDB_KEY);
+                                        tx.oncomplete = () => db.close();
+                                        tx.onerror = () => db.close();
+                                    } catch (_) {}
+                                };
+                            } catch (_) {}
+                        }
+                        return rehydrated;
+                    }
+                }
+            } catch (seedErr) {
+                console.warn('⚠️ Seed archive fetch skipped/failed:', seedErr);
+            }
+
+            return null;
+        })().finally(() => {
             this._promise = null;
         });
         return this._promise;
@@ -671,14 +724,17 @@ async function loadRecentMartyrs() {
     let martyrsData = [];
 
     try {
-        // 1. Try instant IndexedDB cache first if Firebase module is still loading
-        if (!window.firebaseDB && window.bmmInstantCache) {
+        // 1. Try instant IndexedDB / Seed cache first (renders immediately without waiting for Firebase module)
+        if (window.bmmInstantCache) {
             const instantCached = await window.bmmInstantCache.read();
             if (Array.isArray(instantCached) && instantCached.length > 0) {
                 martyrsData = instantCached;
                 window.allApprovedMartyrs = martyrsData;
                 window.dispatchEvent(new CustomEvent('martyrsDataLoaded', { detail: martyrsData }));
                 renderRecentMartyrsToDOM(martyrsData);
+                if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
+                    window.firebaseDB.getApprovedMartyrs();
+                }
                 return;
             }
         }
@@ -822,14 +878,30 @@ function createMartyrCard(martyr, list) {
         photoWrapper.appendChild(yearBadge);
     }
 
-    if (martyr.photo) {
+    const photoSrc = getMartyrPhotoSrcMain(martyr);
+    if (photoSrc) {
         const img = document.createElement('img');
-        img.src = martyr.photo;
+        img.src = photoSrc;
         img.alt = martyr.fullName || 'Martyr portrait';
         img.loading = 'lazy';
         img.decoding = 'async';
         img.width = 300;
         img.height = 220;
+        img.onerror = () => {
+            img.remove();
+            if (!photoWrapper.querySelector('.martyr-photo-placeholder')) {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'martyr-photo-placeholder';
+                placeholder.innerHTML = `
+                    <svg class="placeholder-crest-svg" viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <span class="placeholder-text">Memorial Archive</span>
+                `;
+                photoWrapper.appendChild(placeholder);
+            }
+        };
         photoWrapper.appendChild(img);
     } else {
         // Dignified memorial silhouette placeholder (no cartoon emojis)
@@ -1037,10 +1109,12 @@ function showMartyrDetails(martyr, list) {
 
         <div class="martyr-modal-body">
             <div class="martyr-modal-photo-col">
-                ${martyr.photo ? 
-                    `<img src="${martyr.photo}" alt="${escapeHTMLMain(martyr.fullName || 'Martyr photo')}" class="martyr-modal-photo" loading="lazy">` :
-                    '<div class="martyr-modal-photo-placeholder" aria-label="No photo available">📷</div>'
-                }
+                ${(() => {
+                    const photoSrc = getMartyrPhotoSrcMain(martyr);
+                    return photoSrc ? 
+                        `<img src="${photoSrc}" alt="${escapeHTMLMain(martyr.fullName || 'Martyr photo')}" class="martyr-modal-photo" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'martyr-modal-photo-placeholder\\' aria-label=\\'No photo available\\'>📷</div>';">` :
+                        '<div class="martyr-modal-photo-placeholder" aria-label="No photo available">📷</div>';
+                })()}
             </div>
             
             <div class="martyr-modal-details-col">
@@ -1581,9 +1655,12 @@ function printMartyrProfile(martyr) {
 
     <div class="photo-row">
       <div class="photo-box">
-        ${martyr.photo ? 
-          `<img src="${safe(martyr.photo)}" alt="${safe(martyr.fullName)}" />` :
-          '<div class="photo-placeholder">📸</div>'}
+        ${(() => {
+            const photoSrc = getMartyrPhotoSrcMain(martyr);
+            return photoSrc ? 
+              `<img src="${safe(photoSrc)}" alt="${safe(martyr.fullName)}" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'photo-placeholder\\'>📸</div>';" />` :
+              '<div class="photo-placeholder">📸</div>';
+        })()}
       </div>
       <div class="details-box">
         <h2 class="details-name">${safe(martyr.fullName || 'Unknown Martyr')}</h2>
@@ -1752,11 +1829,14 @@ async function loadAnniversaryMartyrs() {
     let approvedMartyrs = [];
     
     try {
-        // 1. Try instant IndexedDB cache first if Firebase module is still loading
-        if (!window.firebaseDB && window.bmmInstantCache) {
+        // 1. Try instant IndexedDB / Seed cache first (renders immediately without waiting for Firebase module)
+        if (window.bmmInstantCache) {
             const instantCached = await window.bmmInstantCache.read();
             if (Array.isArray(instantCached) && instantCached.length > 0) {
                 renderAnniversaryMartyrsFromList(instantCached);
+                if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
+                    window.firebaseDB.getApprovedMartyrs();
+                }
                 return;
             }
         }
@@ -1871,14 +1951,25 @@ function createAnniversaryCard(martyr, list) {
     const imageDiv = document.createElement('div');
     imageDiv.className = 'martyr-image';
     
-    if (martyr.photo) {
+    const photoSrc = getMartyrPhotoSrcMain(martyr);
+    if (photoSrc) {
         const img = document.createElement('img');
-        img.src = martyr.photo;
+        img.src = photoSrc;
         img.alt = martyr.fullName;
         img.loading = 'lazy';
         img.decoding = 'async';
         img.width = 340;
         img.height = 380;
+        img.onerror = () => {
+            img.remove();
+            imageDiv.style.background = 'linear-gradient(135deg, #2c5530, #4a7c59)';
+            imageDiv.style.display = 'flex';
+            imageDiv.style.alignItems = 'center';
+            imageDiv.style.justifyContent = 'center';
+            imageDiv.style.color = 'white';
+            imageDiv.style.fontSize = '3rem';
+            imageDiv.innerHTML = '🕊️';
+        };
         imageDiv.appendChild(img);
     } else {
         imageDiv.style.background = 'linear-gradient(135deg, #2c5530, #4a7c59)';

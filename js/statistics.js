@@ -821,7 +821,7 @@
             }
 
             // Photos
-            if (m.photo && m.photo.length > 50) {
+            if ((m.photo && m.photo.length > 20) || m.hasPhoto || m.id) {
                 stats.withPhoto++;
             }
 
@@ -2078,14 +2078,14 @@
                 }
             }
 
-            // Helper: Load photo as DataURL (handles both data:image and https:// URLs with timeout)
+            // Helper: Load photo as DataURL (handles both data:image and https:// or local static URLs with timeout)
             async function loadPhotoAsDataUrl(photoSrc, timeoutMs = 1500) {
                 if (!photoSrc || typeof photoSrc !== 'string') return null;
                 const trimmed = photoSrc.trim();
                 if (trimmed.startsWith('data:image/')) {
                     return trimmed;
                 }
-                if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+                if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://') && !trimmed.startsWith('/') && !trimmed.startsWith('./')) {
                     return null;
                 }
 
@@ -2395,8 +2395,9 @@
                 const photoX = margin;
                 const photoY = slotY + 2;
 
-                // Load photo asynchronously (Base64 or external URL)
-                const photoDataUrl = await loadPhotoAsDataUrl(martyr.photo, 1500);
+                // Load photo asynchronously (Base64 or external URL or local static asset)
+                const photoPath = martyr.photo || (martyr.id ? `/assets/photos/${encodeURIComponent(martyr.id)}.jpg` : null);
+                const photoDataUrl = await loadPhotoAsDataUrl(photoPath, 1500);
 
                 if (photoDataUrl) {
                     try {

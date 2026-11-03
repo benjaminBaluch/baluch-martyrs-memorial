@@ -198,10 +198,11 @@ function showDuplicateWarningModal(martyrToApprove, duplicates, onConfirm, onCan
     // Helper to create structured profile card HTML
     const createProfileCard = (martyr, breakdown = {}) => {
         const orgDisplay = martyr.organization || martyr.affiliation || '';
+        const cardPhoto = martyr.photo || (martyr.id ? `/assets/photos/${encodeURIComponent(martyr.id)}.jpg` : '');
         return `
             <div class="dup-profile-photo">
-                ${martyr.photo ? 
-                    `<img src="${martyr.photo}" alt="${escapeHTML(martyr.fullName)}">` :
+                ${cardPhoto ? 
+                    `<img src="${cardPhoto}" alt="${escapeHTML(martyr.fullName)}" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'dup-no-photo\\'><small>No Photo</small></div>';">` :
                     `<div class="dup-no-photo">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                         <small>No Photo</small>
@@ -1173,11 +1174,16 @@ function openPendingPreview(martyr) {
     const imgWrapper = document.createElement('div');
     imgWrapper.style.cssText = 'height:220px;background:linear-gradient(135deg,#ddd,#aaa);display:flex;align-items:center;justify-content:center;';
 
-    if (martyr.photo) {
+    const photoSrc = martyr.photo || (martyr.id ? `/assets/photos/${encodeURIComponent(martyr.id)}.jpg` : '');
+    if (photoSrc) {
         const img = document.createElement('img');
-        img.src = martyr.photo;
+        img.src = photoSrc;
         img.alt = martyr.fullName || 'Martyr photo';
         img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+        img.onerror = () => {
+            img.remove();
+            imgWrapper.innerHTML = '<div style="font-size:3rem;color:#777;">📸</div>';
+        };
         imgWrapper.appendChild(img);
     } else {
         const icon = document.createElement('div');
@@ -2035,13 +2041,15 @@ function createApprovedMartyrItem(martyr) {
         </div>
         <div class="pending-content">
             <div class="pending-image">
-                ${martyr.photo ? 
-                    `<img src="${martyr.photo}" alt="${escapeHTML(martyr.fullName)}" loading="lazy">` :
-                    `<div class="pending-no-photo">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        <span>No Photo</span>
-                    </div>`
-                }
+                ${(() => {
+                    const approvedPhoto = martyr.photo || (martyr.id ? `/assets/photos/${encodeURIComponent(martyr.id)}.jpg` : '');
+                    return approvedPhoto ? 
+                        `<img src="${approvedPhoto}" alt="${escapeHTML(martyr.fullName)}" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'pending-no-photo\\'><span>No Photo</span></div>';">` :
+                        `<div class="pending-no-photo">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <span>No Photo</span>
+                        </div>`;
+                })()}
             </div>
             <div class="pending-details">
                 <div class="pending-title-row">
@@ -2288,10 +2296,12 @@ function openEditMartyrModal(martyr) {
                     <div class="edit-form-group full-width">
                         <label>Current Photo</label>
                         <div class="edit-photo-preview">
-                            ${martyr.photo ? 
-                                `<img src="${martyr.photo}" alt="Current photo" style="max-width: 150px; max-height: 150px; border-radius: 8px;">` :
-                                '<span style="color: #666;">No photo uploaded</span>'
-                            }
+                            ${(() => {
+                                const photoSrc = martyr.photo || (martyr.id ? `/assets/photos/${encodeURIComponent(martyr.id)}.jpg` : '');
+                                return photoSrc ? 
+                                    `<img src="${photoSrc}" alt="Current photo" style="max-width: 150px; max-height: 150px; border-radius: 8px;" onerror="this.onerror=null;this.parentElement.innerHTML='<span style=\\'color: #666;\\'>No photo uploaded</span>';">` :
+                                    '<span style="color: #666;">No photo uploaded</span>';
+                            })()}
                         </div>
                         <small style="color: #666; margin-top: 0.5rem; display: block;">To change the photo, you'll need to re-submit the martyr profile or contact support.</small>
                     </div>

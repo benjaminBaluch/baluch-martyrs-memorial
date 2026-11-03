@@ -13,6 +13,17 @@ function escapeHTML(value) {
         .replace(/'/g, '&#39;');
 }
 
+function getMartyrPhotoSrcGallery(martyr) {
+    if (!martyr) return '';
+    if (martyr.photo && typeof martyr.photo === 'string' && martyr.photo.trim().length > 0) {
+        return martyr.photo.trim();
+    }
+    if (martyr.id) {
+        return '/assets/photos/' + encodeURIComponent(martyr.id) + '.jpg';
+    }
+    return '';
+}
+
 // Global state
 let allMartyrs = [];
 let currentFilters = {
@@ -253,11 +264,11 @@ async function loadGallery() {
             return;
         }
 
-        // Method 1B: Instant IndexedDB Cache (~25ms) before CDN module finishes loading
-        if (!window.firebaseDB && window.bmmInstantCache) {
+        // Method 1B: Instant Cache (IndexedDB or Instant Seed) - renders in <30ms without network wait
+        if (window.bmmInstantCache && typeof window.bmmInstantCache.read === 'function') {
             const instantCached = await window.bmmInstantCache.read();
             if (Array.isArray(instantCached) && instantCached.length > 0) {
-                console.log(`⚡ Instant IndexedDB cache hit: ${instantCached.length} martyrs`);
+                console.log(`⚡ Instant Archive hit: ${instantCached.length} martyrs`);
                 allMartyrs = instantCached;
                 hideOfflineWarning();
                 populateFilterDropdowns();
@@ -267,6 +278,11 @@ async function loadGallery() {
                 window.dispatchEvent(new Event('martyrsDataReady'));
                 galleryLoaded = true;
                 galleryLoading = false;
+
+                // Trigger background live delta sync with Firebase
+                if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
+                    window.firebaseDB.getApprovedMartyrs();
+                }
                 return;
             }
         }
@@ -1171,9 +1187,12 @@ function printMartyrProfile(martyr) {
 
     <div class="photo-row">
       <div class="photo-box">
-        ${martyr.photo ? 
-          `<img src="${safe(martyr.photo)}" alt="${safe(martyr.fullName)}" />` :
-          '<div class="photo-placeholder">📸</div>'}
+        ${(() => {
+            const photoSrc = getMartyrPhotoSrcGallery(martyr);
+            return photoSrc ? 
+              `<img src="${safe(photoSrc)}" alt="${safe(martyr.fullName)}" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'photo-placeholder\\'>📸</div>';" />` :
+              '<div class="photo-placeholder">📸</div>';
+        })()}
       </div>
       <div class="details-box">
         <h2 class="details-name">${safe(martyr.fullName || 'Unknown Martyr')}</h2>
@@ -1362,10 +1381,12 @@ function showMartyrModal(martyr, navList) {
 
         <div class="martyr-modal-body">
             <div class="martyr-modal-photo-col">
-                ${martyr.photo ? 
-                    `<img src="${martyr.photo}" alt="${escapeHTML(martyr.fullName || 'Martyr photo')}" class="martyr-modal-photo" loading="lazy">` :
-                    '<div class="martyr-modal-photo-placeholder" aria-label="No photo available">📷</div>'
-                }
+                ${(() => {
+                    const photoSrc = getMartyrPhotoSrcGallery(martyr);
+                    return photoSrc ? 
+                        `<img src="${photoSrc}" alt="${escapeHTML(martyr.fullName || 'Martyr photo')}" class="martyr-modal-photo" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'martyr-modal-photo-placeholder\\' aria-label=\\'No photo available\\'>📷</div>';">` :
+                        '<div class="martyr-modal-photo-placeholder" aria-label="No photo available">📷</div>';
+                })()}
             </div>
             
             <div class="martyr-modal-details-col">
@@ -1691,14 +1712,30 @@ function createGalleryCard(martyr, index = 99) {
         photoWrapper.appendChild(yearBadge);
     }
 
-    if (martyr.photo) {
+    const photoSrc = getMartyrPhotoSrcGallery(martyr);
+    if (photoSrc) {
         const img = document.createElement('img');
-        img.src = martyr.photo;
+        img.src = photoSrc;
         img.alt = martyr.fullName || 'Martyr portrait';
         img.loading = index < 8 ? 'eager' : 'lazy';
         img.decoding = 'async';
         img.width = 300;
         img.height = 220;
+        img.onerror = () => {
+            img.remove();
+            if (!photoWrapper.querySelector('.martyr-photo-placeholder')) {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'martyr-photo-placeholder';
+                placeholder.innerHTML = `
+                    <svg class="placeholder-crest-svg" viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <span class="placeholder-text">Memorial Archive</span>
+                `;
+                photoWrapper.appendChild(placeholder);
+            }
+        };
         photoWrapper.appendChild(img);
     } else {
         // Dignified memorial silhouette placeholder (no cartoon emojis)
@@ -3058,8 +3095,9 @@ function createAutocompleteItem(martyr, index) {
     item.className = 'autocomplete-item';
     item.dataset.index = index;
 
-    const iconHtml = martyr.photo
-        ? `<img src="${martyr.photo}" alt="" loading="lazy" decoding="async" width="32" height="32">`
+    const photoSrc = getMartyrPhotoSrcGallery(martyr);
+    const iconHtml = photoSrc
+        ? `<img src="${photoSrc}" alt="" loading="lazy" decoding="async" width="32" height="32" onerror="this.onerror=null;this.parentElement.textContent='👤';">`
         : '👤';
 
     const location = martyr.martyrdomPlace || martyr.birthPlace || 'Unknown';
