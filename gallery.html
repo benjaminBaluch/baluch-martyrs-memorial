@@ -21,7 +21,7 @@
     <!-- Preconnect & Modulepreload for Instant Firebase Connection -->
     <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
-    <link rel="modulepreload" href="js/firebase-config.js?v=20261020a">
+    <link rel="modulepreload" href="js/firebase-config.js?v=20261103d">
     
     <link rel="stylesheet" href="css/styles.css?v=20261020c">
 
@@ -959,14 +959,15 @@
 
     <!-- Preload & Initialize Modular Firebase (non-blocking) -->
     <script type="module">
-        import { firebaseDB } from './js/firebase-config.js?v=20261020a';
+        import { firebaseDB } from './js/firebase-config.js?v=20261103d';
         window.firebaseDB = firebaseDB;
+        window.dispatchEvent(new Event('firebaseReady'));
     </script>
     
     <!-- Load main scripts; gallery.js renders immediately from Instant Cache and syncs live with Firebase -->
-    <script src="js/main.js?v=20261101b"></script>
+    <script src="js/main.js?v=20261103d"></script>
     <script src="js/mobile-menu.js?v=20261020c"></script>
-    <script src="js/gallery.js?v=20261101b"></script>
+    <script src="js/gallery.js?v=20261103d"></script>
 
     <!-- Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav">

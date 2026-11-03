@@ -74,7 +74,8 @@ try {
 
 const IDB_DB_NAME = 'bmm_memorial_archive_db';
 const IDB_STORE_NAME = 'martyrs_cache';
-const IDB_CACHE_KEY = 'approved_martyrs_v1';
+const IDB_CACHE_KEY = 'approved_martyrs_v2';
+const LEGACY_IDB_CACHE_KEY = 'approved_martyrs_v1';
 const FULL_REVALIDATE_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const CLOCK_SKEW_BUFFER_MS = 2 * 60 * 1000; // 2-minute safety window for delta queries
 
@@ -254,13 +255,14 @@ async function readMartyrsFromSeed() {
             return null;
         }
         const rehydrated = record.data.map(rehydrateFieldFromIDB);
+        const seedWatermarkMs = record.syncedAt || record.maxApprovedMs || Date.now();
         return {
             data: rehydrated,
             rawCollectionSize: typeof record.rawCollectionSize === 'number' ? record.rawCollectionSize : rehydrated.length,
-            maxApprovedMs: record.maxApprovedMs || record.syncedAt || Date.now(),
-            maxUpdatedMs: record.maxUpdatedMs || record.syncedAt || Date.now(),
-            syncedAt: record.syncedAt || Date.now(),
-            fullSyncAt: record.fullSyncAt || record.syncedAt || Date.now(),
+            maxApprovedMs: seedWatermarkMs,
+            maxUpdatedMs: seedWatermarkMs,
+            syncedAt: seedWatermarkMs,
+            fullSyncAt: seedWatermarkMs,
             fromSeed: true
         };
     } catch (err) {
@@ -269,19 +271,22 @@ async function readMartyrsFromSeed() {
     }
 }
 
-async function writeMartyrsToIDB(martyrs, rawCollectionSize, isFullSync = false) {
+async function writeMartyrsToIDB(martyrs, rawCollectionSize, isFullSync = false, watermarkOverride = null) {
     try {
         if (!Array.isArray(martyrs) || martyrs.length === 0) return;
         const now = Date.now();
         const { maxApprovedMs, maxUpdatedMs } = computeWatermarks(martyrs, now);
-        const fullSyncAt = isFullSync ? now : (memoryCache?.fullSyncAt || now);
+        const effectiveMaxApprovedMs = watermarkOverride?.maxApprovedMs || Math.max(maxApprovedMs, now);
+        const effectiveMaxUpdatedMs = watermarkOverride?.maxUpdatedMs || Math.max(maxUpdatedMs, now);
+        const effectiveSyncedAt = watermarkOverride?.syncedAt || now;
+        const fullSyncAt = watermarkOverride?.fullSyncAt || (isFullSync ? now : (memoryCache?.fullSyncAt || now));
 
         memoryCache = {
             data: martyrs,
             rawCollectionSize: typeof rawCollectionSize === 'number' ? rawCollectionSize : martyrs.length,
-            maxApprovedMs: Math.max(maxApprovedMs, now),
-            maxUpdatedMs: Math.max(maxUpdatedMs, now),
-            syncedAt: now,
+            maxApprovedMs: effectiveMaxApprovedMs,
+            maxUpdatedMs: effectiveMaxUpdatedMs,
+            syncedAt: effectiveSyncedAt,
             fullSyncAt
         };
 
@@ -295,12 +300,13 @@ async function writeMartyrsToIDB(martyrs, rawCollectionSize, isFullSync = false)
         await new Promise((resolve, reject) => {
             const tx = database.transaction(IDB_STORE_NAME, 'readwrite');
             const store = tx.objectStore(IDB_STORE_NAME);
+            try { store.delete(LEGACY_IDB_CACHE_KEY); } catch (_) {}
             store.put({
                 data: serializedData,
                 rawCollectionSize: memoryCache.rawCollectionSize,
                 maxApprovedMs: memoryCache.maxApprovedMs,
                 maxUpdatedMs: memoryCache.maxUpdatedMs,
-                syncedAt: now,
+                syncedAt: effectiveSyncedAt,
                 fullSyncAt
             }, IDB_CACHE_KEY);
             tx.oncomplete = () => {
@@ -323,7 +329,9 @@ async function clearMartyrsCache() {
         const database = await openArchiveIDB();
         await new Promise((resolve) => {
             const tx = database.transaction(IDB_STORE_NAME, 'readwrite');
-            tx.objectStore(IDB_STORE_NAME).delete(IDB_CACHE_KEY);
+            const store = tx.objectStore(IDB_STORE_NAME);
+            store.delete(IDB_CACHE_KEY);
+            try { store.delete(LEGACY_IDB_CACHE_KEY); } catch (_) {}
             tx.oncomplete = () => {
                 database.close();
                 resolve();
@@ -441,15 +449,6 @@ function syncWithFirebaseInBackground(cachedEntry) {
     backgroundSyncPromise = (async () => {
         try {
             const now = Date.now();
-            // If full collection hasn't been revalidated in >24 hours, run full sync in background
-            if (now - (cachedEntry.fullSyncAt || cachedEntry.syncedAt || 0) > FULL_REVALIDATE_INTERVAL_MS) {
-                const fullRes = await fetchApprovedMartyrsFromFirestore();
-                if (fullRes.success && fullRes.data.length > 0) {
-                    broadcastMartyrsUpdate(fullRes.data, 'firebase-full-revalidate');
-                }
-                return fullRes;
-            }
-
             const baseWatermarkMs = Math.max(1700000000000, (cachedEntry.syncedAt || now) - CLOCK_SKEW_BUFFER_MS);
             const sinceApprovedMs = Math.max(1700000000000, (cachedEntry.maxApprovedMs || baseWatermarkMs) - CLOCK_SKEW_BUFFER_MS);
             const sinceUpdatedMs = Math.max(1700000000000, (cachedEntry.maxUpdatedMs || baseWatermarkMs) - CLOCK_SKEW_BUFFER_MS);
@@ -621,8 +620,13 @@ export const firebaseDB = {
                         cachedEntry = await readMartyrsFromSeed();
                         if (cachedEntry && Array.isArray(cachedEntry.data) && cachedEntry.data.length > 0) {
                             console.log(`⚡ Instant Seed Archive hit: ${cachedEntry.data.length} martyrs loaded immediately`);
-                            // Save to IndexedDB in background so all future page loads are ~20ms
-                            writeMartyrsToIDB(cachedEntry.data, cachedEntry.rawCollectionSize, false);
+                            // Save to IndexedDB in background preserving the seed's actual watermarks so delta sync catches all new profiles since seed generation
+                            writeMartyrsToIDB(cachedEntry.data, cachedEntry.rawCollectionSize, false, {
+                                maxApprovedMs: cachedEntry.maxApprovedMs,
+                                maxUpdatedMs: cachedEntry.maxUpdatedMs,
+                                syncedAt: cachedEntry.syncedAt,
+                                fullSyncAt: cachedEntry.fullSyncAt
+                            });
                         }
                     }
 
@@ -716,7 +720,8 @@ export const firebaseDB = {
             const approvedData = {
                 ...martyrData,
                 status: 'approved',
-                approvedAt: serverTimestamp()
+                approvedAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
             };
             delete approvedData.id; // Remove old ID field
             
@@ -725,8 +730,34 @@ export const firebaseDB = {
             // Delete from pending collection
             await deleteDoc(doc(db, 'pendingMartyrs', martyrId));
             
-            // Invalidate local archive cache so the newly approved martyr is fetched immediately
-            await clearMartyrsCache();
+            // Update local archive cache directly so the newly approved martyr appears immediately without clearing the seed cache
+            try {
+                const existing = memoryCache || (await readMartyrsFromIDB()) || (await readMartyrsFromSeed());
+                if (existing && Array.isArray(existing.data) && existing.data.length > 0) {
+                    const nowTs = Timestamp.now();
+                    const newMartyrObj = {
+                        ...martyrData,
+                        id: docRef.id,
+                        status: 'approved',
+                        approvedAt: nowTs,
+                        updatedAt: nowTs
+                    };
+                    const merged = existing.data.filter(m => m && m.id !== docRef.id);
+                    merged.push(newMartyrObj);
+                    merged.sort((a, b) => {
+                        const idA = String(a?.id || '');
+                        const idB = String(b?.id || '');
+                        return idA < idB ? -1 : (idA > idB ? 1 : 0);
+                    });
+                    const newRawSize = (existing.rawCollectionSize || existing.data.length) + 1;
+                    await writeMartyrsToIDB(merged, newRawSize, false);
+                    broadcastMartyrsUpdate(merged, 'admin-approve');
+                } else {
+                    await clearMartyrsCache();
+                }
+            } catch (_) {
+                await clearMartyrsCache();
+            }
             
             console.log('Martyr approved with ID: ', docRef.id);
             return { success: true, id: docRef.id };
@@ -831,8 +862,25 @@ export const firebaseDB = {
             const martyrRef = doc(db, 'martyrs', martyrId);
             await updateDoc(martyrRef, processedData);
             
-            // Invalidate local archive cache so updated profile fields appear immediately
-            await clearMartyrsCache();
+            // Update local archive cache directly so updated profile fields appear immediately
+            try {
+                const existing = memoryCache || (await readMartyrsFromIDB()) || (await readMartyrsFromSeed());
+                if (existing && Array.isArray(existing.data) && existing.data.length > 0) {
+                    const nowTs = Timestamp.now();
+                    const merged = existing.data.map(m => {
+                        if (m && m.id === martyrId) {
+                            return { ...m, ...updatedData, id: martyrId, updatedAt: nowTs };
+                        }
+                        return m;
+                    });
+                    await writeMartyrsToIDB(merged, existing.rawCollectionSize || merged.length, false);
+                    broadcastMartyrsUpdate(merged, 'admin-update');
+                } else {
+                    await clearMartyrsCache();
+                }
+            } catch (_) {
+                await clearMartyrsCache();
+            }
             
             console.log(`✅ Approved martyr updated: ${martyrId}`);
             return { success: true, id: martyrId };
@@ -847,7 +895,19 @@ export const firebaseDB = {
         try {
             console.log(`🗑️ Deleting approved martyr: ${martyrId}`);
             await deleteDoc(doc(db, 'martyrs', martyrId));
-            await clearMartyrsCache();
+            try {
+                const existing = memoryCache || (await readMartyrsFromIDB()) || (await readMartyrsFromSeed());
+                if (existing && Array.isArray(existing.data) && existing.data.length > 0) {
+                    const merged = existing.data.filter(m => m && m.id !== martyrId);
+                    const newRawSize = Math.max(merged.length, (existing.rawCollectionSize || existing.data.length) - 1);
+                    await writeMartyrsToIDB(merged, newRawSize, false);
+                    broadcastMartyrsUpdate(merged, 'admin-delete');
+                } else {
+                    await clearMartyrsCache();
+                }
+            } catch (_) {
+                await clearMartyrsCache();
+            }
             console.log(`✅ Approved martyr deleted: ${martyrId}`);
             return { success: true };
         } catch (error) {
