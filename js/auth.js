@@ -6,6 +6,10 @@ const TOKEN_KEY = 'adminToken';
 const TOKEN_EXPIRY_KEY = 'adminTokenExpiry';
 const SESSION_DURATION = 4 * 60 * 60 * 1000; // 4 hours
 
+let lastServerVerifiedAt = 0;
+let lastVerifiedToken = null;
+let serverVerifyPromise = null;
+
 function decodeBase64UrlJSON(segment) {
     try {
         const base64 = String(segment).replace(/-/g, '+').replace(/_/g, '/');
@@ -97,6 +101,77 @@ export class AdminAuth {
             this.clearSession();
             return null;
         }
+    }
+
+    // Cryptographically verify the JWT signature with the Cloudflare Worker (/api/admin-login)
+    async verifySessionWithServer(options = {}) {
+        const { force = false, extend = false } = options;
+        const session = this.getValidSession();
+        if (!session) {
+            return { valid: false, error: 'No active admin session' };
+        }
+
+        const token = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY) || session.token;
+        // If this is an already-open pre-upgrade session without a token yet, allow it until expiry/re-login
+        if (!token) {
+            return { valid: true, username: session.username };
+        }
+
+        if (!force && !extend && lastVerifiedToken === token && (Date.now() - lastServerVerifiedAt) < 45000) {
+            return { valid: true, username: session.username, token };
+        }
+
+        if (serverVerifyPromise && !force && !extend) {
+            return serverVerifyPromise;
+        }
+
+        serverVerifyPromise = (async () => {
+            try {
+                const endpoint = extend ? '/api/admin-login?extend=1' : '/api/admin-login';
+                const response = await fetch(endpoint, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'X-Admin-Token': token,
+                        'Accept': 'application/json'
+                    },
+                    cache: 'no-store'
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    console.error('🚫 Server rejected admin token (forged or expired)');
+                    this.clearSession();
+                    return { valid: false, error: 'Unauthorized admin token' };
+                }
+
+                if (!response.ok) {
+                    return { valid: true, username: session.username, token };
+                }
+
+                const result = await response.json();
+                if (!result || !result.valid) {
+                    this.clearSession();
+                    return { valid: false, error: result?.error || 'Token verification failed' };
+                }
+
+                const activeToken = result.token || token;
+                lastVerifiedToken = activeToken;
+                lastServerVerifiedAt = Date.now();
+
+                if (result.token) {
+                    sessionStorage.setItem(TOKEN_KEY, result.token);
+                    localStorage.setItem(TOKEN_KEY, result.token);
+                }
+
+                return { valid: true, username: result.username || session.username, token: activeToken };
+            } catch (err) {
+                return { valid: true, username: session.username, token };
+            } finally {
+                serverVerifyPromise = null;
+            }
+        })();
+
+        return serverVerifyPromise;
     }
 
     // Extend session expiration
@@ -307,6 +382,13 @@ export class AdminAuth {
             console.log('❌ Authentication required - redirecting to login');
             return false;
         }
+
+        // Verify cryptographic token signature with the server
+        this.verifySessionWithServer({ force: true }).then((res) => {
+            if (!res.valid && res.error === 'Unauthorized admin token') {
+                this.logout();
+            }
+        }).catch(() => {});
 
         console.log('✅ Admin authentication verified');
 

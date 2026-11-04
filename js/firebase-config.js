@@ -554,17 +554,21 @@ function syncWithFirebaseInBackground(cachedEntry) {
 // ADMIN WRITE AUTHORIZATION & PAYLOAD SANITIZATION GUARDS
 // ============================================================================
 
-function requireActiveAdminSession(actionName) {
+let lastAdminWriteVerifiedAt = 0;
+let lastAdminWriteVerifiedToken = null;
+
+async function requireActiveAdminSession(actionName) {
     if (typeof window === 'undefined') return true;
+    let hasActiveSession = false;
+    let token = null;
+
     try {
-        // 1. Check via global adminAuth if loaded
+        token = sessionStorage.getItem('adminToken') || localStorage.getItem('adminToken');
         if (window.adminAuth && typeof window.adminAuth.isAuthenticated === 'function') {
             if (window.adminAuth.isAuthenticated()) {
-                return true;
+                hasActiveSession = true;
             }
         }
-
-        // 2. Direct storage verification (matching localStorage + sessionStorage session)
         const localRaw = localStorage.getItem('baluch_admin_session');
         const sessionRaw = sessionStorage.getItem('baluch_admin_session');
         if (localRaw && sessionRaw) {
@@ -577,12 +581,49 @@ function requireActiveAdminSession(actionName) {
                 localSess.loginTime === sessSess.loginTime &&
                 localSess.expires > Date.now()
             ) {
-                return true;
+                hasActiveSession = true;
+                if (!token && localSess.token) token = localSess.token;
             }
         }
     } catch (_) {}
 
-    throw new Error(`Unauthorized: Valid admin authentication is required for ${actionName}.`);
+    if (!hasActiveSession) {
+        throw new Error(`Unauthorized: Valid admin authentication is required for ${actionName}.`);
+    }
+
+    // If a signed JWT token is present, cryptographically verify it with GET /api/admin-login
+    if (token) {
+        if (lastAdminWriteVerifiedToken === token && (Date.now() - lastAdminWriteVerifiedAt) < 15000) {
+            return true;
+        }
+        try {
+            const response = await fetch('/api/admin-login', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'X-Admin-Token': token,
+                    'Accept': 'application/json'
+                },
+                cache: 'no-store'
+            });
+            if (response.status === 401 || response.status === 403) {
+                throw new Error(`Unauthorized: Server rejected admin token for ${actionName}.`);
+            }
+            if (response.ok) {
+                const res = await response.json();
+                if (res && res.valid) {
+                    lastAdminWriteVerifiedToken = token;
+                    lastAdminWriteVerifiedAt = Date.now();
+                }
+            }
+        } catch (err) {
+            if (String(err.message).startsWith('Unauthorized:')) {
+                throw err;
+            }
+        }
+    }
+
+    return true;
 }
 
 function sanitizeTextField(val, maxLength = 2000, allowNewlines = false) {
@@ -815,7 +856,7 @@ export const firebaseDB = {
     // Approve pending martyr (move to approved collection)
     async approveMartyr(martyrId, martyrData) {
         try {
-            requireActiveAdminSession('approveMartyr');
+            await requireActiveAdminSession('approveMartyr');
             const sanitizedMartyr = sanitizeMartyrPayload(martyrData);
 
             // Add to approved martyrs collection
@@ -872,7 +913,7 @@ export const firebaseDB = {
     // Reject pending martyr (delete from pending)
     async rejectMartyr(martyrId) {
         try {
-            requireActiveAdminSession('rejectMartyr');
+            await requireActiveAdminSession('rejectMartyr');
             await deleteDoc(doc(db, 'pendingMartyrs', martyrId));
             console.log('Martyr rejected and deleted: ', martyrId);
             return { success: true };
@@ -942,7 +983,7 @@ export const firebaseDB = {
     // Update an approved martyr (admin function)
     async updateApprovedMartyr(martyrId, updatedData) {
         try {
-            requireActiveAdminSession('updateApprovedMartyr');
+            await requireActiveAdminSession('updateApprovedMartyr');
             console.log(`✏️ Updating approved martyr: ${martyrId}`);
             
             // Process and sanitize fields
@@ -997,7 +1038,7 @@ export const firebaseDB = {
     // Delete an approved martyr (admin function)
     async deleteApprovedMartyr(martyrId) {
         try {
-            requireActiveAdminSession('deleteApprovedMartyr');
+            await requireActiveAdminSession('deleteApprovedMartyr');
             if (!martyrId || typeof martyrId !== 'string') {
                 throw new Error('Valid martyr ID is required for deletion.');
             }
@@ -1027,7 +1068,7 @@ export const firebaseDB = {
     // Clear all pending martyrs (admin function)
     async clearAllPendingMartyrs() {
         try {
-            requireActiveAdminSession('clearAllPendingMartyrs');
+            await requireActiveAdminSession('clearAllPendingMartyrs');
             const pendingCollection = collection(db, 'pendingMartyrs');
             const querySnapshot = await getDocs(pendingCollection);
             
@@ -1072,7 +1113,7 @@ export const firebaseDB = {
     // One-time cleanup helper: remove seeded "Memorial Committee / Historical Record" martyrs only
     async cleanupSeededHistoricalMartyrs() {
         try {
-            requireActiveAdminSession('cleanupSeededHistoricalMartyrs');
+            await requireActiveAdminSession('cleanupSeededHistoricalMartyrs');
             console.log('🧹 Checking for seeded historical martyrs to clean up...');
 
             const martyrsCollection = collection(db, 'martyrs');
