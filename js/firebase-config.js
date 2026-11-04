@@ -550,18 +550,117 @@ function syncWithFirebaseInBackground(cachedEntry) {
     return backgroundSyncPromise;
 }
 
+// ============================================================================
+// ADMIN WRITE AUTHORIZATION & PAYLOAD SANITIZATION GUARDS
+// ============================================================================
+
+function requireActiveAdminSession(actionName) {
+    if (typeof window === 'undefined') return true;
+    try {
+        // 1. Check via global adminAuth if loaded
+        if (window.adminAuth && typeof window.adminAuth.isAuthenticated === 'function') {
+            if (window.adminAuth.isAuthenticated()) {
+                return true;
+            }
+        }
+
+        // 2. Direct storage verification (matching localStorage + sessionStorage session)
+        const localRaw = localStorage.getItem('baluch_admin_session');
+        const sessionRaw = sessionStorage.getItem('baluch_admin_session');
+        if (localRaw && sessionRaw) {
+            const localSess = JSON.parse(localRaw);
+            const sessSess = JSON.parse(sessionRaw);
+            if (
+                localSess &&
+                sessSess &&
+                localSess.username === sessSess.username &&
+                localSess.loginTime === sessSess.loginTime &&
+                localSess.expires > Date.now()
+            ) {
+                return true;
+            }
+        }
+    } catch (_) {}
+
+    throw new Error(`Unauthorized: Valid admin authentication is required for ${actionName}.`);
+}
+
+function sanitizeTextField(val, maxLength = 2000, allowNewlines = false) {
+    if (val === null || val === undefined) return '';
+    let str = String(val);
+    if (allowNewlines) {
+        str = str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+    } else {
+        str = str.replace(/[\x00-\x1F\x7F]/g, ' ');
+    }
+    str = str
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/javascript:/gi, '')
+        .replace(/on\w+\s*=/gi, '')
+        .trim();
+    if (str.length > maxLength) {
+        str = str.substring(0, maxLength);
+    }
+    return str;
+}
+
+function sanitizeMartyrPayload(raw) {
+    if (!raw || typeof raw !== 'object') return {};
+    const cleaned = { ...raw };
+    const textLimits = {
+        fullName: [200, false],
+        fatherName: [200, false],
+        birthPlace: [250, false],
+        martyrdomPlace: [250, false],
+        organization: [200, false],
+        affiliation: [200, false],
+        rank: [200, false],
+        familyDetails: [2000, true],
+        biography: [15000, true],
+        submitterName: [200, false],
+        submitterEmail: [254, false],
+        submitterRelation: [200, false],
+        submitterPhone: [60, false]
+    };
+
+    for (const [field, [maxLen, multiline]] of Object.entries(textLimits)) {
+        if (typeof cleaned[field] === 'string') {
+            cleaned[field] = sanitizeTextField(cleaned[field], maxLen, multiline);
+        }
+    }
+
+    if (typeof cleaned.photo === 'string' && cleaned.photo.trim() !== '') {
+        const photo = cleaned.photo.trim();
+        const isSafeDataUri = /^data:image\/(jpeg|jpg|png|gif|webp);base64,[A-Za-z0-9+/=\s]+$/i.test(photo);
+        const isSafeAssetPath = /^\/assets\/photos\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/i.test(photo);
+        const isSafeHttpsUrl = /^https:\/\//i.test(photo);
+        if (!isSafeDataUri && !isSafeAssetPath && !isSafeHttpsUrl) {
+            throw new Error('Invalid photo format. Only JPEG, PNG, GIF, or WebP images are allowed.');
+        }
+        if (photo.length > 7 * 1024 * 1024) {
+            throw new Error('Photo data exceeds maximum allowed size (5 MB).');
+        }
+        cleaned.photo = photo;
+    }
+
+    return cleaned;
+}
+
 // Database helper functions
 export const firebaseDB = {
     // Add new pending martyr
     async addPendingMartyr(martyrData) {
         try {
-            // Convert date strings to Timestamp objects for Firestore
-            const processedData = { ...martyrData };
+            // Sanitize and validate all fields before saving to Firestore
+            const processedData = sanitizeMartyrPayload(martyrData);
+            if (!processedData.fullName || processedData.fullName.length < 2) {
+                throw new Error('Martyr full name is required.');
+            }
             
-            if (processedData.birthDate) {
+            if (processedData.birthDate && typeof processedData.birthDate === 'string') {
                 processedData.birthDate = Timestamp.fromDate(new Date(processedData.birthDate));
             }
-            if (processedData.martyrdomDate) {
+            if (processedData.martyrdomDate && typeof processedData.martyrdomDate === 'string') {
                 processedData.martyrdomDate = Timestamp.fromDate(new Date(processedData.martyrdomDate));
             }
             
@@ -716,9 +815,12 @@ export const firebaseDB = {
     // Approve pending martyr (move to approved collection)
     async approveMartyr(martyrId, martyrData) {
         try {
+            requireActiveAdminSession('approveMartyr');
+            const sanitizedMartyr = sanitizeMartyrPayload(martyrData);
+
             // Add to approved martyrs collection
             const approvedData = {
-                ...martyrData,
+                ...sanitizedMartyr,
                 status: 'approved',
                 approvedAt: serverTimestamp(),
                 updatedAt: serverTimestamp()
@@ -736,7 +838,7 @@ export const firebaseDB = {
                 if (existing && Array.isArray(existing.data) && existing.data.length > 0) {
                     const nowTs = Timestamp.now();
                     const newMartyrObj = {
-                        ...martyrData,
+                        ...sanitizedMartyr,
                         id: docRef.id,
                         status: 'approved',
                         approvedAt: nowTs,
@@ -770,6 +872,7 @@ export const firebaseDB = {
     // Reject pending martyr (delete from pending)
     async rejectMartyr(martyrId) {
         try {
+            requireActiveAdminSession('rejectMartyr');
             await deleteDoc(doc(db, 'pendingMartyrs', martyrId));
             console.log('Martyr rejected and deleted: ', martyrId);
             return { success: true };
@@ -839,10 +942,11 @@ export const firebaseDB = {
     // Update an approved martyr (admin function)
     async updateApprovedMartyr(martyrId, updatedData) {
         try {
+            requireActiveAdminSession('updateApprovedMartyr');
             console.log(`✏️ Updating approved martyr: ${martyrId}`);
             
-            // Process date fields to convert to Timestamps
-            const processedData = { ...updatedData };
+            // Process and sanitize fields
+            const processedData = sanitizeMartyrPayload(updatedData);
             
             // Remove id field if present (shouldn't be updated)
             delete processedData.id;
@@ -869,7 +973,7 @@ export const firebaseDB = {
                     const nowTs = Timestamp.now();
                     const merged = existing.data.map(m => {
                         if (m && m.id === martyrId) {
-                            return { ...m, ...updatedData, id: martyrId, updatedAt: nowTs };
+                            return { ...m, ...sanitizeMartyrPayload(updatedData), id: martyrId, updatedAt: nowTs };
                         }
                         return m;
                     });
@@ -893,6 +997,10 @@ export const firebaseDB = {
     // Delete an approved martyr (admin function)
     async deleteApprovedMartyr(martyrId) {
         try {
+            requireActiveAdminSession('deleteApprovedMartyr');
+            if (!martyrId || typeof martyrId !== 'string') {
+                throw new Error('Valid martyr ID is required for deletion.');
+            }
             console.log(`🗑️ Deleting approved martyr: ${martyrId}`);
             await deleteDoc(doc(db, 'martyrs', martyrId));
             try {
@@ -919,6 +1027,7 @@ export const firebaseDB = {
     // Clear all pending martyrs (admin function)
     async clearAllPendingMartyrs() {
         try {
+            requireActiveAdminSession('clearAllPendingMartyrs');
             const pendingCollection = collection(db, 'pendingMartyrs');
             const querySnapshot = await getDocs(pendingCollection);
             
@@ -936,26 +1045,13 @@ export const firebaseDB = {
         }
     },
     
-    // Clear all approved martyrs (admin function - use with caution!)
+    // Clear all approved martyrs (PERMANENTLY LOCKED to prevent bulk archive destruction)
     async clearAllApprovedMartyrs() {
-        try {
-            console.log('🧹 Clearing all approved martyrs...');
-            const martyrsCollection = collection(db, 'martyrs');
-            const querySnapshot = await getDocs(martyrsCollection);
-            
-            const deletePromises = [];
-            querySnapshot.forEach((docSnapshot) => {
-                deletePromises.push(deleteDoc(docSnapshot.ref));
-            });
-            
-            await Promise.all(deletePromises);
-            await clearMartyrsCache();
-            console.log(`✅ Cleared ${deletePromises.length} approved martyrs from Firebase`);
-            return { success: true, deletedCount: deletePromises.length };
-        } catch (error) {
-            console.error('❌ Error clearing all approved martyrs: ', error);
-            return { success: false, error: error.message };
-        }
+        console.error('🚫 Bulk deletion of the approved memorial archive is permanently disabled for security.');
+        return {
+            success: false,
+            error: 'Bulk deletion of the approved memorial archive is permanently disabled for security.'
+        };
     },
     
     // Initialize database with sample martyrs if empty (DISABLED to avoid auto-seeding)
@@ -976,6 +1072,7 @@ export const firebaseDB = {
     // One-time cleanup helper: remove seeded "Memorial Committee / Historical Record" martyrs only
     async cleanupSeededHistoricalMartyrs() {
         try {
+            requireActiveAdminSession('cleanupSeededHistoricalMartyrs');
             console.log('🧹 Checking for seeded historical martyrs to clean up...');
 
             const martyrsCollection = collection(db, 'martyrs');

@@ -400,14 +400,15 @@
                     console.log(`✅ Authentication successful for: ${username}`);
                     logSecurityEvent('login_success', { username });
                     
-                    // Store JWT token securely
+                    // Store JWT token securely across both storages
                     if (serverResult.token) {
                         sessionStorage.setItem('adminToken', serverResult.token);
+                        localStorage.setItem('adminToken', serverResult.token);
                         localStorage.setItem('adminTokenExpiry', Date.now() + serverResult.expiresIn);
                     }
                     
                     // Create session using auth.js
-                    const sessionData = adminAuth.createSession(username);
+                    const sessionData = adminAuth.createSession(serverResult.username || username, serverResult.token);
                     
                     if (sessionData) {
                         showSuccess('Login successful! Redirecting...');
