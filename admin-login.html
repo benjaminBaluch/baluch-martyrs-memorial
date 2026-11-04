@@ -302,8 +302,8 @@
     </script>
 
     <script type="module">
-        import { adminAuth } from './js/auth.js';
-        import { checkRateLimit, logSecurityEvent } from './js/security.js';
+        import { adminAuth } from './js/auth.js?v=20261104e';
+        import { checkRateLimit, resetRateLimit, logSecurityEvent } from './js/security.js?v=20261104e';
 
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
@@ -398,6 +398,7 @@
                 
                 if (serverResult.success) {
                     console.log(`✅ Authentication successful for: ${username}`);
+                    resetRateLimit('admin_login');
                     logSecurityEvent('login_success', { username });
                     
                     // Store JWT token securely across both storages

@@ -20,14 +20,20 @@
   Pragma: no-cache
   Expires: 0
 
-# Keep sensitive scripts out of search indexes
+# Keep sensitive scripts out of search indexes and always revalidate on admin pages
 /js/firebase-config.js
+  ! Cache-Control
+  Cache-Control: no-cache, must-revalidate
   X-Robots-Tag: noindex, nofollow
 
 /js/auth.js
+  ! Cache-Control
+  Cache-Control: no-cache, must-revalidate
   X-Robots-Tag: noindex, nofollow
 
 /js/admin.js
+  ! Cache-Control
+  Cache-Control: no-cache, must-revalidate
   X-Robots-Tag: noindex, nofollow
 
 # Static asset caching

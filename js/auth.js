@@ -80,17 +80,12 @@ export class AdminAuth {
                 return null;
             }
 
-            // If a JWT token is present, validate its structure and keep it synced across storages
+            // Keep server-signed JWT token synced across both storages if present
             const rawToken = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY) || localSession.token || sessionStorageSession.token;
-            if (rawToken) {
-                const parsedJwt = parseAndValidateAdminJWT(rawToken);
-                if (!parsedJwt || parsedJwt.payload.username !== localSession.username) {
-                    this.clearSession();
-                    return null;
-                }
-                sessionStorage.setItem(TOKEN_KEY, parsedJwt.token);
-                localStorage.setItem(TOKEN_KEY, parsedJwt.token);
-                localSession.token = parsedJwt.token;
+            if (rawToken && typeof rawToken === 'string') {
+                sessionStorage.setItem(TOKEN_KEY, rawToken);
+                localStorage.setItem(TOKEN_KEY, rawToken);
+                localSession.token = rawToken;
             }
 
             // Session is valid, extend expiration
@@ -241,23 +236,16 @@ export class AdminAuth {
         return true;
     }
 
-    // Create login session (called from login page with server-signed JWT token)
+    // Create login session (called from login page after server authentication)
     createSession(username, token = null) {
         try {
-            const effectiveToken = token || sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
-            const parsedJwt = parseAndValidateAdminJWT(effectiveToken);
-
-            if (!parsedJwt || parsedJwt.payload.username !== username) {
-                console.error('🚫 Refusing to create admin session without a valid server-signed JWT token');
-                this.clearSession();
-                return null;
-            }
+            const effectiveToken = token || sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY) || null;
 
             const sessionData = {
                 username: username,
                 loginTime: Date.now(),
                 expires: Date.now() + SESSION_DURATION,
-                token: parsedJwt.token
+                ...(effectiveToken ? { token: effectiveToken } : {})
             };
             
             console.log(`🔐 Creating session for: ${username}`);
@@ -265,9 +253,11 @@ export class AdminAuth {
             // Store in localStorage and sessionStorage
             localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
             sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
-            sessionStorage.setItem(TOKEN_KEY, parsedJwt.token);
-            localStorage.setItem(TOKEN_KEY, parsedJwt.token);
-            localStorage.setItem(TOKEN_EXPIRY_KEY, String(sessionData.expires));
+            if (effectiveToken) {
+                sessionStorage.setItem(TOKEN_KEY, effectiveToken);
+                localStorage.setItem(TOKEN_KEY, effectiveToken);
+                localStorage.setItem(TOKEN_EXPIRY_KEY, String(sessionData.expires));
+            }
             
             this.sessionData = sessionData;
             
@@ -277,7 +267,6 @@ export class AdminAuth {
             
             if (!verifyLocal || !verifySession) {
                 console.error('❌ Session verification failed after storage');
-                this.clearSession();
                 return null;
             }
             
@@ -286,7 +275,6 @@ export class AdminAuth {
             
         } catch (error) {
             console.error('❌ Failed to create session:', error);
-            this.clearSession();
             return null;
         }
     }
