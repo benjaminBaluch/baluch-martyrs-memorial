@@ -506,6 +506,7 @@ function initializeAdminPanel() {
         loadPendingSubmissions();
         updateStats();
         initializeAdminControls();
+        startLiveSubmissionAlerts();
         console.log('✅ Admin panel initialized successfully');
         
         // Initialize approved martyrs management buttons
@@ -585,6 +586,186 @@ function initializeAdminControls() {
     // Initialize pending & approved search/filter controls
     initPendingSearch();
     initApprovedSearch();
+    setupAdminAlertsButton();
+}
+
+// ============================================
+// REAL-TIME SUBMISSION ALERTS (CHIME + BADGE + DESKTOP NOTIFICATION)
+// ============================================
+let livePendingUnsubscribe = null;
+
+function isAlertSoundMuted() {
+    try {
+        return localStorage.getItem('adminAlertsMuted') === '1';
+    } catch (_) {
+        return false;
+    }
+}
+
+function playSubmissionChime(forcePlay = false) {
+    if (!forcePlay && isAlertSoundMuted()) return;
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const now = ctx.currentTime;
+
+        const playNote = (freq, startTime, duration, gainPeak = 0.16) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, startTime);
+            gain.gain.setValueAtTime(0.001, startTime);
+            gain.gain.exponentialRampToValueAtTime(gainPeak, startTime + 0.03);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+        };
+
+        // Warm 2-note chime: D5 (587.33 Hz) -> A5 (880 Hz)
+        playNote(587.33, now, 0.22, 0.16);
+        playNote(880.0, now + 0.15, 0.38, 0.18);
+
+        setTimeout(() => {
+            try { ctx.close(); } catch (_) {}
+        }, 700);
+    } catch (err) {
+        console.warn('⚠️ Audio chime skipped:', err.message);
+    }
+}
+
+function updateAdminTabBadge(pendingCount) {
+    const count = Number(pendingCount) || 0;
+    const pendingCountEl = document.getElementById('pendingCount');
+    if (pendingCountEl) {
+        pendingCountEl.textContent = String(count);
+    }
+    document.title = count > 0
+        ? `(${count} Pending) Admin | Baluch Martyrs Memorial`
+        : 'Admin - Moderate Submissions | Baluch Martyrs Memorial';
+}
+
+function triggerBrowserDesktopNotification(martyr) {
+    try {
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+        const name = martyr?.fullName || 'New Martyr Profile';
+        const place = martyr?.martyrdomPlace || martyr?.birthPlace || '';
+        const submitter = martyr?.submitterName ? `Submitted by ${martyr.submitterName}` : 'Awaiting admin review';
+        const bodyText = place ? `${place} • ${submitter}` : submitter;
+
+        const notif = new Notification(`🕊️ New Submission: ${name}`, {
+            body: bodyText,
+            icon: '/favicon.svg',
+            badge: '/favicon.svg',
+            tag: `bmm-pending-${martyr?.id || Date.now()}`
+        });
+
+        notif.onclick = function() {
+            try {
+                window.focus();
+                if (typeof window.switchAdminTab === 'function') {
+                    window.switchAdminTab('pending');
+                }
+                notif.close();
+            } catch (_) {}
+        };
+    } catch (err) {
+        console.warn('⚠️ Desktop notification skipped:', err.message);
+    }
+}
+
+function setupAdminAlertsButton() {
+    const btn = document.getElementById('adminAlertsToggle');
+    const label = document.getElementById('adminAlertsLabel');
+    if (!btn || btn.dataset.bound === '1') return;
+    btn.dataset.bound = '1';
+
+    const updateButtonUI = () => {
+        const muted = isAlertSoundMuted();
+        const hasNotifSupport = 'Notification' in window;
+        const perm = hasNotifSupport ? Notification.permission : 'denied';
+
+        if (muted) {
+            if (label) label.textContent = 'Alerts: Muted';
+            btn.style.opacity = '0.72';
+            btn.title = 'Click to unmute live submission sound & desktop alerts';
+        } else if (hasNotifSupport && perm === 'granted') {
+            if (label) label.textContent = 'Live Alerts: On';
+            btn.style.opacity = '1';
+            btn.style.borderColor = 'rgba(52, 211, 153, 0.5)';
+            btn.title = 'Sound & Desktop Notifications active (Click to test or mute)';
+        } else {
+            if (label) label.textContent = 'Enable Desktop Alerts';
+            btn.style.opacity = '1';
+            btn.title = 'Sound alerts are active. Click to also enable desktop/phone popup notifications.';
+        }
+    };
+
+    updateButtonUI();
+
+    btn.addEventListener('click', async () => {
+        const hasNotifSupport = 'Notification' in window;
+        if (hasNotifSupport && Notification.permission === 'default') {
+            try {
+                const perm = await Notification.requestPermission();
+                localStorage.setItem('adminAlertsMuted', '0');
+                playSubmissionChime(true);
+                updateButtonUI();
+                if (perm === 'granted') {
+                    showAdminToast('🔔 Live sound & desktop notifications enabled!', 'success');
+                } else {
+                    showAdminToast('🔔 Live sound & in-page alerts are active!', 'info');
+                }
+                return;
+            } catch (_) {}
+        }
+
+        // Toggle mute / unmute and play test chime when unmuting
+        const nextMuted = !isAlertSoundMuted();
+        try {
+            localStorage.setItem('adminAlertsMuted', nextMuted ? '1' : '0');
+        } catch (_) {}
+        updateButtonUI();
+
+        if (!nextMuted) {
+            playSubmissionChime(true);
+            showAdminToast('🔔 Live submission sound & alerts enabled', 'success');
+        } else {
+            showAdminToast('🔕 Submission alert sound muted (live counter still active)', 'info');
+        }
+    });
+}
+
+function startLiveSubmissionAlerts() {
+    if (livePendingUnsubscribe) return;
+    if (!window.firebaseDB || typeof window.firebaseDB.subscribeToPendingMartyrs !== 'function') {
+        return;
+    }
+
+    console.log('🔔 Attaching real-time pending submissions listener...');
+    livePendingUnsubscribe = window.firebaseDB.subscribeToPendingMartyrs(({ data, newlyAdded, isInitial }) => {
+        const totalPending = Array.isArray(data) ? data.length : 0;
+        updateAdminTabBadge(totalPending);
+
+        if (!isInitial && Array.isArray(newlyAdded) && newlyAdded.length > 0) {
+            console.log(`🔔 ${newlyAdded.length} new submission(s) arrived in real time!`);
+            playSubmissionChime();
+
+            newlyAdded.forEach((martyr) => {
+                const name = martyr.fullName || 'Unnamed Martyr';
+                showAdminToast(`🔔 New submission received: ${name}`, 'info');
+                triggerBrowserDesktopNotification(martyr);
+            });
+
+            // Automatically reload the pending submissions list if no modal is open
+            const modalOpen = document.getElementById('duplicateWarningModal') || document.getElementById('editMartyrModal');
+            if (!modalOpen) {
+                loadPendingSubmissions();
+            }
+        }
+    });
 }
 
 // Non-blocking toast notification helper

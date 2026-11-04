@@ -12,6 +12,7 @@ import {
     addDoc, 
     getDocs,
     getCountFromServer,
+    onSnapshot,
     doc, 
     updateDoc, 
     deleteDoc,
@@ -869,6 +870,66 @@ export const firebaseDB = {
                 message: error.message
             });
             return { success: false, error: error.message, details: error };
+        }
+    },
+
+    // Real-time listener for pending martyr submissions (admin only)
+    subscribeToPendingMartyrs(callback) {
+        try {
+            const payload = validateAdminTokenFormat(getStoredAdminToken());
+            if (!payload) {
+                console.warn('🚫 Cannot subscribe to pendingMartyrs without valid admin token');
+                return () => {};
+            }
+            let isFirstSnapshot = true;
+            const knownIds = new Set();
+            const pendingCollection = collection(db, 'pendingMartyrs');
+
+            const unsubscribe = onSnapshot(pendingCollection, (snapshot) => {
+                const allPending = [];
+                const newlyAdded = [];
+
+                snapshot.forEach((docSnap) => {
+                    allPending.push({
+                        id: docSnap.id,
+                        ...docSnap.data()
+                    });
+                });
+
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === 'added') {
+                        const docId = change.doc.id;
+                        if (!isFirstSnapshot && !knownIds.has(docId)) {
+                            newlyAdded.push({
+                                id: docId,
+                                ...change.doc.data()
+                            });
+                        }
+                        knownIds.add(docId);
+                    } else if (change.type === 'removed') {
+                        knownIds.delete(change.doc.id);
+                    }
+                });
+
+                const wasInitial = isFirstSnapshot;
+                isFirstSnapshot = false;
+
+                if (typeof callback === 'function') {
+                    callback({
+                        success: true,
+                        data: allPending,
+                        newlyAdded,
+                        isInitial: wasInitial
+                    });
+                }
+            }, (err) => {
+                console.warn('⚠️ Real-time pendingMartyrs listener error:', err.message);
+            });
+
+            return unsubscribe;
+        } catch (error) {
+            console.warn('⚠️ Failed to start real-time pendingMartyrs listener:', error.message);
+            return () => {};
         }
     },
 
