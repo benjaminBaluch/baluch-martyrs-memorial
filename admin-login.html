@@ -302,8 +302,8 @@
     </script>
 
     <script type="module">
-        import { adminAuth } from './js/auth.js?v=20261104e';
-        import { checkRateLimit, resetRateLimit, logSecurityEvent } from './js/security.js?v=20261104e';
+        import { adminAuth } from './js/auth.js?v=20261104f';
+        import { checkRateLimit, resetRateLimit, logSecurityEvent } from './js/security.js?v=20261104f';
 
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
@@ -412,10 +412,18 @@
                     const sessionData = adminAuth.createSession(serverResult.username || username, serverResult.token);
                     
                     if (sessionData) {
+                        // Silently sign into Firebase Auth (admin@baluchmartyrs.com) so Firestore server rules recognize the admin
+                        try {
+                            const { signInAdminFirebase } = await import('./js/firebase-config.js?v=20261104f');
+                            await signInAdminFirebase(password, username);
+                        } catch (fbAuthErr) {
+                            console.warn('⚠️ Firebase Auth bridge warning (continuing login safely):', fbAuthErr);
+                        }
+
                         showSuccess('Login successful! Redirecting...');
                         setTimeout(() => {
                             window.location.href = '/admin';
-                        }, 1000);
+                        }, 800);
                     } else {
                         showError('Session creation failed. Please try again.');
                         loginBtn.disabled = false;

@@ -223,6 +223,14 @@ export class AdminAuth {
     logout(redirectUrl = '/admin-login') {
         console.log('🔐 Admin logout:', this.getCurrentAdmin()?.username);
         this.clearSession();
+        try {
+            if (typeof window !== 'undefined' && window.firebaseDB && typeof window.firebaseDB.signOutAdmin === 'function') {
+                window.firebaseDB.signOutAdmin().finally(() => {
+                    window.location.href = redirectUrl;
+                });
+                return;
+            }
+        } catch (_) {}
         window.location.href = redirectUrl;
     }
 

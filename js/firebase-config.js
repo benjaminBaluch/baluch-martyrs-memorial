@@ -551,14 +551,89 @@ function syncWithFirebaseInBackground(cachedEntry) {
 }
 
 // ============================================================================
-// ADMIN WRITE AUTHORIZATION & PAYLOAD SANITIZATION GUARDS
+// ADMIN FIREBASE AUTH BRIDGE + WRITE AUTHORIZATION & PAYLOAD SANITIZATION
+// Connects /admin-login cleanly with Firebase Authentication (admin@baluchmartyrs.com)
+// so Firestore Server Security Rules can verify request.auth != null.
 // ============================================================================
+
+const ADMIN_FIREBASE_EMAIL = 'admin@baluchmartyrs.com';
+let firebaseAuthInstance = null;
+let firebaseAuthModule = null;
+let firebaseAuthInitPromise = null;
+
+export async function ensureFirebaseAuthReady() {
+    if (typeof window === 'undefined') return null;
+    if (firebaseAuthInitPromise) return firebaseAuthInitPromise;
+    firebaseAuthInitPromise = (async () => {
+        try {
+            firebaseAuthModule = await import('https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js');
+            firebaseAuthInstance = firebaseAuthModule.getAuth(app);
+            if (typeof firebaseAuthInstance.authStateReady === 'function') {
+                await firebaseAuthInstance.authStateReady();
+            }
+            if (firebaseAuthInstance.currentUser) {
+                console.log(`🔐 Firebase Auth active session: ${firebaseAuthInstance.currentUser.email}`);
+            }
+            return firebaseAuthInstance;
+        } catch (err) {
+            console.warn('⚠️ Firebase Auth init warning (continuing safely):', err.message);
+            return null;
+        }
+    })();
+    return firebaseAuthInitPromise;
+}
+
+export async function signInAdminFirebase(password, customEmail = null) {
+    try {
+        const auth = await ensureFirebaseAuthReady();
+        if (!auth || !firebaseAuthModule) {
+            return { success: false, error: 'Firebase Auth module unavailable' };
+        }
+        const candidateEmails = [ADMIN_FIREBASE_EMAIL];
+        if (customEmail && typeof customEmail === 'string' && customEmail.includes('@') && customEmail.includes('.') && !candidateEmails.includes(customEmail)) {
+            candidateEmails.push(customEmail.trim());
+        }
+        for (const emailToTry of candidateEmails) {
+            try {
+                const cred = await firebaseAuthModule.signInWithEmailAndPassword(auth, emailToTry, password);
+                console.log(`✅ Firebase Auth signed in as: ${cred.user?.email} (UID: ${cred.user?.uid})`);
+                return {
+                    success: true,
+                    email: cred.user?.email,
+                    uid: cred.user?.uid
+                };
+            } catch (innerErr) {
+                console.warn(`⚠️ Firebase Auth sign-in check (${emailToTry}):`, innerErr.code || innerErr.message);
+            }
+        }
+        return { success: false, error: 'Firebase Auth credentials did not match' };
+    } catch (err) {
+        console.warn('⚠️ Firebase Auth sign-in skipped safely:', err.message);
+        return { success: false, error: err.message };
+    }
+}
+
+export async function signOutAdminFirebase() {
+    try {
+        const auth = await ensureFirebaseAuthReady();
+        if (auth && firebaseAuthModule && typeof firebaseAuthModule.signOut === 'function') {
+            await firebaseAuthModule.signOut(auth);
+            console.log('🔐 Signed out of Firebase Auth');
+        }
+    } catch (_) {}
+}
+
+// Pre-warm Firebase Auth state immediately when on /admin or /admin-login
+if (typeof window !== 'undefined' && window.location.pathname.includes('admin')) {
+    ensureFirebaseAuthReady();
+}
 
 let lastAdminWriteVerifiedAt = 0;
 let lastAdminWriteVerifiedToken = null;
 
 async function requireActiveAdminSession(actionName) {
     if (typeof window === 'undefined') return true;
+    await ensureFirebaseAuthReady();
     let hasActiveSession = false;
     let token = null;
 
@@ -827,6 +902,7 @@ export const firebaseDB = {
     // Get all pending martyrs (admin only) - simplified
     async getPendingMartyrs() {
         try {
+            await ensureFirebaseAuthReady();
             console.log('🔍 Fetching pending martyrs from Firebase...');
             
             // Simple query without orderBy to avoid index issues
@@ -1215,6 +1291,20 @@ export const storageHelper = {
     getLocalPending() {
         const savedPending = localStorage.getItem('pendingMartyrs');
         return savedPending ? JSON.parse(savedPending) : [];
+    },
+
+    signInAdmin: signInAdminFirebase,
+    signOutAdmin: signOutAdminFirebase,
+    async getFirebaseAuthAdmin() {
+        const auth = await ensureFirebaseAuthReady();
+        if (auth && auth.currentUser) {
+            return {
+                signedIn: true,
+                email: auth.currentUser.email,
+                uid: auth.currentUser.uid
+            };
+        }
+        return { signedIn: false, email: null, uid: null };
     }
 };
 

@@ -2454,7 +2454,7 @@
 
     <!-- Simple Authentication Check using auth.js -->
     <script type="module">
-        import { adminAuth } from './js/auth.js?v=20261104e';
+        import { adminAuth } from './js/auth.js?v=20261104f';
         
         console.log('🚀 Starting admin authentication...');
         
@@ -2513,10 +2513,10 @@
     </script>
     
     <!-- Firebase Config Script -->
-    <script type="module" src="js/firebase-config.js?v=20261104e"></script>
+    <script type="module" src="js/firebase-config.js?v=20261104f"></script>
     
     <!-- Authentication Script -->
-    <script type="module" src="js/auth.js?v=20261104e"></script>
+    <script type="module" src="js/auth.js?v=20261104f"></script>
     
     <!-- Admin Panel Main Script -->
     <script type="module">
@@ -2868,6 +2868,10 @@ Please refresh the page or try again later.
             // Firebase connection test
             report += '🧪 Firebase Connection Test:\n';
             try {
+                if (window.firebaseDB && typeof window.firebaseDB.getFirebaseAuthAdmin === 'function') {
+                    const authState = await window.firebaseDB.getFirebaseAuthAdmin();
+                    report += `- Firebase Auth signedIn: ${authState.signedIn}${authState.email ? ` (${authState.email}, UID: ${authState.uid})` : ' (Re-login at /admin-login to activate Firebase Auth token)'}\n`;
+                }
                 if (window.firebaseDB && typeof window.firebaseDB.testConnection === 'function') {
                     const testResult = await window.firebaseDB.testConnection();
                     report += `- Connection test result: ${JSON.stringify(testResult, null, 2)}\n`;
@@ -2930,6 +2934,6 @@ Please refresh the page or try again later.
         }
     </script>
     <script src="js/mobile-menu.js?v=20261008h"></script>
-    <script type="module" src="js/admin.js?v=20261104e"></script>
+    <script type="module" src="js/admin.js?v=20261104f"></script>
 </body>
 </html>
