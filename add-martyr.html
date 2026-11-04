@@ -180,7 +180,11 @@
         }
 
         /* 3. UNIFIED SINGLE-PAGE ARCHIVAL FORM CARD */
+        .add-martyr-section .martyr-form,
         .martyr-form {
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-top: 3px solid #16a34a;
@@ -672,16 +676,61 @@
         }
 
         .submit-privacy-hint {
-            display: flex;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            gap: 0.4rem;
+            gap: 0.5rem;
             font-family: 'Inter', sans-serif;
             font-size: 0.78rem;
-            color: #64748b;
-            margin: 0;
-            text-align: center;
-            line-height: 1.4;
+            font-weight: 500;
+            color: #475569;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 0.42rem 0.9rem;
+            border-radius: 999px;
+            margin: 0.2rem auto 0;
+            width: fit-content;
+            max-width: 100%;
+            box-sizing: border-box;
+            text-align: left;
+            line-height: 1.35;
+        }
+
+        .privacy-lock-icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #dcfce7;
+            border: 1px solid #bbf7d0;
+            color: #15803d;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .privacy-lock-icon svg {
+            width: 12px;
+            height: 12px;
+            flex-shrink: 0;
+            display: block;
+        }
+
+        @media (max-width: 640px) {
+            .submit-privacy-hint {
+                font-size: 0.73rem;
+                padding: 0.4rem 0.75rem;
+                gap: 0.42rem;
+                border-radius: 12px;
+            }
+            .privacy-lock-icon {
+                width: 20px;
+                height: 20px;
+            }
+            .privacy-lock-icon svg {
+                width: 11px;
+                height: 11px;
+            }
         }
 
         /* SUCCESS SCREEN */
@@ -1088,6 +1137,13 @@
         }
 
         @media (max-width: 768px) {
+            .add-martyr-section {
+                margin-top: -1.8rem;
+                padding: 0 0 3.5rem;
+            }
+            .add-martyr-section .martyr-form {
+                padding: 0;
+            }
             .add-hero-banner {
                 padding: 2rem 0 3.4rem;
             }
@@ -1120,6 +1176,8 @@
             background-color: #0b131e;
         }
 
+        html[data-theme="dark"] .add-martyr-section .martyr-form,
+        html[data-theme="dark"] .martyr-form,
         [data-theme="dark"] .martyr-form,
         [data-theme="dark"] #successMessage,
         [data-theme="dark"] .memorial-preview-container {
@@ -1127,6 +1185,18 @@
             border-color: #26354d;
             border-top-color: #22c55e;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+        }
+
+        [data-theme="dark"] .submit-privacy-hint {
+            background: #0f1a29;
+            border-color: #26354d;
+            color: #cbd5e1;
+        }
+
+        [data-theme="dark"] .privacy-lock-icon {
+            background: rgba(34, 197, 94, 0.16);
+            border-color: rgba(134, 239, 172, 0.3);
+            color: #86efac;
         }
 
         [data-theme="dark"] .form-card-top-bar {
@@ -1593,10 +1663,12 @@
                                         <span class="btn-text">Submit Martyr Profile</span>
                                         <span class="btn-loading-text">Submitting Memorial...</span>
                                     </button>
-                                    <p class="submit-privacy-hint">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                                        Encrypted submission • Protected by Cloudflare Security
-                                    </p>
+                                    <div class="submit-privacy-hint">
+                                        <span class="privacy-lock-icon" aria-hidden="true">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                        </span>
+                                        <span>Encrypted submission • Protected by Cloudflare Security</span>
+                                    </div>
                                 </div>
                             </div>
 
