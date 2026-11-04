@@ -1,8 +1,8 @@
 // Admin panel JavaScript for moderating submissions
 
 // Import authentication module
-import { adminAuth } from './auth.js';
-import { escapeHTML, sanitizeInput, checkRateLimit, logSecurityEvent } from './security.js';
+import { adminAuth } from './auth.js?v=20261104a';
+import { escapeHTML, sanitizeInput, checkRateLimit, logSecurityEvent } from './security.js?v=20261104a';
 
 // Use auth.js module for authentication validation
 function validateAdminAuth(actionName = 'admin action') {

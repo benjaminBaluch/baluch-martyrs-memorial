@@ -63,6 +63,45 @@ export const handler = async (event, context) => {
     if (event.httpMethod === 'OPTIONS') {
         return { statusCode: 204, headers, body: '' };
     }
+
+    const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+    const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH;
+    const JWT_SECRET = process.env.JWT_SECRET;
+
+    // GET /api/admin-login -> Verify existing JWT token
+    if (event.httpMethod === 'GET') {
+        if (!JWT_SECRET) {
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ success: false, valid: false, error: 'Server is not configured' })
+            };
+        }
+        const authHeader = event.headers?.authorization || event.headers?.Authorization || '';
+        const token = authHeader.startsWith('Bearer ')
+            ? authHeader.slice(7).trim()
+            : (event.headers?.['x-admin-token'] || '');
+        const decoded = token ? verifyToken(token, JWT_SECRET) : null;
+        if (!decoded || decoded.role !== 'admin' || decoded.username !== ADMIN_USERNAME) {
+            return {
+                statusCode: 401,
+                headers,
+                body: JSON.stringify({ success: false, valid: false, error: 'Invalid or expired admin token' })
+            };
+        }
+        return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({
+                success: true,
+                valid: true,
+                username: decoded.username,
+                role: decoded.role,
+                exp: decoded.exp,
+                expiresIn: Math.max(0, decoded.exp - Date.now())
+            })
+        };
+    }
     
     // Only allow POST
     if (event.httpMethod !== 'POST') {
@@ -85,10 +124,13 @@ export const handler = async (event, context) => {
             };
         }
         
-        // Get credentials from environment variables (set in Netlify dashboard)
-        const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-        const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH;
-        const JWT_SECRET = process.env.JWT_SECRET || 'baluch-martyrs-memorial-secret-key-change-in-production';
+        if (!ADMIN_PASSWORD_HASH || !JWT_SECRET) {
+            return {
+                statusCode: 500,
+                headers,
+                body: JSON.stringify({ error: 'Server is not configured' })
+            };
+        }
         
         // Hash the provided password
         const providedHash = hashPassword(password);

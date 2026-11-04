@@ -1,8 +1,47 @@
 // Admin Authentication Module
-// Provides secure session management and authentication checks
+// Provides cryptographic JWT-backed session management and server-side verification
 
 const SESSION_KEY = 'baluch_admin_session';
+const TOKEN_KEY = 'adminToken';
+const TOKEN_EXPIRY_KEY = 'adminTokenExpiry';
 const SESSION_DURATION = 4 * 60 * 60 * 1000; // 4 hours
+
+// Module-private verification state (not reachable via window)
+let lastServerVerifiedAt = 0;
+let lastVerifiedToken = null;
+let serverVerifyPromise = null;
+
+function decodeBase64UrlJSON(segment) {
+    try {
+        const base64 = String(segment).replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+        return JSON.parse(atob(padded));
+    } catch {
+        return null;
+    }
+}
+
+export function parseAndValidateAdminJWT(token) {
+    if (!token || typeof token !== 'string') return null;
+    const trimmed = token.trim();
+    const parts = trimmed.split('.');
+    if (parts.length !== 3) return null;
+
+    const [headerSeg, payloadSeg, signatureSeg] = parts;
+    // HS256 base64url signature is 43 characters; reject trivial/short strings
+    if (!headerSeg || !payloadSeg || !signatureSeg || !/^[A-Za-z0-9_-]{32,64}$/.test(signatureSeg)) {
+        return null;
+    }
+
+    const header = decodeBase64UrlJSON(headerSeg);
+    const payload = decodeBase64UrlJSON(payloadSeg);
+    if (!header || !payload) return null;
+    if (header.alg !== 'HS256' || header.typ !== 'JWT') return null;
+    if (payload.role !== 'admin' || !payload.username || typeof payload.exp !== 'number') return null;
+    if (payload.exp <= Date.now()) return null;
+
+    return { header, payload, token: trimmed };
+}
 
 export class AdminAuth {
     constructor() {
@@ -11,8 +50,29 @@ export class AdminAuth {
     }
 
     initializeAuth() {
-        // Check for valid session on initialization
-        this.sessionData = this.getValidSession();
+        // Check for valid session on initialization (in browser environments)
+        if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+            this.sessionData = this.getValidSession();
+        }
+    }
+
+    getToken() {
+        try {
+            const sessionTok = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
+            if (sessionTok && parseAndValidateAdminJWT(sessionTok)) {
+                return sessionTok.trim();
+            }
+            const rawSession = sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY);
+            if (rawSession) {
+                const parsed = JSON.parse(rawSession);
+                if (parsed?.token && parseAndValidateAdminJWT(parsed.token)) {
+                    return parsed.token.trim();
+                }
+            }
+            return null;
+        } catch {
+            return null;
+        }
     }
 
     // Get valid session data or null
@@ -28,21 +88,39 @@ export class AdminAuth {
             const localSession = JSON.parse(sessionData);
             const sessionStorageSession = JSON.parse(sessionStorageData);
 
-            // Verify both storages match (basic tamper detection)
+            // Verify both storages match (tamper detection)
             if (localSession.username !== sessionStorageSession.username || 
                 localSession.loginTime !== sessionStorageSession.loginTime) {
                 this.clearSession();
                 return null;
             }
 
-            // Check if session is expired
-            if (localSession.expires <= Date.now()) {
+            // Require a valid signed JWT token matching the session username
+            const rawToken = sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY) || localSession.token || sessionStorageSession.token;
+            const parsedJwt = parseAndValidateAdminJWT(rawToken);
+            if (!parsedJwt || parsedJwt.payload.username !== localSession.username) {
+                console.warn('🚫 Invalid or missing admin JWT token - clearing session');
                 this.clearSession();
                 return null;
             }
 
-            // Session is valid, extend expiration
-            this.extendSession(localSession);
+            // Check if session or JWT is expired
+            const effectiveExpiry = Math.min(localSession.expires || 0, parsedJwt.payload.exp);
+            if (effectiveExpiry <= Date.now()) {
+                this.clearSession();
+                return null;
+            }
+
+            // Keep token synchronized across storages so new tabs or refreshes work seamlessly
+            if (!localSession.token) {
+                localSession.token = parsedJwt.token;
+                localStorage.setItem(SESSION_KEY, JSON.stringify(localSession));
+                sessionStorage.setItem(SESSION_KEY, JSON.stringify(localSession));
+            }
+            sessionStorage.setItem(TOKEN_KEY, parsedJwt.token);
+            localStorage.setItem(TOKEN_KEY, parsedJwt.token);
+
+            this.sessionData = localSession;
             return localSession;
         } catch (error) {
             console.error('Error validating session:', error);
@@ -51,20 +129,100 @@ export class AdminAuth {
         }
     }
 
-    // Extend session expiration
+    // Cryptographically verify the JWT signature with the Cloudflare Worker (/api/admin-login)
+    async verifySessionWithServer(options = {}) {
+        const { force = false, extend = false } = options;
+        const session = this.getValidSession();
+        const token = this.getToken();
+
+        if (!session || !token) {
+            this.clearSession();
+            return { valid: false, error: 'No active admin session' };
+        }
+
+        // Reuse recent server verification within 45s unless force or extend is requested
+        if (!force && !extend && lastVerifiedToken === token && (Date.now() - lastServerVerifiedAt) < 45000) {
+            return { valid: true, username: session.username, token };
+        }
+
+        if (serverVerifyPromise && !force && !extend) {
+            return serverVerifyPromise;
+        }
+
+        serverVerifyPromise = (async () => {
+            try {
+                const endpoint = extend ? '/api/admin-login?extend=1' : '/api/admin-login';
+                const response = await fetch(endpoint, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'X-Admin-Token': token,
+                        'Accept': 'application/json'
+                    },
+                    cache: 'no-store'
+                });
+
+                if (response.status === 401 || response.status === 403) {
+                    console.error('🚫 Server rejected admin token (forged or expired)');
+                    this.clearSession();
+                    return { valid: false, error: 'Unauthorized admin token' };
+                }
+
+                if (!response.ok) {
+                    return { valid: false, error: `Verification server error (${response.status})` };
+                }
+
+                const result = await response.json();
+                if (!result || !result.valid) {
+                    this.clearSession();
+                    return { valid: false, error: result?.error || 'Token verification failed' };
+                }
+
+                // If server issued an extended token, persist it
+                const activeToken = result.token || token;
+                const activeExp = result.exp || session.expires;
+                lastVerifiedToken = activeToken;
+                lastServerVerifiedAt = Date.now();
+
+                if (result.token) {
+                    const updatedSession = {
+                        ...session,
+                        token: result.token,
+                        expires: activeExp,
+                        lastExtended: Date.now()
+                    };
+                    localStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
+                    sessionStorage.setItem(SESSION_KEY, JSON.stringify(updatedSession));
+                    sessionStorage.setItem(TOKEN_KEY, result.token);
+                    localStorage.setItem(TOKEN_KEY, result.token);
+                    localStorage.setItem(TOKEN_EXPIRY_KEY, String(activeExp));
+                    this.sessionData = updatedSession;
+                }
+
+                return { valid: true, username: result.username || session.username, token: activeToken };
+            } catch (err) {
+                console.warn('⚠️ Server token verification network error:', err.message);
+                return { valid: false, error: 'Unable to reach authentication server' };
+            } finally {
+                serverVerifyPromise = null;
+            }
+        })();
+
+        return serverVerifyPromise;
+    }
+
+    // Extend session expiration (requests a freshly signed JWT from server)
     extendSession(session) {
         try {
-            const extendedSession = {
-                ...session,
-                expires: Date.now() + SESSION_DURATION,
-                lastExtended: Date.now()
-            };
-            
-            localStorage.setItem(SESSION_KEY, JSON.stringify(extendedSession));
-            sessionStorage.setItem(SESSION_KEY, JSON.stringify(extendedSession));
-            this.sessionData = extendedSession;
-            
-            console.log(`🔄 Session extended for ${extendedSession.username} until ${new Date(extendedSession.expires).toLocaleTimeString()}`);
+            const currentSession = session || this.sessionData;
+            if (!currentSession) return;
+            const parsedJwt = parseAndValidateAdminJWT(this.getToken());
+            if (!parsedJwt) {
+                this.clearSession();
+                return;
+            }
+            // Request server-signed token extension in background
+            this.verifySessionWithServer({ extend: true }).catch(() => {});
         } catch (error) {
             console.error('Error extending session:', error);
         }
@@ -87,8 +245,19 @@ export class AdminAuth {
 
     // Clear all session data
     clearSession() {
-        localStorage.removeItem(SESSION_KEY);
-        sessionStorage.removeItem(SESSION_KEY);
+        try {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.removeItem(SESSION_KEY);
+                localStorage.removeItem(TOKEN_KEY);
+                localStorage.removeItem(TOKEN_EXPIRY_KEY);
+            }
+            if (typeof sessionStorage !== 'undefined') {
+                sessionStorage.removeItem(SESSION_KEY);
+                sessionStorage.removeItem(TOKEN_KEY);
+            }
+        } catch (_) {}
+        lastServerVerifiedAt = 0;
+        lastVerifiedToken = null;
         this.sessionData = null;
     }
 
@@ -109,32 +278,37 @@ export class AdminAuth {
         return true;
     }
 
-    // Create login session (called from login page)
-    createSession(username) {
+    // Create login session (called from login page with server-signed JWT token)
+    createSession(username, token = null) {
         try {
+            const effectiveToken = token || sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
+            const parsedJwt = parseAndValidateAdminJWT(effectiveToken);
+
+            if (!parsedJwt || parsedJwt.payload.username !== username) {
+                console.error('🚫 Refusing to create admin session without a valid server-signed JWT token');
+                this.clearSession();
+                return null;
+            }
+
             const sessionData = {
-                username: username,
+                username: parsedJwt.payload.username,
                 loginTime: Date.now(),
-                expires: Date.now() + SESSION_DURATION
+                expires: parsedJwt.payload.exp || (Date.now() + SESSION_DURATION),
+                token: parsedJwt.token
             };
             
-            console.log(`🔐 Creating session for: ${username}`);
-            console.log('Session data:', {
-                username: sessionData.username,
-                loginTime: new Date(sessionData.loginTime).toLocaleString(),
-                expires: new Date(sessionData.expires).toLocaleString(),
-                duration: Math.round(SESSION_DURATION / (1000 * 60)) + ' minutes'
-            });
+            console.log(`🔐 Creating verified session for: ${username}`);
             
-            // Store in localStorage
+            // Store in localStorage & sessionStorage
             localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
-            console.log('✅ Session stored in localStorage');
-            
-            // Store in sessionStorage
             sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
-            console.log('✅ Session stored in sessionStorage');
+            sessionStorage.setItem(TOKEN_KEY, parsedJwt.token);
+            localStorage.setItem(TOKEN_KEY, parsedJwt.token);
+            localStorage.setItem(TOKEN_EXPIRY_KEY, String(sessionData.expires));
             
             this.sessionData = sessionData;
+            lastVerifiedToken = parsedJwt.token;
+            lastServerVerifiedAt = Date.now();
             
             // Verify storage worked
             const verifyLocal = localStorage.getItem(SESSION_KEY);
@@ -142,8 +316,6 @@ export class AdminAuth {
             
             if (!verifyLocal || !verifySession) {
                 console.error('❌ Session verification failed after storage');
-                console.error('localStorage has session:', !!verifyLocal);
-                console.error('sessionStorage has session:', !!verifySession);
                 this.clearSession();
                 return null;
             }
@@ -153,14 +325,6 @@ export class AdminAuth {
             
         } catch (error) {
             console.error('❌ Failed to create session:', error);
-            console.error('Error details:', {
-                message: error.message,
-                stack: error.stack,
-                username: username,
-                storageQuota: this.checkStorageQuota()
-            });
-            
-            // Clean up any partial session data
             this.clearSession();
             return null;
         }
@@ -258,6 +422,14 @@ export class AdminAuth {
             return false;
         }
 
+        // Verify cryptographic token signature with the server
+        this.verifySessionWithServer({ force: true }).then((res) => {
+            if (!res.valid && res.error === 'Unauthorized admin token') {
+                console.error('🚫 Server rejected admin session token - logging out');
+                this.logout();
+            }
+        }).catch(() => {});
+
         console.log('✅ Admin authentication verified');
 
         // Start a more lenient session warning system (every 30 minutes instead of 5)
@@ -350,4 +522,6 @@ export class AdminAuth {
 export const adminAuth = new AdminAuth();
 
 // Make it globally available for onclick handlers
-window.adminAuth = adminAuth;
+if (typeof window !== 'undefined') {
+    window.adminAuth = adminAuth;
+}

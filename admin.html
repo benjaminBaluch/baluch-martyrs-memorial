@@ -2454,7 +2454,7 @@
 
     <!-- Simple Authentication Check using auth.js -->
     <script type="module">
-        import { adminAuth } from './js/auth.js';
+        import { adminAuth } from './js/auth.js?v=20261104a';
         
         console.log('🚀 Starting admin authentication...');
         
@@ -2464,6 +2464,14 @@
             window.location.href = '/admin-login';
             throw new Error('Authentication required');
         }
+
+        // Verify cryptographic JWT signature with the server
+        adminAuth.verifySessionWithServer({ force: true }).then((res) => {
+            if (!res.valid && res.error === 'Unauthorized admin token') {
+                console.error('🚫 Server rejected admin token - redirecting to login');
+                adminAuth.logout('/admin-login');
+            }
+        }).catch(() => {});
         
         console.log('✅ Authentication verified, setting up page...');
         
@@ -2513,10 +2521,10 @@
     </script>
     
     <!-- Firebase Config Script -->
-    <script type="module" src="js/firebase-config.js?v=20261103d"></script>
+    <script type="module" src="js/firebase-config.js?v=20261104a"></script>
     
     <!-- Authentication Script -->
-    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/auth.js?v=20261104a"></script>
     
     <!-- Admin Panel Main Script -->
     <script type="module">
@@ -2930,6 +2938,6 @@ Please refresh the page or try again later.
         }
     </script>
     <script src="js/mobile-menu.js?v=20261008h"></script>
-    <script type="module" src="js/admin.js?v=20261103d"></script>
+    <script type="module" src="js/admin.js?v=20261104a"></script>
 </body>
 </html>
