@@ -33,188 +33,1282 @@
         };
     </script>
     <style>
-        /* HERO BANNER */
-        .add-hero-banner{background:linear-gradient(160deg,#0f1f11 0%,#1a3220 40%,#2c5530 100%);padding:4rem 0 3rem;text-align:center;position:relative;overflow:hidden}
-        .add-hero-banner::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 120%,rgba(212,175,55,0.08) 0%,transparent 60%)}
-        .candle-row{display:flex;justify-content:center;gap:1rem;margin-bottom:1.5rem;font-size:1.6rem;opacity:0.75;animation:candleFlicker 3s ease-in-out infinite}
-        @keyframes candleFlicker{0%,100%{opacity:0.75}50%{opacity:0.55}}
-        .banner-eyebrow{font-family:'Inter',sans-serif;font-size:0.75rem;letter-spacing:0.22em;text-transform:uppercase;color:rgba(212,175,55,0.7);margin-bottom:0.75rem;display:block}
-        .add-hero-banner h1{font-family:'EB Garamond',serif;font-size:clamp(2.2rem,5vw,3.5rem);font-weight:700;color:#fff;margin-bottom:0.75rem;line-height:1.15}
-        .banner-subtitle{font-family:'EB Garamond',serif;font-size:1.2rem;color:rgba(255,255,255,0.65);font-style:italic;max-width:480px;margin:0 auto;line-height:1.6}
-
-        /* SECTION QUICK NAV BAR */
-        .step-progress{display:flex;align-items:center;justify-content:center;gap:0;margin:2rem auto 2.25rem;max-width:520px;padding:0 1rem}
-        .step-item{display:flex;flex-direction:column;align-items:center;flex:1;position:relative;text-decoration:none;cursor:pointer;transition:transform 0.2s ease}
-        .step-item:hover{transform:translateY(-2px)}
-        .step-circle{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Inter',sans-serif;font-size:0.8rem;font-weight:700;border:2px solid rgba(44,85,48,0.2);background:#fff;color:#777;transition:all 0.35s cubic-bezier(0.4,0,0.2,1);z-index:1;position:relative}
-        .step-item.active .step-circle{background:var(--primary-color,#2c5530);border-color:var(--primary-color,#2c5530);color:#fff;box-shadow:0 0 0 4px rgba(44,85,48,0.15)}
-        .step-item.completed .step-circle{background:#5a8a5e;border-color:#5a8a5e;color:#fff}
-        .step-label{font-family:'Inter',sans-serif;font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#777;margin-top:0.4rem;text-align:center;transition:color 0.3s ease}
-        .step-item.active .step-label{color:var(--primary-color,#2c5530);font-weight:700}
-        .step-item.completed .step-label{color:#5a8a5e}
-        .step-connector{flex:1;height:2px;background:rgba(44,85,48,0.15);margin-bottom:1.4rem;transition:background 0.35s ease}
-        .step-connector.filled{background:#5a8a5e}
-
-        /* LAYOUT */
-        .add-martyr-section{padding:0 0 4rem}
-        .add-martyr-section .container{max-width:1400px}
-        .form-preview-wrapper{display:grid;grid-template-columns:1fr 380px;gap:3rem;align-items:start}
-        .form-column{min-width:0}
-
-        /* FORM SECTIONS (ALL ON ONE PAGE) */
-        .form-step{display:block;background:#ffffff;border:1px solid rgba(44,85,48,0.12);border-radius:18px;padding:2.25rem 2rem;margin-bottom:2rem;box-shadow:0 4px 20px rgba(0,0,0,0.03);transition:border-color 0.3s ease,box-shadow 0.3s ease}
-        .form-step:focus-within{border-color:rgba(44,85,48,0.28);box-shadow:0 6px 24px rgba(44,85,48,0.06)}
-        .step-section-label{display:flex;align-items:center;gap:0.85rem;margin-bottom:1.75rem;padding-bottom:1rem;border-bottom:1px solid rgba(44,85,48,0.12)}
-        .step-section-number{font-family:'Inter',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--primary-color,#2c5530);opacity:0.75}
-        .step-section-icon{width:42px;height:42px;background:linear-gradient(135deg,rgba(44,85,48,0.08),rgba(44,85,48,0.04));border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--primary-color,#2c5530);border:1px solid rgba(44,85,48,0.12);flex-shrink:0}
-        .step-section-title{font-family:'EB Garamond',serif;font-size:1.45rem;font-weight:700;color:var(--primary-color,#2c5530);margin:0;line-height:1.2}
-
-        /* FIELD PILLS */
-        .form-group label{display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap}
-        .field-pill{font-family:'Inter',sans-serif;font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:0.15rem 0.45rem;border-radius:4px}
-        .field-pill.required{background:rgba(220,38,38,0.1);color:#dc2626}
-        .field-pill.optional{background:rgba(100,116,139,0.1);color:#64748b}
-        .age-display{margin-top:0.5rem;font-family:'EB Garamond',serif;font-size:0.95rem;font-style:italic;color:#64748b;min-height:1.2em;transition:all 0.3s ease}
-        .section-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(212,175,55,0.3),transparent);margin:2.5rem 0}
-
-        /* DRAG-DROP PHOTO */
-        .photo-drop-zone{border:2px dashed rgba(44,85,48,0.25);border-radius:16px;padding:3rem 2rem;text-align:center;background:linear-gradient(135deg,rgba(44,85,48,0.02),rgba(44,85,48,0.01));transition:all 0.3s cubic-bezier(0.4,0,0.2,1);cursor:pointer;position:relative;overflow:hidden}
-        .photo-drop-zone:hover,.photo-drop-zone.drag-over{border-color:var(--primary-color,#2c5530);background:rgba(44,85,48,0.04);transform:scale(1.01)}
-        .photo-drop-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-        .drop-zone-icon{width:56px;height:56px;background:linear-gradient(135deg,rgba(44,85,48,0.08),rgba(44,85,48,0.04));border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;color:var(--primary-color,#2c5530);transition:transform 0.3s ease}
-        .photo-drop-zone:hover .drop-zone-icon{transform:translateY(-4px)}
-        .drop-zone-title{font-family:'EB Garamond',serif;font-size:1.15rem;font-weight:600;color:var(--primary-color,#2c5530);margin-bottom:0.35rem}
-        .drop-zone-subtitle{font-size:0.85rem;color:#64748b;margin-bottom:0}
-        .drop-zone-hint{font-size:0.78rem;color:#94a3b8;font-style:italic;margin-top:0.5rem}
-        .photo-drop-zone.has-photo{padding:0;border-style:solid;border-color:rgba(44,85,48,0.3)}
-        .photo-drop-zone.has-photo .drop-zone-content{display:none}
-        .photo-drop-preview{display:none;position:relative;width:100%;height:280px}
-        .photo-drop-zone.has-photo .photo-drop-preview{display:block}
-        .photo-drop-preview img{width:100%;height:100%;object-fit:cover;border-radius:14px}
-        .photo-drop-preview .change-photo-btn{position:absolute;bottom:0.75rem;right:0.75rem;background:rgba(0,0,0,0.65);color:#fff;border:none;padding:0.4rem 0.9rem;border-radius:20px;font-size:0.78rem;font-weight:600;cursor:pointer;backdrop-filter:blur(8px);transition:background 0.2s ease}
-        .photo-drop-preview .change-photo-btn:hover{background:rgba(0,0,0,0.8)}
-
-        /* BIO PROMPTS */
-        .bio-prompts{background:linear-gradient(135deg,rgba(212,175,55,0.06),rgba(212,175,55,0.03));border:1px solid rgba(212,175,55,0.2);border-radius:12px;padding:1rem 1.25rem;margin-bottom:0.75rem}
-        .bio-prompts-toggle{display:flex;align-items:center;gap:0.5rem;font-family:'Inter',sans-serif;font-size:0.82rem;font-weight:600;color:#92400e;cursor:pointer;user-select:none;background:none;border:none;padding:0;width:100%;text-align:left}
-        .bio-prompts-toggle svg{transition:transform 0.25s ease;flex-shrink:0}
-        .bio-prompts-toggle.open svg:last-child{transform:rotate(180deg)}
-        .bio-prompts-list{display:none;margin-top:0.85rem;padding-top:0.85rem;border-top:1px solid rgba(212,175,55,0.2);list-style:none}
-        .bio-prompts-list.open{display:block}
-        .bio-prompts-list li{font-family:'EB Garamond',serif;font-size:0.95rem;font-style:italic;color:#78350f;padding:0.3rem 0 0.3rem 1rem;position:relative}
-        .bio-prompts-list li::before{content:'›';position:absolute;left:0;color:#d97706;font-style:normal}
-        .bio-counter{font-family:'Inter',sans-serif;font-size:0.78rem;color:#94a3b8;text-align:right;margin-top:0.4rem;transition:color 0.3s ease}
-        .bio-counter.has-words{color:#5a8a5e}
-        #biography{font-family:'EB Garamond',Georgia,serif;font-size:1.05rem;line-height:1.75;letter-spacing:0.01em}
-
-        /* FORM SUBMIT ROW */
-        .form-submit-row{display:flex;flex-direction:column;align-items:center;gap:0.85rem;margin-top:1.5rem}
-        .btn-submit-legacy{background:linear-gradient(135deg,#1a3d20,#2c5530);color:#fff;border:none;padding:1.1rem 2.5rem;border-radius:12px;font-family:'EB Garamond',serif;font-size:1.3rem;font-weight:700;cursor:pointer;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);display:flex;align-items:center;gap:0.6rem;letter-spacing:0.01em;width:100%;justify-content:center}
-        .btn-submit-legacy:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(44,85,48,0.35)}
-        .btn-submit-legacy.loading{opacity:0.8;cursor:wait}
-        .btn-spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;display:none}
-        .btn-submit-legacy.loading .btn-spinner{display:block}
-        .btn-submit-legacy.loading .btn-text{display:none}
-        .btn-loading-text{display:none}
-        .btn-submit-legacy.loading .btn-loading-text{display:inline}
-        @keyframes spin{to{transform:rotate(360deg)}}
-        .submit-privacy-hint{display:flex;align-items:center;justify-content:center;gap:0.45rem;font-size:0.82rem;color:#64748b;margin:0;text-align:center;line-height:1.4}
-        .submitter-note{background:linear-gradient(135deg,rgba(44,85,48,0.04),rgba(44,85,48,0.02));border:1px solid rgba(44,85,48,0.1);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:0.88rem;color:#64748b;line-height:1.6}
-        .submitter-note strong{color:var(--primary-color,#2c5530)}
-
-        /* SUCCESS SCREEN */
-        #successMessage{text-align:center;padding:3rem 2rem}
-        .success-candle{font-size:3.5rem;display:block;margin-bottom:1.5rem;animation:candleFlicker 3s ease-in-out infinite}
-        .success-title{font-family:'EB Garamond',serif;font-size:clamp(1.8rem,4vw,2.8rem);font-weight:700;color:var(--primary-color,#2c5530);margin-bottom:0.5rem;line-height:1.2}
-        .success-name-highlight{color:#5a8a5e;font-style:italic}
-        .success-subtitle{font-family:'EB Garamond',serif;font-size:1.15rem;font-style:italic;color:#64748b;margin-bottom:2.5rem;line-height:1.6}
-        .success-actions{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
-        .success-divider{width:80px;height:2px;background:linear-gradient(90deg,transparent,rgba(212,175,55,0.5),transparent);margin:1.5rem auto}
-
-        /* PREVIEW CARD */
-        .memorial-preview-column{position:sticky;top:100px}
-        .memorial-preview-container{perspective:1000px}
-        .memorial-preview-header{text-align:center;margin-bottom:1.25rem}
-        .memorial-preview-header h4{font-size:0.9rem;color:var(--primary-color,#2c5530);font-weight:600;margin:0 0 0.25rem;display:flex;align-items:center;justify-content:center;gap:0.5rem}
-        .memorial-preview-header p{font-size:0.75rem;color:#666;margin:0}
-        .preview-live-indicator{display:inline-flex;align-items:center;gap:0.4rem;font-size:0.7rem;color:#10b981;background:rgba(16,185,129,0.1);padding:0.2rem 0.6rem;border-radius:20px;margin-top:0.5rem}
-        .preview-live-indicator::before{content:'';width:6px;height:6px;background:#10b981;border-radius:50%;animation:live-pulse 2s ease-in-out infinite}
-        @keyframes live-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
-        .memorial-card-3d{background:linear-gradient(145deg,#fafaf8 0%,#f0eeea 100%);border-radius:16px;overflow:hidden;box-shadow:0 25px 50px rgba(44,85,48,0.12),0 10px 20px rgba(0,0,0,0.08),inset 0 1px 0 rgba(255,255,255,0.9);transform:rotateY(-2deg) rotateX(1deg);transform-style:preserve-3d;transition:transform 0.5s cubic-bezier(0.4,0,0.2,1),box-shadow 0.5s ease;border:1px solid rgba(44,85,48,0.12);position:relative}
-        .memorial-card-3d:hover{transform:rotateY(0deg) rotateX(0deg) translateY(-5px);box-shadow:0 35px 60px rgba(44,85,48,0.18),0 15px 30px rgba(0,0,0,0.12)}
-        .memorial-card-3d::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,transparent 0%,#5a8a5e 15%,#2c5530 50%,#5a8a5e 85%,transparent 100%)}
-        .memorial-card-inner{padding:0}
-        .preview-photo-section{position:relative;width:100%;height:280px;background:linear-gradient(135deg,#e8e6e1 0%,#d4d2cd 100%);display:flex;align-items:center;justify-content:center;overflow:hidden}
-        .preview-photo-placeholder{text-align:center;color:#999}
-        .preview-photo-placeholder svg{width:64px;height:64px;opacity:0.4;margin-bottom:0.75rem}
-        .preview-photo-placeholder p{font-size:0.8rem;margin:0;font-style:italic;color:#aaa}
-        .preview-photo-section img{width:100%;height:100%;object-fit:cover;transition:transform 0.5s ease}
-        .memorial-card-3d:hover .preview-photo-section img{transform:scale(1.03)}
-        .preview-photo-frame{position:absolute;inset:0;border:6px solid transparent;border-image:linear-gradient(135deg,rgba(44,85,48,0.2) 0%,rgba(90,138,94,0.1) 50%,rgba(44,85,48,0.2) 100%) 1;pointer-events:none}
-        .preview-candle-icon{position:absolute;bottom:12px;right:12px;width:36px;height:36px;background:rgba(255,255,255,0.95);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 2px 10px rgba(44,85,48,0.2);animation:candle-glow 3s ease-in-out infinite}
-        @keyframes candle-glow{0%,100%{box-shadow:0 2px 10px rgba(44,85,48,0.15)}50%{box-shadow:0 2px 20px rgba(44,85,48,0.35)}}
-        .preview-content-section{padding:1.5rem}
-        .preview-name{font-family:'Playfair Display','Georgia',serif;font-size:1.5rem;font-weight:600;color:var(--primary-color,#2c5530);text-align:center;margin:0 0 0.25rem;line-height:1.3;letter-spacing:0.02em;min-height:2rem;transition:all 0.3s ease}
-        .preview-name.empty{color:#ccc;font-style:italic;font-weight:400}
-        .preview-father-name{font-family:'Cormorant Garamond','Georgia',serif;font-size:0.9rem;color:#666;text-align:center;margin:0 0 1rem;font-style:italic;min-height:1.2rem}
-        .preview-dates{display:flex;justify-content:center;align-items:center;gap:1.5rem;margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid rgba(44,85,48,0.15)}
-        .preview-date-item{text-align:center}
-        .preview-date-label{font-size:0.65rem;text-transform:uppercase;letter-spacing:0.1em;color:#999;margin-bottom:0.2rem}
-        .preview-date-value{font-family:'Cormorant Garamond','Georgia',serif;font-size:1rem;color:#333;font-weight:500}
-        .preview-date-value.empty{color:#ccc}
-        .preview-dates-separator{color:#5a8a5e;font-size:1.25rem;opacity:0.7}
-        .preview-location{display:flex;align-items:center;justify-content:center;gap:0.4rem;margin-bottom:1rem;font-size:0.85rem;color:#666}
-        .preview-location svg{width:14px;height:14px;opacity:0.7}
-        .preview-location.empty{color:#ccc}
-        .preview-organization{display:flex;justify-content:center;margin-bottom:1rem}
-        .preview-org-badge{background:linear-gradient(135deg,var(--primary-color,#2c5530) 0%,#1a3d20 100%);color:white;padding:0.35rem 0.9rem;border-radius:20px;font-size:0.75rem;font-weight:500;letter-spacing:0.03em}
-        .preview-org-badge.empty{background:#e5e5e5;color:#999}
-        .preview-biography{font-family:'Cormorant Garamond','Georgia',serif;font-size:0.9rem;line-height:1.7;color:#555;text-align:center;max-height:80px;overflow:hidden;position:relative}
-        .preview-biography.empty{color:#ccc;font-style:italic}
-        .preview-biography::after{content:'';position:absolute;bottom:0;left:0;right:0;height:30px;background:linear-gradient(transparent,#fdfcfa)}
-        .preview-card-footer{background:linear-gradient(135deg,rgba(44,85,48,0.06) 0%,rgba(90,138,94,0.04) 100%);padding:0.75rem 1.5rem;text-align:center;border-top:1px solid rgba(44,85,48,0.1)}
-        .preview-card-footer p{font-size:0.7rem;color:#888;margin:0;font-style:italic}
-
-        /* MOBILE PREVIEW */
-        .mobile-preview-toggle{display:none;position:fixed;bottom:80px;right:20px;z-index:999;background:linear-gradient(135deg,var(--primary-color,#2c5530) 0%,#1a3d20 100%);color:white;border:none;padding:0.6rem 1.1rem;border-radius:24px;font-family:'Inter',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;box-shadow:0 4px 20px rgba(44,85,48,0.4);transition:all 0.3s ease;align-items:center;gap:0.4rem}
-        .mobile-preview-toggle:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(44,85,48,0.45)}
-        .mobile-preview-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:10000;padding:1rem;overflow-y:auto;animation:fadeIn 0.3s ease}
-        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-        .mobile-preview-modal.active{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:60px}
-        .mobile-preview-close{position:fixed;top:15px;right:15px;background:white;border:none;width:40px;height:40px;border-radius:50%;font-size:1.25rem;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,0.2);z-index:10001}
-        .mobile-preview-content{width:100%;max-width:360px}
-        .mobile-preview-content .memorial-card-3d{transform:none}
-
-        @media(max-width:1024px){.form-preview-wrapper{grid-template-columns:1fr}.memorial-preview-column{display:none}.mobile-preview-toggle{display:flex}}
-        @media(max-width:768px){
-            .add-hero-banner{padding:3rem 0 2.5rem}
-            .step-progress{margin:1.5rem auto 1.25rem}
-            .mobile-preview-toggle{bottom:90px}
-            .form-step{padding:1.5rem 1.25rem;border-radius:14px;margin-bottom:1.5rem}
+        /* =========================================================
+           ADD MARTYR PAGE — ARCHIVAL DESIGN SYSTEM (MATCHES STATISTICS)
+           ========================================================= */
+        body {
+            background-color: #f4f7f4;
         }
 
-        [data-theme="dark"] .form-step{background:#181818;border-color:rgba(90,138,94,0.2);box-shadow:0 4px 20px rgba(0,0,0,0.25)}
-        [data-theme="dark"] .form-step:focus-within{border-color:rgba(90,138,94,0.4);box-shadow:0 6px 24px rgba(0,0,0,0.35)}
-        [data-theme="dark"] .step-section-label{border-bottom-color:rgba(90,138,94,0.18)}
-        [data-theme="dark"] .step-section-number{color:#86efac;opacity:0.85}
-        [data-theme="dark"] .step-section-icon{background:rgba(44,85,48,0.2);border-color:rgba(90,138,94,0.3);color:#86efac}
-        [data-theme="dark"] .step-section-title{color:#f1f5f9}
-        [data-theme="dark"] .step-item.active .step-label{color:#86efac}
-        [data-theme="dark"] .submit-privacy-hint{color:#94a3b8}
-        [data-theme="dark"] .memorial-card-3d{background:linear-gradient(145deg,#1e1e1e 0%,#141414 100%);border-color:rgba(90,138,94,0.25)}
-        [data-theme="dark"] .preview-photo-section{background:linear-gradient(135deg,#2a2a2a 0%,#1a1a1a 100%)}
-        [data-theme="dark"] .preview-name{color:#e8ebe8}
-        [data-theme="dark"] .preview-name.empty{color:#4a4a4a}
-        [data-theme="dark"] .preview-father-name,[data-theme="dark"] .preview-date-value,[data-theme="dark"] .preview-location,[data-theme="dark"] .preview-biography{color:#a8b0a8}
-        [data-theme="dark"] .preview-biography::after{background:linear-gradient(transparent,#1e1e1e)}
-        [data-theme="dark"] .preview-card-footer{background:linear-gradient(135deg,rgba(44,85,48,0.12) 0%,rgba(90,138,94,0.08) 100%);border-color:rgba(90,138,94,0.15)}
-        [data-theme="dark"] .preview-dates{border-color:rgba(90,138,94,0.2)}
-        [data-theme="dark"] .preview-dates-separator{color:#6b9b6f}
-        [data-theme="dark"] .add-hero-banner{background:linear-gradient(160deg,#060e07 0%,#0f1f11 40%,#1a3220 100%)}
-        [data-theme="dark"] .bio-prompts{background:rgba(212,175,55,0.04);border-color:rgba(212,175,55,0.15)}
-        [data-theme="dark"] .submitter-note{background:rgba(44,85,48,0.06)}
-        [data-theme="dark"] .step-circle{background:#1e1e1e;border-color:rgba(44,85,48,0.3);color:#aaa}
-        [data-theme="dark"] .step-item.active .step-circle{background:#2c5530;border-color:#86efac;color:#fff;box-shadow:0 0 0 4px rgba(134,239,172,0.15)}
+        /* 1. HERO SECTION (Matches statistics.html & contact.html) */
+        .add-hero-banner {
+            background:
+                radial-gradient(circle at 18% 22%, rgba(34, 197, 94, 0.16) 0%, transparent 45%),
+                radial-gradient(circle at 85% 80%, rgba(44, 85, 48, 0.45) 0%, transparent 50%),
+                linear-gradient(135deg, #16381c 0%, #0e2412 100%);
+            color: #ffffff;
+            padding: 2.75rem 0 4.25rem;
+            position: relative;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: left;
+            overflow: hidden;
+        }
+
+        .add-hero-banner::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+            background-size: 24px 24px;
+            pointer-events: none;
+        }
+
+        .add-hero-banner .container {
+            max-width: 1280px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-header-grid {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .hero-title-group {
+            max-width: 680px;
+        }
+
+        .data-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #86efac;
+            background: rgba(34, 197, 94, 0.12);
+            border: 1px solid rgba(134, 239, 172, 0.28);
+            padding: 0.35rem 0.85rem;
+            border-radius: 999px;
+            margin-bottom: 0.9rem;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #4ade80;
+            box-shadow: 0 0 8px #4ade80;
+        }
+
+        .add-hero-banner h1 {
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: clamp(2rem, 3.8vw, 2.85rem);
+            font-weight: 700;
+            color: #ffffff;
+            margin: 0 0 0.45rem;
+            letter-spacing: -0.01em;
+            line-height: 1.15;
+        }
+
+        .banner-subtitle {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.98rem;
+            font-style: normal;
+            color: rgba(255, 255, 255, 0.78);
+            margin: 0;
+            line-height: 1.55;
+            max-width: 620px;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+
+        .hero-action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 0.6rem 1.05rem;
+            border-radius: 8px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(6px);
+        }
+
+        .hero-action-btn:hover {
+            background: rgba(255, 255, 255, 0.18);
+            border-color: rgba(255, 255, 255, 0.35);
+            transform: translateY(-1px);
+        }
+
+        /* 2. MAIN CONTENT CONTAINER (Negative-margin overlap like statistics.html) */
+        .add-martyr-section {
+            margin-top: -2.1rem;
+            padding: 0 0 4.5rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .add-martyr-section .container {
+            max-width: 1280px;
+        }
+
+        .form-preview-wrapper {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 370px;
+            gap: 1.75rem;
+            align-items: start;
+        }
+
+        .form-column {
+            min-width: 0;
+        }
+
+        /* 3. UNIFIED SINGLE-PAGE ARCHIVAL FORM CARD */
+        .martyr-form {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-top: 3px solid #16a34a;
+            border-radius: 14px;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+            overflow: hidden;
+        }
+
+        .form-card-top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1.25rem 2rem;
+            background: linear-gradient(180deg, #f8faf8 0%, #ffffff 100%);
+            border-bottom: 1px solid #e2e8f0;
+            flex-wrap: wrap;
+        }
+
+        .form-card-top-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .form-card-top-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #15803d;
+            background: #dcfce7;
+            border: 1px solid #bbf7d0;
+            padding: 0.28rem 0.65rem;
+            border-radius: 999px;
+        }
+
+        .form-card-top-note {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            color: #64748b;
+            margin: 0;
+        }
+
+        /* Seamless Form Sections inside the single card */
+        .form-step {
+            display: block;
+            padding: 2rem 2rem 1.75rem;
+            border-bottom: 1px solid #e2e8f0;
+            background: transparent;
+            margin: 0;
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        .form-step:last-of-type {
+            border-bottom: none;
+            padding-bottom: 2.25rem;
+        }
+
+        .step-section-label {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            margin-bottom: 1.35rem;
+            padding-bottom: 0.9rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .step-section-icon {
+            width: 40px;
+            height: 40px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #15803d;
+            flex-shrink: 0;
+        }
+
+        .step-section-title {
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .step-section-subtitle {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            color: #64748b;
+            margin: 0.15rem 0 0;
+        }
+
+        /* FORM CONTROLS & LABELS (Matches contact.html & statistics.html) */
+        .martyr-form .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.15rem;
+        }
+
+        .martyr-form .form-group {
+            margin-bottom: 1.15rem;
+        }
+
+        .martyr-form .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .martyr-form .form-group label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 0.42rem;
+        }
+
+        .field-pill {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.62rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 0.14rem 0.48rem;
+            border-radius: 999px;
+        }
+
+        .field-pill.required {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+
+        .field-pill.optional {
+            background: #f1f5f9;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+        }
+
+        .martyr-form input[type="text"],
+        .martyr-form input[type="email"],
+        .martyr-form input[type="date"],
+        .martyr-form select,
+        .martyr-form textarea {
+            width: 100%;
+            font-family: 'Inter', sans-serif;
+            font-size: 16px; /* Prevents iOS Safari auto-zoom */
+            color: #0f172a;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 0.72rem 0.95rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .martyr-form input:focus,
+        .martyr-form select:focus,
+        .martyr-form textarea:focus {
+            outline: none;
+            background: #ffffff;
+            border-color: #16a34a;
+            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.14);
+        }
+
+        .age-display {
+            margin-top: 0.35rem;
+            margin-bottom: 0.75rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #15803d;
+            min-height: 1.2em;
+            transition: all 0.2s ease;
+        }
+
+        .section-divider {
+            height: 1px;
+            background: #e2e8f0;
+            margin: 1.35rem 0;
+        }
+
+        /* DRAG-DROP PHOTO ZONE (Forest Green Archival Styling) */
+        .photo-drop-zone {
+            border: 2px dashed #86efac;
+            border-radius: 12px;
+            padding: 2.25rem 1.5rem;
+            text-align: center;
+            background: #f0fdf4;
+            transition: all 0.22s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .photo-drop-zone:hover,
+        .photo-drop-zone.drag-over {
+            border-color: #16a34a;
+            background: #dcfce7;
+        }
+
+        .photo-drop-zone input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        .drop-zone-icon {
+            width: 48px;
+            height: 48px;
+            background: #ffffff;
+            border: 1px solid #bbf7d0;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.75rem;
+            color: #15803d;
+            box-shadow: 0 2px 6px rgba(22, 163, 74, 0.08);
+            transition: transform 0.2s ease;
+        }
+
+        .photo-drop-zone:hover .drop-zone-icon {
+            transform: translateY(-2px);
+        }
+
+        .drop-zone-title {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.96rem;
+            font-weight: 700;
+            color: #14532d;
+            margin-bottom: 0.25rem;
+        }
+
+        .drop-zone-subtitle {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            color: #166534;
+            margin-bottom: 0;
+        }
+
+        .drop-zone-hint {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 0.4rem;
+        }
+
+        .photo-drop-zone.has-photo {
+            padding: 0;
+            border-style: solid;
+            border-color: #16a34a;
+            background: #0f172a;
+        }
+
+        .photo-drop-zone.has-photo .drop-zone-content {
+            display: none;
+        }
+
+        .photo-drop-preview {
+            display: none;
+            position: relative;
+            width: 100%;
+            height: 280px;
+        }
+
+        .photo-drop-zone.has-photo .photo-drop-preview {
+            display: block;
+        }
+
+        .photo-drop-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        .photo-drop-preview .change-photo-btn {
+            position: absolute;
+            bottom: 0.75rem;
+            right: 0.75rem;
+            background: rgba(15, 23, 42, 0.82);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            padding: 0.42rem 0.9rem;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            transition: background 0.2s ease;
+        }
+
+        .photo-drop-preview .change-photo-btn:hover {
+            background: rgba(15, 23, 42, 0.95);
+        }
+
+        /* BIO PROMPTS (Clean Sage/Forest Palette — Zero Gold/Yellow) */
+        .bio-prompts {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 3px solid #16a34a;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.65rem;
+        }
+
+        .bio-prompts-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #15803d;
+            cursor: pointer;
+            user-select: none;
+            background: none;
+            border: none;
+            padding: 0;
+            width: 100%;
+            text-align: left;
+        }
+
+        .bio-prompts-toggle svg {
+            transition: transform 0.25s ease;
+            flex-shrink: 0;
+        }
+
+        .bio-prompts-toggle.open svg:last-child {
+            transform: rotate(180deg);
+        }
+
+        .bio-prompts-list {
+            display: none;
+            margin: 0.65rem 0 0;
+            padding: 0.65rem 0 0;
+            border-top: 1px solid #e2e8f0;
+            list-style: none;
+        }
+
+        .bio-prompts-list.open {
+            display: block;
+        }
+
+        .bio-prompts-list li {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            color: #475569;
+            padding: 0.24rem 0 0.24rem 1rem;
+            position: relative;
+            line-height: 1.45;
+        }
+
+        .bio-prompts-list li::before {
+            content: '•';
+            position: absolute;
+            left: 0.15rem;
+            color: #16a34a;
+            font-weight: 700;
+        }
+
+        .bio-counter {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.76rem;
+            color: #64748b;
+            text-align: right;
+            margin-top: 0.35rem;
+            transition: color 0.2s ease;
+        }
+
+        .bio-counter.has-words {
+            color: #15803d;
+            font-weight: 600;
+        }
+
+        #biography {
+            font-family: 'Inter', sans-serif;
+            font-size: 16px;
+            line-height: 1.65;
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        /* CONFIDENTIAL NOTICE & SUBMIT ROW */
+        .submitter-note {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.65rem;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 10px;
+            padding: 0.85rem 1rem;
+            margin-bottom: 1.25rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.83rem;
+            color: #166534;
+            line-height: 1.5;
+        }
+
+        .submitter-note strong {
+            color: #14532d;
+            font-weight: 700;
+        }
+
+        .form-submit-row {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.75rem;
+            margin-top: 1.25rem;
+        }
+
+        .btn-submit-legacy {
+            background: linear-gradient(135deg, #16381c 0%, #2c5530 100%);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 0.95rem 1.75rem;
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.98rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.55rem;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(22, 56, 28, 0.2);
+        }
+
+        .btn-submit-legacy:hover {
+            background: linear-gradient(135deg, #1e4b27 0%, #346639 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(22, 56, 28, 0.28);
+        }
+
+        .btn-submit-legacy.loading {
+            opacity: 0.8;
+            cursor: wait;
+        }
+
+        .btn-spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            display: none;
+        }
+
+        .btn-submit-legacy.loading .btn-spinner {
+            display: block;
+        }
+
+        .btn-submit-legacy.loading .btn-text {
+            display: none;
+        }
+
+        .btn-loading-text {
+            display: none;
+        }
+
+        .btn-submit-legacy.loading .btn-loading-text {
+            display: inline;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .submit-privacy-hint {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.78rem;
+            color: #64748b;
+            margin: 0;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        /* SUCCESS SCREEN */
+        #successMessage {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-top: 3px solid #16a34a;
+            border-radius: 14px;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+            text-align: center;
+            padding: 3rem 2rem;
+        }
+
+        .success-icon-badge {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: #dcfce7;
+            border: 2px solid #86efac;
+            color: #15803d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.25rem;
+        }
+
+        .success-title {
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: clamp(1.75rem, 3.5vw, 2.4rem);
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 0.5rem;
+            line-height: 1.25;
+        }
+
+        .success-name-highlight {
+            color: #15803d;
+        }
+
+        .success-divider {
+            width: 64px;
+            height: 3px;
+            border-radius: 999px;
+            background: #16a34a;
+            margin: 1.25rem auto;
+        }
+
+        .success-subtitle {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.96rem;
+            color: #475569;
+            max-width: 500px;
+            margin: 0 auto 2rem;
+            line-height: 1.6;
+        }
+
+        .success-actions {
+            display: flex;
+            gap: 0.85rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* 4. ARCHIVAL LIVE PREVIEW COLUMN (Desktop Sticky & Mobile Modal) */
+        .memorial-preview-column {
+            position: sticky;
+            top: 92px;
+        }
+
+        .memorial-preview-container {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-top: 3px solid #16a34a;
+            border-radius: 14px;
+            padding: 1.25rem;
+            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+        }
+
+        .memorial-preview-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .memorial-preview-header h4 {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #0f172a;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+        }
+
+        .preview-live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.38rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #15803d;
+            background: #dcfce7;
+            border: 1px solid #bbf7d0;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+        }
+
+        .preview-live-indicator::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: #16a34a;
+            border-radius: 50%;
+            animation: live-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes live-pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.45; transform: scale(0.85); }
+        }
+
+        .memorial-card-3d {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: box-shadow 0.25s ease;
+            position: relative;
+        }
+
+        .memorial-card-inner {
+            padding: 0;
+        }
+
+        .preview-photo-section {
+            position: relative;
+            width: 100%;
+            height: 250px;
+            background: linear-gradient(135deg, #16381c 0%, #0e2412 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .preview-photo-placeholder {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            padding: 1rem;
+        }
+
+        .preview-photo-placeholder svg {
+            width: 48px;
+            height: 48px;
+            opacity: 0.65;
+            margin-bottom: 0.5rem;
+            color: #86efac;
+        }
+
+        .preview-photo-placeholder p {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.78rem;
+            margin: 0;
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .preview-photo-section img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .preview-content-section {
+            padding: 1.25rem;
+        }
+
+        .preview-name {
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #0f172a;
+            text-align: center;
+            margin: 0 0 0.2rem;
+            line-height: 1.25;
+            min-height: 1.75rem;
+        }
+
+        .preview-name.empty {
+            color: #94a3b8;
+            font-style: italic;
+            font-weight: 500;
+        }
+
+        .preview-father-name {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            color: #64748b;
+            text-align: center;
+            margin: 0 0 0.9rem;
+            min-height: 1.1rem;
+        }
+
+        .preview-dates {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.9rem;
+            padding: 0.65rem 0.75rem;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+
+        .preview-date-item {
+            text-align: center;
+        }
+
+        .preview-date-label {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.64rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #64748b;
+            margin-bottom: 0.15rem;
+        }
+
+        .preview-date-value {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            color: #0f172a;
+            font-weight: 600;
+        }
+
+        .preview-date-value.empty {
+            color: #94a3b8;
+            font-weight: 400;
+        }
+
+        .preview-dates-separator {
+            color: #cbd5e1;
+            font-size: 0.85rem;
+        }
+
+        .preview-location {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.38rem;
+            margin-bottom: 0.85rem;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            color: #475569;
+        }
+
+        .preview-location svg {
+            width: 14px;
+            height: 14px;
+            color: #16a34a;
+            flex-shrink: 0;
+        }
+
+        .preview-location.empty {
+            color: #94a3b8;
+        }
+
+        .preview-organization {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 0.85rem;
+        }
+
+        .preview-org-badge {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        .preview-biography {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            line-height: 1.55;
+            color: #475569;
+            text-align: center;
+            max-height: 76px;
+            overflow: hidden;
+            position: relative;
+            margin: 0;
+        }
+
+        .preview-biography.empty {
+            color: #94a3b8;
+            font-style: italic;
+        }
+
+        .preview-card-footer {
+            background: #f1f5f9;
+            padding: 0.65rem 1rem;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .preview-card-footer p {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #475569;
+            margin: 0;
+        }
+
+        /* 5. MOBILE PREVIEW BUTTON & MODAL */
+        .mobile-preview-toggle {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            background: #f0fdf4;
+            color: #15803d;
+            border: 1px solid #86efac;
+            padding: 0.48rem 0.9rem;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.78rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .mobile-preview-toggle:hover {
+            background: #dcfce7;
+        }
+
+        .mobile-preview-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.82);
+            backdrop-filter: blur(4px);
+            z-index: 10000;
+            padding: 1rem;
+            overflow-y: auto;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .mobile-preview-modal.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mobile-preview-close {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            background: #ffffff;
+            color: #0f172a;
+            border: 1px solid #cbd5e1;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            z-index: 10001;
+        }
+
+        .mobile-preview-content {
+            width: 100%;
+            max-width: 360px;
+        }
+
+        /* 6. RESPONSIVE BREAKPOINTS (Tablet & Mobile) */
+        @media (max-width: 1024px) {
+            .form-preview-wrapper {
+                grid-template-columns: 1fr;
+            }
+            .memorial-preview-column {
+                display: none;
+            }
+            .mobile-preview-toggle {
+                display: inline-flex;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .add-hero-banner {
+                padding: 2rem 0 3.4rem;
+            }
+            .hero-header-grid {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1.15rem;
+            }
+            .hero-actions {
+                width: 100%;
+            }
+            .hero-action-btn {
+                flex: 1;
+                justify-content: center;
+            }
+            .form-card-top-bar {
+                padding: 1rem 1.25rem;
+            }
+            .form-step {
+                padding: 1.4rem 1.25rem;
+            }
+            .martyr-form .form-row {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+        }
+
+        /* 7. DARK MODE PALETTE (Matches statistics.html & contact.html Slate-Navy) */
+        [data-theme="dark"] body {
+            background-color: #0b131e;
+        }
+
+        [data-theme="dark"] .martyr-form,
+        [data-theme="dark"] #successMessage,
+        [data-theme="dark"] .memorial-preview-container {
+            background: #162234;
+            border-color: #26354d;
+            border-top-color: #22c55e;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+        }
+
+        [data-theme="dark"] .form-card-top-bar {
+            background: #131e2e;
+            border-bottom-color: #26354d;
+        }
+
+        [data-theme="dark"] .form-card-top-badge,
+        [data-theme="dark"] .preview-live-indicator,
+        [data-theme="dark"] .field-pill.required,
+        [data-theme="dark"] .preview-org-badge {
+            background: rgba(34, 197, 94, 0.15);
+            color: #86efac;
+            border-color: rgba(134, 239, 172, 0.3);
+        }
+
+        [data-theme="dark"] .form-card-top-note,
+        [data-theme="dark"] .step-section-subtitle,
+        [data-theme="dark"] .bio-counter,
+        [data-theme="dark"] .submit-privacy-hint {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .form-step {
+            border-bottom-color: #26354d;
+        }
+
+        [data-theme="dark"] .step-section-label,
+        [data-theme="dark"] .memorial-preview-header {
+            border-bottom-color: #26354d;
+        }
+
+        [data-theme="dark"] .step-section-icon {
+            background: rgba(34, 197, 94, 0.14);
+            border-color: rgba(134, 239, 172, 0.28);
+            color: #4ade80;
+        }
+
+        [data-theme="dark"] .step-section-title,
+        [data-theme="dark"] .memorial-preview-header h4,
+        [data-theme="dark"] .preview-name,
+        [data-theme="dark"] .success-title {
+            color: #f8fafc;
+        }
+
+        [data-theme="dark"] .martyr-form .form-group label {
+            color: #e2e8f0;
+        }
+
+        [data-theme="dark"] .field-pill.optional {
+            background: #1e293b;
+            color: #94a3b8;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .martyr-form input[type="text"],
+        [data-theme="dark"] .martyr-form input[type="email"],
+        [data-theme="dark"] .martyr-form input[type="date"],
+        [data-theme="dark"] .martyr-form select,
+        [data-theme="dark"] .martyr-form textarea {
+            background: #0f1a29;
+            border-color: #26354d;
+            color: #f8fafc;
+        }
+
+        [data-theme="dark"] .martyr-form input:focus,
+        [data-theme="dark"] .martyr-form select:focus,
+        [data-theme="dark"] .martyr-form textarea:focus {
+            background: #0b131e;
+            border-color: #4ade80;
+            box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.16);
+        }
+
+        [data-theme="dark"] .age-display,
+        [data-theme="dark"] .bio-counter.has-words,
+        [data-theme="dark"] .success-name-highlight {
+            color: #4ade80;
+        }
+
+        [data-theme="dark"] .section-divider {
+            background: #26354d;
+        }
+
+        [data-theme="dark"] .photo-drop-zone {
+            background: rgba(22, 163, 74, 0.08);
+            border-color: rgba(134, 239, 172, 0.35);
+        }
+
+        [data-theme="dark"] .photo-drop-zone:hover,
+        [data-theme="dark"] .photo-drop-zone.drag-over {
+            background: rgba(22, 163, 74, 0.14);
+            border-color: #4ade80;
+        }
+
+        [data-theme="dark"] .drop-zone-icon {
+            background: #162234;
+            border-color: rgba(134, 239, 172, 0.3);
+            color: #4ade80;
+        }
+
+        [data-theme="dark"] .drop-zone-title {
+            color: #f8fafc;
+        }
+
+        [data-theme="dark"] .drop-zone-subtitle {
+            color: #86efac;
+        }
+
+        [data-theme="dark"] .drop-zone-hint {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .bio-prompts {
+            background: #0f1a29;
+            border-color: #26354d;
+            border-left-color: #22c55e;
+        }
+
+        [data-theme="dark"] .bio-prompts-toggle {
+            color: #86efac;
+        }
+
+        [data-theme="dark"] .bio-prompts-list {
+            border-top-color: #26354d;
+        }
+
+        [data-theme="dark"] .bio-prompts-list li {
+            color: #cbd5e1;
+        }
+
+        [data-theme="dark"] .submitter-note {
+            background: rgba(22, 163, 74, 0.1);
+            border-color: rgba(134, 239, 172, 0.25);
+            color: #cbd5e1;
+        }
+
+        [data-theme="dark"] .submitter-note strong {
+            color: #86efac;
+        }
+
+        [data-theme="dark"] .memorial-card-3d {
+            background: #0f1a29;
+            border-color: #26354d;
+        }
+
+        [data-theme="dark"] .preview-dates {
+            background: #162234;
+            border-color: #26354d;
+        }
+
+        [data-theme="dark"] .preview-date-value {
+            color: #f8fafc;
+        }
+
+        [data-theme="dark"] .preview-father-name,
+        [data-theme="dark"] .preview-location,
+        [data-theme="dark"] .preview-biography,
+        [data-theme="dark"] .success-subtitle {
+            color: #cbd5e1;
+        }
+
+        [data-theme="dark"] .preview-name.empty,
+        [data-theme="dark"] .preview-date-value.empty,
+        [data-theme="dark"] .preview-location.empty,
+        [data-theme="dark"] .preview-biography.empty {
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .preview-card-footer {
+            background: #131e2e;
+            border-top-color: #26354d;
+        }
+
+        [data-theme="dark"] .preview-card-footer p {
+            color: #94a3b8;
+        }
+
+        [data-theme="dark"] .mobile-preview-toggle {
+            background: rgba(34, 197, 94, 0.14);
+            color: #86efac;
+            border-color: rgba(134, 239, 172, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -237,57 +1331,76 @@
         </nav>
     </header>
 
-    <!-- Solemn Hero Banner -->
-    <div class="add-hero-banner">
+    <!-- Archival Hero Header (Matches statistics.html & contact.html) -->
+    <section class="add-hero-banner">
         <div class="container">
-            <div class="candle-row" aria-hidden="true">🕯️ 🕯️ 🕯️</div>
-            <span class="banner-eyebrow">Baluch Martyrs Memorial</span>
-            <h1>Honor a Martyr</h1>
-            <p class="banner-subtitle">Every name you add becomes a flame that never goes out.</p>
+            <div class="hero-header-grid">
+                <div class="hero-title-group">
+                    <div class="data-status">
+                        <span class="status-dot"></span>
+                        <span>Memorial Archive • Permanent Record Submission</span>
+                    </div>
+                    <h1>Honor a Martyr</h1>
+                    <p class="banner-subtitle">Preserve the life story, photograph, and legacy of a Baluch martyr in the permanent digital archive.</p>
+                </div>
+                <div class="hero-actions">
+                    <a href="/gallery" class="hero-action-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                        Browse Gallery
+                    </a>
+                    <a href="/statistics" class="hero-action-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                        View Statistics
+                    </a>
+                </div>
+            </div>
         </div>
-    </div>
+    </section>
 
     <main>
         <section class="add-martyr-section">
             <div class="container">
 
-                <!-- Section Navigation -->
-                <nav class="step-progress" id="stepProgress" aria-label="Form Sections">
-                    <a href="#formStep1" class="step-item active" id="step-indicator-1">
-                        <div class="step-circle">1</div>
-                        <div class="step-label">Identity</div>
-                    </a>
-                    <div class="step-connector" id="connector-1-2"></div>
-                    <a href="#formStep2" class="step-item" id="step-indicator-2">
-                        <div class="step-circle">2</div>
-                        <div class="step-label">Their Story</div>
-                    </a>
-                    <div class="step-connector" id="connector-2-3"></div>
-                    <a href="#formStep3" class="step-item" id="step-indicator-3">
-                        <div class="step-circle">3</div>
-                        <div class="step-label">Your Details</div>
-                    </a>
-                </nav>
-
                 <div class="form-preview-wrapper">
                     <div class="form-column">
                         <form id="addMartyrForm" class="martyr-form" novalidate>
 
-                            <!-- SECTION 1: IDENTITY -->
+                            <!-- Unified Top Bar (Single-Page Archival Form + Mobile Preview Trigger) -->
+                            <div class="form-card-top-bar">
+                                <div class="form-card-top-info">
+                                    <span class="form-card-top-badge">
+                                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                        Single-Page Record Form
+                                    </span>
+                                    <p class="form-card-top-note">Complete the details below — reviewed by archive administrators before publication.</p>
+                                </div>
+                                <button type="button" class="mobile-preview-toggle" id="mobilePreviewToggle" aria-label="Preview Memorial Card">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                    Preview Card
+                                </button>
+                            </div>
+
+                            <!-- IDENTITY & DATES -->
                             <div class="form-step active" id="formStep1">
                                 <div class="step-section-label">
                                     <div class="step-section-icon" aria-hidden="true">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                                     </div>
                                     <div>
-                                        <div class="step-section-number">Section 01</div>
-                                        <h2 class="step-section-title">Their Identity</h2>
+                                        <h2 class="step-section-title">Martyr Identity &amp; Dates</h2>
+                                        <p class="step-section-subtitle">Primary biographical details, dates, and locations</p>
                                     </div>
                                 </div>
 
-                                <div class="form-group">
-                                    <label for="fullName">Full Name <span class="field-pill required">Required</span></label>
-                                    <input type="text" id="fullName" name="fullName" placeholder="Enter full name" required autocomplete="off">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="fullName">Full Name <span class="field-pill required">Required</span></label>
+                                        <input type="text" id="fullName" name="fullName" placeholder="Enter full name" required autocomplete="off">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="fatherName">Father's Name <span class="field-pill optional">Optional</span></label>
+                                        <input type="text" id="fatherName" name="fatherName" placeholder="e.g. Abdullah">
+                                    </div>
                                 </div>
 
                                 <div class="form-row">
@@ -302,48 +1415,41 @@
                                 </div>
                                 <div class="age-display" id="ageDisplay"></div>
 
-                                <div class="section-divider"></div>
-
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label for="birthPlace">Place of Birth <span class="field-pill optional">Optional</span></label>
-                                        <input type="text" id="birthPlace" name="birthPlace" placeholder="City, Province">
+                                        <input type="text" id="birthPlace" name="birthPlace" placeholder="City, District / Province">
                                     </div>
                                     <div class="form-group">
                                         <label for="martyrdomPlace">Place of Martyrdom <span class="field-pill required">Required</span></label>
-                                        <input type="text" id="martyrdomPlace" name="martyrdomPlace" placeholder="City, Province" required>
+                                        <input type="text" id="martyrdomPlace" name="martyrdomPlace" placeholder="City, District / Province" required>
                                     </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="fatherName">Father's Name <span class="field-pill optional">Optional</span></label>
-                                    <input type="text" id="fatherName" name="fatherName" placeholder="e.g. Abdullah">
                                 </div>
                             </div>
 
-                            <!-- SECTION 2: THEIR STORY -->
+                            <!-- PHOTOGRAPH, BIOGRAPHY & AFFILIATION -->
                             <div class="form-step" id="formStep2">
                                 <div class="step-section-label">
                                     <div class="step-section-icon" aria-hidden="true">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                                     </div>
                                     <div>
-                                        <div class="step-section-number">Section 02</div>
-                                        <h2 class="step-section-title">Their Story &amp; Photograph</h2>
+                                        <h2 class="step-section-title">Photograph, Biography &amp; Affiliation</h2>
+                                        <p class="step-section-subtitle">Portrait photograph, life story, and background information</p>
                                     </div>
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="martyrPhoto">Photograph <span class="field-pill required">Required</span></label>
+                                    <label for="martyrPhoto">Portrait Photograph <span class="field-pill required">Required</span></label>
                                     <div class="photo-drop-zone" id="photoDropZone">
                                         <input type="file" id="martyrPhoto" name="martyrPhoto" accept="image/*" required aria-label="Upload martyr photograph">
                                         <div class="drop-zone-content">
                                             <div class="drop-zone-icon" aria-hidden="true">
-                                                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                                             </div>
                                             <div class="drop-zone-title" id="dropZoneTitle">Upload their photograph</div>
-                                            <div class="drop-zone-subtitle">Drag &amp; drop or click to browse</div>
-                                            <div class="drop-zone-hint">Portrait photos work best &middot; JPG or PNG &middot; up to 10MB</div>
+                                            <div class="drop-zone-subtitle">Drag &amp; drop or tap to select from your device</div>
+                                            <div class="drop-zone-hint">Clear portrait photos work best &middot; JPG, PNG, or WebP &middot; up to 10MB</div>
                                         </div>
                                         <div class="photo-drop-preview" id="photoDropPreview">
                                             <img id="previewPhotoImg" src="" alt="Martyr photo preview">
@@ -355,57 +1461,63 @@
                                 <div class="section-divider"></div>
 
                                 <div class="form-group">
-                                    <label for="biography">Biography <span class="field-pill optional">Optional</span></label>
+                                    <label for="biography">Biography &amp; Life Story <span class="field-pill optional">Optional</span></label>
                                     <div class="bio-prompts">
                                         <button type="button" class="bio-prompts-toggle" id="bioPromptsToggle" aria-expanded="false">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                            Writing prompts — not sure what to write?
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="margin-left:auto"><polyline points="6 9 12 15 18 9"/></svg>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                                            Writing prompts — helpful details to include
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="margin-left:auto"><polyline points="6 9 12 15 18 9"/></svg>
                                         </button>
                                         <ul class="bio-prompts-list" id="bioPromptsList" aria-hidden="true">
-                                            <li>Who were they? What did they love? What were their dreams?</li>
-                                            <li>What were they known for among family and community?</li>
-                                            <li>What were the circumstances of their martyrdom?</li>
-                                            <li>What cause were they fighting for or standing up for?</li>
-                                            <li>What do you want the world to remember about them?</li>
+                                            <li>Who were they, and what were their studies, profession, or dreams?</li>
+                                            <li>What were they known for among family, friends, and community?</li>
+                                            <li>What were the circumstances, date, and place of their martyrdom?</li>
+                                            <li>What legacy or memory should be preserved in the archive?</li>
                                         </ul>
                                     </div>
-                                    <textarea id="biography" name="biography" rows="8" placeholder="Share their life story — their dreams, their courage, and how they will be remembered..."></textarea>
+                                    <textarea id="biography" name="biography" rows="6" placeholder="Share their life story, education, character, and the circumstances of their martyrdom..."></textarea>
                                     <div class="bio-counter" id="bioCounter">Start writing — every word matters</div>
                                 </div>
 
                                 <div class="section-divider"></div>
 
-                                <div class="form-group">
-                                    <label for="organization">Affiliation <span class="field-pill optional">Optional</span></label>
-                                    <select id="organization" name="organization">
-                                        <option value="">— Select affiliation —</option>
-                                        <optgroup label="Civil Society">
-                                            <option value="Civilian">Civilian (No Armed Affiliation)</option>
-                                            <option value="Student">Student / Academic</option>
-                                            <option value="Journalist">Journalist / Media</option>
-                                            <option value="Human Rights">Human Rights Activist</option>
-                                            <option value="Political Activist">Political Activist</option>
-                                        </optgroup>
-                                        <optgroup label="Political Parties">
-                                            <option value="BNM">Baloch National Movement (BNM)</option>
-                                            <option value="BNP">Balochistan National Party (BNP)</option>
-                                            <option value="BRP">Baloch Republican Party (BRP)</option>
-                                            <option value="BSO">Baloch Students Organization (BSO)</option>
-                                        </optgroup>
-                                        <optgroup label="Freedom Movements">
-                                            <option value="BLA">Baloch Liberation Army (BLA)</option>
-                                            <option value="BLF">Balochistan Liberation Front (BLF)</option>
-                                            <option value="BRAS">Baloch Raaji Aajoi Sangar (BRAS)</option>
-                                            <option value="BRA">Baloch Republican Army (BRA)</option>
-                                            <option value="BRG">Baloch Republican Guards (BRG)</option>
-                                            <option value="LeB">Lashkar-e-Balochistan (LeB)</option>
-                                            <option value="UBA">United Baloch Army (UBA)</option>
-                                        </optgroup>
-                                        <optgroup label="Other">
-                                            <option value="Other">Other (specify below)</option>
-                                        </optgroup>
-                                    </select>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="organization">Affiliation <span class="field-pill optional">Optional</span></label>
+                                        <select id="organization" name="organization">
+                                            <option value="">— Select affiliation —</option>
+                                            <optgroup label="Civil Society">
+                                                <option value="Civilian">Civilian (No Armed Affiliation)</option>
+                                                <option value="Student">Student / Academic</option>
+                                                <option value="Journalist">Journalist / Media</option>
+                                                <option value="Human Rights">Human Rights Activist</option>
+                                                <option value="Political Activist">Political Activist</option>
+                                            </optgroup>
+                                            <optgroup label="Political Parties">
+                                                <option value="BNM">Baloch National Movement (BNM)</option>
+                                                <option value="BNP">Balochistan National Party (BNP)</option>
+                                                <option value="BRP">Baloch Republican Party (BRP)</option>
+                                                <option value="BSO">Baloch Students Organization (BSO)</option>
+                                            </optgroup>
+                                            <optgroup label="Freedom Movements">
+                                                <option value="BLA">Baloch Liberation Army (BLA)</option>
+                                                <option value="BLF">Balochistan Liberation Front (BLF)</option>
+                                                <option value="BRAS">Baloch Raaji Aajoi Sangar (BRAS)</option>
+                                                <option value="BRA">Baloch Republican Army (BRA)</option>
+                                                <option value="BRG">Baloch Republican Guards (BRG)</option>
+                                                <option value="LeB">Lashkar-e-Balochistan (LeB)</option>
+                                                <option value="UBA">United Baloch Army (UBA)</option>
+                                            </optgroup>
+                                            <optgroup label="Other">
+                                                <option value="Other">Other (specify below)</option>
+                                            </optgroup>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="rank">Rank / Role / Title <span class="field-pill optional">Optional</span></label>
+                                        <input type="text" id="rank" name="rank" placeholder="e.g. Student, Activist, Commander">
+                                    </div>
                                 </div>
 
                                 <div class="form-group" id="otherOrgGroup" style="display:none;">
@@ -414,12 +1526,7 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="rank">Rank / Title <span class="field-pill optional">Optional</span></label>
-                                    <input type="text" id="rank" name="rank" placeholder="Military rank or title held">
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="additionalPhotos">Additional Photos <span class="field-pill optional">Optional</span></label>
+                                    <label for="additionalPhotos">Additional Archive Photos <span class="field-pill optional">Optional</span></label>
                                     <div class="file-upload-wrapper">
                                         <input type="file" id="additionalPhotos" name="additionalPhotos" accept="image/*" multiple>
                                         <div class="file-upload-display">
@@ -431,30 +1538,33 @@
                                 </div>
                             </div>
 
-                            <!-- SECTION 3: YOUR DETAILS -->
+                            <!-- SUBMITTER DETAILS & VERIFICATION -->
                             <div class="form-step" id="formStep3">
                                 <div class="step-section-label">
                                     <div class="step-section-icon" aria-hidden="true">
-                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                                     </div>
                                     <div>
-                                        <div class="step-section-number">Section 03</div>
-                                        <h2 class="step-section-title">Your Details (Confidential)</h2>
+                                        <h2 class="step-section-title">Your Contact Details (Confidential)</h2>
+                                        <p class="step-section-subtitle">Used strictly for verification — never displayed on the public website</p>
                                     </div>
                                 </div>
 
                                 <div class="submitter-note">
-                                    <strong>Private &amp; Confidential.</strong> We keep your details private — they are only used to verify the submission and contact you if we need more information. They will never be shown publicly.
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                                    <div>
+                                        <strong>Private &amp; Confidential:</strong> Your name and email are kept strictly private and are only used if our archival team needs to verify details. They are stripped from all public records.
+                                    </div>
                                 </div>
 
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label for="submitterName">Your Name <span class="field-pill required">Required</span></label>
-                                        <input type="text" id="submitterName" name="submitterName" required autocomplete="name">
+                                        <input type="text" id="submitterName" name="submitterName" placeholder="Your name or alias" required autocomplete="name">
                                     </div>
                                     <div class="form-group">
                                         <label for="submitterEmail">Your Email <span class="field-pill required">Required</span></label>
-                                        <input type="email" id="submitterEmail" name="submitterEmail" required autocomplete="email">
+                                        <input type="email" id="submitterEmail" name="submitterEmail" placeholder="your.email@example.com" required autocomplete="email">
                                     </div>
                                 </div>
 
@@ -485,7 +1595,7 @@
                                     </button>
                                     <p class="submit-privacy-hint">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                                        Your details remain confidential and are only used for submission verification.
+                                        Encrypted submission • Protected by Cloudflare Security
                                     </p>
                                 </div>
                             </div>
@@ -494,48 +1604,50 @@
 
                         <!-- Success Screen -->
                         <div id="successMessage" style="display:none;">
-                            <span class="success-candle" aria-hidden="true">🕯️</span>
+                            <div class="success-icon-badge" aria-hidden="true">
+                                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
                             <h2 class="success-title">
                                 <span id="successNameDisplay" class="success-name-highlight"></span><br>
-                                has been added to the memorial.
+                                has been submitted to the archive.
                             </h2>
                             <div class="success-divider"></div>
-                            <p class="success-subtitle">Their story will now live alongside the martyrs of the Baluch nation — forever preserved, forever honoured.</p>
+                            <p class="success-subtitle">Thank you for preserving their memory. Once verified by our archival team, their profile will appear permanently in the Memorial Gallery.</p>
                             <div class="success-actions">
                                 <a href="/gallery" class="btn btn-primary">View Memorial Gallery</a>
-                                <button onclick="location.reload()" class="btn btn-outline">Honor Another Martyr</button>
+                                <button onclick="location.reload()" class="btn btn-outline">Submit Another Record</button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Memorial Preview Column (Desktop) -->
+                    <!-- Memorial Preview Column (Desktop Sticky) -->
                     <div class="memorial-preview-column">
                         <div class="memorial-preview-container">
                             <div class="memorial-preview-header">
-                                <h4>🕯️ Memorial Preview</h4>
-                                <p>See how the memorial will appear</p>
-                                <div class="preview-live-indicator">Updating live</div>
+                                <h4>
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                                    Archive Card Preview
+                                </h4>
+                                <div class="preview-live-indicator">Live Preview</div>
                             </div>
                             <div class="memorial-card-3d" id="memorialPreviewCard">
                                 <div class="memorial-card-inner">
                                     <div class="preview-photo-section" id="previewPhotoSection">
                                         <div class="preview-photo-placeholder" id="previewPhotoPlaceholder">
                                             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                                            <p>Their photograph will appear here</p>
+                                            <p>Portrait photograph will appear here</p>
                                         </div>
                                         <img id="previewPhotoImgCard" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;">
-                                        <div class="preview-photo-frame"></div>
-                                        <div class="preview-candle-icon">🕯️</div>
                                     </div>
                                     <div class="preview-content-section">
-                                        <h3 class="preview-name empty" id="previewName">Their name will appear here</h3>
+                                        <h3 class="preview-name empty" id="previewName">Full name will appear here</h3>
                                         <p class="preview-father-name" id="previewFatherName"></p>
                                         <div class="preview-dates">
                                             <div class="preview-date-item">
                                                 <div class="preview-date-label">Born</div>
                                                 <div class="preview-date-value empty" id="previewBirthDate">—</div>
                                             </div>
-                                            <div class="preview-dates-separator">✦</div>
+                                            <div class="preview-dates-separator">•</div>
                                             <div class="preview-date-item">
                                                 <div class="preview-date-label">Martyred</div>
                                                 <div class="preview-date-value empty" id="previewMartyrdomDate">—</div>
@@ -548,10 +1660,10 @@
                                         <div class="preview-organization" id="previewOrgContainer" style="display:none;">
                                             <span class="preview-org-badge" id="previewOrganization"></span>
                                         </div>
-                                        <p class="preview-biography empty" id="previewBiography">Their story will appear as you write it...</p>
+                                        <p class="preview-biography empty" id="previewBiography">Biography summary will appear as you write...</p>
                                     </div>
                                     <div class="preview-card-footer">
-                                        <p>🕊️ Forever in our hearts</p>
+                                        <p>Baluch Martyrs Memorial • Permanent Archive</p>
                                     </div>
                                 </div>
                             </div>
@@ -592,13 +1704,8 @@
         </div>
     </footer>
 
-    <button class="mobile-preview-toggle" id="mobilePreviewToggle" aria-label="Preview Memorial Card">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        Preview Card
-    </button>
-
     <div class="mobile-preview-modal" id="mobilePreviewModal">
-        <button class="mobile-preview-close" id="mobilePreviewClose">✕</button>
+        <button class="mobile-preview-close" id="mobilePreviewClose" aria-label="Close preview">✕</button>
         <div class="mobile-preview-content" id="mobilePreviewContent"></div>
     </div>
 
@@ -609,49 +1716,6 @@
     <script>
     (function(){
         'use strict';
-        function scrollToSection(id){
-            var target=document.getElementById(id);
-            if(target){
-                target.scrollIntoView({behavior:'smooth',block:'start'});
-            }
-        }
-
-        [1,2,3].forEach(function(n){
-            var el=document.getElementById('step-indicator-'+n);
-            if(el){
-                el.addEventListener('click',function(e){
-                    e.preventDefault();
-                    scrollToSection('formStep'+n);
-                });
-            }
-        });
-
-        if('IntersectionObserver' in window){
-            var obs=new IntersectionObserver(function(entries){
-                entries.forEach(function(entry){
-                    if(entry.isIntersecting){
-                        var id=entry.target.id;
-                        var n=id==='formStep1'?1:(id==='formStep2'?2:(id==='formStep3'?3:1));
-                        for(var i=1;i<=3;i++){
-                            var item=document.getElementById('step-indicator-'+i);
-                            if(item){
-                                item.classList.remove('active','completed');
-                                if(i<n)item.classList.add('completed');
-                                else if(i===n)item.classList.add('active');
-                            }
-                        }
-                        var c12=document.getElementById('connector-1-2');
-                        var c23=document.getElementById('connector-2-3');
-                        if(c12)c12.classList.toggle('filled',n>1);
-                        if(c23)c23.classList.toggle('filled',n>2);
-                    }
-                });
-            },{threshold:0.25});
-            ['formStep1','formStep2','formStep3'].forEach(function(id){
-                var el=document.getElementById(id);
-                if(el)obs.observe(el);
-            });
-        }
 
         function formatDate(ds){
             if(!ds)return '—';
