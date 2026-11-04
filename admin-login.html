@@ -302,8 +302,8 @@
     </script>
 
     <script type="module">
-        import { adminAuth } from './js/auth.js?v=20261104a';
-        import { checkRateLimit, resetRateLimit, logSecurityEvent } from './js/security.js?v=20261104a';
+        import { adminAuth } from './js/auth.js';
+        import { checkRateLimit, logSecurityEvent } from './js/security.js';
 
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
@@ -327,17 +327,16 @@
             }, 2000);
         }
 
-        // Check if already logged in and verified with server
-        async function checkExistingSession() {
+        // Check if already logged in
+        function checkExistingSession() {
             console.log('🔍 Checking for existing admin session...');
             
             if (adminAuth.isAuthenticated()) {
-                const verifyResult = await adminAuth.verifySessionWithServer();
-                if (verifyResult.valid) {
-                    console.log('✅ Verified server session found, redirecting to admin panel');
-                    window.location.href = '/admin';
-                    return true;
-                }
+                console.log('✅ Valid session found, redirecting to admin panel');
+                const admin = adminAuth.getCurrentAdmin();
+                console.log(`Session for: ${admin.username}, expires: ${admin.expires.toLocaleString()}`);
+                window.location.href = '/admin';
+                return true;
             }
             
             console.log('❌ No valid session found');
@@ -397,18 +396,18 @@
                 // Server-side authentication only (secure)
                 const serverResult = await authenticateWithServer(username, password);
                 
-                if (serverResult.success && serverResult.token) {
+                if (serverResult.success) {
                     console.log(`✅ Authentication successful for: ${username}`);
                     logSecurityEvent('login_success', { username });
-                    resetRateLimit('admin_login');
                     
                     // Store JWT token securely
-                    sessionStorage.setItem('adminToken', serverResult.token);
-                    localStorage.setItem('adminToken', serverResult.token);
-                    localStorage.setItem('adminTokenExpiry', Date.now() + serverResult.expiresIn);
+                    if (serverResult.token) {
+                        sessionStorage.setItem('adminToken', serverResult.token);
+                        localStorage.setItem('adminTokenExpiry', Date.now() + serverResult.expiresIn);
+                    }
                     
-                    // Create verified session using auth.js with signed JWT token
-                    const sessionData = adminAuth.createSession(serverResult.username || username, serverResult.token);
+                    // Create session using auth.js
+                    const sessionData = adminAuth.createSession(username);
                     
                     if (sessionData) {
                         showSuccess('Login successful! Redirecting...');

@@ -12,7 +12,6 @@ import {
     addDoc, 
     getDocs,
     getCountFromServer,
-    onSnapshot,
     doc, 
     updateDoc, 
     deleteDoc,
@@ -551,176 +550,18 @@ function syncWithFirebaseInBackground(cachedEntry) {
     return backgroundSyncPromise;
 }
 
-// ============================================================================
-// ADMIN WRITE AUTHORIZATION & PAYLOAD SANITIZATION GUARDS
-// Every administrative mutation (approve, reject, update, delete) verifies the
-// cryptographic HMAC-SHA256 JWT token with the server (/api/admin-login) before
-// executing any Firestore write or delete operation.
-// ============================================================================
-
-let lastAdminWriteVerifiedAt = 0;
-let lastAdminWriteVerifiedToken = null;
-
-function getStoredAdminToken() {
-    if (typeof window === 'undefined') return null;
-    try {
-        const directToken = sessionStorage.getItem('adminToken') || localStorage.getItem('adminToken');
-        if (directToken && directToken.split('.').length === 3) {
-            return directToken.trim();
-        }
-        const rawSession = sessionStorage.getItem('baluch_admin_session') || localStorage.getItem('baluch_admin_session');
-        if (rawSession) {
-            const parsed = JSON.parse(rawSession);
-            if (parsed?.token && parsed.token.split('.').length === 3) {
-                return parsed.token.trim();
-            }
-        }
-    } catch (_) {}
-    return null;
-}
-
-function validateAdminTokenFormat(token) {
-    if (!token || typeof token !== 'string') return null;
-    const parts = token.trim().split('.');
-    if (parts.length !== 3) return null;
-    const [headerSeg, payloadSeg, sigSeg] = parts;
-    if (!headerSeg || !payloadSeg || !sigSeg || !/^[A-Za-z0-9_-]{32,64}$/.test(sigSeg)) return null;
-    try {
-        const pad = (s) => s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (s.length % 4)) % 4);
-        const header = JSON.parse(atob(pad(headerSeg)));
-        const payload = JSON.parse(atob(pad(payloadSeg)));
-        if (header?.alg !== 'HS256' || payload?.role !== 'admin' || !payload?.username) return null;
-        if (typeof payload.exp !== 'number' || payload.exp <= Date.now()) return null;
-        return payload;
-    } catch {
-        return null;
-    }
-}
-
-async function requireVerifiedAdminSession(actionName, requireLiveServerCheck = true) {
-    const token = getStoredAdminToken();
-    const payload = validateAdminTokenFormat(token);
-    if (!payload) {
-        throw new Error(`Unauthorized: Valid admin authentication is required for ${actionName}. Please log in at /admin-login.`);
-    }
-
-    if (!requireLiveServerCheck) {
-        return payload;
-    }
-
-    // Reuse cryptographic verification if verified within the last 15 seconds with the exact same token
-    if (lastAdminWriteVerifiedToken === token && (Date.now() - lastAdminWriteVerifiedAt) < 15000) {
-        return payload;
-    }
-
-    const response = await fetch('/api/admin-login', {
-        method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'X-Admin-Token': token,
-            'Accept': 'application/json'
-        },
-        cache: 'no-store'
-    });
-
-    if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-            try {
-                localStorage.removeItem('baluch_admin_session');
-                sessionStorage.removeItem('baluch_admin_session');
-                sessionStorage.removeItem('adminToken');
-                localStorage.removeItem('adminToken');
-            } catch (_) {}
-        }
-        throw new Error(`Unauthorized: Server rejected admin session for ${actionName} (HTTP ${response.status}). Please log in again.`);
-    }
-
-    const result = await response.json();
-    if (!result || !result.valid) {
-        throw new Error(`Unauthorized: Admin token verification failed for ${actionName}.`);
-    }
-
-    lastAdminWriteVerifiedToken = token;
-    lastAdminWriteVerifiedAt = Date.now();
-    return payload;
-}
-
-function sanitizeTextField(val, maxLength = 2000, allowNewlines = false) {
-    if (val === null || val === undefined) return '';
-    let str = String(val);
-    if (allowNewlines) {
-        str = str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
-    } else {
-        str = str.replace(/[\x00-\x1F\x7F]/g, ' ');
-    }
-    str = str
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/javascript:/gi, '')
-        .replace(/on\w+\s*=/gi, '')
-        .trim();
-    if (str.length > maxLength) {
-        str = str.substring(0, maxLength);
-    }
-    return str;
-}
-
-function sanitizeMartyrPayload(raw) {
-    if (!raw || typeof raw !== 'object') return {};
-    const cleaned = { ...raw };
-    const textLimits = {
-        fullName: [200, false],
-        fatherName: [200, false],
-        birthPlace: [250, false],
-        martyrdomPlace: [250, false],
-        organization: [200, false],
-        affiliation: [200, false],
-        rank: [200, false],
-        familyDetails: [2000, true],
-        biography: [15000, true],
-        submitterName: [200, false],
-        submitterEmail: [254, false],
-        submitterRelation: [200, false],
-        submitterPhone: [60, false]
-    };
-
-    for (const [field, [maxLen, multiline]] of Object.entries(textLimits)) {
-        if (typeof cleaned[field] === 'string') {
-            cleaned[field] = sanitizeTextField(cleaned[field], maxLen, multiline);
-        }
-    }
-
-    if (typeof cleaned.photo === 'string' && cleaned.photo.trim() !== '') {
-        const photo = cleaned.photo.trim();
-        const isSafeDataUri = /^data:image\/(jpeg|jpg|png|gif|webp);base64,[A-Za-z0-9+/=\s]+$/i.test(photo);
-        const isSafeAssetPath = /^\/assets\/photos\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/i.test(photo);
-        const isSafeHttpsUrl = /^https:\/\//i.test(photo);
-        if (!isSafeDataUri && !isSafeAssetPath && !isSafeHttpsUrl) {
-            throw new Error('Invalid photo format. Only JPEG, PNG, GIF, or WebP images are allowed.');
-        }
-        if (photo.length > 7 * 1024 * 1024) {
-            throw new Error('Photo data exceeds maximum allowed size (5 MB).');
-        }
-        cleaned.photo = photo;
-    }
-
-    return cleaned;
-}
-
 // Database helper functions
 export const firebaseDB = {
     // Add new pending martyr
     async addPendingMartyr(martyrData) {
         try {
-            // Sanitize and validate all fields before saving to Firestore
-            const processedData = sanitizeMartyrPayload(martyrData);
-            if (!processedData.fullName || processedData.fullName.length < 2) {
-                throw new Error('Martyr full name is required.');
-            }
+            // Convert date strings to Timestamp objects for Firestore
+            const processedData = { ...martyrData };
             
-            if (processedData.birthDate && typeof processedData.birthDate === 'string') {
+            if (processedData.birthDate) {
                 processedData.birthDate = Timestamp.fromDate(new Date(processedData.birthDate));
             }
-            if (processedData.martyrdomDate && typeof processedData.martyrdomDate === 'string') {
+            if (processedData.martyrdomDate) {
                 processedData.martyrdomDate = Timestamp.fromDate(new Date(processedData.martyrdomDate));
             }
             
@@ -846,7 +687,6 @@ export const firebaseDB = {
     // Get all pending martyrs (admin only) - simplified
     async getPendingMartyrs() {
         try {
-            await requireVerifiedAdminSession('getPendingMartyrs', false);
             console.log('🔍 Fetching pending martyrs from Firebase...');
             
             // Simple query without orderBy to avoid index issues
@@ -873,75 +713,12 @@ export const firebaseDB = {
         }
     },
 
-    // Real-time listener for pending martyr submissions (admin only)
-    subscribeToPendingMartyrs(callback) {
-        try {
-            const payload = validateAdminTokenFormat(getStoredAdminToken());
-            if (!payload) {
-                console.warn('🚫 Cannot subscribe to pendingMartyrs without valid admin token');
-                return () => {};
-            }
-            let isFirstSnapshot = true;
-            const knownIds = new Set();
-            const pendingCollection = collection(db, 'pendingMartyrs');
-
-            const unsubscribe = onSnapshot(pendingCollection, (snapshot) => {
-                const allPending = [];
-                const newlyAdded = [];
-
-                snapshot.forEach((docSnap) => {
-                    allPending.push({
-                        id: docSnap.id,
-                        ...docSnap.data()
-                    });
-                });
-
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === 'added') {
-                        const docId = change.doc.id;
-                        if (!isFirstSnapshot && !knownIds.has(docId)) {
-                            newlyAdded.push({
-                                id: docId,
-                                ...change.doc.data()
-                            });
-                        }
-                        knownIds.add(docId);
-                    } else if (change.type === 'removed') {
-                        knownIds.delete(change.doc.id);
-                    }
-                });
-
-                const wasInitial = isFirstSnapshot;
-                isFirstSnapshot = false;
-
-                if (typeof callback === 'function') {
-                    callback({
-                        success: true,
-                        data: allPending,
-                        newlyAdded,
-                        isInitial: wasInitial
-                    });
-                }
-            }, (err) => {
-                console.warn('⚠️ Real-time pendingMartyrs listener error:', err.message);
-            });
-
-            return unsubscribe;
-        } catch (error) {
-            console.warn('⚠️ Failed to start real-time pendingMartyrs listener:', error.message);
-            return () => {};
-        }
-    },
-
     // Approve pending martyr (move to approved collection)
     async approveMartyr(martyrId, martyrData) {
         try {
-            await requireVerifiedAdminSession('approveMartyr', true);
-            const sanitizedMartyr = sanitizeMartyrPayload(martyrData);
-
             // Add to approved martyrs collection
             const approvedData = {
-                ...sanitizedMartyr,
+                ...martyrData,
                 status: 'approved',
                 approvedAt: serverTimestamp(),
                 updatedAt: serverTimestamp()
@@ -959,7 +736,7 @@ export const firebaseDB = {
                 if (existing && Array.isArray(existing.data) && existing.data.length > 0) {
                     const nowTs = Timestamp.now();
                     const newMartyrObj = {
-                        ...sanitizedMartyr,
+                        ...martyrData,
                         id: docRef.id,
                         status: 'approved',
                         approvedAt: nowTs,
@@ -993,7 +770,6 @@ export const firebaseDB = {
     // Reject pending martyr (delete from pending)
     async rejectMartyr(martyrId) {
         try {
-            await requireVerifiedAdminSession('rejectMartyr', true);
             await deleteDoc(doc(db, 'pendingMartyrs', martyrId));
             console.log('Martyr rejected and deleted: ', martyrId);
             return { success: true };
@@ -1063,11 +839,10 @@ export const firebaseDB = {
     // Update an approved martyr (admin function)
     async updateApprovedMartyr(martyrId, updatedData) {
         try {
-            await requireVerifiedAdminSession('updateApprovedMartyr', true);
             console.log(`✏️ Updating approved martyr: ${martyrId}`);
             
-            // Process and sanitize fields
-            const processedData = sanitizeMartyrPayload(updatedData);
+            // Process date fields to convert to Timestamps
+            const processedData = { ...updatedData };
             
             // Remove id field if present (shouldn't be updated)
             delete processedData.id;
@@ -1094,7 +869,7 @@ export const firebaseDB = {
                     const nowTs = Timestamp.now();
                     const merged = existing.data.map(m => {
                         if (m && m.id === martyrId) {
-                            return { ...m, ...sanitizeMartyrPayload(updatedData), id: martyrId, updatedAt: nowTs };
+                            return { ...m, ...updatedData, id: martyrId, updatedAt: nowTs };
                         }
                         return m;
                     });
@@ -1118,10 +893,6 @@ export const firebaseDB = {
     // Delete an approved martyr (admin function)
     async deleteApprovedMartyr(martyrId) {
         try {
-            await requireVerifiedAdminSession('deleteApprovedMartyr', true);
-            if (!martyrId || typeof martyrId !== 'string') {
-                throw new Error('Valid martyr ID is required for deletion.');
-            }
             console.log(`🗑️ Deleting approved martyr: ${martyrId}`);
             await deleteDoc(doc(db, 'martyrs', martyrId));
             try {
@@ -1148,7 +919,6 @@ export const firebaseDB = {
     // Clear all pending martyrs (admin function)
     async clearAllPendingMartyrs() {
         try {
-            await requireVerifiedAdminSession('clearAllPendingMartyrs', true);
             const pendingCollection = collection(db, 'pendingMartyrs');
             const querySnapshot = await getDocs(pendingCollection);
             
@@ -1166,13 +936,26 @@ export const firebaseDB = {
         }
     },
     
-    // Clear all approved martyrs (PERMANENTLY LOCKED to prevent bulk archive destruction)
+    // Clear all approved martyrs (admin function - use with caution!)
     async clearAllApprovedMartyrs() {
-        console.error('🚫 Bulk deletion of the approved memorial archive is permanently disabled for security.');
-        return {
-            success: false,
-            error: 'Bulk deletion of the approved memorial archive is permanently disabled for security.'
-        };
+        try {
+            console.log('🧹 Clearing all approved martyrs...');
+            const martyrsCollection = collection(db, 'martyrs');
+            const querySnapshot = await getDocs(martyrsCollection);
+            
+            const deletePromises = [];
+            querySnapshot.forEach((docSnapshot) => {
+                deletePromises.push(deleteDoc(docSnapshot.ref));
+            });
+            
+            await Promise.all(deletePromises);
+            await clearMartyrsCache();
+            console.log(`✅ Cleared ${deletePromises.length} approved martyrs from Firebase`);
+            return { success: true, deletedCount: deletePromises.length };
+        } catch (error) {
+            console.error('❌ Error clearing all approved martyrs: ', error);
+            return { success: false, error: error.message };
+        }
     },
     
     // Initialize database with sample martyrs if empty (DISABLED to avoid auto-seeding)
@@ -1193,7 +976,6 @@ export const firebaseDB = {
     // One-time cleanup helper: remove seeded "Memorial Committee / Historical Record" martyrs only
     async cleanupSeededHistoricalMartyrs() {
         try {
-            await requireVerifiedAdminSession('cleanupSeededHistoricalMartyrs', true);
             console.log('🧹 Checking for seeded historical martyrs to clean up...');
 
             const martyrsCollection = collection(db, 'martyrs');

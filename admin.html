@@ -2164,10 +2164,6 @@
                         <span class="session-divider">•</span>
                         <span>Session: <span id="sessionTimer">--</span>m</span>
                     </div>
-                    <button type="button" id="adminAlertsToggle" class="btn-header-action" title="Configure live submission sound &amp; desktop notifications">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                        <span id="adminAlertsLabel">Live Alerts: On</span>
-                    </button>
                     <button type="button" id="adminThemeToggle" class="btn-header-action" title="Toggle Dark Mode">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
                         <span>Dark Mode</span>
@@ -2458,7 +2454,7 @@
 
     <!-- Simple Authentication Check using auth.js -->
     <script type="module">
-        import { adminAuth } from './js/auth.js?v=20261104a';
+        import { adminAuth } from './js/auth.js';
         
         console.log('🚀 Starting admin authentication...');
         
@@ -2468,14 +2464,6 @@
             window.location.href = '/admin-login';
             throw new Error('Authentication required');
         }
-
-        // Verify cryptographic JWT signature with the server
-        adminAuth.verifySessionWithServer({ force: true }).then((res) => {
-            if (!res.valid && res.error === 'Unauthorized admin token') {
-                console.error('🚫 Server rejected admin token - redirecting to login');
-                adminAuth.logout('/admin-login');
-            }
-        }).catch(() => {});
         
         console.log('✅ Authentication verified, setting up page...');
         
@@ -2525,10 +2513,10 @@
     </script>
     
     <!-- Firebase Config Script -->
-    <script type="module" src="js/firebase-config.js?v=20261104b"></script>
+    <script type="module" src="js/firebase-config.js?v=20261103d"></script>
     
     <!-- Authentication Script -->
-    <script type="module" src="js/auth.js?v=20261104b"></script>
+    <script type="module" src="js/auth.js"></script>
     
     <!-- Admin Panel Main Script -->
     <script type="module">
@@ -2942,6 +2930,6 @@ Please refresh the page or try again later.
         }
     </script>
     <script src="js/mobile-menu.js?v=20261008h"></script>
-    <script type="module" src="js/admin.js?v=20261104b"></script>
+    <script type="module" src="js/admin.js?v=20261103d"></script>
 </body>
 </html>

@@ -8,7 +8,6 @@ import { onRequest as getMartyrs } from '../functions/api/get-martyrs.js';
 
 const routes = {
     '/api/admin-login': adminLogin,
-    '/api/admin-verify': adminLogin,
     '/api/get-martyrs': getMartyrs
 };
 

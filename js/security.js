@@ -129,29 +129,9 @@ export function validateURL(url) {
 // ============================================
 
 const rateLimitStore = new Map();
-const RL_STORAGE_PREFIX = 'bmm_rl_';
-
-function readPersistedRateLimit(key) {
-    try {
-        const raw = localStorage.getItem(RL_STORAGE_PREFIX + key);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed.attempts === 'number' && typeof parsed.resetTime === 'number') {
-            return parsed;
-        }
-    } catch (_) {}
-    return null;
-}
-
-function writePersistedRateLimit(key, record) {
-    rateLimitStore.set(key, record);
-    try {
-        localStorage.setItem(RL_STORAGE_PREFIX + key, JSON.stringify(record));
-    } catch (_) {}
-}
 
 /**
- * Check if an action should be rate limited (persisted across page reloads)
+ * Check if an action should be rate limited
  * @param {string} key - Unique identifier for the action (e.g., 'submit_form', 'login')
  * @param {number} maxAttempts - Maximum attempts allowed in the window
  * @param {number} windowMs - Time window in milliseconds
@@ -159,23 +139,18 @@ function writePersistedRateLimit(key, record) {
  */
 export function checkRateLimit(key, maxAttempts = 5, windowMs = 60000) {
     const now = Date.now();
-    const memRecord = rateLimitStore.get(key);
-    const storedRecord = readPersistedRateLimit(key);
-    const record = (storedRecord && (!memRecord || storedRecord.attempts >= memRecord.attempts))
-        ? storedRecord
-        : memRecord;
+    const record = rateLimitStore.get(key);
     
     if (!record || now > record.resetTime) {
         // First attempt or window expired
-        const freshRecord = {
+        rateLimitStore.set(key, {
             attempts: 1,
             resetTime: now + windowMs
-        };
-        writePersistedRateLimit(key, freshRecord);
+        });
         return {
             allowed: true,
             remaining: maxAttempts - 1,
-            resetTime: new Date(freshRecord.resetTime)
+            resetTime: new Date(now + windowMs)
         };
     }
     
@@ -188,15 +163,11 @@ export function checkRateLimit(key, maxAttempts = 5, windowMs = 60000) {
         };
     }
     
-    const updatedRecord = {
-        attempts: record.attempts + 1,
-        resetTime: record.resetTime
-    };
-    writePersistedRateLimit(key, updatedRecord);
+    record.attempts++;
     return {
         allowed: true,
-        remaining: maxAttempts - updatedRecord.attempts,
-        resetTime: new Date(updatedRecord.resetTime)
+        remaining: maxAttempts - record.attempts,
+        resetTime: new Date(record.resetTime)
     };
 }
 
@@ -206,9 +177,6 @@ export function checkRateLimit(key, maxAttempts = 5, windowMs = 60000) {
  */
 export function resetRateLimit(key) {
     rateLimitStore.delete(key);
-    try {
-        localStorage.removeItem(RL_STORAGE_PREFIX + key);
-    } catch (_) {}
 }
 
 // ============================================

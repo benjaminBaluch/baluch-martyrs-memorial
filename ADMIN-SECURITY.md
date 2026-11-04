@@ -1,18 +1,22 @@
-# Admin Security Architecture
+# Admin Security Setup
 
 ## Overview
-The admin panel (`https://baluchmartyrs.com/admin`) is protected by server-side authentication on Cloudflare Workers (`/api/admin-login`) combined with cryptographic HMAC-SHA256 JWT verification before any administrative database mutation.
+The admin panel has been secured with client-side authentication to prevent unauthorized access. While this provides basic protection for a static site, it's recommended to implement server-side authentication for production use.
 
-## Admin Access & Secrets
-Admin credentials are **never** stored in source code. They are configured strictly as encrypted Cloudflare Worker Secrets (`Settings -> Variables and Secrets`):
-- `ADMIN_USERNAME` — Administrator username
-- `ADMIN_PASSWORD_HASH` — SHA-256 hex digest of the administrator password
-- `JWT_SECRET` — High-entropy signing secret used to sign and verify HS256 admin session tokens
+## Admin Access
+
+### Default Admin Credentials
+- **Username**: `admin`
+- **Password**: `baluch2024!`
+
+### Additional Admin User
+- **Username**: `moderator`
+- **Password**: `memorial@admin`
 
 ### Accessing Admin Panel
-1. Navigate to `https://baluchmartyrs.com/admin-login`
-2. Authenticate via `POST /api/admin-login`
-3. Receive a 4-hour HS256-signed JWT token verified on every admin write/delete operation (`GET /api/admin-login`)
+1. Navigate to: `https://baluchmartyrs.com/admin-login.html`
+2. Enter your credentials
+3. You'll be redirected to the admin panel upon successful login
 
 ### Direct Admin Panel Access
 If you try to access `admin.html` directly, you'll be automatically redirected to the login page.
@@ -55,10 +59,22 @@ If you try to access `admin.html` directly, you'll be automatically redirected t
 - Load approved martyrs
 - Refresh data
 
-## Rotating Admin Credentials
-Generate a new SHA-256 hash locally and update `ADMIN_PASSWORD_HASH` in Cloudflare Worker Secrets:
-```bash
-printf '%s' 'YOUR_NEW_STRONG_PASSWORD' | shasum -a 256
+## Changing Admin Credentials
+
+### Method 1: Edit Login Page
+1. Open `admin-login.html`
+2. Locate the `ADMIN_CREDENTIALS` object (around line 147)
+3. Modify usernames/passwords as needed
+4. Save and commit changes
+
+### Method 2: Add New Admin Users
+Add new entries to the credentials object:
+```javascript
+const ADMIN_CREDENTIALS = {
+    'admin': 'baluch2024!',
+    'moderator': 'memorial@admin',
+    'newadmin': 'your_new_password'
+};
 ```
 
 ## Security Recommendations for Production
