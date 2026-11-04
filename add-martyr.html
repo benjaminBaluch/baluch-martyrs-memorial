@@ -1123,6 +1123,10 @@
             max-width: 360px;
         }
 
+        #liveDuplicateNoticeContainer .live-dup-banner {
+            margin: 0 0 1.15rem;
+        }
+
         /* 6. RESPONSIVE BREAKPOINTS (Tablet & Mobile) */
         @media (max-width: 1024px) {
             .form-preview-wrapper {
@@ -1168,6 +1172,18 @@
             .martyr-form .form-row {
                 grid-template-columns: 1fr;
                 gap: 0;
+            }
+            .live-dup-banner {
+                margin: 0 0 1.1rem !important;
+            }
+            .live-dup-header {
+                flex-direction: column;
+                align-items: stretch !important;
+            }
+            .live-dup-compare-btn {
+                width: 100%;
+                justify-content: center;
+                padding: 0.55rem 0.85rem !important;
             }
         }
 
@@ -1468,6 +1484,7 @@
                                         <input type="text" id="fatherName" name="fatherName" placeholder="e.g. Abdullah">
                                     </div>
                                 </div>
+                                <div id="liveDuplicateNoticeContainer"></div>
 
                                 <div class="form-row">
                                     <div class="form-group">
