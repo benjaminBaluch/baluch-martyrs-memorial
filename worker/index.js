@@ -5,11 +5,13 @@
 
 import { onRequest as adminLogin } from '../functions/api/admin-login.js';
 import { onRequest as getMartyrs } from '../functions/api/get-martyrs.js';
+import { onRequest as verifyTurnstile } from '../functions/api/verify-turnstile.js';
 
 const routes = {
     '/api/admin-login': adminLogin,
     '/api/admin-verify': adminLogin,
-    '/api/get-martyrs': getMartyrs
+    '/api/get-martyrs': getMartyrs,
+    '/api/verify-turnstile': verifyTurnstile
 };
 
 export default {

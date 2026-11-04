@@ -1651,6 +1651,66 @@ async function handleFormSubmit(event) {
     try {
         const form = event.target;
         const formData = new FormData(form);
+
+        // 1. Honeypot anti-bot check (invisible field that only automated spam bots fill out)
+        const honeypotVal = (formData.get('website_hp_url') || '').toString().trim();
+        if (honeypotVal !== '') {
+            hideLoadingState();
+            logSecurityEvent('honeypot_triggered', { action: 'martyr_submission' });
+            console.warn('🤖 Automated bot submission blocked by honeypot');
+            return;
+        }
+
+        // 2. Cloudflare Turnstile ("Verify you are human") check
+        const turnstileBox = document.getElementById('turnstileBox');
+        const turnstileErrEl = document.getElementById('turnstileErrorMsg');
+        const turnstileToken = (
+            formData.get('cf-turnstile-response') ||
+            window.__bmmTurnstileToken ||
+            (window.turnstile && typeof window.turnstile.getResponse === 'function' ? window.turnstile.getResponse() : '') ||
+            ''
+        ).toString().trim();
+
+        const turnstileWidgetPresent = Boolean(turnstileBox && window.turnstile && !window.__bmmTurnstileWidgetError);
+        if (turnstileWidgetPresent && !turnstileToken) {
+            hideLoadingState();
+            if (turnstileErrEl) {
+                turnstileErrEl.textContent = 'Please complete the "Verify you are human" check above before submitting.';
+                turnstileErrEl.style.display = 'block';
+            }
+            if (turnstileBox) {
+                turnstileBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+        }
+
+        if (turnstileToken) {
+            try {
+                const verifyRes = await fetch('/api/verify-turnstile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: turnstileToken })
+                });
+                if (verifyRes.status === 400 || verifyRes.status === 403) {
+                    const verifyJson = await verifyRes.json().catch(() => ({}));
+                    hideLoadingState();
+                    if (window.turnstile && typeof window.turnstile.reset === 'function') {
+                        window.turnstile.reset();
+                    }
+                    window.__bmmTurnstileToken = '';
+                    if (turnstileErrEl) {
+                        turnstileErrEl.textContent = verifyJson.error || 'Human verification expired. Please check the box again.';
+                        turnstileErrEl.style.display = 'block';
+                    }
+                    if (turnstileBox) {
+                        turnstileBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    return;
+                }
+            } catch (turnstileNetErr) {
+                console.warn('Turnstile endpoint check skipped:', turnstileNetErr.message);
+            }
+        }
         
         // Validate required fields first
         const requiredFields = ['fullName', 'martyrdomDate', 'submitterName', 'submitterEmail'];

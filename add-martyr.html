@@ -10,7 +10,28 @@
     <link rel="shortcut icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://challenges.cloudflare.com">
     <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script>
+        window.__bmmTurnstileToken = '';
+        window.__bmmTurnstileWidgetError = false;
+        window.onTurnstileVerified = function(token) {
+            window.__bmmTurnstileToken = token || '';
+            window.__bmmTurnstileWidgetError = false;
+            var errEl = document.getElementById('turnstileErrorMsg');
+            if (errEl) errEl.style.display = 'none';
+        };
+        window.onTurnstileExpired = function() {
+            window.__bmmTurnstileToken = '';
+        };
+        window.onTurnstileError = function() {
+            window.__bmmTurnstileWidgetError = true;
+            var errEl = document.getElementById('turnstileErrorMsg');
+            if (errEl) errEl.style.display = 'none';
+            return true;
+        };
+    </script>
     <style>
         /* HERO BANNER */
         .add-hero-banner{background:linear-gradient(160deg,#0f1f11 0%,#1a3220 40%,#2c5530 100%);padding:4rem 0 3rem;text-align:center;position:relative;overflow:hidden}
@@ -437,6 +458,25 @@
                                     </div>
                                 </div>
 
+                                <!-- Honeypot anti-bot field (hidden from real visitors) -->
+                                <div aria-hidden="true" style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;">
+                                    <label for="website_hp_url">Website</label>
+                                    <input type="text" id="website_hp_url" name="website_hp_url" tabindex="-1" autocomplete="off">
+                                </div>
+
+                                <!-- Cloudflare Turnstile ("Verify you are human") -->
+                                <div class="turnstile-verification-box" id="turnstileBox" style="margin: 1.25rem 0 0.5rem; display: flex; flex-direction: column; align-items: center; gap: 0.45rem;">
+                                    <div class="cf-turnstile"
+                                         data-sitekey="0x4AAAAAAFyzCq5dcYIxZK3h"
+                                         data-theme="auto"
+                                         data-callback="onTurnstileVerified"
+                                         data-expired-callback="onTurnstileExpired"
+                                         data-error-callback="onTurnstileError"></div>
+                                    <div id="turnstileErrorMsg" role="alert" style="display:none; font-size:0.84rem; color:#dc2626; font-weight:600; text-align:center;">
+                                        Please complete the "Verify you are human" check above before submitting.
+                                    </div>
+                                </div>
+
                                 <div class="form-submit-row">
                                     <button type="submit" class="btn-submit-legacy" id="btnSubmitLegacy">
                                         <span class="btn-spinner"></span>
@@ -562,9 +602,9 @@
         <div class="mobile-preview-content" id="mobilePreviewContent"></div>
     </div>
 
-    <script src="js/main.js?v=20261103d"></script>
+    <script src="js/main.js?v=20261104f"></script>
     <script src="js/mobile-menu.js?v=20261008i"></script>
-    <script type="module" src="js/add-martyr.js?v=20261103d"></script>
+    <script type="module" src="js/add-martyr.js?v=20261104f"></script>
 
     <script>
     (function(){
