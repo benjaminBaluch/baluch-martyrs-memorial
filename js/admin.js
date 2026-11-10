@@ -55,12 +55,46 @@ function calculateStringSimilarity(str1, str2) {
 function normalizeName(name) {
     if (!name) return '';
     return name.toString().toLowerCase()
-        .replace(/^(shaheed|martyr|shahid|dr\.?|mr\.?|ms\.?|mrs\.?)\s*/gi, '')
+        .replace(/^(shaheed|martyr|shahid|mama|ustad|commander|captain|dr\.?|mr\.?|ms\.?|mrs\.?)\s+/gi, '')
         .replace(/\s+/g, ' ')
         .trim();
 }
 
-// Calculate overall similarity score between two martyrs
+// Extract primary name and alias parts (e.g. "Ali Nawaz Mengal, alias Faraz" -> ["ali nawaz mengal", "faraz"])
+function extractNameParts(rawName) {
+    const norm = normalizeName(rawName);
+    if (!norm) return [];
+    const parts = norm
+        .split(/(?:,\s*alias\s+|\s+alias\s+|\s+a\.?k\.?a\.?\s+|\(|\)|\/)/i)
+        .map(p => p.replace(/^alias\s+/i, '').trim())
+        .filter(p => p.length >= 2);
+    return parts.length > 0 ? [norm, ...parts] : [norm];
+}
+
+// Compute best name similarity across full name and alias segments
+function calculateBestNameSimilarity(nameA, nameB) {
+    const normA = normalizeName(nameA);
+    const normB = normalizeName(nameB);
+    if (!normA || !normB) return 0;
+    if (normA === normB) return 1.0;
+
+    let best = calculateStringSimilarity(normA, normB);
+    const partsA = extractNameParts(nameA);
+    const partsB = extractNameParts(nameB);
+
+    for (const a of partsA) {
+        for (const b of partsB) {
+            if (a === b && a.length >= 4) {
+                best = Math.max(best, 0.94);
+            } else if (a.length >= 4 && b.length >= 4) {
+                best = Math.max(best, calculateStringSimilarity(a, b));
+            }
+        }
+    }
+    return best;
+}
+
+// Calculate overall similarity score between two martyrs (dynamic weighting so missing optional fields don't hide a duplicate)
 function calculateMartyrSimilarity(martyr1, martyr2) {
     const scores = {
         name: 0,
@@ -71,40 +105,41 @@ function calculateMartyrSimilarity(martyr1, martyr2) {
         birthDate: 0
     };
     
-    // Name similarity (most important - weight: 50%)
-    const name1 = normalizeName(martyr1.fullName);
-    const name2 = normalizeName(martyr2.fullName);
-    scores.name = calculateStringSimilarity(name1, name2);
+    // Name similarity
+    scores.name = calculateBestNameSimilarity(martyr1.fullName, martyr2.fullName);
     
-    // Father name similarity (weight: 15%)
-    if (martyr1.fatherName && martyr2.fatherName) {
-        scores.fatherName = calculateStringSimilarity(
-            normalizeName(martyr1.fatherName),
-            normalizeName(martyr2.fatherName)
-        );
+    // Father name similarity
+    const hasFather = Boolean(martyr1.fatherName && martyr1.fatherName.toString().trim() && martyr2.fatherName && martyr2.fatherName.toString().trim());
+    if (hasFather) {
+        scores.fatherName = calculateBestNameSimilarity(martyr1.fatherName, martyr2.fatherName);
     }
     
-    // Birth place similarity (weight: 10%)
-    if (martyr1.birthPlace && martyr2.birthPlace) {
+    // Birth place similarity
+    const hasBirthPlace = Boolean(martyr1.birthPlace && martyr1.birthPlace.toString().trim() && martyr2.birthPlace && martyr2.birthPlace.toString().trim());
+    if (hasBirthPlace) {
         scores.birthPlace = calculateStringSimilarity(
-            martyr1.birthPlace.toLowerCase(),
-            martyr2.birthPlace.toLowerCase()
+            martyr1.birthPlace.toString().toLowerCase(),
+            martyr2.birthPlace.toString().toLowerCase()
         );
     }
     
-    // Martyrdom place similarity (weight: 10%)
-    if (martyr1.martyrdomPlace && martyr2.martyrdomPlace) {
+    // Martyrdom place similarity
+    const hasMartyrPlace = Boolean(martyr1.martyrdomPlace && martyr1.martyrdomPlace.toString().trim() && martyr2.martyrdomPlace && martyr2.martyrdomPlace.toString().trim());
+    if (hasMartyrPlace) {
         scores.martyrdomPlace = calculateStringSimilarity(
-            martyr1.martyrdomPlace.toLowerCase(),
-            martyr2.martyrdomPlace.toLowerCase()
+            martyr1.martyrdomPlace.toString().toLowerCase(),
+            martyr2.martyrdomPlace.toString().toLowerCase()
         );
     }
     
-    // Date comparisons (weight: 7.5% each)
+    // Date comparisons
     const getDateString = (dateVal) => {
         if (!dateVal) return '';
         if (dateVal.toDate && typeof dateVal.toDate === 'function') {
             return dateVal.toDate().toISOString().split('T')[0];
+        }
+        if (typeof dateVal === 'object' && typeof dateVal.seconds === 'number') {
+            return new Date(dateVal.seconds * 1000).toISOString().split('T')[0];
         }
         if (typeof dateVal === 'string') return dateVal.split('T')[0];
         if (dateVal instanceof Date) return dateVal.toISOString().split('T')[0];
@@ -113,24 +148,53 @@ function calculateMartyrSimilarity(martyr1, martyr2) {
     
     const date1_martyrdom = getDateString(martyr1.martyrdomDate);
     const date2_martyrdom = getDateString(martyr2.martyrdomDate);
-    if (date1_martyrdom && date2_martyrdom) {
+    const hasMartyrDate = Boolean(date1_martyrdom && date2_martyrdom);
+    if (hasMartyrDate) {
         scores.martyrdomDate = date1_martyrdom === date2_martyrdom ? 1.0 : 0;
     }
     
     const date1_birth = getDateString(martyr1.birthDate);
     const date2_birth = getDateString(martyr2.birthDate);
-    if (date1_birth && date2_birth) {
+    const hasBirthDate = Boolean(date1_birth && date2_birth);
+    if (hasBirthDate) {
         scores.birthDate = date1_birth === date2_birth ? 1.0 : 0;
     }
     
-    // Calculate weighted total
-    const totalScore = 
-        (scores.name * 0.50) +
-        (scores.fatherName * 0.15) +
-        (scores.birthPlace * 0.10) +
-        (scores.martyrdomPlace * 0.10) +
-        (scores.martyrdomDate * 0.075) +
-        (scores.birthDate * 0.075);
+    // Dynamic weighted score so missing optional fields don't penalize a real duplicate
+    let weightedSum = scores.name * 0.55;
+    let totalWeight = 0.55;
+
+    if (hasFather) {
+        weightedSum += scores.fatherName * 0.20;
+        totalWeight += 0.20;
+    }
+    if (hasBirthPlace) {
+        weightedSum += scores.birthPlace * 0.08;
+        totalWeight += 0.08;
+    }
+    if (hasMartyrPlace) {
+        weightedSum += scores.martyrdomPlace * 0.10;
+        totalWeight += 0.10;
+    }
+    if (hasMartyrDate) {
+        weightedSum += scores.martyrdomDate * 0.10;
+        totalWeight += 0.10;
+    }
+    if (hasBirthDate) {
+        weightedSum += scores.birthDate * 0.05;
+        totalWeight += 0.05;
+    }
+
+    let totalScore = totalWeight > 0 ? (weightedSum / totalWeight) : 0;
+
+    // If the name itself is a very strong match (>= 0.85), ensure it surfaces as a potential duplicate
+    if (scores.name >= 0.85) {
+        let bonus = 0;
+        if (scores.fatherName > 0.7) bonus += 0.06;
+        if (scores.martyrdomPlace > 0.7) bonus += 0.04;
+        if (scores.martyrdomDate > 0.8) bonus += 0.05;
+        totalScore = Math.min(1.0, Math.max(totalScore, (scores.name * 0.86) + bonus));
+    }
     
     return {
         total: totalScore,
@@ -139,34 +203,39 @@ function calculateMartyrSimilarity(martyr1, martyr2) {
 }
 
 // Find potential duplicates for a martyr being approved
-async function findPotentialDuplicates(martyrToCheck, threshold = 0.65) {
+async function findPotentialDuplicates(martyrToCheck, threshold = 0.62, customApprovedList = null) {
     console.log('🔍 Checking for potential duplicates for:', martyrToCheck.fullName);
     
     const duplicates = [];
     
     try {
-        // Get all approved martyrs from Firebase
-        if (!window.firebaseDB) {
-            console.warn('⚠️ Firebase not available for duplicate check');
-            return duplicates;
+        let approvedMartyrs = Array.isArray(customApprovedList) ? customApprovedList : null;
+
+        if (!approvedMartyrs) {
+            if (!window.firebaseDB) {
+                console.warn('⚠️ Firebase not available for duplicate check');
+                return duplicates;
+            }
+            
+            const result = await window.firebaseDB.getApprovedMartyrs();
+            if (!result.success || !result.data) {
+                console.warn('⚠️ Could not fetch approved martyrs for duplicate check');
+                return duplicates;
+            }
+            
+            approvedMartyrs = result.data;
         }
-        
-        const result = await window.firebaseDB.getApprovedMartyrs();
-        if (!result.success || !result.data) {
-            console.warn('⚠️ Could not fetch approved martyrs for duplicate check');
-            return duplicates;
-        }
-        
-        const approvedMartyrs = result.data;
+
         console.log(`📊 Checking against ${approvedMartyrs.length} approved martyrs`);
         
         for (const approved of approvedMartyrs) {
+            if (!approved) continue;
             const similarity = calculateMartyrSimilarity(martyrToCheck, approved);
             
-            if (similarity.total >= threshold) {
+            if (similarity.total >= threshold || similarity.breakdown.name >= 0.84) {
                 duplicates.push({
                     martyr: approved,
-                    similarity: similarity.total,
+                    similarity: Math.max(similarity.total, similarity.breakdown.name * 0.85),
                     breakdown: similarity.breakdown
                 });
                 console.log(`⚠️ Potential duplicate found: ${approved.fullName} (${(similarity.total * 100).toFixed(1)}% match)`);
@@ -183,8 +252,8 @@ async function findPotentialDuplicates(martyrToCheck, threshold = 0.65) {
     return duplicates;
 }
 
-// Show duplicate warning modal - Side-by-side comparison view
-function showDuplicateWarningModal(martyrToApprove, duplicates, onConfirm, onCancel) {
+// Show duplicate warning modal - Side-by-side comparison view with Reject option
+function showDuplicateWarningModal(martyrToApprove, duplicates, onConfirm, onCancel, onReject = null, batchMeta = null) {
     // Remove existing modal if present
     const existing = document.getElementById('duplicateWarningModal');
     if (existing) existing.remove();
@@ -194,6 +263,7 @@ function showDuplicateWarningModal(martyrToApprove, duplicates, onConfirm, onCan
     modal.className = 'duplicate-modal-overlay';
 
     const checkIconSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+    const trashIconSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>';
     
     // Helper to create structured profile card HTML
     const createProfileCard = (martyr, breakdown = {}) => {
@@ -238,7 +308,7 @@ function showDuplicateWarningModal(martyrToApprove, duplicates, onConfirm, onCan
     };
     
     // Build comparison rows for each duplicate
-    const comparisonRowsHtml = duplicates.map((dup) => {
+    const comparisonRowsHtml = duplicates.slice(0, 3).map((dup) => {
         const similarity = (dup.similarity * 100).toFixed(0);
         const matchClass = similarity >= 90 ? 'match-critical' : similarity >= 80 ? 'match-high' : similarity >= 70 ? 'match-medium' : 'match-low';
         const matchLabel = similarity >= 90 ? 'Very High Similarity' : similarity >= 80 ? 'High Similarity' : similarity >= 70 ? 'Moderate Similarity' : 'Possible Match';
@@ -298,6 +368,11 @@ function showDuplicateWarningModal(martyrToApprove, duplicates, onConfirm, onCan
         `;
     }).join('');
     
+    const batchHeaderBadge = batchMeta
+        ? `<div class="dup-batch-pill">Batch Duplicate Review • ${batchMeta.current} of ${batchMeta.total}</div>`
+        : '';
+    const cancelBtnText = batchMeta ? 'Skip (Keep in Pending)' : 'Keep in Pending';
+
     modal.innerHTML = `
         <div class="duplicate-modal-content" role="dialog" aria-modal="true" aria-labelledby="dupModalTitle">
             <div class="duplicate-modal-header">
@@ -309,6 +384,7 @@ function showDuplicateWarningModal(martyrToApprove, duplicates, onConfirm, onCan
                     </svg>
                 </div>
                 <div class="dup-header-text">
+                    ${batchHeaderBadge}
                     <h2 id="dupModalTitle">Potential Duplicate Detected</h2>
                     <p>This submission closely matches ${duplicates.length} existing profile${duplicates.length > 1 ? 's' : ''} in the memorial archive</p>
                 </div>
@@ -324,8 +400,8 @@ function showDuplicateWarningModal(martyrToApprove, duplicates, onConfirm, onCan
                         </svg>
                     </div>
                     <div class="dup-alert-text">
-                        <strong>Review carefully before publishing.</strong>
-                        Compare the pending submission against the published archive record below to confirm whether they represent the same person.
+                        <strong>Match found in database.</strong>
+                        Compare the pending submission against the published archive record below. You can <strong>Reject &amp; Delete</strong> the duplicate immediately, keep it in Pending, or approve it if it is a different person.
                     </div>
                 </div>
                 
@@ -335,12 +411,18 @@ function showDuplicateWarningModal(martyrToApprove, duplicates, onConfirm, onCan
             </div>
             
             <div class="duplicate-modal-footer">
-                <span class="dup-footer-hint">Press Esc or click Cancel to keep this submission in Pending</span>
+                <span class="dup-footer-hint">Choose how to handle this pending submission</span>
                 <div class="dup-footer-actions">
                     <button type="button" class="btn dup-btn-cancel">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                        <span class="btn-text">Cancel Approval</span>
+                        <span class="btn-text">${cancelBtnText}</span>
                     </button>
+                    ${onReject ? `
+                    <button type="button" class="btn dup-btn-reject">
+                        ${trashIconSvg}
+                        <span class="btn-text">Reject Duplicate</span>
+                    </button>
+                    ` : ''}
                     <button type="button" class="btn dup-btn-approve">
                         ${checkIconSvg}
                         <span class="btn-text">Not a Duplicate — Approve</span>
@@ -357,6 +439,7 @@ function showDuplicateWarningModal(martyrToApprove, duplicates, onConfirm, onCan
     const closeModal = () => {
         modal.remove();
         document.body.style.overflow = 'auto';
+        document.removeEventListener('keydown', escHandler);
     };
     
     modal.querySelector('.duplicate-modal-close').addEventListener('click', () => {
@@ -368,6 +451,14 @@ function showDuplicateWarningModal(martyrToApprove, duplicates, onConfirm, onCan
         closeModal();
         if (onCancel) onCancel();
     });
+
+    const rejectModalBtn = modal.querySelector('.dup-btn-reject');
+    if (rejectModalBtn && onReject) {
+        rejectModalBtn.addEventListener('click', () => {
+            closeModal();
+            onReject();
+        });
+    }
     
     modal.querySelector('.dup-btn-approve').addEventListener('click', () => {
         closeModal();
@@ -383,13 +474,12 @@ function showDuplicateWarningModal(martyrToApprove, duplicates, onConfirm, onCan
     });
     
     // Escape key to close
-    const escHandler = (e) => {
+    function escHandler(e) {
         if (e.key === 'Escape') {
             closeModal();
             if (onCancel) onCancel();
-            document.removeEventListener('keydown', escHandler);
         }
-    };
+    }
     document.addEventListener('keydown', escHandler);
 }
 
@@ -569,6 +659,13 @@ function initializeAdminControls() {
     } else {
         console.warn('⚠️ Clear All Pending button not found');
     }
+
+    // Approve All Pending button
+    const approveAllBtn = document.getElementById('approveAllPendingBtn');
+    if (approveAllBtn) {
+        approveAllBtn.addEventListener('click', approveAllPending);
+        console.log('✅ Approve All Pending button event listener added');
+    }
     
     console.log('✅ Admin control buttons initialization completed');
     
@@ -577,6 +674,7 @@ function initializeAdminControls() {
     window.exportData = exportData;
     window.importData = importData;
     window.clearAllPending = clearAllPending;
+    window.approveAllPending = approveAllPending;
     window.loadPendingSubmissions = loadPendingSubmissions;
     window.loadApprovedMartyrs = loadApprovedMartyrs;
     window.showAdminToast = showAdminToast;
@@ -585,6 +683,22 @@ function initializeAdminControls() {
     // Initialize pending & approved search/filter controls
     initPendingSearch();
     initApprovedSearch();
+}
+
+// Helper to show/hide and update the "Approve All Pending" button state
+function updateApproveAllButtonState(count) {
+    const btn = document.getElementById('approveAllPendingBtn');
+    const textEl = document.getElementById('approveAllPendingText');
+    if (!btn) return;
+    const safeCount = Math.max(0, Number(count) || 0);
+    if (safeCount > 0) {
+        btn.style.display = 'inline-flex';
+        if (textEl && !btn.disabled) {
+            textEl.textContent = `Approve All Pending (${safeCount})`;
+        }
+    } else {
+        btn.style.display = 'none';
+    }
 }
 
 // Non-blocking toast notification helper
@@ -848,6 +962,7 @@ async function loadPendingSubmissions() {
 
     // Show results with detailed debug info
     console.log(`📈 Final results: ${pendingData.length} pending submissions from ${loadingSource}`);
+    updateApproveAllButtonState(pendingData.length);
     
     if (pendingData.length === 0) {
         const debugInfo = `
@@ -1411,6 +1526,14 @@ async function approveMartyr(martyrId) {
                 () => {
                     console.log('❌ User cancelled approval due to duplicates');
                     resetApproveButton(martyrId);
+                },
+                // onReject - user wants to reject and delete the duplicate right from the modal
+                async () => {
+                    console.log('🗑️ User chose to reject duplicate directly from comparison modal');
+                    await executeSilentRejection(martyrId);
+                    await loadPendingSubmissions();
+                    await updateStats();
+                    showAdminToast(`Duplicate submission "${martyrToApprove.fullName}" rejected and removed.`, 'info');
                 }
             );
             return; // Exit here - the modal callbacks will handle the rest
@@ -1554,8 +1677,227 @@ async function updateStats() {
         
         document.getElementById('pendingCount').textContent = pendingCount;
         document.getElementById('approvedCount').textContent = approvedCount;
+        updateApproveAllButtonState(pendingCount);
     } catch (error) {
         console.error('Error updating stats:', error);
+    }
+}
+
+// Helper to reject a pending martyr without a redundant browser confirm() prompt
+// (used when admin already clicked "Reject Duplicate" inside the Duplicate Warning Modal)
+async function executeSilentRejection(martyrId) {
+    try {
+        const pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
+        const martyrIndex = pendingData.findIndex(m => m.id === martyrId);
+        const foundInLocalStorage = martyrIndex !== -1;
+
+        if (window.firebaseDB && typeof window.firebaseDB.rejectMartyr === 'function') {
+            try {
+                await window.firebaseDB.rejectMartyr(martyrId);
+            } catch (err) {
+                console.warn('⚠️ Firebase rejection warning:', err);
+            }
+        }
+
+        if (foundInLocalStorage) {
+            pendingData.splice(martyrIndex, 1);
+            localStorage.setItem('pendingMartyrs', JSON.stringify(pendingData));
+        }
+
+        const pendingItem = document.querySelector(`[data-martyr-id="${martyrId}"]`);
+        if (pendingItem) {
+            pendingItem.remove();
+        }
+        return true;
+    } catch (error) {
+        console.error('Error in executeSilentRejection:', error);
+        return false;
+    }
+}
+
+// Helper to approve a single martyr silently during batch processing
+async function executeBatchItemApproval(martyr) {
+    const martyrId = martyr.id;
+    let firebaseSuccess = false;
+
+    if (window.firebaseDB && typeof window.firebaseDB.approveMartyr === 'function') {
+        try {
+            const result = await window.firebaseDB.approveMartyr(martyrId, martyr);
+            if (result && result.success) {
+                firebaseSuccess = true;
+            }
+        } catch (err) {
+            console.warn('⚠️ Firebase batch approval warning for', martyr.fullName, err);
+        }
+    }
+
+    // Update localStorage if present
+    try {
+        const pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
+        const idx = pendingData.findIndex(m => m.id === martyrId);
+        if (idx !== -1) {
+            pendingData.splice(idx, 1);
+            localStorage.setItem('pendingMartyrs', JSON.stringify(pendingData));
+        }
+    } catch (e) {
+        // Ignore storage quota issues
+    }
+
+    const pendingItem = document.querySelector(`[data-martyr-id="${martyrId}"]`);
+    if (pendingItem) {
+        pendingItem.remove();
+    }
+
+    return firebaseSuccess;
+}
+
+// Approve All Pending Submissions with Automatic Duplicate Detection & Interactive Duplicate Review
+async function approveAllPending() {
+    if (!validateAdminAuth('approve all pending martyrs')) {
+        return;
+    }
+
+    if (!window.firebaseDB) {
+        alert('Firebase database not available. Please check your internet connection and refresh the page.');
+        return;
+    }
+
+    const approveAllBtn = document.getElementById('approveAllPendingBtn');
+    const approveAllText = document.getElementById('approveAllPendingText');
+
+    try {
+        if (approveAllBtn) approveAllBtn.disabled = true;
+        if (approveAllText) approveAllText.textContent = 'Loading pending queue...';
+
+        // 1. Load all pending submissions
+        let pendingList = [];
+        try {
+            const pendingResult = await window.firebaseDB.getPendingMartyrs();
+            if (pendingResult && pendingResult.success && Array.isArray(pendingResult.data)) {
+                pendingList = pendingResult.data;
+            }
+        } catch (err) {
+            console.warn('⚠️ Failed to fetch pending from Firebase, checking localStorage:', err);
+        }
+
+        if (pendingList.length === 0) {
+            pendingList = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
+        }
+
+        if (pendingList.length === 0) {
+            showAdminToast('No pending submissions to approve.', 'info');
+            updateApproveAllButtonState(0);
+            if (approveAllBtn) approveAllBtn.disabled = false;
+            return;
+        }
+
+        // Ask admin to confirm starting the smart batch approval
+        const confirmMsg = `Approve All Pending (${pendingList.length} submission${pendingList.length === 1 ? '' : 's'})?\n\n` +
+            `• Unique profiles with no database match will be approved & published automatically.\n` +
+            `• Any profile that matches an existing martyr in the database will pause and open a comparison modal so you can Reject the duplicate, Skip it, or Approve it.`;
+
+        if (!confirm(confirmMsg)) {
+            if (approveAllBtn) approveAllBtn.disabled = false;
+            updateApproveAllButtonState(pendingList.length);
+            return;
+        }
+
+        // 2. Load all existing approved martyrs once for fast, accurate duplicate checking
+        if (approveAllText) approveAllText.textContent = 'Scanning for duplicates...';
+        let runningApprovedList = [];
+        try {
+            const approvedResult = await window.firebaseDB.getApprovedMartyrs();
+            if (approvedResult && approvedResult.success && Array.isArray(approvedResult.data)) {
+                runningApprovedList = [...approvedResult.data];
+            }
+        } catch (err) {
+            console.warn('⚠️ Failed to fetch approved list from Firebase, using fallback:', err);
+        }
+        if (runningApprovedList.length === 0) {
+            runningApprovedList = JSON.parse(localStorage.getItem('martyrsData') || '[]');
+        }
+
+        let approvedCount = 0;
+        let rejectedCount = 0;
+        let skippedCount = 0;
+        const flaggedDuplicates = [];
+
+        // 3. First pass: Automatically approve all clean (non-duplicate) submissions,
+        //    and queue any submission that matches either an existing approved profile
+        //    OR an earlier submission approved in this same batch.
+        for (let i = 0; i < pendingList.length; i++) {
+            const martyr = pendingList[i];
+            if (approveAllText) {
+                approveAllText.textContent = `Processing ${i + 1} / ${pendingList.length}...`;
+            }
+
+            const matches = await findPotentialDuplicates(martyr, 0.62, runningApprovedList);
+            if (matches.length > 0) {
+                flaggedDuplicates.push({ martyr, matches });
+            } else {
+                await executeBatchItemApproval(martyr);
+                runningApprovedList.push({ ...martyr, status: 'approved' });
+                approvedCount++;
+            }
+        }
+
+        // 4. Second pass: If any duplicates were detected, present each one in the
+        //    Side-by-Side Duplicate Comparison Modal with Reject / Skip / Approve options.
+        if (flaggedDuplicates.length > 0) {
+            for (let j = 0; j < flaggedDuplicates.length; j++) {
+                const { martyr } = flaggedDuplicates[j];
+                if (approveAllText) {
+                    approveAllText.textContent = `Reviewing duplicate ${j + 1} / ${flaggedDuplicates.length}...`;
+                }
+
+                // Re-run against latest runningApprovedList so newly approved items are included
+                const freshMatches = await findPotentialDuplicates(martyr, 0.62, runningApprovedList);
+                const matchesToShow = freshMatches.length > 0 ? freshMatches : flaggedDuplicates[j].matches;
+
+                const decision = await new Promise((resolve) => {
+                    showDuplicateWarningModal(
+                        martyr,
+                        matchesToShow,
+                        () => resolve('approve'),
+                        () => resolve('skip'),
+                        () => resolve('reject'),
+                        { current: j + 1, total: flaggedDuplicates.length }
+                    );
+                });
+
+                if (decision === 'reject') {
+                    await executeSilentRejection(martyr.id);
+                    rejectedCount++;
+                } else if (decision === 'approve') {
+                    await executeBatchItemApproval(martyr);
+                    runningApprovedList.push({ ...martyr, status: 'approved' });
+                    approvedCount++;
+                } else {
+                    skippedCount++;
+                }
+            }
+        }
+
+        // 5. Refresh UI and show summary toast
+        await loadPendingSubmissions();
+        await updateStats();
+
+        const summaryParts = [];
+        if (approvedCount > 0) summaryParts.push(`${approvedCount} approved`);
+        if (rejectedCount > 0) summaryParts.push(`${rejectedCount} duplicate${rejectedCount === 1 ? '' : 's'} rejected`);
+        if (skippedCount > 0) summaryParts.push(`${skippedCount} skipped`);
+
+        showAdminToast(
+            `Batch complete: ${summaryParts.join(' • ') || 'No changes made'}.`,
+            approvedCount > 0 ? 'success' : 'info',
+            6000
+        );
+    } catch (error) {
+        console.error('❌ Error during Approve All Pending:', error);
+        alert('An error occurred during batch approval. Please refresh and check the remaining pending items.');
+    } finally {
+        if (approveAllBtn) approveAllBtn.disabled = false;
+        await updateStats();
     }
 }
 

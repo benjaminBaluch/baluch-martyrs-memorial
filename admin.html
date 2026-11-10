@@ -1857,12 +1857,13 @@
         }
 
         .dup-btn-cancel,
+        .dup-btn-reject,
         .dup-btn-approve {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.72rem 1.25rem;
-            font-size: 0.88rem;
+            padding: 0.72rem 1.2rem;
+            font-size: 0.86rem;
             font-weight: 700;
             border-radius: 10px;
             cursor: pointer;
@@ -1871,6 +1872,7 @@
         }
 
         .dup-btn-cancel svg,
+        .dup-btn-reject svg,
         .dup-btn-approve svg {
             width: 16px;
             height: 16px;
@@ -1889,6 +1891,19 @@
             border-color: #94a3b8;
         }
 
+        .dup-btn-reject {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            color: #ffffff;
+            border: 1px solid #b91c1c;
+            box-shadow: 0 3px 10px rgba(220, 38, 38, 0.22);
+        }
+
+        .dup-btn-reject:hover {
+            background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(220, 38, 38, 0.3);
+        }
+
         .dup-btn-approve {
             background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
             color: #ffffff;
@@ -1900,6 +1915,47 @@
             background: linear-gradient(135deg, #15803d 0%, #166534 100%);
             transform: translateY(-1px);
             box-shadow: 0 6px 16px rgba(21, 128, 61, 0.3);
+        }
+
+        .dup-batch-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(134, 239, 172, 0.45);
+            color: #86efac;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            padding: 0.22rem 0.65rem;
+            border-radius: 999px;
+            margin-bottom: 0.35rem;
+        }
+
+        .pending-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+
+        .admin-btn-approve-all {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            color: #ffffff;
+            border: 1px solid #15803d;
+            box-shadow: 0 3px 10px rgba(21, 128, 61, 0.2);
+        }
+
+        .admin-btn-approve-all:hover:not(:disabled) {
+            background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(21, 128, 61, 0.28);
+        }
+
+        .admin-btn-approve-all:disabled {
+            opacity: 0.65;
+            cursor: wait;
         }
 
         /* Responsive Design */
@@ -2000,7 +2056,15 @@
             }
 
             .dup-btn-cancel,
+            .dup-btn-reject,
             .dup-btn-approve {
+                width: 100%;
+                justify-content: center;
+            }
+            .pending-header-actions {
+                width: 100%;
+            }
+            .admin-btn-approve-all {
                 width: 100%;
                 justify-content: center;
             }
@@ -2262,6 +2326,12 @@
             <div id="pendingContainer">
                 <div class="admin-section-header">
                     <h2>Pending Submissions</h2>
+                    <div class="pending-header-actions">
+                        <button type="button" id="approveAllPendingBtn" class="admin-btn admin-btn-approve-all" style="display: none;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            <span id="approveAllPendingText">Approve All Pending</span>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Senior UI Designer Integrated Search Bar (Pending) -->
@@ -2934,6 +3004,6 @@ Please refresh the page or try again later.
         }
     </script>
     <script src="js/mobile-menu.js?v=20261008h"></script>
-    <script type="module" src="js/admin.js?v=20261104f"></script>
+    <script type="module" src="js/admin.js?v=20261110a"></script>
 </body>
 </html>
