@@ -1355,6 +1355,9 @@ function showMartyrModal(martyr, navList) {
     const birthPretty = formatDate(martyr.birthDate) || 'Unknown';
     const martyrdomPretty = formatDate(martyr.martyrdomDate) || 'Unknown';
     const headerDateLabel = martyrdomPretty;
+    const rawBirthPlace = (martyr.birthPlace || '').toString().trim();
+    const hasBirthDate = Boolean(birthPretty && !['unknown', 'n/a', 'none', '-'].includes(birthPretty.toLowerCase()));
+    const hasBirthPlace = Boolean(rawBirthPlace && !['unknown', 'n/a', 'none', '-'].includes(rawBirthPlace.toLowerCase()));
     
     content.innerHTML = `
         <div class="martyr-modal-header">
@@ -1398,14 +1401,18 @@ function showMartyrModal(martyr, navList) {
                             <span class="martyr-modal-meta-val">${escapeHTML(martyr.fatherName)}</span>
                         </div>
                     ` : ''}
-                    <div class="martyr-modal-meta-row">
-                        <span class="martyr-modal-meta-label">Birth</span>
-                        <span class="martyr-modal-meta-val">${escapeHTML(birthPretty)}</span>
-                    </div>
-                    <div class="martyr-modal-meta-row">
-                        <span class="martyr-modal-meta-label">Birth place</span>
-                        <span class="martyr-modal-meta-val">${escapeHTML(martyr.birthPlace || 'Unknown')}</span>
-                    </div>
+                    ${hasBirthDate ? `
+                        <div class="martyr-modal-meta-row">
+                            <span class="martyr-modal-meta-label">Birth</span>
+                            <span class="martyr-modal-meta-val">${escapeHTML(birthPretty)}</span>
+                        </div>
+                    ` : ''}
+                    ${hasBirthPlace ? `
+                        <div class="martyr-modal-meta-row">
+                            <span class="martyr-modal-meta-label">Birth place</span>
+                            <span class="martyr-modal-meta-val">${escapeHTML(rawBirthPlace)}</span>
+                        </div>
+                    ` : ''}
                     <div class="martyr-modal-meta-row">
                         <span class="martyr-modal-meta-label">Martyrdom</span>
                         <span class="martyr-modal-meta-val">${escapeHTML(martyrdomPretty)}</span>
