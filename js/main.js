@@ -300,8 +300,8 @@ function initCopyrightYear() {
 // Zero-dependency Instant IndexedDB Archive Reader (allows instant ~25ms rendering before CDN modules finish loading)
 const BMM_IDB_NAME = 'bmm_memorial_archive_db';
 const BMM_IDB_STORE = 'martyrs_cache';
-const BMM_IDB_KEY = 'approved_martyrs_v2';
-const BMM_LEGACY_IDB_KEY = 'approved_martyrs_v1';
+const BMM_IDB_KEY = 'approved_martyrs_v3';
+const BMM_LEGACY_IDB_KEYS = ['approved_martyrs_v2', 'approved_martyrs_v1'];
 
 function rehydrateCachedValueMain(val) {
     if (!val || typeof val !== 'object') return val;
@@ -410,13 +410,15 @@ window.bmmInstantCache = {
                         // Seed IndexedDB asynchronously preserving seed watermark so subsequent reads take ~15ms and delta sync catches new profiles
                         if (typeof indexedDB !== 'undefined') {
                             try {
-                                const seedWatermarkMs = record.syncedAt || record.maxApprovedMs || Date.now();
+                                const maxAppMs = record.maxApprovedMs || record.syncedAt || Date.now();
+                                const maxUpdMs = record.maxUpdatedMs || maxAppMs;
+                                const syncedMs = record.syncedAt || maxUpdMs;
                                 const seedRecord = {
                                     ...record,
-                                    maxApprovedMs: seedWatermarkMs,
-                                    maxUpdatedMs: seedWatermarkMs,
-                                    syncedAt: seedWatermarkMs,
-                                    fullSyncAt: seedWatermarkMs
+                                    maxApprovedMs: maxAppMs,
+                                    maxUpdatedMs: maxUpdMs,
+                                    syncedAt: syncedMs,
+                                    fullSyncAt: record.fullSyncAt || syncedMs
                                 };
                                 const seedReq = indexedDB.open(BMM_IDB_NAME, 1);
                                 seedReq.onsuccess = (e) => {
@@ -424,7 +426,9 @@ window.bmmInstantCache = {
                                         const db = e.target.result;
                                         const tx = db.transaction(BMM_IDB_STORE, 'readwrite');
                                         const store = tx.objectStore(BMM_IDB_STORE);
-                                        try { store.delete(BMM_LEGACY_IDB_KEY); } catch (_) {}
+                                        for (const legacyKey of BMM_LEGACY_IDB_KEYS) {
+                                            try { store.delete(legacyKey); } catch (_) {}
+                                        }
                                         store.put(seedRecord, BMM_IDB_KEY);
                                         tx.oncomplete = () => db.close();
                                         tx.onerror = () => db.close();
@@ -449,7 +453,7 @@ window.bmmInstantCache = {
 
 // Initialize Firebase if not already available
 if (!window.firebaseDB) {
-    import('./firebase-config.js?v=20261103d').then(async (module) => {
+    import('./firebase-config.js?v=20261111a').then(async (module) => {
         window.firebaseDB = module.firebaseDB;
         console.log('🔥 Firebase loaded globally from main.js');
         
@@ -506,8 +510,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Ensure homepage sections also load/sync once Firebase module finishes initializing
     window.addEventListener('firebaseReady', () => {
-        loadRecentMartyrs();
-        loadAnniversaryMartyrs();
+        if (Array.isArray(window.allApprovedMartyrs) && window.allApprovedMartyrs.length > 0) {
+            // Instant cache already rendered; trigger silent background delta sync only
+            if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
+                window.firebaseDB.getApprovedMartyrs();
+            }
+        } else {
+            loadRecentMartyrs();
+            loadAnniversaryMartyrs();
+        }
     });
 
     // Live update homepage sections if background Firebase delta sync detects new/edited/deleted profiles
@@ -898,7 +909,7 @@ function createMartyrCard(martyr, list) {
         img.decoding = 'async';
         img.width = 300;
         img.height = 220;
-        img.onerror = () => {
+        const renderPlaceholder = () => {
             img.remove();
             if (!photoWrapper.querySelector('.martyr-photo-placeholder')) {
                 const placeholder = document.createElement('div');
@@ -911,6 +922,13 @@ function createMartyrCard(martyr, list) {
                     <span class="placeholder-text">Memorial Archive</span>
                 `;
                 photoWrapper.appendChild(placeholder);
+            }
+        };
+        img.onerror = () => {
+            if (martyr.id && photoSrc.startsWith('/assets/photos/') && typeof window.resolveMartyrPhoto === 'function') {
+                window.resolveMartyrPhoto(martyr.id, img, renderPlaceholder);
+            } else {
+                renderPlaceholder();
             }
         };
         photoWrapper.appendChild(img);

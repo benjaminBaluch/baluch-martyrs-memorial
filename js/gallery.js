@@ -1383,8 +1383,9 @@ function showMartyrModal(martyr, navList) {
             <div class="martyr-modal-photo-col">
                 ${(() => {
                     const photoSrc = getMartyrPhotoSrcGallery(martyr);
+                    const safeId = escapeHTML(martyr.id || '');
                     return photoSrc ? 
-                        `<img src="${photoSrc}" alt="${escapeHTML(martyr.fullName || 'Martyr photo')}" class="martyr-modal-photo" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'martyr-modal-photo-placeholder\\' aria-label=\\'No photo available\\'>📷</div>';">` :
+                        `<img src="${photoSrc}" alt="${escapeHTML(martyr.fullName || 'Martyr photo')}" class="martyr-modal-photo" loading="lazy" onerror="this.onerror=null;if('${safeId}'&&this.src.includes('/assets/photos/')&&window.resolveMartyrPhoto){window.resolveMartyrPhoto('${safeId}',this,()=>{if(this.parentElement)this.parentElement.innerHTML='<div class=\\'martyr-modal-photo-placeholder\\' aria-label=\\'No photo available\\'>📷</div>';});}else{this.parentElement.innerHTML='<div class=\\'martyr-modal-photo-placeholder\\' aria-label=\\'No photo available\\'>📷</div>';}">` :
                         '<div class="martyr-modal-photo-placeholder" aria-label="No photo available">📷</div>';
                 })()}
             </div>
@@ -1721,7 +1722,7 @@ function createGalleryCard(martyr, index = 99) {
         img.decoding = 'async';
         img.width = 300;
         img.height = 220;
-        img.onerror = () => {
+        const renderPlaceholder = () => {
             img.remove();
             if (!photoWrapper.querySelector('.martyr-photo-placeholder')) {
                 const placeholder = document.createElement('div');
@@ -1734,6 +1735,13 @@ function createGalleryCard(martyr, index = 99) {
                     <span class="placeholder-text">Memorial Archive</span>
                 `;
                 photoWrapper.appendChild(placeholder);
+            }
+        };
+        img.onerror = () => {
+            if (martyr.id && photoSrc.startsWith('/assets/photos/') && typeof window.resolveMartyrPhoto === 'function') {
+                window.resolveMartyrPhoto(martyr.id, img, renderPlaceholder);
+            } else {
+                renderPlaceholder();
             }
         };
         photoWrapper.appendChild(img);

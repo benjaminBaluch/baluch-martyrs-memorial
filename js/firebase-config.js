@@ -42,17 +42,10 @@ try {
     console.log('✅ Firebase app initialized successfully');
     
     console.log('🗺 Initializing Firestore...');
-    try {
-        db = initializeFirestore(app, {
-            localCache: persistentLocalCache({
-                tabManager: persistentMultipleTabManager()
-            })
-        });
-        console.log('✅ Firestore initialized with persistent IndexedDB localCache');
-    } catch (cacheInitError) {
-        console.warn('⚠️ Falling back to standard getFirestore:', cacheInitError.message);
-        db = getFirestore(app);
-    }
+    // Use standard lightweight getFirestore(app) instead of persistentLocalCache
+    // because bmm_memorial_archive_db already caches the approved archive in IndexedDB,
+    // avoiding duplicate IndexedDB storage & iOS WebKit memory pressure.
+    db = getFirestore(app);
     console.log('✅ Firestore initialized successfully');
     
 } catch (error) {
@@ -66,22 +59,135 @@ try {
 }
 
 // ============================================================================
-// HIGH-CAPACITY INDEXEDDB ARCHIVE CACHE + LIVE FIREBASE DELTA SYNC
-// Stores all 1,305+ martyr profiles (including Base64 portraits, ~82 MB)
-// in browser IndexedDB (which supports 500+ MB, unlike 5 MB localStorage)
-// and synchronizes additions, edits, and deletions with Firebase in the background.
+// HIGH-CAPACITY INDEXEDDB ARCHIVE CACHE + LIGHTWEIGHT FIREBASE DELTA SYNC
+// Stores all approved martyr metadata (~1.2 MB) in browser IndexedDB
+// and synchronizes additions, edits, and deletions with Firebase in the background
+// without ever downloading bulk Base64 photos into mobile RAM.
 // ============================================================================
 
 const IDB_DB_NAME = 'bmm_memorial_archive_db';
 const IDB_STORE_NAME = 'martyrs_cache';
-const IDB_CACHE_KEY = 'approved_martyrs_v2';
-const LEGACY_IDB_CACHE_KEY = 'approved_martyrs_v1';
+const IDB_CACHE_KEY = 'approved_martyrs_v3';
+const LEGACY_IDB_CACHE_KEYS = ['approved_martyrs_v2', 'approved_martyrs_v1'];
 const FULL_REVALIDATE_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const CLOCK_SKEW_BUFFER_MS = 2 * 60 * 1000; // 2-minute safety window for delta queries
+const MAX_INLINE_DELTA_PHOTOS = 12; // Cap inline Base64 photos kept in IDB cache
+
+const PUBLIC_METADATA_FIELDS = [
+    'id', 'fullName', 'fatherName', 'birthDate', 'birthPlace', 'martyrdomDate',
+    'martyrdomPlace', 'biography', 'organization', 'rank', 'familyDetails',
+    'submittedAt', 'approvedAt', 'updatedAt', 'status'
+];
 
 let memoryCache = null; // { data, rawCollectionSize, maxApprovedMs, maxUpdatedMs, syncedAt, fullSyncAt }
 let inFlightApprovedPromise = null;
 let backgroundSyncPromise = null;
+const photoMemoryCache = new Map(); // docId -> base64 string or ''
+const photoFetchInFlight = new Map(); // docId -> Promise<string>
+
+function parseFirestoreRestValue(value) {
+    if (!value || typeof value !== 'object') return null;
+    if ('stringValue' in value) return value.stringValue;
+    if ('integerValue' in value) return Number(value.integerValue);
+    if ('doubleValue' in value) return value.doubleValue;
+    if ('booleanValue' in value) return value.booleanValue;
+    if ('timestampValue' in value) {
+        const ms = Date.parse(value.timestampValue);
+        if (!isNaN(ms)) {
+            const sec = Math.floor(ms / 1000);
+            const ns = (ms % 1000) * 1e6;
+            try {
+                return new Timestamp(sec, ns);
+            } catch (_) {
+                return {
+                    __bmmTimestamp: true,
+                    seconds: sec,
+                    nanoseconds: ns,
+                    toDate: () => new Date(ms),
+                    toMillis: () => ms
+                };
+            }
+        }
+        return value.timestampValue;
+    }
+    if ('nullValue' in value) return null;
+    if ('arrayValue' in value) return (value.arrayValue.values || []).map(parseFirestoreRestValue);
+    if ('mapValue' in value) return parseFirestoreRestFields(value.mapValue.fields || {});
+    return null;
+}
+
+function parseFirestoreRestFields(fields) {
+    const out = {};
+    for (const [k, v] of Object.entries(fields)) {
+        out[k] = parseFirestoreRestValue(v);
+    }
+    return out;
+}
+
+// On-demand single-martyr photo resolver for newly approved martyrs not yet in static /assets/photos/
+export async function resolveMartyrPhoto(martyrId, imgElement = null, onNoPhotoFallback = null) {
+    if (!martyrId || typeof martyrId !== 'string') {
+        if (typeof onNoPhotoFallback === 'function') onNoPhotoFallback();
+        return '';
+    }
+
+    if (photoMemoryCache.has(martyrId)) {
+        const cachedPhoto = photoMemoryCache.get(martyrId);
+        if (cachedPhoto && imgElement) {
+            imgElement.src = cachedPhoto;
+            return cachedPhoto;
+        }
+        if (!cachedPhoto && typeof onNoPhotoFallback === 'function') {
+            onNoPhotoFallback();
+        }
+        return cachedPhoto || '';
+    }
+
+    let fetchPromise = photoFetchInFlight.get(martyrId);
+    if (!fetchPromise) {
+        fetchPromise = (async () => {
+            try {
+                const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/martyrs/${encodeURIComponent(martyrId)}?mask.fieldPaths=photo&key=${firebaseConfig.apiKey}`;
+                const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                if (!res.ok) {
+                    photoMemoryCache.set(martyrId, '');
+                    return '';
+                }
+                const docJson = await res.json();
+                const photoStr = docJson?.fields?.photo?.stringValue || '';
+                if (photoStr && photoStr.startsWith('data:image/')) {
+                    photoMemoryCache.set(martyrId, photoStr);
+                    // Also attach to in-memory martyr object if present
+                    if (memoryCache && Array.isArray(memoryCache.data)) {
+                        const found = memoryCache.data.find(m => m && m.id === martyrId);
+                        if (found) found.photo = photoStr;
+                    }
+                    return photoStr;
+                }
+                photoMemoryCache.set(martyrId, '');
+                return '';
+            } catch (_) {
+                return '';
+            } finally {
+                photoFetchInFlight.delete(martyrId);
+            }
+        })();
+        photoFetchInFlight.set(martyrId, fetchPromise);
+    }
+
+    const resolvedPhoto = await fetchPromise;
+    if (resolvedPhoto && imgElement) {
+        imgElement.onerror = null;
+        imgElement.src = resolvedPhoto;
+    } else if (typeof onNoPhotoFallback === 'function') {
+        onNoPhotoFallback();
+    }
+    return resolvedPhoto;
+}
+
+if (typeof window !== 'undefined') {
+    window.resolveMartyrPhoto = resolveMartyrPhoto;
+}
 
 function toMillisSafe(val) {
     if (!val) return 0;
@@ -255,14 +361,16 @@ async function readMartyrsFromSeed() {
             return null;
         }
         const rehydrated = record.data.map(rehydrateFieldFromIDB);
-        const seedWatermarkMs = record.syncedAt || record.maxApprovedMs || Date.now();
+        const maxApprovedMs = record.maxApprovedMs || record.syncedAt || Date.now();
+        const maxUpdatedMs = record.maxUpdatedMs || record.maxApprovedMs || record.syncedAt || Date.now();
+        const syncedAtMs = record.syncedAt || maxUpdatedMs;
         return {
             data: rehydrated,
             rawCollectionSize: typeof record.rawCollectionSize === 'number' ? record.rawCollectionSize : rehydrated.length,
-            maxApprovedMs: seedWatermarkMs,
-            maxUpdatedMs: seedWatermarkMs,
-            syncedAt: seedWatermarkMs,
-            fullSyncAt: seedWatermarkMs,
+            maxApprovedMs,
+            maxUpdatedMs,
+            syncedAt: syncedAtMs,
+            fullSyncAt: record.fullSyncAt || syncedAtMs,
             fromSeed: true
         };
     } catch (err) {
@@ -276,10 +384,27 @@ async function writeMartyrsToIDB(martyrs, rawCollectionSize, isFullSync = false,
         if (!Array.isArray(martyrs) || martyrs.length === 0) return;
         const now = Date.now();
         const { maxApprovedMs, maxUpdatedMs } = computeWatermarks(martyrs, now);
-        const effectiveMaxApprovedMs = watermarkOverride?.maxApprovedMs || Math.max(maxApprovedMs, now);
-        const effectiveMaxUpdatedMs = watermarkOverride?.maxUpdatedMs || Math.max(maxUpdatedMs, now);
+        // Never use Math.max(maxApprovedMs, now) so client clock skew never hides server delta docs
+        const effectiveMaxApprovedMs = watermarkOverride?.maxApprovedMs || maxApprovedMs || now;
+        const effectiveMaxUpdatedMs = watermarkOverride?.maxUpdatedMs || maxUpdatedMs || now;
         const effectiveSyncedAt = watermarkOverride?.syncedAt || now;
         const fullSyncAt = watermarkOverride?.fullSyncAt || (isFullSync ? now : (memoryCache?.fullSyncAt || now));
+
+        // Keep inline Base64 photos capped in IndexedDB so mobile Safari never hits RAM/quota limits
+        let inlinePhotoCount = 0;
+        const compactMartyrs = martyrs.map((m) => {
+            if (!m || typeof m !== 'object') return m;
+            if (typeof m.photo === 'string' && m.photo.startsWith('data:image/')) {
+                if (m.id) photoMemoryCache.set(m.id, m.photo);
+                if (inlinePhotoCount < MAX_INLINE_DELTA_PHOTOS) {
+                    inlinePhotoCount++;
+                    return m;
+                }
+                const { photo, ...rest } = m;
+                return rest;
+            }
+            return m;
+        });
 
         memoryCache = {
             data: martyrs,
@@ -295,12 +420,14 @@ async function writeMartyrsToIDB(martyrs, rawCollectionSize, isFullSync = false,
             window.martyrsDataFromFirebase = martyrs;
         }
 
-        const serializedData = martyrs.map(serializeFieldForIDB);
+        const serializedData = compactMartyrs.map(serializeFieldForIDB);
         const database = await openArchiveIDB();
         await new Promise((resolve, reject) => {
             const tx = database.transaction(IDB_STORE_NAME, 'readwrite');
             const store = tx.objectStore(IDB_STORE_NAME);
-            try { store.delete(LEGACY_IDB_CACHE_KEY); } catch (_) {}
+            for (const legacyKey of LEGACY_IDB_CACHE_KEYS) {
+                try { store.delete(legacyKey); } catch (_) {}
+            }
             store.put({
                 data: serializedData,
                 rawCollectionSize: memoryCache.rawCollectionSize,
@@ -331,7 +458,9 @@ async function clearMartyrsCache() {
             const tx = database.transaction(IDB_STORE_NAME, 'readwrite');
             const store = tx.objectStore(IDB_STORE_NAME);
             store.delete(IDB_CACHE_KEY);
-            try { store.delete(LEGACY_IDB_CACHE_KEY); } catch (_) {}
+            for (const legacyKey of LEGACY_IDB_CACHE_KEYS) {
+                try { store.delete(legacyKey); } catch (_) {}
+            }
             tx.oncomplete = () => {
                 database.close();
                 resolve();
@@ -361,79 +490,87 @@ function broadcastMartyrsUpdate(martyrs, source = 'firebase-live-sync') {
     window.dispatchEvent(new CustomEvent('martyrsDataLoaded', { detail: martyrs }));
 }
 
-// Authoritative full collection fetch from Firestore
-async function fetchApprovedMartyrsFromFirestore() {
+// Lightweight authoritative collection fetch from Firestore REST API (excludes bulk Base64 photos, ~340 KB total)
+async function fetchApprovedMartyrsFromFirestore(existingMartyrsList = null) {
     let allMartyrs = [];
     let rawCollectionSize = 0;
 
-    // Check main 'martyrs' collection first
-    try {
-        console.log('🔍 Checking main martyrs collection...');
-        const martyrsCollection = collection(db, 'martyrs');
-        const martyrsSnapshot = await getDocs(martyrsCollection);
-        rawCollectionSize = martyrsSnapshot.size;
-
-        martyrsSnapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            if (!data.status || data.status === 'approved') {
-                allMartyrs.push({
-                    id: docSnap.id,
-                    ...data,
-                    status: data.status || 'approved'
-                });
+    // Build a lookup of any already-cached photos so newly approved profiles keep their portrait
+    const existingPhotoById = new Map();
+    const sourceList = existingMartyrsList || (memoryCache && memoryCache.data) || [];
+    if (Array.isArray(sourceList)) {
+        for (let i = 0; i < sourceList.length; i++) {
+            const item = sourceList[i];
+            if (item && item.id && typeof item.photo === 'string' && item.photo.startsWith('data:image/')) {
+                existingPhotoById.set(item.id, item.photo);
+                photoMemoryCache.set(item.id, item.photo);
             }
-        });
-
-        console.log(`📋 Found ${martyrsSnapshot.size} total docs in martyrs collection, ${allMartyrs.length} approved`);
-    } catch (error) {
-        console.warn('⚠️ Error accessing martyrs collection:', error.message);
+        }
     }
 
-    // If no martyrs found, check pendingMartyrs collection for any approved ones
-    if (allMartyrs.length === 0) {
-        try {
-            console.log('🔍 Checking pendingMartyrs collection for approved items...');
-            const pendingCollection = collection(db, 'pendingMartyrs');
-            const pendingSnapshot = await getDocs(pendingCollection);
-
-            pendingSnapshot.forEach((docSnap) => {
-                const data = docSnap.data();
-                if (data.status === 'approved') {
-                    allMartyrs.push({
-                        id: docSnap.id,
-                        ...data
-                    });
-                }
+    try {
+        console.log('🔍 Fetching lightweight martyrs metadata from Firestore REST API...');
+        let pageToken = '';
+        do {
+            const params = new URLSearchParams({
+                pageSize: '300',
+                key: firebaseConfig.apiKey
             });
+            for (const field of PUBLIC_METADATA_FIELDS) {
+                params.append('mask.fieldPaths', field);
+            }
+            if (pageToken) {
+                params.set('pageToken', pageToken);
+            }
 
-            console.log(`📋 Found ${pendingSnapshot.size} pending docs, ${allMartyrs.length} approved from pending`);
-        } catch (error) {
-            console.warn('⚠️ Error accessing pendingMartyrs collection:', error.message);
-        }
-    }
+            const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/martyrs?${params}`;
+            const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) {
+                throw new Error(`Firestore REST HTTP ${res.status}`);
+            }
+            const page = await res.json();
+            const docs = page.documents || [];
+            rawCollectionSize += docs.length;
 
-    // If still no martyrs, check if collections exist and are accessible
-    if (allMartyrs.length === 0) {
-        console.log('📊 No martyrs found. Checking Firebase connectivity and permissions...');
-        try {
-            const testCollection = collection(db, 'test');
-            await getDocs(testCollection);
-            console.log('✅ Firestore read access confirmed - collections may be empty');
-        } catch (testError) {
-            console.error('❌ Firestore read access failed:', testError);
-            throw new Error(`Firebase access denied: ${testError.message}`);
-        }
+            for (let i = 0; i < docs.length; i++) {
+                const docObj = docs[i];
+                const parsed = parseFirestoreRestFields(docObj.fields || {});
+                if (!parsed.status || parsed.status === 'approved') {
+                    const docId = docObj.name.split('/').pop();
+                    const cachedPhoto = photoMemoryCache.get(docId) || existingPhotoById.get(docId);
+                    const martyrEntry = {
+                        ...parsed,
+                        id: docId,
+                        status: parsed.status || 'approved'
+                    };
+                    if (cachedPhoto) {
+                        martyrEntry.photo = cachedPhoto;
+                    }
+                    allMartyrs.push(martyrEntry);
+                }
+            }
+            pageToken = page.nextPageToken || '';
+        } while (pageToken);
+
+        console.log(`📋 Lightweight sync fetched ${rawCollectionSize} total docs, ${allMartyrs.length} approved`);
+    } catch (error) {
+        console.warn('⚠️ Error during lightweight martyrs sync:', error.message);
     }
 
     if (allMartyrs.length > 0) {
+        allMartyrs.sort((a, b) => {
+            const idA = String(a?.id || '');
+            const idB = String(b?.id || '');
+            return idA < idB ? -1 : (idA > idB ? 1 : 0);
+        });
         await writeMartyrsToIDB(allMartyrs, rawCollectionSize, true);
     }
 
     return {
-        success: true,
+        success: allMartyrs.length > 0,
         data: allMartyrs,
-        source: 'firebase',
-        collections_checked: ['martyrs', 'pendingMartyrs'],
+        source: 'firebase-lightweight-rest',
+        collections_checked: ['martyrs'],
         total_found: allMartyrs.length
     };
 }
@@ -454,16 +591,35 @@ function syncWithFirebaseInBackground(cachedEntry) {
             const sinceUpdatedMs = Math.max(1700000000000, (cachedEntry.maxUpdatedMs || baseWatermarkMs) - CLOCK_SKEW_BUFFER_MS);
 
             const martyrsCol = collection(db, 'martyrs');
+            const expectedBaseSize = cachedEntry.rawCollectionSize || cachedEntry.data.length;
+
+            // 1. Check server document count first (lightweight 1-integer read)
+            const countResult = await getCountFromServer(martyrsCol).catch(() => null);
+            const serverTotalDocs = countResult && countResult.data ? countResult.data().count : null;
+
+            // If a deletion occurred (serverTotalDocs < expectedBaseSize) or a large batch (>12) was approved,
+            // run the lightweight ~340 KB REST metadata sync directly instead of downloading bulk Base64 photos
+            if (
+                serverTotalDocs !== null &&
+                (serverTotalDocs < expectedBaseSize || (serverTotalDocs - expectedBaseSize) > MAX_INLINE_DELTA_PHOTOS)
+            ) {
+                console.log(`🔄 Archive count shift (${expectedBaseSize} → ${serverTotalDocs}); running lightweight metadata sync...`);
+                const fullRes = await fetchApprovedMartyrsFromFirestore(cachedEntry.data);
+                if (fullRes.success && fullRes.data.length > 0) {
+                    broadcastMartyrsUpdate(fullRes.data, 'firebase-count-sync');
+                }
+                return fullRes;
+            }
+
+            // 2. Normal incremental check (0 to 12 new/edited documents)
             const approvedDeltaQuery = query(martyrsCol, where('approvedAt', '>', Timestamp.fromMillis(sinceApprovedMs)));
             const updatedDeltaQuery = query(martyrsCol, where('updatedAt', '>', Timestamp.fromMillis(sinceUpdatedMs)));
 
-            const [countResult, approvedSnap, updatedSnap] = await Promise.all([
-                getCountFromServer(martyrsCol).catch(() => null),
+            const [approvedSnap, updatedSnap] = await Promise.all([
                 getDocs(approvedDeltaQuery).catch(() => null),
                 getDocs(updatedDeltaQuery).catch(() => null)
             ]);
 
-            const serverTotalDocs = countResult && countResult.data ? countResult.data().count : null;
             const deltaMap = new Map();
 
             if (approvedSnap) {
@@ -491,6 +647,9 @@ function syncWithFirebaseInBackground(cachedEntry) {
 
             for (const [docId, docData] of deltaMap.entries()) {
                 const isApproved = !docData.status || docData.status === 'approved';
+                if (typeof docData.photo === 'string' && docData.photo.startsWith('data:image/')) {
+                    photoMemoryCache.set(docId, docData.photo);
+                }
                 const normalizedDoc = { ...docData, id: docId, status: docData.status || 'approved' };
 
                 if (existingIndexById.has(docId)) {
@@ -508,13 +667,13 @@ function syncWithFirebaseInBackground(cachedEntry) {
                 }
             }
 
-            const expectedCollectionSize = (cachedEntry.rawCollectionSize || cachedEntry.data.length) + addedCount;
+            const expectedCollectionSize = expectedBaseSize + addedCount;
 
-            // If server document count differs from expected (e.g. a deletion occurred or console addition without Timestamp),
-            // perform a full Firestore fetch so cache and UI stay 100% accurate.
+            // If server document count still differs from expected (e.g. 1 added and 1 deleted simultaneously),
+            // reconcile via the lightweight REST metadata fetch (~340 KB, zero Base64 bloat).
             if (serverTotalDocs !== null && serverTotalDocs !== expectedCollectionSize) {
-                console.log(`🔄 Archive count changed on server (${expectedCollectionSize} → ${serverTotalDocs}); running full sync...`);
-                const fullRes = await fetchApprovedMartyrsFromFirestore();
+                console.log(`🔄 Reconciling archive count (${expectedCollectionSize} → ${serverTotalDocs}) via lightweight sync...`);
+                const fullRes = await fetchApprovedMartyrsFromFirestore(merged);
                 if (fullRes.success && fullRes.data.length > 0) {
                     broadcastMartyrsUpdate(fullRes.data, 'firebase-count-sync');
                 }
@@ -800,6 +959,9 @@ export const firebaseDB = {
         await clearMartyrsCache();
         return { success: true };
     },
+
+    // On-demand single-martyr photo resolver for newly approved martyrs not yet in static /assets/photos/
+    resolveMartyrPhoto,
 
     // Get all approved martyrs with Instant IndexedDB Cache + Live Firebase Background Sync
     async getApprovedMartyrs(options = {}) {
