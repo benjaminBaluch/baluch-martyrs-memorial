@@ -8,7 +8,10 @@
     <meta name="msapplication-TileColor" content="#2c5530">
     
     <meta property="og:title" content="Martyrs Gallery - Baluch Martyrs Memorial">
+    <meta property="og:description" content="Gallery of Baluch Martyrs - Browse our memorial database">
     <meta property="og:image" content="https://baluchmartyrs.com/baluch-flag-logo.png">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
     
     <title>Martyrs Gallery - Baluch Martyrs Memorial</title>
     
@@ -274,6 +277,7 @@
             box-shadow: 0 24px 60px rgba(15, 23, 42, 0.45);
             position: relative;
             overflow-y: auto;
+            overscroll-behavior: contain;
             -webkit-overflow-scrolling: touch;
             display: flex;
             flex-direction: column;
@@ -352,32 +356,49 @@
         .martyr-modal-header-actions {
             display: flex;
             align-items: center;
-            gap: 0.6rem;
+            gap: 0.55rem;
         }
 
-        .martyr-voice-btn {
+        .martyr-voice-btn,
+        .martyr-header-share-btn {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 0.35rem;
             padding: 0.45rem 0.85rem;
-            font-size: 0.85rem;
+            min-height: 36px;
+            font-size: 0.84rem;
             font-weight: 600;
             border-radius: 999px;
             background: rgba(255, 255, 255, 0.12);
             color: #ffffff;
             border: 1px solid rgba(255, 255, 255, 0.25);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
             white-space: nowrap;
         }
 
-        .martyr-voice-btn:hover {
+        .martyr-voice-btn:hover,
+        .martyr-header-share-btn:hover {
             background: rgba(255, 255, 255, 0.22);
         }
 
+        .martyr-header-share-btn.copied {
+            background: rgba(16, 185, 129, 0.28);
+            border-color: rgba(110, 231, 183, 0.7);
+            color: #ecfdf5;
+        }
+
+        .martyr-voice-btn:focus-visible,
+        .martyr-header-share-btn:focus-visible,
+        .close-martyr-modal:focus-visible {
+            outline: 3px solid #d4af37;
+            outline-offset: 2px;
+        }
+
         .close-martyr-modal {
-            width: 36px;
-            height: 36px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
             border: 1px solid rgba(255, 255, 255, 0.35);
             background: rgba(255, 255, 255, 0.14);
@@ -502,7 +523,210 @@
         }
 
         .martyr-modal-bio-text {
-            text-align: justify;
+            text-align: start;
+        }
+
+        /* Enhanced Modal Share Controls + Toast */
+        .martyr-share-row-modal {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0.75rem !important;
+            margin-top: 1.4rem !important;
+            padding: 1rem 1.05rem !important;
+            border-radius: 14px !important;
+            background: rgba(248, 250, 252, 0.9) !important;
+            border: 1px solid rgba(148, 163, 184, 0.26) !important;
+        }
+
+        html[data-theme="dark"] .martyr-share-row-modal,
+        [data-theme="dark"] .martyr-share-row-modal {
+            background: rgba(15, 26, 41, 0.85) !important;
+            border-color: rgba(148, 163, 184, 0.2) !important;
+        }
+
+        .martyr-share-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .martyr-share-row-modal .martyr-share-label {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #475569;
+            font-weight: 700;
+        }
+
+        html[data-theme="dark"] .martyr-share-row-modal .martyr-share-label,
+        [data-theme="dark"] .martyr-share-row-modal .martyr-share-label {
+            color: #cbd5e1;
+        }
+
+        .martyr-share-feedback {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #166534;
+            background: rgba(22, 163, 74, 0.12);
+            border: 1px solid rgba(22, 163, 74, 0.28);
+            padding: 0.18rem 0.55rem;
+            border-radius: 999px;
+            opacity: 0;
+            transform: translateY(-2px);
+            transition: opacity 0.18s ease, transform 0.18s ease;
+            pointer-events: none;
+        }
+
+        .martyr-share-feedback.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        html[data-theme="dark"] .martyr-share-feedback,
+        [data-theme="dark"] .martyr-share-feedback {
+            color: #86efac;
+            background: rgba(22, 163, 74, 0.2);
+            border-color: rgba(74, 222, 128, 0.35);
+        }
+
+        .martyr-share-row-modal .martyr-share-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 0.55rem;
+            width: 100%;
+        }
+
+        .martyr-share-primary-actions,
+        .martyr-share-social-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .martyr-share-pill-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            min-height: 40px;
+            padding: 0.45rem 0.9rem;
+            border-radius: 999px;
+            border: 1px solid rgba(44, 85, 48, 0.32);
+            background: #ffffff;
+            color: #1f4d2b;
+            font-size: 0.84rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.18s ease, border-color 0.18s ease, transform 0.18s ease, color 0.18s ease;
+        }
+
+        .martyr-share-pill-btn:hover {
+            background: rgba(44, 85, 48, 0.08);
+            border-color: rgba(44, 85, 48, 0.55);
+            transform: translateY(-1px);
+        }
+
+        .martyr-share-pill-btn.martyr-share-native-btn {
+            background: #1f4d2b;
+            border-color: #1f4d2b;
+            color: #ffffff;
+        }
+
+        .martyr-share-pill-btn.martyr-share-native-btn:hover {
+            background: #163a20;
+            border-color: #163a20;
+        }
+
+        .martyr-share-pill-btn.copied {
+            background: #15803d;
+            border-color: #15803d;
+            color: #ffffff;
+        }
+
+        html[data-theme="dark"] .martyr-share-pill-btn,
+        [data-theme="dark"] .martyr-share-pill-btn {
+            background: rgba(30, 41, 59, 0.95);
+            border-color: rgba(148, 163, 184, 0.32);
+            color: #e2e8f0;
+        }
+
+        html[data-theme="dark"] .martyr-share-pill-btn:hover,
+        [data-theme="dark"] .martyr-share-pill-btn:hover {
+            background: rgba(51, 65, 85, 0.95);
+            border-color: rgba(212, 175, 55, 0.55);
+        }
+
+        html[data-theme="dark"] .martyr-share-pill-btn.martyr-share-native-btn,
+        [data-theme="dark"] .martyr-share-pill-btn.martyr-share-native-btn {
+            background: #2c5530;
+            border-color: #3f7a45;
+            color: #ffffff;
+        }
+
+        html[data-theme="dark"] .martyr-share-pill-btn.copied,
+        [data-theme="dark"] .martyr-share-pill-btn.copied {
+            background: #166534;
+            border-color: #22c55e;
+            color: #ffffff;
+        }
+
+        .martyr-share-row-modal .martyr-share-icon {
+            width: 40px;
+            height: 40px;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            background: #ffffff;
+            color: #334155;
+        }
+
+        html[data-theme="dark"] .martyr-share-row-modal .martyr-share-icon,
+        [data-theme="dark"] .martyr-share-row-modal .martyr-share-icon {
+            background: rgba(30, 41, 59, 0.95);
+            border-color: rgba(148, 163, 184, 0.25);
+            color: #cbd5e1;
+        }
+
+        .martyr-share-pill-btn:focus-visible,
+        .martyr-share-row-modal .martyr-share-icon:focus-visible {
+            outline: 3px solid #d4af37;
+            outline-offset: 2px;
+        }
+
+        .gallery-toast {
+            position: fixed;
+            left: 50%;
+            bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+            transform: translateX(-50%) translateY(12px);
+            z-index: 10050;
+            max-width: min(92vw, 440px);
+            padding: 0.65rem 1.05rem;
+            border-radius: 999px;
+            background: #0f172a;
+            color: #f8fafc;
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.32);
+            font-size: 0.88rem;
+            font-weight: 600;
+            text-align: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .gallery-toast.visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .gallery-toast.warning {
+            background: #78350f;
+            border-color: rgba(251, 191, 36, 0.45);
+            color: #fef3c7;
         }
 
         html[data-theme="dark"] .martyr-modal-section-box,
@@ -642,28 +866,34 @@
                 width: auto !important;
                 flex-shrink: 0 !important;
                 justify-content: flex-end !important;
-                gap: 0.4rem !important;
+                gap: 0.35rem !important;
             }
 
-            .martyr-voice-btn {
+            .martyr-voice-btn,
+            .martyr-header-share-btn {
                 width: auto !important;
                 min-width: 0 !important;
+                min-height: 36px !important;
                 padding: 0.32rem 0.62rem !important;
-                font-size: 0.75rem !important;
+                font-size: 0.74rem !important;
             }
 
             .close-martyr-modal {
                 position: static !important;
-                width: 32px !important;
-                height: 32px !important;
-                font-size: 1.2rem !important;
+                width: 40px !important;
+                height: 40px !important;
+                font-size: 1.25rem !important;
                 flex-shrink: 0 !important;
             }
 
             .martyr-modal-body {
-                padding: 0.9rem 0.95rem 1.75rem !important;
+                padding: 0.9rem 0.95rem calc(2.1rem + env(safe-area-inset-bottom, 0px)) !important;
                 flex-direction: column !important;
                 gap: 0.9rem !important;
+            }
+
+            .martyr-modal-dialog.pn-has-nav .martyr-modal-body {
+                padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px)) !important;
             }
 
             .martyr-modal-photo-col {
@@ -765,21 +995,73 @@
                 gap: 0.25rem !important;
             }
 
+            .martyr-share-row-modal {
+                margin-top: 1rem !important;
+                padding: 0.85rem !important;
+                gap: 0.65rem !important;
+            }
+
+            .martyr-share-row-modal .martyr-share-actions {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 0.6rem !important;
+            }
+
+            .martyr-share-primary-actions {
+                display: grid !important;
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
+                width: 100% !important;
+                gap: 0.5rem !important;
+            }
+
+            .martyr-share-pill-btn {
+                min-height: 44px !important;
+                width: 100% !important;
+                font-size: 0.85rem !important;
+            }
+
+            .martyr-share-social-actions {
+                justify-content: space-between !important;
+                width: 100% !important;
+                gap: 0.45rem !important;
+            }
+
+            .martyr-share-row-modal .martyr-share-icon,
+            .gallery-grid .martyr-share-icon {
+                width: 44px !important;
+                height: 44px !important;
+            }
+
             .martyr-modal-actions {
                 margin-top: 0.95rem !important;
             }
 
             .martyr-modal-actions .martyr-close-btn {
                 width: 100% !important;
+                min-height: 44px !important;
                 justify-content: center !important;
-                padding: 0.58rem 1rem !important;
+                padding: 0.6rem 1rem !important;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .martyr-header-share-btn {
+                width: 38px !important;
+                height: 38px !important;
+                padding: 0 !important;
+            }
+
+            .martyr-header-share-btn .martyr-btn-label {
+                display: none !important;
             }
         }
 
         @media (prefers-reduced-motion: reduce) {
             .martyr-modal-overlay,
-            .martyr-modal-dialog {
+            .martyr-modal-dialog,
+            .gallery-toast {
                 animation: none !important;
+                transition: none !important;
             }
         }
     </style>
@@ -965,9 +1247,9 @@
     </script>
     
     <!-- Load main scripts; gallery.js renders immediately from Instant Cache and syncs live with Firebase -->
-    <script src="js/main.js?v=20261111b"></script>
+    <script src="js/main.js?v=20261115a"></script>
     <script src="js/mobile-menu.js?v=20261020c"></script>
-    <script src="js/gallery.js?v=20261111b"></script>
+    <script src="js/gallery.js?v=20261115a"></script>
 
     <!-- Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav">

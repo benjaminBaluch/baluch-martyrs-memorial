@@ -1093,6 +1093,14 @@ function showMartyrDetails(martyr, list) {
     const content = document.createElement('div');
     content.className = 'martyr-modal-dialog';
 
+    const setHomepageInert = (active) => {
+        document.querySelectorAll('header.site-header, main, footer.site-footer, nav.mobile-bottom-nav').forEach((el) => {
+            if ('inert' in el) el.inert = Boolean(active);
+            else if (active) el.setAttribute('aria-hidden', 'true');
+            else el.removeAttribute('aria-hidden');
+        });
+    };
+
     let closed = false;
     const closeModal = () => {
         if (closed) return;
@@ -1101,6 +1109,7 @@ function showMartyrDetails(martyr, list) {
         stopMartyrSpeechMain();
         if (typeof modal._pnCleanup === 'function') modal._pnCleanup();
         modal.remove();
+        setHomepageInert(false);
         document.body.style.overflow = 'auto';
         if (opener && typeof opener.focus === 'function' && document.body.contains(opener)) {
             try { opener.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
@@ -1121,7 +1130,7 @@ function showMartyrDetails(martyr, list) {
             <div class="martyr-modal-sheet-handle" aria-hidden="true"></div>
             <div class="martyr-modal-header-inner">
                 <div class="martyr-modal-header-title">
-                    <h2 class="martyr-modal-header-name">
+                    <h2 id="homepageModalHeading" class="martyr-modal-header-name">
                         ${escapeHTMLMain(martyr.fullName || 'Unknown martyr')}
                     </h2>
                     <p class="martyr-modal-header-date">
@@ -1131,6 +1140,10 @@ function showMartyrDetails(martyr, list) {
                 <div class="martyr-modal-header-actions">
                     <button class="martyr-voice-btn" type="button" aria-label="Listen to biography">
                         <span aria-hidden="true">🔊</span> Listen
+                    </button>
+                    <button class="martyr-header-share-btn" type="button" aria-label="Share profile" title="Share profile">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                        <span class="martyr-btn-label">Share</span>
                     </button>
                     <button class="close-martyr-modal" type="button" aria-label="Close profile">
                         &times;
@@ -1272,15 +1285,25 @@ function showMartyrDetails(martyr, list) {
             voiceBtn.style.display = 'none';
         }
     }
+
+    const headerShareBtn = content.querySelector('.martyr-header-share-btn');
+    if (headerShareBtn) {
+        headerShareBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const feedbackEl = content.querySelector('.bmm-share-feedback');
+            triggerProfileShareMain(martyr, headerShareBtn, feedbackEl);
+        });
+    }
     } // end renderContent
 
     renderContent(martyr);
 
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
-    modal.setAttribute('aria-label', 'Martyr profile');
+    modal.setAttribute('aria-labelledby', 'homepageModalHeading');
     modal.appendChild(content);
     document.body.appendChild(modal);
+    setHomepageInert(true);
     document.body.classList.add('martyr-modal-open');
     document.body.style.overflow = 'hidden';
     
@@ -1321,31 +1344,161 @@ function showMartyrDetails(martyr, list) {
 }
 window.showMartyrDetails = showMartyrDetails;
 
+function buildProfileShareUrlMain(martyr) {
+    const siteOrigin = (typeof window !== 'undefined' && window.location && window.location.origin && window.location.origin !== 'null')
+        ? window.location.origin
+        : 'https://baluchmartyrs.com';
+    const rawId = (martyr && (martyr.id || martyr.fullName)) ? String(martyr.id || martyr.fullName).trim() : '';
+    const host = (typeof window !== 'undefined' && window.location) ? (window.location.hostname || '') : '';
+    const currentPath = (typeof window !== 'undefined' && window.location) ? (window.location.pathname || '') : '';
+    const useHtmlSuffix = (host === 'localhost' || host === '127.0.0.1' || window.location?.protocol === 'file:') && currentPath.endsWith('.html');
+    const basePath = useHtmlSuffix ? '/gallery.html' : '/gallery';
+    if (!rawId) return `${siteOrigin}${basePath}`;
+    return `${siteOrigin}${basePath}?hero=${encodeURIComponent(rawId)}`;
+}
+
+async function copyTextMain(text) {
+    try {
+        if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function' && window.isSecureContext !== false) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
+    } catch {
+        // Fall through to legacy textarea copy
+    }
+    try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '-9999px';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        ta.setSelectionRange(0, ta.value.length);
+        const ok = document.execCommand('copy');
+        ta.remove();
+        return Boolean(ok);
+    } catch {
+        return false;
+    }
+}
+
+async function copyProfileLinkMain(martyr, btn, feedbackEl) {
+    const ok = await copyTextMain(buildProfileShareUrlMain(martyr));
+    if (!ok) return false;
+    if (feedbackEl) {
+        feedbackEl.textContent = 'Link copied!';
+        feedbackEl.classList.add('visible');
+        clearTimeout(feedbackEl._t);
+        feedbackEl._t = setTimeout(() => {
+            feedbackEl.classList.remove('visible');
+            feedbackEl.textContent = '';
+        }, 2200);
+    }
+    if (btn) {
+        btn.classList.add('copied');
+        const lbl = btn.querySelector('.martyr-btn-label');
+        if (lbl) {
+            if (!lbl.dataset.orig) lbl.dataset.orig = lbl.textContent;
+            lbl.textContent = 'Copied';
+        }
+        clearTimeout(btn._t);
+        btn._t = setTimeout(() => {
+            btn.classList.remove('copied');
+            if (lbl && lbl.dataset.orig) lbl.textContent = lbl.dataset.orig;
+        }, 2200);
+    }
+    return true;
+}
+
+async function triggerProfileShareMain(martyr, btn, feedbackEl) {
+    const url = buildProfileShareUrlMain(martyr);
+    const name = (martyr && martyr.fullName) ? martyr.fullName : 'a Baluch martyr';
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+        try {
+            await navigator.share({
+                title: `${name} — Baluch Martyrs Memorial`,
+                text: `Honoring ${name} on the Baluch Martyrs Memorial Archive.`,
+                url
+            });
+            return true;
+        } catch (err) {
+            if (err && err.name === 'AbortError') return false;
+        }
+    }
+    return copyProfileLinkMain(martyr, btn, feedbackEl);
+}
+
 // Create share row for modal
 function createShareRowMain(martyr) {
+    ensureProfileNavStyles();
     const row = document.createElement('div');
-    row.className = 'martyr-share-row martyr-share-row-modal';
-    row.style.cssText = 'margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px solid rgba(148, 163, 184, 0.35); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.85rem 1rem;';
+    row.className = 'martyr-share-row martyr-share-row-modal bmm-share-row';
+
+    const header = document.createElement('div');
+    header.className = 'bmm-share-header';
 
     const label = document.createElement('span');
-    label.style.cssText = 'font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: #4b5563; font-weight: 700;';
-    label.textContent = 'Share';
+    label.className = 'martyr-share-label bmm-share-label';
+    label.textContent = 'Share profile';
+
+    const feedback = document.createElement('span');
+    feedback.className = 'bmm-share-feedback';
+    feedback.setAttribute('role', 'status');
+    feedback.setAttribute('aria-live', 'polite');
+
+    header.appendChild(label);
+    header.appendChild(feedback);
 
     const actions = document.createElement('div');
-    actions.style.cssText = 'display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap;';
+    actions.className = 'martyr-share-actions bmm-share-actions';
 
-    const siteOrigin = window.location?.origin || 'https://baluchmartyrs.com';
-    const heroIdentifier = encodeURIComponent(martyr.id || martyr.fullName || '');
-    const targetUrl = `${siteOrigin}/gallery.html?hero=${heroIdentifier}`;
+    const primaryGroup = document.createElement('div');
+    primaryGroup.className = 'bmm-share-primary';
+
+    const targetUrl = buildProfileShareUrlMain(martyr);
     const encodedUrl = encodeURIComponent(targetUrl);
-    const shareText = encodeURIComponent(`Honoring ${martyr.fullName || 'a Baluch martyr'} on the Baluch Martyrs Memorial`);
+    const heroName = martyr.fullName || 'a Baluch martyr';
+    const shareText = encodeURIComponent(`Honoring ${heroName} on the Baluch Martyrs Memorial`);
+
+    const copySvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    const nativeSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>';
+
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'bmm-share-pill';
+    copyBtn.innerHTML = `${copySvg}<span class="martyr-btn-label">Copy link</span>`;
+    copyBtn.setAttribute('aria-label', `Copy direct link to ${heroName}`);
+    copyBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        copyProfileLinkMain(martyr, copyBtn, feedback);
+    });
+    primaryGroup.appendChild(copyBtn);
+
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+        const nativeBtn = document.createElement('button');
+        nativeBtn.type = 'button';
+        nativeBtn.className = 'bmm-share-pill bmm-share-native';
+        nativeBtn.innerHTML = `${nativeSvg}<span class="martyr-btn-label">Share…</span>`;
+        nativeBtn.setAttribute('aria-label', `Share ${heroName} via device share sheet`);
+        nativeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            triggerProfileShareMain(martyr, nativeBtn, feedback);
+        });
+        primaryGroup.appendChild(nativeBtn);
+    }
+
+    actions.appendChild(primaryGroup);
+
+    const socialGroup = document.createElement('div');
+    socialGroup.className = 'bmm-share-socials';
 
     const shareNetworks = [
-        { name: 'X', icon: '𝕏', url: `https://twitter.com/intent/tweet?text=${shareText}&url=${encodedUrl}` },
-        { name: 'Facebook', icon: 'f', url: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}` },
-        { name: 'Instagram', icon: '✺', url: `https://www.instagram.com/?url=${encodedUrl}` },
-        { name: 'WhatsApp', icon: '💬', url: `https://wa.me/?text=${shareText}%20${encodedUrl}` },
-        { name: 'Print / PDF', icon: '🖨️', action: () => {
+        { name: 'X', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>', url: `https://twitter.com/intent/tweet?text=${shareText}&url=${encodedUrl}` },
+        { name: 'Facebook', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>', url: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}` },
+        { name: 'WhatsApp', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>', url: `https://wa.me/?text=${shareText}%20${encodedUrl}` },
+        { name: 'Print / PDF', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>', action: () => {
             if (typeof printMartyrProfile === 'function') {
                 printMartyrProfile(martyr);
             } else if (typeof printMartyrProfileMain === 'function') {
@@ -1359,31 +1512,23 @@ function createShareRowMain(martyr) {
     shareNetworks.forEach(({ name, icon, url, action }) => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.style.cssText = 'width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(15, 23, 42, 0.12); background: #f9fafb; color: var(--primary-color, #2c5530); display: inline-flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);';
+        btn.className = 'martyr-share-icon bmm-share-icon';
         btn.innerHTML = icon;
-        btn.setAttribute('aria-label', `Share ${martyr.fullName || 'this martyr'} on ${name}`);
-        btn.title = `Share on ${name}`;
-        btn.addEventListener('click', () => {
+        btn.setAttribute('aria-label', `${name === 'Print / PDF' ? 'Print or save PDF for' : 'Share ' + heroName + ' on'} ${name}`);
+        btn.title = name === 'Print / PDF' ? 'Print / Save PDF' : `Share on ${name}`;
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
             if (action) {
                 action();
             } else if (url) {
                 window.open(url, '_blank', 'noopener,noreferrer');
             }
         });
-        btn.addEventListener('mouseenter', () => {
-            btn.style.borderColor = 'rgba(44, 85, 48, 0.4)';
-            btn.style.transform = 'translateY(-1px)';
-            btn.style.boxShadow = '0 10px 20px rgba(15, 23, 42, 0.15)';
-        });
-        btn.addEventListener('mouseleave', () => {
-            btn.style.borderColor = 'rgba(15, 23, 42, 0.12)';
-            btn.style.transform = 'translateY(0)';
-            btn.style.boxShadow = '0 4px 10px rgba(15, 23, 42, 0.08)';
-        });
-        actions.appendChild(btn);
+        socialGroup.appendChild(btn);
     });
 
-    row.appendChild(label);
+    actions.appendChild(socialGroup);
+    row.appendChild(header);
     row.appendChild(actions);
     return row;
 }
@@ -2384,11 +2529,46 @@ function ensureProfileNavStyles() {
         .pn-bump{animation:pnBump .3s ease}
         .pn-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
         .pn-bar .pn-mobile-only{display:none}
+        .martyr-modal-dialog{overscroll-behavior:contain}
+        .martyr-modal-bio-text{text-align:start}
+        .martyr-header-share-btn{display:inline-flex;align-items:center;justify-content:center;gap:.35rem;min-height:36px;padding:.45rem .85rem;font-size:.84rem;font-weight:600;border-radius:999px;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);cursor:pointer;white-space:nowrap;transition:background .2s ease,border-color .2s ease}
+        .martyr-header-share-btn:hover{background:rgba(255,255,255,.22)}
+        .martyr-header-share-btn.copied{background:rgba(16,185,129,.28);border-color:rgba(110,231,183,.7);color:#ecfdf5}
+        .bmm-share-row{margin-top:1.4rem;padding:1rem 1.05rem;border-radius:14px;background:rgba(248,250,252,.9);border:1px solid rgba(148,163,184,.26);display:flex;flex-direction:column;gap:.75rem}
+        .bmm-share-header{display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap}
+        .bmm-share-label{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:#475569;font-weight:700}
+        .bmm-share-feedback{font-size:.78rem;font-weight:600;color:#166534;background:rgba(22,163,74,.12);border:1px solid rgba(22,163,74,.28);padding:.18rem .55rem;border-radius:999px;opacity:0;transition:opacity .18s ease}
+        .bmm-share-feedback.visible{opacity:1}
+        .bmm-share-actions{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.55rem;width:100%}
+        .bmm-share-primary,.bmm-share-socials{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+        .bmm-share-pill{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;min-height:40px;padding:.45rem .9rem;border-radius:999px;border:1px solid rgba(44,85,48,.32);background:#fff;color:#1f4d2b;font-size:.84rem;font-weight:600;cursor:pointer;transition:background .18s ease,border-color .18s ease,transform .18s ease}
+        .bmm-share-pill.bmm-share-native{background:#1f4d2b;border-color:#1f4d2b;color:#fff}
+        .bmm-share-pill.copied{background:#15803d;border-color:#15803d;color:#fff}
+        .bmm-share-icon{width:40px;height:40px;border-radius:50%;border:1px solid rgba(148,163,184,.3);background:#fff;color:#334155;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .18s ease,color .18s ease}
+        .bmm-share-pill:focus-visible,.bmm-share-icon:focus-visible,.martyr-header-share-btn:focus-visible{outline:3px solid #d4af37;outline-offset:2px}
+        html[data-theme="dark"] .bmm-share-row,[data-theme="dark"] .bmm-share-row{background:rgba(15,26,41,.85);border-color:rgba(148,163,184,.2)}
+        html[data-theme="dark"] .bmm-share-label,[data-theme="dark"] .bmm-share-label{color:#cbd5e1}
+        html[data-theme="dark"] .bmm-share-pill,[data-theme="dark"] .bmm-share-pill,html[data-theme="dark"] .bmm-share-icon,[data-theme="dark"] .bmm-share-icon{background:rgba(30,41,59,.95);border-color:rgba(148,163,184,.28);color:#e2e8f0}
+        html[data-theme="dark"] .bmm-share-pill.bmm-share-native,[data-theme="dark"] .bmm-share-pill.bmm-share-native{background:#2c5530;border-color:#3f7a45;color:#fff}
+        html[data-theme="dark"] .bmm-share-pill.copied,[data-theme="dark"] .bmm-share-pill.copied{background:#166534;border-color:#22c55e;color:#fff}
         @media (max-width:899px){
             .pn-arrow{display:none}
             .pn-bar .pn-mobile-only{display:flex}
             .pn-hint{display:none}
             .pn-has-nav{max-height:calc(100vh - 100px) !important;margin-bottom:64px}
+            .martyr-modal-dialog.pn-has-nav .martyr-modal-body{padding-bottom:calc(5.75rem + env(safe-area-inset-bottom,0px)) !important}
+        }
+        @media (max-width:768px){
+            .martyr-header-share-btn{padding:.32rem .62rem;font-size:.74rem}
+            .bmm-share-actions{flex-direction:column;align-items:stretch}
+            .bmm-share-primary{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));width:100%}
+            .bmm-share-pill{min-height:44px;width:100%}
+            .bmm-share-socials{justify-content:space-between;width:100%}
+            .bmm-share-icon{width:44px;height:44px}
+        }
+        @media (max-width:420px){
+            .martyr-header-share-btn{width:38px;height:38px;padding:0}
+            .martyr-header-share-btn .martyr-btn-label{display:none}
         }
         @media (prefers-reduced-motion:reduce){
             .pn-enter-next,.pn-enter-prev,.pn-bump,.pn-toast{animation:none}

@@ -37,33 +37,410 @@ let currentFilters = {
 // Simple flags to prevent duplicate/overlapping gallery loads
 let galleryLoading = false;
 let galleryLoaded = false;
-function createShareRow(martyr, variant = 'card') {
-    const row = document.createElement('div');
-    row.className = 'martyr-share-row';
-    if (variant === 'modal') {
-        row.classList.add('martyr-share-row-modal');
+const DEFAULT_GALLERY_TITLE = (typeof document !== 'undefined' && document.title)
+    ? document.title
+    : 'Martyrs Gallery - Baluch Martyrs Memorial';
+
+const HERO_MODAL_TITLE_SUFFIX = 'Baluch Martyrs Memorial';
+const MODAL_LANDMARK_SELECTOR = 'header.site-header, main, footer.site-footer, nav.mobile-bottom-nav';
+
+let pendingDeepLinkHero = '';
+let deepLinkResolved = false;
+let deepLinkFallbackTimer = null;
+let activeModalController = null;
+let pendingIgnorePopstateToken = null;
+let galleryToastTimer = null;
+
+function getCanonicalGalleryPath() {
+    if (typeof window !== 'undefined' && window.location) {
+        const host = window.location.hostname || '';
+        const path = window.location.pathname || '';
+        if ((host === 'localhost' || host === '127.0.0.1' || window.location.protocol === 'file:') && path.endsWith('.html')) {
+            return '/gallery.html';
+        }
+    }
+    return '/gallery';
+}
+
+function buildProfileShareUrl(martyr) {
+    const siteOrigin = (typeof window !== 'undefined' && window.location && window.location.origin && window.location.origin !== 'null')
+        ? window.location.origin
+        : 'https://baluchmartyrs.com';
+    const rawId = (martyr && (martyr.id || martyr.fullName)) ? String(martyr.id || martyr.fullName).trim() : '';
+    const galleryPath = getCanonicalGalleryPath();
+    if (!rawId) return `${siteOrigin}${galleryPath}`;
+    return `${siteOrigin}${galleryPath}?hero=${encodeURIComponent(rawId)}`;
+}
+
+async function copyTextToClipboard(text) {
+    try {
+        if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function' && window.isSecureContext !== false) {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
+    } catch {
+        // Fall through to legacy textarea fallback
     }
 
-    const label = document.createElement('span');
-    label.className = 'martyr-share-label';
-    label.textContent = 'Share';
+    try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.top = '-9999px';
+        textarea.style.left = '-9999px';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        textarea.setSelectionRange(0, textarea.value.length);
+        const ok = document.execCommand('copy');
+        textarea.remove();
+        return Boolean(ok);
+    } catch {
+        return false;
+    }
+}
+
+function showGalleryToast(message, variant = 'info') {
+    if (typeof document === 'undefined' || !document.body) return;
+    let toast = document.getElementById('galleryStatusToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'galleryStatusToast';
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        document.body.appendChild(toast);
+    }
+    toast.className = `gallery-toast${variant === 'warning' ? ' warning' : ''}`;
+    toast.textContent = message;
+    clearTimeout(galleryToastTimer);
+    requestAnimationFrame(() => toast.classList.add('visible'));
+    galleryToastTimer = setTimeout(() => {
+        toast.classList.remove('visible');
+    }, 3200);
+}
+
+function showShareCopyConfirmation(triggerBtn, feedbackEl, labelText = 'Link copied!') {
+    if (feedbackEl) {
+        feedbackEl.textContent = labelText;
+        feedbackEl.classList.add('visible');
+        clearTimeout(feedbackEl._hideTimer);
+        feedbackEl._hideTimer = setTimeout(() => {
+            feedbackEl.classList.remove('visible');
+            feedbackEl.textContent = '';
+        }, 2200);
+    }
+    if (triggerBtn) {
+        if (!triggerBtn.dataset.origHtml) {
+            triggerBtn.dataset.origHtml = triggerBtn.innerHTML;
+        }
+        triggerBtn.classList.add('copied');
+        const labelNode = triggerBtn.querySelector('.martyr-btn-label');
+        if (labelNode) {
+            if (!labelNode.dataset.origText) labelNode.dataset.origText = labelNode.textContent;
+            labelNode.textContent = 'Copied';
+        }
+        clearTimeout(triggerBtn._copyTimer);
+        triggerBtn._copyTimer = setTimeout(() => {
+            triggerBtn.classList.remove('copied');
+            if (labelNode && labelNode.dataset.origText) {
+                labelNode.textContent = labelNode.dataset.origText;
+            } else if (triggerBtn.dataset.origHtml) {
+                triggerBtn.innerHTML = triggerBtn.dataset.origHtml;
+            }
+        }, 2200);
+    }
+    if (!feedbackEl) {
+        showGalleryToast(labelText);
+    }
+}
+
+async function copyProfileLink(martyr, triggerBtn, feedbackEl) {
+    const url = buildProfileShareUrl(martyr);
+    const copied = await copyTextToClipboard(url);
+    if (copied) {
+        showShareCopyConfirmation(triggerBtn, feedbackEl, 'Link copied!');
+    } else {
+        showGalleryToast('Unable to copy automatically — please copy the address bar URL.', 'warning');
+    }
+    return copied;
+}
+
+async function triggerProfileShare(martyr, triggerBtn, feedbackEl) {
+    const url = buildProfileShareUrl(martyr);
+    const name = (martyr && martyr.fullName) ? martyr.fullName : 'a Baluch martyr';
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+        try {
+            await navigator.share({
+                title: `${name} — ${HERO_MODAL_TITLE_SUFFIX}`,
+                text: `Honoring ${name} on the Baluch Martyrs Memorial Archive.`,
+                url
+            });
+            return true;
+        } catch (err) {
+            if (err && err.name === 'AbortError') {
+                return false;
+            }
+        }
+    }
+    return copyProfileLink(martyr, triggerBtn, feedbackEl);
+}
+
+function normalizeHeroKey(value) {
+    return String(value ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function toHeroSlug(value) {
+    return String(value ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
+function findMartyrByIdentifier(list, identifier) {
+    if (!Array.isArray(list) || !list.length || !identifier) return null;
+    const raw = String(identifier).trim();
+    if (!raw) return null;
+
+    const exact = list.find(m => m && m.id && String(m.id) === raw);
+    if (exact) return exact;
+
+    const lower = raw.toLowerCase();
+    const byLowerId = list.find(m => m && m.id && String(m.id).toLowerCase() === lower);
+    if (byLowerId) return byLowerId;
+
+    const normalizedName = normalizeHeroKey(raw);
+    const byName = list.find(m => m && m.fullName && normalizeHeroKey(m.fullName) === normalizedName);
+    if (byName) return byName;
+
+    const slug = toHeroSlug(raw);
+    if (slug) {
+        const bySlug = list.find(m => m && m.fullName && toHeroSlug(m.fullName) === slug);
+        if (bySlug) return bySlug;
+    }
+    return null;
+}
+
+function updateModalDocumentTitle(martyr) {
+    if (typeof document === 'undefined') return;
+    if (martyr && martyr.fullName) {
+        document.title = `${martyr.fullName} — ${HERO_MODAL_TITLE_SUFFIX}`;
+    } else {
+        document.title = DEFAULT_GALLERY_TITLE;
+    }
+}
+
+function buildHeroHistoryRelativeUrl(martyr) {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('id');
+    const heroId = martyr && (martyr.id || martyr.fullName) ? String(martyr.id || martyr.fullName).trim() : '';
+    if (heroId) {
+        url.searchParams.set('hero', heroId);
+    } else {
+        url.searchParams.delete('hero');
+    }
+    const qs = url.searchParams.toString();
+    return url.pathname + (qs ? `?${qs}` : '') + url.hash;
+}
+
+function syncHeroUrl(martyr, mode = 'replace', historyToken = null) {
+    try {
+        if (typeof window === 'undefined' || !window.location || !window.history) return;
+        const targetRelative = buildHeroHistoryRelativeUrl(martyr);
+        const currentRelative = window.location.pathname + window.location.search + window.location.hash;
+        const heroId = martyr && (martyr.id || martyr.fullName) ? String(martyr.id || martyr.fullName).trim() : '';
+        const nextState = heroId
+            ? { ...(window.history.state && typeof window.history.state === 'object' ? window.history.state : {}), bmmModalHero: heroId, ...(historyToken ? { bmmToken: historyToken } : {}) }
+            : null;
+
+        if (mode === 'push' && targetRelative !== currentRelative) {
+            window.history.pushState(nextState, '', targetRelative);
+        } else if (targetRelative !== currentRelative || (nextState && window.history.state?.bmmModalHero !== nextState.bmmModalHero)) {
+            window.history.replaceState(nextState, '', targetRelative);
+        }
+    } catch {
+        // Safe fail-silent
+    }
+}
+
+function setBackgroundInert(isInert) {
+    if (typeof document === 'undefined') return;
+    const targets = document.querySelectorAll(MODAL_LANDMARK_SELECTOR);
+    targets.forEach((el) => {
+        if (el.id === 'martyrModal' || el.id === 'galleryStatusToast') return;
+        if ('inert' in el) {
+            el.inert = Boolean(isInert);
+        } else if (isInert) {
+            el.setAttribute('aria-hidden', 'true');
+        } else {
+            el.removeAttribute('aria-hidden');
+        }
+    });
+}
+
+function readHeroParamFromLocation() {
+    try {
+        if (typeof window === 'undefined' || !window.location) return '';
+        const params = new URLSearchParams(window.location.search);
+        return (params.get('hero') || params.get('id') || '').trim();
+    } catch {
+        return '';
+    }
+}
+
+function captureInitialDeepLinkHero() {
+    const param = readHeroParamFromLocation();
+    if (!param) return '';
+    pendingDeepLinkHero = param;
+    deepLinkResolved = false;
+
+    clearTimeout(deepLinkFallbackTimer);
+    deepLinkFallbackTimer = setTimeout(() => {
+        if (!pendingDeepLinkHero || deepLinkResolved) return;
+        attemptPendingHeroDeepLink({ isFinalLiveData: true });
+    }, 6500);
+
+    return param;
+}
+
+function attemptPendingHeroDeepLink({ isFinalLiveData = false } = {}) {
+    if (!pendingDeepLinkHero || deepLinkResolved) return false;
+    if (!Array.isArray(allMartyrs) || allMartyrs.length === 0) return false;
+
+    const match = findMartyrByIdentifier(allMartyrs, pendingDeepLinkHero);
+    if (match) {
+        deepLinkResolved = true;
+        pendingDeepLinkHero = '';
+        clearTimeout(deepLinkFallbackTimer);
+        showMartyrModal(match, undefined, { source: 'deeplink' });
+        return true;
+    }
+
+    if (isFinalLiveData) {
+        deepLinkResolved = true;
+        pendingDeepLinkHero = '';
+        clearTimeout(deepLinkFallbackTimer);
+        syncHeroUrl(null, 'replace');
+        showGalleryToast('Profile not found — showing full gallery.', 'warning');
+    }
+    return false;
+}
+
+function handleGalleryPopstate() {
+    if (pendingIgnorePopstateToken) {
+        pendingIgnorePopstateToken = null;
+        return;
+    }
+    const heroParam = readHeroParamFromLocation();
+    if (!heroParam && activeModalController) {
+        activeModalController.close({ fromPopstate: true });
+        return;
+    }
+    if (heroParam && Array.isArray(allMartyrs) && allMartyrs.length > 0) {
+        const currentHeroId = activeModalController?.getCurrentMartyrId?.();
+        if (currentHeroId && String(currentHeroId) === heroParam) return;
+        const match = findMartyrByIdentifier(allMartyrs, heroParam);
+        if (match) {
+            showMartyrModal(match, undefined, { source: 'deeplink' });
+        }
+    }
+}
+
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('popstate', handleGalleryPopstate);
+}
+
+function createShareRow(martyr, variant = 'card') {
+    const isModal = variant === 'modal';
+    const row = document.createElement('div');
+    row.className = isModal ? 'martyr-share-row martyr-share-row-modal' : 'martyr-share-row';
+
+    const targetUrl = buildProfileShareUrl(martyr);
+    const encodedUrl = encodeURIComponent(targetUrl);
+    const heroName = martyr.fullName || 'a Baluch martyr';
+    const shareText = encodeURIComponent(`Honoring ${heroName} on the Baluch Martyrs Memorial`);
+
+    let feedbackEl = null;
+    if (isModal) {
+        const header = document.createElement('div');
+        header.className = 'martyr-share-header';
+        const label = document.createElement('span');
+        label.className = 'martyr-share-label';
+        label.textContent = 'Share profile';
+        feedbackEl = document.createElement('span');
+        feedbackEl.className = 'martyr-share-feedback';
+        feedbackEl.setAttribute('role', 'status');
+        feedbackEl.setAttribute('aria-live', 'polite');
+        header.appendChild(label);
+        header.appendChild(feedbackEl);
+        row.appendChild(header);
+    } else {
+        const label = document.createElement('span');
+        label.className = 'martyr-share-label';
+        label.textContent = 'Share';
+        row.appendChild(label);
+    }
 
     const actions = document.createElement('div');
     actions.className = 'martyr-share-actions';
 
-    const siteOrigin = (typeof window !== 'undefined' && window.location && window.location.origin)
-        ? window.location.origin
-        : 'https://baluchmartyrs.com';
-    const heroIdentifier = encodeURIComponent(martyr.id || martyr.fullName || '');
-    const targetUrl = `${siteOrigin}/gallery.html?hero=${heroIdentifier}`;
-    const encodedUrl = encodeURIComponent(targetUrl);
-    const shareText = encodeURIComponent(`Honoring ${martyr.fullName || 'a Baluch martyr'} on the Baluch Martyrs Memorial`);
+    const copySvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+    const nativeShareSvg = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>';
+
+    if (isModal) {
+        const primaryGroup = document.createElement('div');
+        primaryGroup.className = 'martyr-share-primary-actions';
+
+        const copyBtn = document.createElement('button');
+        copyBtn.type = 'button';
+        copyBtn.className = 'martyr-share-pill-btn martyr-share-copy-btn';
+        copyBtn.innerHTML = `${copySvg}<span class="martyr-btn-label">Copy link</span>`;
+        copyBtn.setAttribute('aria-label', `Copy direct link to ${heroName}`);
+        copyBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            copyProfileLink(martyr, copyBtn, feedbackEl);
+        });
+        primaryGroup.appendChild(copyBtn);
+
+        if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+            const nativeBtn = document.createElement('button');
+            nativeBtn.type = 'button';
+            nativeBtn.className = 'martyr-share-pill-btn martyr-share-native-btn';
+            nativeBtn.innerHTML = `${nativeShareSvg}<span class="martyr-btn-label">Share…</span>`;
+            nativeBtn.setAttribute('aria-label', `Share ${heroName} via device share sheet`);
+            nativeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                triggerProfileShare(martyr, nativeBtn, feedbackEl);
+            });
+            primaryGroup.appendChild(nativeBtn);
+        }
+
+        actions.appendChild(primaryGroup);
+    }
+
+    const socialGroup = isModal ? document.createElement('div') : actions;
+    if (isModal) {
+        socialGroup.className = 'martyr-share-social-actions';
+    } else {
+        const quickCopyBtn = document.createElement('button');
+        quickCopyBtn.type = 'button';
+        quickCopyBtn.className = 'martyr-share-icon';
+        quickCopyBtn.innerHTML = copySvg;
+        quickCopyBtn.setAttribute('aria-label', `Copy link to ${heroName}`);
+        quickCopyBtn.title = 'Copy profile link';
+        quickCopyBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            copyProfileLink(martyr, quickCopyBtn, null);
+        });
+        socialGroup.appendChild(quickCopyBtn);
+    }
 
     const shareNetworks = [
-        { name: 'X', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>', url: `https://twitter.com/intent/tweet?text=${shareText}&url=${encodedUrl}` },
-        { name: 'Facebook', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>', url: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}` },
-        { name: 'WhatsApp', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>', url: `https://wa.me/?text=${shareText}%20${encodedUrl}` },
-        { name: 'Print / PDF', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>', action: () => {
+        { name: 'X', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 22.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>', url: `https://twitter.com/intent/tweet?text=${shareText}&url=${encodedUrl}` },
+        { name: 'Facebook', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>', url: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}` },
+        { name: 'WhatsApp', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/></svg>', url: `https://wa.me/?text=${shareText}%20${encodedUrl}` },
+        { name: 'Print / PDF', icon: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>', action: () => {
             if (typeof printMartyrProfile === 'function') {
                 printMartyrProfile(martyr);
             } else {
@@ -77,19 +454,23 @@ function createShareRow(martyr, variant = 'card') {
         btn.type = 'button';
         btn.className = 'martyr-share-icon';
         btn.innerHTML = icon;
-        btn.setAttribute('aria-label', `Share ${martyr.fullName || 'this martyr'} on ${name}`);
-        btn.title = `Share on ${name}`;
-        btn.addEventListener('click', () => {
+        btn.setAttribute('aria-label', `${name === 'Print / PDF' ? 'Print or save PDF for' : 'Share ' + heroName + ' on'} ${name}`);
+        btn.title = name === 'Print / PDF' ? 'Print / Save PDF' : `Share on ${name}`;
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
             if (action) {
                 action();
             } else if (url) {
                 window.open(url, '_blank', 'noopener,noreferrer');
             }
         });
-        actions.appendChild(btn);
+        socialGroup.appendChild(btn);
     });
 
-    row.appendChild(label);
+    if (isModal) {
+        actions.appendChild(socialGroup);
+    }
+
     row.appendChild(actions);
     return row;
 }
@@ -126,6 +507,8 @@ window.checkGalleryData = function() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎨 Gallery DOM loaded, initializing...');
     
+    captureInitialDeepLinkHero();
+
     // We show a professional skeleton loading state immediately
     showLoadingState();
     
@@ -149,6 +532,7 @@ document.addEventListener('DOMContentLoaded', function() {
             applyFilters();
             galleryLoaded = true;
             galleryLoading = false;
+            attemptPendingHeroDeepLink({ isFinalLiveData: Boolean(connected) });
             
             // Show offline warning if using localStorage
             if (source && source.includes('localStorage') && source.includes('h old')) {
@@ -177,6 +561,7 @@ document.addEventListener('DOMContentLoaded', function() {
             hideOfflineWarning();
             populateFilterDropdowns();
             applyFilters();
+            attemptPendingHeroDeepLink({ isFinalLiveData: true });
         }
     });
 
@@ -194,7 +579,16 @@ document.addEventListener('DOMContentLoaded', function() {
             loadGallery();
         } else if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
             // Trigger background Firebase delta sync if initial render came from instant cache
-            window.firebaseDB.getApprovedMartyrs();
+            Promise.resolve(window.firebaseDB.getApprovedMartyrs())
+                .then((liveRes) => {
+                    if (liveRes && liveRes.success && Array.isArray(liveRes.data) && liveRes.data.length > 0) {
+                        allMartyrs = liveRes.data;
+                    }
+                    attemptPendingHeroDeepLink({ isFinalLiveData: true });
+                })
+                .catch(() => {
+                    attemptPendingHeroDeepLink({ isFinalLiveData: true });
+                });
         }
     });
 });
@@ -261,6 +655,7 @@ async function loadGallery() {
             window.dispatchEvent(new Event('martyrsDataReady'));
             galleryLoaded = true;
             galleryLoading = false;
+            attemptPendingHeroDeepLink({ isFinalLiveData: true });
             return;
         }
 
@@ -278,10 +673,20 @@ async function loadGallery() {
                 window.dispatchEvent(new Event('martyrsDataReady'));
                 galleryLoaded = true;
                 galleryLoading = false;
+                attemptPendingHeroDeepLink({ isFinalLiveData: false });
 
                 // Trigger background live delta sync with Firebase
                 if (window.firebaseDB && typeof window.firebaseDB.getApprovedMartyrs === 'function') {
-                    window.firebaseDB.getApprovedMartyrs();
+                    Promise.resolve(window.firebaseDB.getApprovedMartyrs())
+                        .then((liveRes) => {
+                            if (liveRes && liveRes.success && Array.isArray(liveRes.data) && liveRes.data.length > 0) {
+                                allMartyrs = liveRes.data;
+                            }
+                            attemptPendingHeroDeepLink({ isFinalLiveData: true });
+                        })
+                        .catch(() => {
+                            attemptPendingHeroDeepLink({ isFinalLiveData: true });
+                        });
                 }
                 return;
             }
@@ -305,6 +710,7 @@ async function loadGallery() {
                 window.dispatchEvent(new Event('martyrsDataReady'));
                 galleryLoaded = true;
                 galleryLoading = false;
+                attemptPendingHeroDeepLink({ isFinalLiveData: true });
                 return;
             } else {
                 console.warn('⚠️ Firebase returned no data or failed:', result?.error || 'no result');
@@ -336,6 +742,7 @@ async function loadGallery() {
                     window.dispatchEvent(new Event('martyrsDataReady'));
                     galleryLoaded = true;
                     galleryLoading = false;
+                    attemptPendingHeroDeepLink({ isFinalLiveData: true });
                     return;
                 } else {
                     console.warn('⚠️ API returned empty martyrs list');
@@ -361,6 +768,7 @@ async function loadGallery() {
                     window.dispatchEvent(new Event('martyrsDataReady'));
                     galleryLoaded = true;
                     galleryLoading = false;
+                    attemptPendingHeroDeepLink({ isFinalLiveData: true });
                     return;
                 }
             }
@@ -390,6 +798,7 @@ async function loadGallery() {
             window.dispatchEvent(new Event('martyrsDataReady'));
             galleryLoaded = true;
             galleryLoading = false;
+            attemptPendingHeroDeepLink({ isFinalLiveData: true });
             return;
         }
 
@@ -1314,57 +1723,96 @@ function resolveGalleryNavList(martyr, navList) {
     return { list: [martyr], index: 0 };
 }
 
-// Show martyr details modal (with print/download support)
-function showMartyrModal(martyr, navList) {
+// Show martyr details modal (with print/download support and clean URL/history sync)
+function showMartyrModal(martyr, navList, options = {}) {
+    if (!martyr) return;
     console.log(`🔍 Showing modal for: ${martyr.fullName}`);
-    
-    // Remember what opened the modal so focus can return there on close
-    const opener = document.activeElement;
 
-    // Remove existing modal (and its keyboard/swipe listeners)
+    const openSource = (options && options.source) ? options.source : 'gallery';
+    const pushedHistoryEntry = openSource !== 'deeplink';
+    const modalToken = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    // Remember what opened the modal so focus can return there on close
+    const opener = (typeof document !== 'undefined') ? document.activeElement : null;
+
+    // Remove existing modal (and its keyboard/swipe listeners) without popping history
     const existingModal = document.getElementById('martyrModal');
     if (existingModal) {
         if (typeof existingModal._pnCleanup === 'function') existingModal._pnCleanup();
         existingModal.remove();
     }
-    
+
     // Create modal overlay and dialog
     const modal = document.createElement('div');
     modal.id = 'martyrModal';
     modal.className = 'martyr-modal-overlay';
-    
+
     const content = document.createElement('div');
     content.className = 'martyr-modal-dialog';
 
     let closed = false;
-    const closeModal = () => {
+    let displayedMartyr = martyr;
+
+    const closeModal = ({ fromPopstate = false } = {}) => {
         if (closed) return;
         closed = true;
+        if (activeModalController && activeModalController.token === modalToken) {
+            activeModalController = null;
+        }
         document.body.classList.remove('martyr-modal-open');
         stopMartyrSpeech();
         if (typeof modal._pnCleanup === 'function') modal._pnCleanup();
         modal.remove();
+        setBackgroundInert(false);
         document.body.style.overflow = 'auto';
+        updateModalDocumentTitle(null);
+
+        if (!fromPopstate) {
+            const currentState = (typeof window !== 'undefined' && window.history) ? window.history.state : null;
+            if (pushedHistoryEntry && currentState && currentState.bmmToken === modalToken && typeof window.history.back === 'function') {
+                pendingIgnorePopstateToken = modalToken;
+                window.history.back();
+                setTimeout(() => {
+                    if (pendingIgnorePopstateToken === modalToken) {
+                        pendingIgnorePopstateToken = null;
+                        if (readHeroParamFromLocation()) {
+                            syncHeroUrl(null, 'replace');
+                        }
+                    }
+                }, 180);
+            } else {
+                syncHeroUrl(null, 'replace');
+            }
+        }
+
         if (opener && typeof opener.focus === 'function' && document.body.contains(opener)) {
             try { opener.focus({ preventScroll: true }); } catch (e) { /* ignore */ }
         }
     };
 
+    const controller = {
+        token: modalToken,
+        close: closeModal,
+        getCurrentMartyrId: () => (displayedMartyr && (displayedMartyr.id || displayedMartyr.fullName)) || ''
+    };
+    activeModalController = controller;
+
     // Fills the content box for one martyr (re-used when browsing Prev / Next)
     function renderContent(martyr) {
+    displayedMartyr = martyr;
     const birthPretty = formatDate(martyr.birthDate) || 'Unknown';
     const martyrdomPretty = formatDate(martyr.martyrdomDate) || 'Unknown';
     const headerDateLabel = martyrdomPretty;
     const rawBirthPlace = (martyr.birthPlace || '').toString().trim();
     const hasBirthDate = Boolean(birthPretty && !['unknown', 'n/a', 'none', '-'].includes(birthPretty.toLowerCase()));
     const hasBirthPlace = Boolean(rawBirthPlace && !['unknown', 'n/a', 'none', '-'].includes(rawBirthPlace.toLowerCase()));
-    
+
     content.innerHTML = `
         <div class="martyr-modal-header">
             <div class="martyr-modal-sheet-handle" aria-hidden="true"></div>
             <div class="martyr-modal-header-inner">
                 <div class="martyr-modal-header-title">
-                    <h2 class="martyr-modal-header-name">
+                    <h2 id="martyrModalHeading" class="martyr-modal-header-name">
                         ${escapeHTML(martyr.fullName || 'Unknown martyr')}
                     </h2>
                     <p class="martyr-modal-header-date">
@@ -1374,6 +1822,10 @@ function showMartyrModal(martyr, navList) {
                 <div class="martyr-modal-header-actions">
                     <button class="martyr-voice-btn" type="button" aria-label="Listen to biography">
                         <span aria-hidden="true">🔊</span> Listen
+                    </button>
+                    <button class="martyr-header-share-btn" type="button" aria-label="Share profile" title="Share profile">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                        <span class="martyr-btn-label">Share</span>
                     </button>
                     <button class="close-martyr-modal" type="button" aria-label="Close profile">
                         &times;
@@ -1478,19 +1930,29 @@ function showMartyrModal(martyr, navList) {
         shareSlot.replaceWith(createShareRow(martyr, 'modal'));
     }
 
+    // Header share button (native share sheet on mobile / clipboard copy on desktop)
+    const headerShareBtn = content.querySelector('.martyr-header-share-btn');
+    if (headerShareBtn) {
+        headerShareBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const feedbackEl = content.querySelector('.martyr-share-feedback');
+            triggerProfileShare(martyr, headerShareBtn, feedbackEl);
+        });
+    }
+
     // Close buttons
     const closeIcon = content.querySelector('.close-martyr-modal');
     const closeBtn  = content.querySelector('.martyr-close-btn');
     const sheetHandle = content.querySelector('.martyr-modal-sheet-handle');
     if (closeIcon) {
         closeIcon.setAttribute('aria-label', 'Close profile');
-        closeIcon.addEventListener('click', closeModal);
+        closeIcon.addEventListener('click', () => closeModal());
     }
-    if (closeBtn)  closeBtn.addEventListener('click', closeModal);
+    if (closeBtn)  closeBtn.addEventListener('click', () => closeModal());
     if (sheetHandle) {
         sheetHandle.setAttribute('role', 'button');
         sheetHandle.setAttribute('aria-label', 'Close sheet');
-        sheetHandle.addEventListener('click', closeModal);
+        sheetHandle.addEventListener('click', () => closeModal());
     }
     
     // Print / Download button
@@ -1522,11 +1984,16 @@ function showMartyrModal(martyr, navList) {
 
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
-    modal.setAttribute('aria-label', 'Martyr profile');
+    modal.setAttribute('aria-labelledby', 'martyrModalHeading');
     modal.appendChild(content);
     document.body.appendChild(modal);
+    setBackgroundInert(true);
     document.body.classList.add('martyr-modal-open');
     document.body.style.overflow = 'hidden';
+
+    // Sync document title and clean shareable ?hero=<id> URL
+    updateModalDocumentTitle(martyr);
+    syncHeroUrl(martyr, pushedHistoryEntry ? 'push' : 'replace', pushedHistoryEntry ? modalToken : null);
     
     // Close on background click
     modal.addEventListener('click', (e) => {
@@ -1546,8 +2013,10 @@ function showMartyrModal(martyr, navList) {
             render: (m) => {
                 stopMartyrSpeech();
                 renderContent(m);
+                updateModalDocumentTitle(m);
+                syncHeroUrl(m, 'replace', pushedHistoryEntry ? modalToken : null);
             },
-            close: closeModal
+            close: () => closeModal()
         });
     } else {
         // Fallback: Escape only
@@ -1843,7 +2312,7 @@ function createGalleryCard(martyr, index = 99) {
 
     // Full Card Interactive Tap Handler (Smooth mobile & desktop experience)
     card.onclick = function (e) {
-        if (e.target.closest('.martyr-share-icon, .martyr-share-actions')) {
+        if (e.target.closest('.martyr-share-row, .martyr-share-icon, .martyr-share-actions')) {
             return;
         }
         showMartyrModal(martyr);
@@ -2060,7 +2529,7 @@ function syncFiltersToUrl() {
         const currentRelative = window.location.pathname + window.location.search + window.location.hash;
 
         if (newRelative !== currentRelative) {
-            window.history.replaceState(null, '', newRelative);
+            window.history.replaceState(window.history.state ?? null, '', newRelative);
         }
     } catch (e) {
         // Safe fail-silent
@@ -3187,4 +3656,29 @@ function updateAutocompleteHighlight(items) {
 document.addEventListener('DOMContentLoaded', function() {
     initSearchDiscovery();
 });
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        buildProfileShareUrl,
+        copyProfileLink,
+        findMartyrByIdentifier,
+        getCanonicalGalleryPath,
+        handleGalleryPopstate,
+        normalizeHeroKey,
+        readHeroParamFromLocation,
+        showMartyrModal,
+        syncHeroUrl,
+        toHeroSlug,
+        triggerProfileShare,
+        __setTestMartyrs: (list) => { allMartyrs = Array.isArray(list) ? list : []; },
+        __resetDeepLinkState: (hero = '') => {
+            pendingDeepLinkHero = hero;
+            deepLinkResolved = false;
+            clearTimeout(deepLinkFallbackTimer);
+            activeModalController = null;
+            pendingIgnorePopstateToken = null;
+        },
+        __attemptPendingHeroDeepLink: (opts) => attemptPendingHeroDeepLink(opts)
+    };
+}
 
