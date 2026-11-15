@@ -1344,86 +1344,71 @@ function openPendingPreview(martyr) {
 
     const overlay = document.createElement('div');
     overlay.id = 'pendingPreviewOverlay';
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.7);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-        padding: 1rem;
-    `;
+    overlay.className = 'admin-preview-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Public Preview');
 
     const modal = document.createElement('div');
-    modal.style.cssText = `
-        background: #fff;
-        max-width: 400px;
-        width: 100%;
-        border-radius: 8px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        overflow: hidden;
-        font-family: system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-    `;
+    modal.className = 'admin-preview-modal';
 
     const header = document.createElement('div');
-    header.style.cssText = 'padding: 0.75rem 1rem; background: #2c5530; color: #fff; display: flex; justify-content: space-between; align-items: center;';
+    header.className = 'admin-preview-header';
 
     const title = document.createElement('div');
+    title.className = 'admin-preview-title';
     title.textContent = 'Public Preview';
 
     const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'admin-preview-close';
     closeBtn.textContent = '×';
     closeBtn.setAttribute('aria-label', 'Close preview');
-    closeBtn.style.cssText = 'background:none;border:none;color:#fff;font-size:1.4rem;cursor:pointer;';
 
     header.appendChild(title);
     header.appendChild(closeBtn);
 
     const body = document.createElement('div');
-    body.style.cssText = 'padding: 1rem;';
+    body.className = 'admin-preview-body';
 
     // Build a card similar to gallery/homepage cards using safe textContent
     const card = document.createElement('div');
-    card.style.cssText = 'border:1px solid #ddd;border-radius:8px;overflow:hidden;box-shadow:0 2px 4px rgba(0,0,0,0.1);';
+    card.className = 'admin-preview-card';
 
     const imgWrapper = document.createElement('div');
-    imgWrapper.style.cssText = 'height:220px;background:linear-gradient(135deg,#ddd,#aaa);display:flex;align-items:center;justify-content:center;';
+    imgWrapper.className = 'admin-preview-photo';
 
     const photoSrc = getSafeAdminPhotoSrc(martyr, false);
     if (photoSrc) {
         const img = document.createElement('img');
         img.src = photoSrc;
         img.alt = martyr.fullName || 'Martyr photo';
-        img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
         img.onerror = () => {
             img.remove();
-            imgWrapper.innerHTML = '<div style="font-size:3rem;color:#777;">📸</div>';
+            imgWrapper.innerHTML = '<div class="admin-preview-placeholder" aria-hidden="true">📸</div>';
         };
         imgWrapper.appendChild(img);
     } else {
         const icon = document.createElement('div');
+        icon.className = 'admin-preview-placeholder';
+        icon.setAttribute('aria-hidden', 'true');
         icon.textContent = '📸';
-        icon.style.cssText = 'font-size:3rem;color:#777;';
         imgWrapper.appendChild(icon);
     }
 
     const info = document.createElement('div');
-    info.style.cssText = 'padding:1rem;';
+    info.className = 'admin-preview-info';
 
     const nameEl = document.createElement('h3');
+    nameEl.className = 'admin-preview-name';
     nameEl.textContent = martyr.fullName || 'Unknown martyr';
-    nameEl.style.cssText = 'margin:0 0 0.5rem 0;color:#2c5530;';
 
     const datesEl = document.createElement('p');
-    datesEl.style.cssText = 'margin:0 0 0.5rem 0;font-weight:500;';
+    datesEl.className = 'admin-preview-dates';
     datesEl.textContent = `${formatDate(martyr.birthDate)} - ${formatDate(martyr.martyrdomDate)}`;
 
     const placeEl = document.createElement('p');
-    placeEl.style.cssText = 'margin:0 0 0.5rem 0;color:#666;';
+    placeEl.className = 'admin-preview-place';
     placeEl.textContent = martyr.martyrdomPlace || 'Place of martyrdom unknown';
 
     info.appendChild(nameEl);
@@ -1432,14 +1417,14 @@ function openPendingPreview(martyr) {
 
     if (martyr.organization) {
         const orgEl = document.createElement('p');
-        orgEl.style.cssText = 'margin:0 0 0.5rem 0;font-size:0.9rem;color:#888;';
+        orgEl.className = 'admin-preview-org';
         orgEl.textContent = martyr.organization;
         info.appendChild(orgEl);
     }
 
     if (martyr.biography) {
         const bioEl = document.createElement('p');
-        bioEl.style.cssText = 'margin:0.5rem 0 0 0;font-size:0.9rem;color:#555;';
+        bioEl.className = 'admin-preview-bio';
         const text = martyr.biography.toString();
         bioEl.textContent = text.length > 180 ? text.substring(0, 180) + '…' : text;
         info.appendChild(bioEl);
@@ -1454,11 +1439,23 @@ function openPendingPreview(martyr) {
     modal.appendChild(body);
     overlay.appendChild(modal);
 
-    const close = () => overlay.remove();
+    const onKeyDown = (e) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            close();
+        }
+    };
+
+    const close = () => {
+        document.removeEventListener('keydown', onKeyDown);
+        overlay.remove();
+    };
     closeBtn.addEventListener('click', close);
     overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    document.addEventListener('keydown', onKeyDown);
 
     document.body.appendChild(overlay);
+    closeBtn.focus();
 }
 
 // Helper function to reset approve button state
