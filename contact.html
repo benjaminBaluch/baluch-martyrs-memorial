@@ -505,6 +505,14 @@
             box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18);
         }
 
+        .contact-field-group input:user-invalid,
+        .contact-field-group select:user-invalid,
+        .contact-field-group textarea:user-invalid,
+        .contact-field-group [aria-invalid="true"] {
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.14);
+        }
+
         html[data-theme="dark"] .contact-field-group input:focus,
         html[data-theme="dark"] .contact-field-group select:focus,
         html[data-theme="dark"] .contact-field-group textarea:focus,
@@ -513,6 +521,18 @@
         [data-theme="dark"] .contact-field-group textarea:focus {
             border-color: #22c55e;
             box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+        }
+
+        html[data-theme="dark"] .contact-field-group input:user-invalid,
+        html[data-theme="dark"] .contact-field-group select:user-invalid,
+        html[data-theme="dark"] .contact-field-group textarea:user-invalid,
+        html[data-theme="dark"] .contact-field-group [aria-invalid="true"],
+        [data-theme="dark"] .contact-field-group input:user-invalid,
+        [data-theme="dark"] .contact-field-group select:user-invalid,
+        [data-theme="dark"] .contact-field-group textarea:user-invalid,
+        [data-theme="dark"] .contact-field-group [aria-invalid="true"] {
+            border-color: #f87171;
+            box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.2);
         }
 
         .contact-field-group textarea {
@@ -695,7 +715,7 @@
                         <p>Direct inquiries, profile submissions, and historical verification</p>
                     </div>
                     <div class="contact-hero-actions">
-                        <a href="mailto:info@baluchmemorial.org" class="hero-action-btn primary">
+                        <a href="mailto:info@baluchmartyrs.com" class="hero-action-btn primary">
                             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                             Email Archive Directly
                         </a>
@@ -728,7 +748,7 @@
                             <h3>Email Correspondence</h3>
                             <p>For general inquiries, researcher requests, and historical correspondence with our archive team.</p>
 
-                            <a href="mailto:info@baluchmemorial.org" class="contact-email-link">info@baluchmemorial.org</a>
+                            <a href="mailto:info@baluchmartyrs.com" class="contact-email-link">info@baluchmartyrs.com</a>
 
                             <div class="contact-btn-row">
                                 <button type="button" class="contact-btn-action" id="copyEmailBtn" aria-label="Copy email address">
@@ -736,9 +756,9 @@
                                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                                     </svg>
-                                    <span id="copyBtnLabel">Copy Email</span>
+                                    <span id="copyBtnLabel" role="status" aria-live="polite">Copy Email</span>
                                 </button>
-                                <a href="mailto:info@baluchmemorial.org" class="contact-btn-action" aria-label="Compose email">
+                                <a href="mailto:info@baluchmartyrs.com" class="contact-btn-action" aria-label="Compose email">
                                     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                         <line x1="22" y1="2" x2="11" y2="13"></line>
                                         <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
@@ -813,23 +833,23 @@
                                 <div class="contact-form-row">
                                     <div class="contact-field-group">
                                         <label for="contactName">Your Full Name <span class="req">*</span></label>
-                                        <input type="text" id="contactName" name="contactName" required placeholder="e.g. Mir Baluch">
+                                        <input type="text" id="contactName" name="contactName" required autocomplete="name" enterkeyhint="next" placeholder="e.g. Mir Baluch">
                                     </div>
 
                                     <div class="contact-field-group">
                                         <label for="contactEmail">Your Email Address <span class="req">*</span></label>
-                                        <input type="email" id="contactEmail" name="contactEmail" required placeholder="name@example.com" inputmode="email">
+                                        <input type="email" id="contactEmail" name="contactEmail" required autocomplete="email" inputmode="email" enterkeyhint="next" placeholder="name@example.com">
                                     </div>
                                 </div>
 
                                 <div class="contact-field-group">
                                     <label for="contactSubject">Subject <span class="req">*</span></label>
-                                    <input type="text" id="contactSubject" name="contactSubject" required placeholder="Brief summary of your inquiry">
+                                    <input type="text" id="contactSubject" name="contactSubject" required enterkeyhint="next" placeholder="Brief summary of your inquiry">
                                 </div>
 
                                 <div class="contact-field-group">
                                     <label for="contactMessage">Message <span class="req">*</span></label>
-                                    <textarea id="contactMessage" name="contactMessage" rows="5" required 
+                                    <textarea id="contactMessage" name="contactMessage" rows="5" required enterkeyhint="send"
                                         placeholder="Please detail your inquiry, correction, or historical information..."></textarea>
                                 </div>
 
@@ -871,7 +891,7 @@
                                 </svg>
                             </div>
                             <h3>Inquiry Prepared</h3>
-                            <p id="feedbackText">Thank you for contacting the memorial. Your message draft has been prepared. If your mail client did not open automatically, you can email us directly at <strong>info@baluchmemorial.org</strong>.</p>
+                            <p id="feedbackText">Thank you for contacting the memorial. Your message draft has been prepared. If your mail client did not open automatically, you can email us directly at <a href="mailto:info@baluchmartyrs.com" class="contact-email-link" style="margin:0;display:inline;font-size:inherit;">info@baluchmartyrs.com</a>.</p>
                             <button type="button" class="contact-btn-action" id="resetContactBtn">
                                 Send Another Message
                             </button>
@@ -906,7 +926,7 @@
                 </div>
                 <div class="footer-section">
                     <h3>Contact</h3>
-                    <p>Email: info@baluchmemorial.org</p>
+                    <p>Email: info@baluchmartyrs.com</p>
                 </div>
             </div>
             <div class="footer-bottom">
@@ -922,20 +942,21 @@
     <!-- Interactive Form & Copy Logic -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            var ARCHIVE_EMAIL = 'info@baluchmartyrs.com';
+
             // 1-Click Copy Email logic
             var copyBtn = document.getElementById('copyEmailBtn');
             var copyLabel = document.getElementById('copyBtnLabel');
             if (copyBtn) {
                 copyBtn.addEventListener('click', function() {
-                    var email = 'info@baluchmemorial.org';
                     if (navigator.clipboard && navigator.clipboard.writeText) {
-                        navigator.clipboard.writeText(email).then(function() {
+                        navigator.clipboard.writeText(ARCHIVE_EMAIL).then(function() {
                             showCopiedState();
                         }).catch(function() {
-                            fallbackCopy(email);
+                            fallbackCopy(ARCHIVE_EMAIL);
                         });
                     } else {
-                        fallbackCopy(email);
+                        fallbackCopy(ARCHIVE_EMAIL);
                     }
                 });
             }
@@ -943,6 +964,10 @@
             function fallbackCopy(text) {
                 var tempInput = document.createElement('input');
                 tempInput.value = text;
+                tempInput.setAttribute('readonly', '');
+                tempInput.style.position = 'fixed';
+                tempInput.style.top = '-9999px';
+                tempInput.style.opacity = '0';
                 document.body.appendChild(tempInput);
                 tempInput.select();
                 try {
@@ -956,10 +981,12 @@
 
             function showCopiedState() {
                 if (!copyLabel) return;
-                var orig = copyLabel.textContent;
+                var orig = copyLabel.dataset.origLabel || copyLabel.textContent;
+                copyLabel.dataset.origLabel = orig;
                 copyLabel.textContent = 'Copied!';
                 copyBtn.style.background = 'rgba(34, 197, 94, 0.22)';
-                setTimeout(function() {
+                clearTimeout(copyBtn._resetTimer);
+                copyBtn._resetTimer = setTimeout(function() {
                     copyLabel.textContent = orig;
                     copyBtn.style.background = '';
                 }, 2200);
@@ -971,9 +998,37 @@
             var feedbackBox = document.getElementById('contactFeedback');
             var resetBtn = document.getElementById('resetContactBtn');
 
+            function syncAriaInvalid(control) {
+                if (!control || typeof control.checkValidity !== 'function') return;
+                if (!control.checkValidity()) {
+                    control.setAttribute('aria-invalid', 'true');
+                } else {
+                    control.removeAttribute('aria-invalid');
+                }
+            }
+
             if (form) {
+                form.addEventListener('blur', function(e) {
+                    if (e.target && e.target.matches('input[required], select[required], textarea[required]')) {
+                        syncAriaInvalid(e.target);
+                    }
+                }, true);
+
+                form.addEventListener('input', function(e) {
+                    if (e.target && e.target.hasAttribute('aria-invalid') && e.target.checkValidity()) {
+                        e.target.removeAttribute('aria-invalid');
+                    }
+                });
+
                 form.addEventListener('submit', function(e) {
                     e.preventDefault();
+
+                    var requiredControls = form.querySelectorAll('input[required], select[required], textarea[required]');
+                    requiredControls.forEach(syncAriaInvalid);
+                    if (!form.checkValidity()) {
+                        form.reportValidity();
+                        return;
+                    }
 
                     var name = (document.getElementById('contactName').value || '').trim();
                     var email = (document.getElementById('contactEmail').value || '').trim();
@@ -982,6 +1037,7 @@
                     var type = document.getElementById('contactType').value || 'general';
 
                     if (!name || !email || !subject || !message) {
+                        form.reportValidity();
                         return;
                     }
 
@@ -1000,7 +1056,7 @@
                         'Inquiry Type: ' + type + '\n\n' +
                         'Message:\n' + message
                     );
-                    var mailtoLink = 'mailto:info@baluchmemorial.org?subject=' + mailtoSubject + '&body=' + mailtoBody;
+                    var mailtoLink = 'mailto:' + ARCHIVE_EMAIL + '?subject=' + mailtoSubject + '&body=' + mailtoBody;
 
                     // Trigger mailto intent
                     try {
@@ -1017,7 +1073,14 @@
 
             if (resetBtn) {
                 resetBtn.addEventListener('click', function() {
-                    if (form) form.reset();
+                    if (form) {
+                        form.reset();
+                        form.querySelectorAll('[aria-invalid]').forEach(function(el) {
+                            el.removeAttribute('aria-invalid');
+                        });
+                    }
+                    var errEl = document.getElementById('contactTurnstileError');
+                    if (errEl) errEl.style.display = 'none';
                     feedbackBox.style.display = 'none';
                     formContainer.style.display = 'block';
                 });
