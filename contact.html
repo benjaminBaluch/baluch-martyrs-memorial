@@ -558,10 +558,71 @@
             box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
         }
 
-        .contact-submit-btn:hover {
+        .contact-submit-btn:hover:not(:disabled) {
             background: #15803d;
             transform: translateY(-1px);
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        .contact-submit-btn:disabled {
+            opacity: 0.72;
+            cursor: wait;
+        }
+
+        .contact-submit-notice {
+            display: none;
+            padding: 0.9rem 1rem;
+            border-radius: 12px;
+            font-size: 0.92rem;
+            line-height: 1.55;
+            border: 1px solid rgba(217, 119, 6, 0.35);
+            background: #fffbeb;
+            color: #92400e;
+        }
+
+        .contact-submit-notice.error {
+            border-color: rgba(220, 38, 38, 0.35);
+            background: #fef2f2;
+            color: #991b1b;
+        }
+
+        html[data-theme="dark"] .contact-submit-notice,
+        [data-theme="dark"] .contact-submit-notice {
+            background: rgba(217, 119, 6, 0.14);
+            border-color: rgba(251, 191, 36, 0.35);
+            color: #fde68a;
+        }
+
+        html[data-theme="dark"] .contact-submit-notice.error,
+        [data-theme="dark"] .contact-submit-notice.error {
+            background: rgba(220, 38, 38, 0.14);
+            border-color: rgba(248, 113, 113, 0.35);
+            color: #fecaca;
+        }
+
+        .contact-notice-actions {
+            margin-top: 0.65rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .contact-fallback-mailto-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            min-height: 40px;
+            padding: 0.45rem 0.9rem;
+            border-radius: 9px;
+            font-size: 0.86rem;
+            font-weight: 600;
+            text-decoration: none;
+            background: #14532d;
+            color: #ffffff;
+        }
+
+        .contact-fallback-mailto-btn:hover {
+            background: #166534;
         }
 
         .contact-form-privacy {
@@ -866,13 +927,15 @@
                                     </div>
                                 </div>
 
+                                <div id="contactSubmitNotice" class="contact-submit-notice" role="status" aria-live="polite"></div>
+
                                 <div>
                                     <button type="submit" class="contact-submit-btn" id="contactSubmitBtn">
                                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                             <line x1="22" y1="2" x2="11" y2="13"></line>
                                             <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                                         </svg>
-                                        <span>Send Message</span>
+                                        <span id="contactSubmitBtnLabel">Send Message</span>
                                     </button>
                                 </div>
 
@@ -884,14 +947,14 @@
                         </div>
 
                         <!-- Modern Inline Feedback (Replaces browser alert) -->
-                        <div id="contactFeedback" class="contact-feedback-box" role="status">
+                        <div id="contactFeedback" class="contact-feedback-box" role="status" aria-live="polite">
                             <div class="contact-feedback-icon" aria-hidden="true">
                                 <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                                     <polyline points="20 6 9 17 4 12"></polyline>
                                 </svg>
                             </div>
-                            <h3>Inquiry Prepared</h3>
-                            <p id="feedbackText">Thank you for contacting the memorial. Your message draft has been prepared. If your mail client did not open automatically, you can email us directly at <a href="mailto:info@baluchmartyrs.com" class="contact-email-link" style="margin:0;display:inline;font-size:inherit;">info@baluchmartyrs.com</a>.</p>
+                            <h3 id="feedbackHeading">Message Sent</h3>
+                            <p id="feedbackText">Thank you for contacting the memorial. Your inquiry has been sent to <a href="mailto:info@baluchmartyrs.com" class="contact-email-link" style="margin:0;display:inline;font-size:inherit;">info@baluchmartyrs.com</a>, and our archive team aims to respond within 48 to 72 hours.</p>
                             <button type="button" class="contact-btn-action" id="resetContactBtn">
                                 Send Another Message
                             </button>
@@ -992,11 +1055,17 @@
                 }, 2200);
             }
 
-            // Contact Form Submission Handler (Modern in-page state, no alert())
+            // Contact Form Submission Handler (Server-verified + Automatic Email Relay)
             var form = document.getElementById('contactForm');
             var formContainer = document.getElementById('contactFormContainer');
             var feedbackBox = document.getElementById('contactFeedback');
             var resetBtn = document.getElementById('resetContactBtn');
+            var submitBtn = document.getElementById('contactSubmitBtn');
+            var submitBtnLabel = document.getElementById('contactSubmitBtnLabel');
+            var submitNotice = document.getElementById('contactSubmitNotice');
+            var feedbackHeading = document.getElementById('feedbackHeading');
+            var feedbackText = document.getElementById('feedbackText');
+            var turnstileErrorEl = document.getElementById('contactTurnstileError');
 
             function syncAriaInvalid(control) {
                 if (!control || typeof control.checkValidity !== 'function') return;
@@ -1005,6 +1074,91 @@
                 } else {
                     control.removeAttribute('aria-invalid');
                 }
+            }
+
+            function buildMailtoHref(entry) {
+                var mailtoSubject = encodeURIComponent('[' + entry.type.toUpperCase() + '] ' + entry.subject);
+                var mailtoBody = encodeURIComponent(
+                    'Name: ' + entry.name + '\n' +
+                    'Email: ' + entry.email + '\n' +
+                    'Inquiry Type: ' + entry.type + '\n\n' +
+                    'Message:\n' + entry.message
+                );
+                return 'mailto:' + ARCHIVE_EMAIL + '?subject=' + mailtoSubject + '&body=' + mailtoBody;
+            }
+
+            function showSubmitNotice(options) {
+                if (!submitNotice) return;
+                submitNotice.textContent = '';
+                submitNotice.classList.toggle('error', Boolean(options && options.isError));
+                if (options && options.title) {
+                    var strong = document.createElement('strong');
+                    strong.textContent = options.title + ' ';
+                    submitNotice.appendChild(strong);
+                }
+                var msgSpan = document.createElement('span');
+                msgSpan.textContent = (options && options.text) || '';
+                submitNotice.appendChild(msgSpan);
+                if (options && options.mailtoHref) {
+                    var actions = document.createElement('div');
+                    actions.className = 'contact-notice-actions';
+                    var link = document.createElement('a');
+                    link.className = 'contact-fallback-mailto-btn';
+                    link.href = options.mailtoHref;
+                    link.textContent = options.mailtoLabel || 'Open Draft in Email App';
+                    actions.appendChild(link);
+                    submitNotice.appendChild(actions);
+                }
+                submitNotice.style.display = 'block';
+            }
+
+            function hideSubmitNotice() {
+                if (!submitNotice) return;
+                submitNotice.style.display = 'none';
+                submitNotice.classList.remove('error');
+                submitNotice.textContent = '';
+            }
+
+            function setSubmitting(isBusy) {
+                if (submitBtn) {
+                    submitBtn.disabled = Boolean(isBusy);
+                    submitBtn.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+                }
+                if (submitBtnLabel) {
+                    submitBtnLabel.textContent = isBusy ? 'Sending Message\u2026' : 'Send Message';
+                }
+            }
+
+            function resetTurnstileWidget() {
+                window.__bmmContactTurnstileToken = '';
+                if (turnstileErrorEl) turnstileErrorEl.style.display = 'none';
+                if (window.turnstile && typeof window.turnstile.reset === 'function') {
+                    try {
+                        window.turnstile.reset();
+                    } catch (err) {
+                        // Ignore if widget already unmounted
+                    }
+                }
+            }
+
+            function showSuccessState() {
+                hideSubmitNotice();
+                if (feedbackHeading) feedbackHeading.textContent = 'Message Sent';
+                if (feedbackText) {
+                    feedbackText.textContent = '';
+                    feedbackText.appendChild(document.createTextNode('Thank you for contacting the memorial. Your inquiry has been delivered to '));
+                    var emailLink = document.createElement('a');
+                    emailLink.href = 'mailto:' + ARCHIVE_EMAIL;
+                    emailLink.className = 'contact-email-link';
+                    emailLink.style.margin = '0';
+                    emailLink.style.display = 'inline';
+                    emailLink.style.fontSize = 'inherit';
+                    emailLink.textContent = ARCHIVE_EMAIL;
+                    feedbackText.appendChild(emailLink);
+                    feedbackText.appendChild(document.createTextNode(', and our archive team aims to respond within 48 to 72 hours.'));
+                }
+                formContainer.style.display = 'none';
+                feedbackBox.style.display = 'block';
             }
 
             if (form) {
@@ -1020,8 +1174,9 @@
                     }
                 });
 
-                form.addEventListener('submit', function(e) {
+                form.addEventListener('submit', async function(e) {
                     e.preventDefault();
+                    hideSubmitNotice();
 
                     var requiredControls = form.querySelectorAll('input[required], select[required], textarea[required]');
                     requiredControls.forEach(syncAriaInvalid);
@@ -1043,31 +1198,122 @@
 
                     var turnstileToken = window.__bmmContactTurnstileToken || (window.turnstile && typeof window.turnstile.getResponse === 'function' ? window.turnstile.getResponse() : '');
                     if (window.turnstile && !window.__bmmContactTurnstileError && !turnstileToken) {
-                        var errEl = document.getElementById('contactTurnstileError');
-                        if (errEl) errEl.style.display = 'block';
+                        if (turnstileErrorEl) turnstileErrorEl.style.display = 'block';
                         return;
                     }
 
-                    // Compose mailto link so user's client handles transmission smoothly
-                    var mailtoSubject = encodeURIComponent('[' + type.toUpperCase() + '] ' + subject);
-                    var mailtoBody = encodeURIComponent(
-                        'Name: ' + name + '\n' +
-                        'Email: ' + email + '\n' +
-                        'Inquiry Type: ' + type + '\n\n' +
-                        'Message:\n' + message
-                    );
-                    var mailtoLink = 'mailto:' + ARCHIVE_EMAIL + '?subject=' + mailtoSubject + '&body=' + mailtoBody;
+                    var entry = {
+                        name: name,
+                        email: email,
+                        subject: subject,
+                        type: type,
+                        message: message,
+                        turnstileToken: turnstileToken
+                    };
+                    var mailtoHref = buildMailtoHref(entry);
 
-                    // Trigger mailto intent
+                    setSubmitting(true);
+
                     try {
-                        window.location.href = mailtoLink;
-                    } catch (err) {
-                        console.log('Mailto dispatch initiated');
-                    }
+                        var apiRes = null;
+                        var apiData = null;
 
-                    // Display inline success card smoothly
-                    formContainer.style.display = 'none';
-                    feedbackBox.style.display = 'block';
+                        try {
+                            apiRes = await fetch('/api/contact', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify(entry)
+                            });
+                            var apiContentType = (apiRes.headers && typeof apiRes.headers.get === 'function' && apiRes.headers.get('content-type')) || '';
+                            if (apiContentType.indexOf('application/json') !== -1) {
+                                apiData = await apiRes.json();
+                            }
+                        } catch (apiErr) {
+                            apiRes = null;
+                        }
+
+                        if (apiRes && !apiRes.ok && apiRes.status >= 400 && apiRes.status < 500 && apiRes.status !== 404 && apiRes.status !== 405 && apiData && apiData.error) {
+                            showSubmitNotice({
+                                isError: true,
+                                title: 'Please check your submission:',
+                                text: apiData.error
+                            });
+                            return;
+                        }
+
+                        if (apiRes && apiRes.ok && apiData && apiData.delivered === true) {
+                            showSuccessState();
+                            return;
+                        }
+
+                        try {
+                            var fsRes = await fetch('https://formsubmit.co/ajax/' + ARCHIVE_EMAIL, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    name: name,
+                                    email: email,
+                                    _replyto: email,
+                                    inquiry_type: type,
+                                    subject: subject,
+                                    message: message,
+                                    _subject: '[Baluch Martyrs Memorial - ' + type.toUpperCase() + '] ' + subject,
+                                    _template: 'table',
+                                    _captcha: 'false'
+                                })
+                            });
+
+                            var fsData = null;
+                            try {
+                                fsData = await fsRes.json();
+                            } catch (parseErr) {
+                                fsData = null;
+                            }
+
+                            var fsSuccess = Boolean(fsData && (fsData.success === true || fsData.success === 'true'));
+                            if (fsRes.ok && fsSuccess) {
+                                showSuccessState();
+                                return;
+                            }
+
+                            var fsMsg = String((fsData && fsData.message) || '');
+                            if (/activat|confirm/i.test(fsMsg)) {
+                                showSubmitNotice({
+                                    isError: false,
+                                    title: 'One-time inbox activation triggered:',
+                                    text: 'A confirmation email was just sent to ' + ARCHIVE_EMAIL + '. Once the archive administrator clicks "Activate Form" in that email (check Spam too), this web form delivers directly without any email app. Until then, you can send this draft directly:',
+                                    mailtoHref: mailtoHref,
+                                    mailtoLabel: 'Open Draft in Email App'
+                                });
+                                return;
+                            }
+
+                            showSubmitNotice({
+                                isError: true,
+                                title: 'Could not deliver automatically:',
+                                text: fsMsg || ('The mail relay returned an error (HTTP ' + fsRes.status + '). You can still send your message immediately using your email app or by copying ' + ARCHIVE_EMAIL + '.'),
+                                mailtoHref: mailtoHref,
+                                mailtoLabel: 'Open Draft in Email App'
+                            });
+                        } catch (relayErr) {
+                            showSubmitNotice({
+                                isError: true,
+                                title: 'Automatic delivery unavailable:',
+                                text: 'Your browser or connection blocked direct delivery to ' + ARCHIVE_EMAIL + '. Please click below to open your pre-filled message in your email app, or copy the address from the left card.',
+                                mailtoHref: mailtoHref,
+                                mailtoLabel: 'Open Draft in Email App'
+                            });
+                        }
+                    } finally {
+                        resetTurnstileWidget();
+                        setSubmitting(false);
+                    }
                 });
             }
 
@@ -1079,8 +1325,9 @@
                             el.removeAttribute('aria-invalid');
                         });
                     }
-                    var errEl = document.getElementById('contactTurnstileError');
-                    if (errEl) errEl.style.display = 'none';
+                    hideSubmitNotice();
+                    resetTurnstileWidget();
+                    setSubmitting(false);
                     feedbackBox.style.display = 'none';
                     formContainer.style.display = 'block';
                 });
