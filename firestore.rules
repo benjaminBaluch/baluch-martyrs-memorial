@@ -1,114 +1,415 @@
 // Firestore Security Rules for Baluch Martyrs Memorial
-// Deploy these rules via Firebase Console: Firestore Database > Rules
-// 
-// IMPORTANT: These rules should be deployed to Firebase to secure the database
+// Deploy via Firebase Console (Firestore Database > Rules) or `firebase deploy --only firestore:rules`
+//
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: martyrs/{martyrId}
+// Document ID: Auto-generated Firestore ID (or legacy ID)
+// Read Access: Public (memorial gallery, statistics, search, REST cache sync)
+// Write Access: Authenticated Memorial Administrator only (isAdmin())
+// Fields:
+//   - fullName: string (required, non-empty after trim, max 200 chars)
+//   - status: string (required on create, optional on legacy docs; if present must equal 'approved')
+//   - id: string (optional/legacy, max 200 chars)
+//   - fatherName: string | null (optional, max 200 chars)
+//   - birthDate: timestamp | string | null (optional, string max 64 chars)
+//   - martyrdomDate: timestamp | string | null (optional, string max 64 chars)
+//   - birthPlace: string | null (optional, max 250 chars)
+//   - martyrdomPlace: string | null (optional, max 250 chars)
+//   - organization: string | null (optional, max 200 chars)
+//   - affiliation: string | null (optional, max 200 chars)
+//   - rank: string | null (optional, max 200 chars)
+//   - biography: string | null (optional, max 15000 chars)
+//   - familyDetails: string | null (optional, max 3000 chars)
+//   - photo: string | null (optional, max 7000000 chars; data URI, /assets/photos/... path, https URL, or '')
+//   - photoRemoved: bool | null (optional, true when admin explicitly cleared photo)
+//   - hasPhoto: bool | null (optional/legacy boolean flag)
+//   - submitterName: string | null (optional on legacy/admin edits, max 200 chars)
+//   - submitterEmail: string | null (optional on legacy/admin edits, max 254 chars)
+//   - submitterRelation: string | null (optional, max 200 chars)
+//   - submitterPhone: string | null (optional, max 60 chars)
+//   - submittedAt: timestamp | string | null (optional, string max 64 chars)
+//   - approvedAt: timestamp | string | null (optional, string max 64 chars)
+//   - updatedAt: timestamp | string | null (optional, string max 64 chars)
+//   - photoUpdatedAt: timestamp | string | null (optional, string max 64 chars)
+//   - migratedAt: timestamp | string | null (optional, string max 64 chars)
+//   - addedAt: timestamp | string | null (optional/legacy, string max 64 chars)
+//
+// Collection: pendingMartyrs/{submissionId}
+// Document ID: Auto-generated Firestore ID
+// Read Access: Authenticated Memorial Administrator only (protects submitter PII)
+// Create Access: Public visitors (validated 'pending' submissions) or Admin
+// Update/Delete Access: Authenticated Memorial Administrator only (isAdmin())
+// Fields:
+//   - fullName: string (required, non-empty after trim, max 200 chars)
+//   - submitterName: string (required on public create, non-empty, max 200 chars; optional/clearable by admin)
+//   - submitterEmail: string (required valid email on public create, max 254 chars; optional/clearable by admin)
+//   - status: string (required, must equal 'pending')
+//   - submittedAt: timestamp (required == request.time if sent on public create; timestamp | string | null for admin/legacy)
+//   - Optional fields: id, fatherName, birthDate, martyrdomDate, birthPlace, martyrdomPlace,
+//     organization, affiliation, rank, biography, familyDetails, photo, photoRemoved, hasPhoto,
+//     submitterRelation, submitterPhone, updatedAt, photoUpdatedAt, migratedAt, addedAt
+//
+// Collection: test/{docId}
+// Read Access: Public (connectivity health check)
+// Write Access: Denied (false)
+//
+// Collection: adminAuditLog/{logId}
+// Create Access: Authenticated Memorial Administrator only (isAdmin())
+// Read/Update/Delete Access: Denied (false, append-only audit log)
+//
+// ===============================================================
 
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // ============================================
-    // HELPER FUNCTIONS
-    // ============================================
-    
-    // Check if the request has valid martyr data
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    // Check if the request carries a valid Firebase Auth identity
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if the authenticated user is the memorial administrator.
+    // Supports custom claim `admin == true` and the bootstrapped Firebase Auth
+    // account `admin@baluchmartyrs.com` (without blocking on email_verified).
+    function isAdmin() {
+      return isAuthenticated() &&
+             (
+               ('admin' in request.auth.token && request.auth.token.admin == true) ||
+               ('email' in request.auth.token && request.auth.token.email == 'admin@baluchmartyrs.com')
+             );
+    }
+
+    // Validate required fields exist on the resulting document
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // Validate that the document contains only allowed keys
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // Validate email format
+    function isValidEmail(email) {
+      return email is string &&
+             email.size() <= 254 &&
+             email.matches('^[^\\s@]+@[^\\s@.]+(\\.[^\\s@.]+)*\\.[^\\s@.]{2,}$');
+    }
+
+    // Validate optional string for public creates (must be string within maxLen if present)
+    function isValidOptionalString(data, field, maxLen) {
+      return !(field in data) ||
+             (data[field] is string && data[field].size() <= maxLen);
+    }
+
+    // Validate optional string for admin creates/updates and legacy docs
+    // (allows omitted, null, empty string "", or string within maxLen)
+    function isValidOptionalAdminString(data, field, maxLen) {
+      return !(field in data) ||
+             data[field] == null ||
+             (data[field] is string && data[field].size() <= maxLen);
+    }
+
+    // Validate optional date field (timestamp, ISO/YYYY-MM-DD string, empty string "", or null)
+    function isValidOptionalDateField(data, field) {
+      return !(field in data) ||
+             data[field] == null ||
+             data[field] is timestamp ||
+             (data[field] is string && data[field].size() <= 64);
+    }
+
+    // Validate optional timestamp/audit date field for admin/legacy docs
+    function isValidOptionalTimestampOrString(data, field) {
+      return !(field in data) ||
+             data[field] == null ||
+             data[field] is timestamp ||
+             (data[field] is string && data[field].size() <= 64);
+    }
+
+    // Validate optional boolean field
+    function isValidOptionalBool(data, field) {
+      return !(field in data) ||
+             data[field] == null ||
+             data[field] is bool;
+    }
+
+    // Validate safe raster data URI, static asset path, HTTPS URL, or empty string in O(1)
+    function isSafePhotoPrefix(photo) {
+      return photo == '' ||
+             (photo.size() >= 17 && photo[0:16].lower() == 'data:image/jpeg;') ||
+             (photo.size() >= 16 && photo[0:15].lower() == 'data:image/jpg;') ||
+             (photo.size() >= 16 && photo[0:15].lower() == 'data:image/png;') ||
+             (photo.size() >= 16 && photo[0:15].lower() == 'data:image/gif;') ||
+             (photo.size() >= 17 && photo[0:16].lower() == 'data:image/webp;') ||
+             (photo.size() >= 16 && photo[0:15] == '/assets/photos/') ||
+             (photo.size() >= 9 && photo[0:8].lower() == 'https://');
+    }
+
+    // Validate photo on public submission
+    function isValidPublicPhoto(data) {
+      return !('photo' in data) ||
+             (data.photo is string &&
+              data.photo.size() <= 7000000 &&
+              isSafePhotoPrefix(data.photo));
+    }
+
+    // Validate photo for admin creates/updates and legacy docs
+    function isValidAdminPhoto(data) {
+      return !('photo' in data) ||
+             data.photo == null ||
+             (data.photo is string && data.photo.size() <= 7000000);
+    }
+
+    // ===============================================================
+    // Allowed Field Lists
+    // ===============================================================
+
+    function publicPendingAllowedFields() {
+      return [
+        'id',
+        'fullName',
+        'fatherName',
+        'birthDate',
+        'martyrdomDate',
+        'birthPlace',
+        'martyrdomPlace',
+        'biography',
+        'familyDetails',
+        'organization',
+        'affiliation',
+        'rank',
+        'photo',
+        'submitterName',
+        'submitterEmail',
+        'submitterRelation',
+        'submitterPhone',
+        'status',
+        'submittedAt'
+      ];
+    }
+
+    function pendingAdminAllowedFields() {
+      return [
+        'id',
+        'fullName',
+        'fatherName',
+        'birthDate',
+        'martyrdomDate',
+        'birthPlace',
+        'martyrdomPlace',
+        'biography',
+        'familyDetails',
+        'organization',
+        'affiliation',
+        'rank',
+        'photo',
+        'photoRemoved',
+        'hasPhoto',
+        'submitterName',
+        'submitterEmail',
+        'submitterRelation',
+        'submitterPhone',
+        'status',
+        'submittedAt',
+        'updatedAt',
+        'photoUpdatedAt',
+        'migratedAt',
+        'addedAt'
+      ];
+    }
+
+    function approvedAllowedFields() {
+      return [
+        'id',
+        'fullName',
+        'fatherName',
+        'birthDate',
+        'martyrdomDate',
+        'birthPlace',
+        'martyrdomPlace',
+        'biography',
+        'familyDetails',
+        'organization',
+        'affiliation',
+        'rank',
+        'photo',
+        'photoRemoved',
+        'hasPhoto',
+        'submitterName',
+        'submitterEmail',
+        'submitterRelation',
+        'submitterPhone',
+        'status',
+        'submittedAt',
+        'approvedAt',
+        'updatedAt',
+        'photoUpdatedAt',
+        'migratedAt',
+        'addedAt'
+      ];
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    // Public pending submission core schema & required fields
     function hasValidMartyrData() {
       let data = request.resource.data;
-      return data.keys().hasAll(['fullName', 'submitterName', 'submitterEmail']) &&
+      return hasOnlyAllowedFields(publicPendingAllowedFields()) &&
+             hasRequiredFields(['fullName', 'submitterName', 'submitterEmail', 'status']) &&
              data.fullName is string &&
-             data.fullName.size() > 0 &&
+             data.fullName.trim().size() > 0 &&
              data.fullName.size() <= 200 &&
              data.submitterName is string &&
-             data.submitterEmail is string &&
-             data.submitterEmail.matches('.*@.*\\..*');
+             data.submitterName.trim().size() > 0 &&
+             data.submitterName.size() <= 200 &&
+             isValidEmail(data.submitterEmail) &&
+             (!('submittedAt' in data) ||
+              (data.submittedAt is timestamp && data.submittedAt == request.time));
     }
-    
-    // Check for reasonable field lengths (prevent DoS via huge data)
+
+    // Public pending submission field types & DoS size bounds
     function hasReasonableSizes() {
       let data = request.resource.data;
-      return (!data.keys().hasAny(['biography']) || data.biography.size() <= 5000) &&
-             (!data.keys().hasAny(['familyDetails']) || data.familyDetails.size() <= 3000) &&
-             (!data.keys().hasAny(['birthPlace']) || data.birthPlace.size() <= 200) &&
-             (!data.keys().hasAny(['martyrdomPlace']) || data.martyrdomPlace.size() <= 200);
+      return isValidOptionalString(data, 'id', 200) &&
+             isValidOptionalString(data, 'fatherName', 200) &&
+             isValidOptionalString(data, 'birthPlace', 250) &&
+             isValidOptionalString(data, 'martyrdomPlace', 250) &&
+             isValidOptionalString(data, 'organization', 200) &&
+             isValidOptionalString(data, 'affiliation', 200) &&
+             isValidOptionalString(data, 'rank', 200) &&
+             isValidOptionalString(data, 'biography', 15000) &&
+             isValidOptionalString(data, 'familyDetails', 3000) &&
+             isValidOptionalString(data, 'submitterRelation', 200) &&
+             isValidOptionalString(data, 'submitterPhone', 60) &&
+             isValidOptionalDateField(data, 'birthDate') &&
+             isValidOptionalDateField(data, 'martyrdomDate') &&
+             isValidPublicPhoto(data);
     }
-    
-    // ============================================
-    // APPROVED MARTYRS COLLECTION (Public Read)
-    // ============================================
-    
+
+    // Shared field validation for admin create/update across pending and approved collections
+    function hasValidAdminCommonMartyrFields(data) {
+      return 'fullName' in data &&
+             data.fullName is string &&
+             data.fullName.trim().size() > 0 &&
+             data.fullName.size() <= 200 &&
+             isValidOptionalAdminString(data, 'id', 200) &&
+             isValidOptionalAdminString(data, 'fatherName', 200) &&
+             isValidOptionalAdminString(data, 'birthPlace', 250) &&
+             isValidOptionalAdminString(data, 'martyrdomPlace', 250) &&
+             isValidOptionalAdminString(data, 'organization', 200) &&
+             isValidOptionalAdminString(data, 'affiliation', 200) &&
+             isValidOptionalAdminString(data, 'rank', 200) &&
+             isValidOptionalAdminString(data, 'biography', 15000) &&
+             isValidOptionalAdminString(data, 'familyDetails', 3000) &&
+             isValidOptionalAdminString(data, 'submitterName', 200) &&
+             isValidOptionalAdminString(data, 'submitterEmail', 254) &&
+             isValidOptionalAdminString(data, 'submitterRelation', 200) &&
+             isValidOptionalAdminString(data, 'submitterPhone', 60) &&
+             isValidOptionalDateField(data, 'birthDate') &&
+             isValidOptionalDateField(data, 'martyrdomDate') &&
+             isValidAdminPhoto(data) &&
+             isValidOptionalBool(data, 'photoRemoved') &&
+             isValidOptionalBool(data, 'hasPhoto') &&
+             isValidOptionalTimestampOrString(data, 'submittedAt') &&
+             isValidOptionalTimestampOrString(data, 'updatedAt') &&
+             isValidOptionalTimestampOrString(data, 'photoUpdatedAt') &&
+             isValidOptionalTimestampOrString(data, 'migratedAt') &&
+             isValidOptionalTimestampOrString(data, 'addedAt');
+    }
+
+    // Admin validator for pendingMartyrs (used in both create and update)
+    function isValidAdminPendingMartyr(data) {
+      return 'status' in data &&
+             data.status == 'pending' &&
+             hasValidAdminCommonMartyrFields(data);
+    }
+
+    // Admin validator for approved martyrs (used in both create and update)
+    function isValidAdminApprovedMartyr(data) {
+      return (!('status' in data) || data.status == 'approved') &&
+             isValidOptionalTimestampOrString(data, 'approvedAt') &&
+             hasValidAdminCommonMartyrFields(data);
+    }
+
+    // Validator for admin audit log entries
+    function isValidAuditLogEntry(data) {
+      return data is map && data.keys().size() <= 50;
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    // APPROVED MARTYRS COLLECTION (Public Gallery Read, Admin Write)
     match /martyrs/{martyrId} {
-      // Anyone can read approved martyrs (public gallery)
+      // Anyone can read approved martyrs (public memorial gallery & REST sync)
       allow read: if true;
-      
-      // SECURITY: No direct client-side writes allowed
-      // All write operations should go through authenticated server functions
-      // This prevents unauthorized modifications to approved martyrs
-      allow create, update, delete: if false;
+
+      // Only authenticated admin can create approved martyr records
+      allow create: if isAdmin() &&
+                       hasOnlyAllowedFields(approvedAllowedFields()) &&
+                       'status' in request.resource.data &&
+                       request.resource.data.status == 'approved' &&
+                       isValidAdminApprovedMartyr(request.resource.data);
+
+      // Only authenticated admin can update approved martyr records
+      // Uses affectedKeys() so partial updateDoc() calls on legacy documents remain clean
+      allow update: if isAdmin() &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(approvedAllowedFields()) &&
+                       (!('status' in resource.data) ||
+                        ('status' in request.resource.data && request.resource.data.status == 'approved')) &&
+                       isValidAdminApprovedMartyr(request.resource.data);
+
+      // Only authenticated admin can delete approved martyr records
+      allow delete: if isAdmin();
     }
-    
-    // ============================================
-    // PENDING MARTYRS COLLECTION (Submissions)
-    // ============================================
-    
+
+    // PENDING MARTYRS COLLECTION (Public Submit, Admin Full Control)
     match /pendingMartyrs/{submissionId} {
-      // Public can submit new martyrs (create only)
-      allow create: if hasValidMartyrData() && 
-                       hasReasonableSizes() &&
-                       request.resource.data.status == 'pending';
-      
-      // SECURITY: No direct client-side read/modify allowed
-      // Admin operations should go through authenticated server functions
-      // This hides pending submissions from unauthorized users
-      allow read: if false;
-      allow update, delete: if false;
+      // Only authenticated admin can read pending submissions (contains submitter PII)
+      allow read: if isAdmin();
+
+      // Public visitors can submit new valid pending entries; admin can also create pending entries
+      allow create: if (hasValidMartyrData() &&
+                        hasReasonableSizes() &&
+                        request.resource.data.status == 'pending') ||
+                       (isAdmin() &&
+                        hasOnlyAllowedFields(pendingAdminAllowedFields()) &&
+                        isValidAdminPendingMartyr(request.resource.data));
+
+      // Only authenticated admin can edit pending submissions while keeping status == 'pending'
+      allow update: if isAdmin() &&
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(pendingAdminAllowedFields()) &&
+                       isValidAdminPendingMartyr(request.resource.data);
+
+      // Only authenticated admin can delete pending submissions (approve, reject, clear)
+      allow delete: if isAdmin();
     }
-    
-    // ============================================
-    // TEST COLLECTION (Development only)
-    // ============================================
-    
+
+    // TEST COLLECTION (Read-only connectivity test)
     match /test/{docId} {
-      // Allow read for connection testing
       allow read: if true;
-      
-      // No writes to test collection
       allow write: if false;
     }
-    
-    // ============================================
-    // ADMIN AUDIT LOG (Optional)
-    // ============================================
-    
+
+    // ADMIN AUDIT LOG (Admin create-only)
     match /adminAuditLog/{logId} {
-      // Allow writes for audit logging
-      allow create: if true;
-      
-      // No reads or updates/deletes of audit logs
+      allow create: if isAdmin() && isValidAuditLogEntry(request.resource.data);
       allow read, update, delete: if false;
     }
-    
-    // ============================================
-    // DEFAULT DENY for other collections
-    // ============================================
-    
-    // Note: This catch-all won't override specific rules above
-    // It only affects collections not explicitly matched
+
+    // DEFAULT DENY for all other collections and subcollections
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
 }
-
-// ============================================
-// DEPLOYMENT INSTRUCTIONS
-// ============================================
-// 
-// 1. Go to Firebase Console: https://console.firebase.google.com
-// 2. Select your project: baluch-martyrs-memorial
-// 3. Navigate to Firestore Database > Rules
-// 4. Copy and paste these rules
-// 5. Click "Publish"
-//
-// SECURITY NOTE:
-// For full production security, implement Firebase Authentication:
-// - Create admin users in Firebase Auth
-// - Use custom claims to identify admin users
-// - Replace client-side auth with token verification
-// - Update rules to check: request.auth != null && request.auth.token.admin == true

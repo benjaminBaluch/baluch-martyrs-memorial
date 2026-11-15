@@ -10,6 +10,7 @@ import {
     persistentMultipleTabManager,
     collection, 
     addDoc, 
+    getDoc,
     getDocs,
     getCountFromServer,
     doc, 
@@ -75,8 +76,13 @@ const MAX_INLINE_DELTA_PHOTOS = 12; // Cap inline Base64 photos kept in IDB cach
 
 const PUBLIC_METADATA_FIELDS = [
     'id', 'fullName', 'fatherName', 'birthDate', 'birthPlace', 'martyrdomDate',
-    'martyrdomPlace', 'biography', 'organization', 'rank', 'familyDetails',
-    'submittedAt', 'approvedAt', 'updatedAt', 'status'
+    'martyrdomPlace', 'biography', 'organization', 'affiliation', 'rank', 'familyDetails',
+    'submittedAt', 'approvedAt', 'updatedAt', 'photoUpdatedAt', 'photoRemoved', 'status'
+];
+
+const ADMIN_METADATA_FIELDS = [
+    ...PUBLIC_METADATA_FIELDS,
+    'submitterName', 'submitterEmail', 'submitterRelation', 'submitterPhone'
 ];
 
 let memoryCache = null; // { data, rawCollectionSize, maxApprovedMs, maxUpdatedMs, syncedAt, fullSyncAt }
@@ -124,14 +130,15 @@ function parseFirestoreRestFields(fields) {
     return out;
 }
 
-// On-demand single-martyr photo resolver for newly approved martyrs not yet in static /assets/photos/
-export async function resolveMartyrPhoto(martyrId, imgElement = null, onNoPhotoFallback = null) {
+// On-demand single-martyr photo resolver for newly approved or admin-updated martyrs
+export async function resolveMartyrPhoto(martyrId, imgElement = null, onNoPhotoFallback = null, options = {}) {
+    const force = Boolean(options && options.force);
     if (!martyrId || typeof martyrId !== 'string') {
         if (typeof onNoPhotoFallback === 'function') onNoPhotoFallback();
         return '';
     }
 
-    if (photoMemoryCache.has(martyrId)) {
+    if (!force && photoMemoryCache.has(martyrId)) {
         const cachedPhoto = photoMemoryCache.get(martyrId);
         if (cachedPhoto && imgElement) {
             imgElement.src = cachedPhoto;
@@ -143,28 +150,44 @@ export async function resolveMartyrPhoto(martyrId, imgElement = null, onNoPhotoF
         return cachedPhoto || '';
     }
 
-    let fetchPromise = photoFetchInFlight.get(martyrId);
+    let fetchPromise = !force ? photoFetchInFlight.get(martyrId) : null;
     if (!fetchPromise) {
         fetchPromise = (async () => {
             try {
-                const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/martyrs/${encodeURIComponent(martyrId)}?mask.fieldPaths=photo&key=${firebaseConfig.apiKey}`;
+                const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/martyrs/${encodeURIComponent(martyrId)}?mask.fieldPaths=photo&mask.fieldPaths=photoRemoved&key=${firebaseConfig.apiKey}`;
                 const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
                 if (!res.ok) {
                     photoMemoryCache.set(martyrId, '');
                     return '';
                 }
                 const docJson = await res.json();
-                const photoStr = docJson?.fields?.photo?.stringValue || '';
-                if (photoStr && photoStr.startsWith('data:image/')) {
+                const isRemoved = Boolean(docJson?.fields?.photoRemoved?.booleanValue);
+                const rawPhoto = docJson?.fields?.photo?.stringValue || '';
+                const photoStr = typeof rawPhoto === 'string' ? rawPhoto.trim() : '';
+                const isSupportedPhoto = Boolean(
+                    photoStr &&
+                    (photoStr.startsWith('data:image/') || /^https:\/\//i.test(photoStr) || /^\/assets\/photos\//.test(photoStr))
+                );
+                if (!isRemoved && isSupportedPhoto) {
                     photoMemoryCache.set(martyrId, photoStr);
                     // Also attach to in-memory martyr object if present
                     if (memoryCache && Array.isArray(memoryCache.data)) {
                         const found = memoryCache.data.find(m => m && m.id === martyrId);
-                        if (found) found.photo = photoStr;
+                        if (found) {
+                            found.photo = photoStr;
+                            found.photoRemoved = false;
+                        }
                     }
                     return photoStr;
                 }
                 photoMemoryCache.set(martyrId, '');
+                if (memoryCache && Array.isArray(memoryCache.data)) {
+                    const found = memoryCache.data.find(m => m && m.id === martyrId);
+                    if (found) {
+                        found.photo = '';
+                        if (isRemoved) found.photoRemoved = true;
+                    }
+                }
                 return '';
             } catch (_) {
                 return '';
@@ -394,6 +417,9 @@ async function writeMartyrsToIDB(martyrs, rawCollectionSize, isFullSync = false,
         let inlinePhotoCount = 0;
         const compactMartyrs = martyrs.map((m) => {
             if (!m || typeof m !== 'object') return m;
+            if (m.id && m.photoRemoved === true && !m.photo) {
+                photoMemoryCache.set(m.id, '');
+            }
             if (typeof m.photo === 'string' && m.photo.startsWith('data:image/')) {
                 if (m.id) photoMemoryCache.set(m.id, m.photo);
                 if (inlinePhotoCount < MAX_INLINE_DELTA_PHOTOS) {
@@ -491,7 +517,10 @@ function broadcastMartyrsUpdate(martyrs, source = 'firebase-live-sync') {
 }
 
 // Lightweight authoritative collection fetch from Firestore REST API (excludes bulk Base64 photos, ~340 KB total)
-async function fetchApprovedMartyrsFromFirestore(existingMartyrsList = null) {
+async function fetchApprovedMartyrsFromFirestore(existingMartyrsList = null, options = {}) {
+    const includeSubmitterFields = Boolean(options && options.includeSubmitterFields);
+    const skipIDBWrite = Boolean(options && options.skipIDBWrite);
+    const fieldMask = includeSubmitterFields ? ADMIN_METADATA_FIELDS : PUBLIC_METADATA_FIELDS;
     let allMartyrs = [];
     let rawCollectionSize = 0;
 
@@ -516,15 +545,23 @@ async function fetchApprovedMartyrsFromFirestore(existingMartyrsList = null) {
                 pageSize: '300',
                 key: firebaseConfig.apiKey
             });
-            for (const field of PUBLIC_METADATA_FIELDS) {
+            for (const field of fieldMask) {
                 params.append('mask.fieldPaths', field);
             }
             if (pageToken) {
                 params.set('pageToken', pageToken);
             }
 
+            const headers = { 'Accept': 'application/json' };
+            if (includeSubmitterFields && firebaseAuthInstance?.currentUser) {
+                try {
+                    const idToken = await firebaseAuthInstance.currentUser.getIdToken();
+                    if (idToken) headers['Authorization'] = `Bearer ${idToken}`;
+                } catch (_) {}
+            }
+
             const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/martyrs?${params}`;
-            const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+            const res = await fetch(url, { headers });
             if (!res.ok) {
                 throw new Error(`Firestore REST HTTP ${res.status}`);
             }
@@ -537,7 +574,7 @@ async function fetchApprovedMartyrsFromFirestore(existingMartyrsList = null) {
                 const parsed = parseFirestoreRestFields(docObj.fields || {});
                 if (!parsed.status || parsed.status === 'approved') {
                     const docId = docObj.name.split('/').pop();
-                    const cachedPhoto = photoMemoryCache.get(docId) || existingPhotoById.get(docId);
+                    const cachedPhoto = parsed.photoRemoved ? '' : (photoMemoryCache.get(docId) || existingPhotoById.get(docId));
                     const martyrEntry = {
                         ...parsed,
                         id: docId,
@@ -563,13 +600,15 @@ async function fetchApprovedMartyrsFromFirestore(existingMartyrsList = null) {
             const idB = String(b?.id || '');
             return idA < idB ? -1 : (idA > idB ? 1 : 0);
         });
-        await writeMartyrsToIDB(allMartyrs, rawCollectionSize, true);
+        if (!skipIDBWrite) {
+            await writeMartyrsToIDB(allMartyrs, rawCollectionSize, true);
+        }
     }
 
     return {
         success: allMartyrs.length > 0,
         data: allMartyrs,
-        source: 'firebase-lightweight-rest',
+        source: includeSubmitterFields ? 'firebase-admin-rest' : 'firebase-lightweight-rest',
         collections_checked: ['martyrs'],
         total_found: allMartyrs.length
     };
@@ -879,6 +918,26 @@ function sanitizeTextField(val, maxLength = 2000, allowNewlines = false) {
     return str;
 }
 
+function toFirestoreDateOrEmpty(value) {
+    if (value === null || value === undefined || value === '') return '';
+    if (typeof value === 'object') {
+        if (typeof value.toDate === 'function' || typeof value.seconds === 'number') {
+            return value;
+        }
+        if (value instanceof Date && !isNaN(value.getTime())) {
+            return Timestamp.fromDate(value);
+        }
+        return '';
+    }
+    const str = String(value).trim();
+    if (!str) return '';
+    const parsed = /^\d{4}-\d{2}-\d{2}$/.test(str) ? new Date(`${str}T00:00:00Z`) : new Date(str);
+    if (isNaN(parsed.getTime())) {
+        throw new Error(`Invalid date format: "${str}". Please use YYYY-MM-DD.`);
+    }
+    return Timestamp.fromDate(parsed);
+}
+
 function sanitizeMartyrPayload(raw) {
     if (!raw || typeof raw !== 'object') return {};
     const cleaned = { ...raw };
@@ -890,7 +949,7 @@ function sanitizeMartyrPayload(raw) {
         organization: [200, false],
         affiliation: [200, false],
         rank: [200, false],
-        familyDetails: [2000, true],
+        familyDetails: [3000, true],
         biography: [15000, true],
         submitterName: [200, false],
         submitterEmail: [254, false],
@@ -904,21 +963,62 @@ function sanitizeMartyrPayload(raw) {
         }
     }
 
-    if (typeof cleaned.photo === 'string' && cleaned.photo.trim() !== '') {
-        const photo = cleaned.photo.trim();
-        const isSafeDataUri = /^data:image\/(jpeg|jpg|png|gif|webp);base64,[A-Za-z0-9+/=\s]+$/i.test(photo);
-        const isSafeAssetPath = /^\/assets\/photos\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/i.test(photo);
-        const isSafeHttpsUrl = /^https:\/\//i.test(photo);
-        if (!isSafeDataUri && !isSafeAssetPath && !isSafeHttpsUrl) {
-            throw new Error('Invalid photo format. Only JPEG, PNG, GIF, or WebP images are allowed.');
+    if ('photoRemoved' in cleaned) {
+        cleaned.photoRemoved = Boolean(cleaned.photoRemoved);
+    }
+
+    if ('photo' in cleaned) {
+        if (cleaned.photo === null || cleaned.photo === undefined || String(cleaned.photo).trim() === '') {
+            cleaned.photo = '';
+        } else {
+            const photo = String(cleaned.photo).trim();
+            const isSafeDataUri = /^data:image\/(jpeg|jpg|png|gif|webp);base64,[A-Za-z0-9+/=\s]+$/i.test(photo);
+            const isSafeAssetPath = /^\/assets\/photos\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/i.test(photo);
+            const isSafeHttpsUrl = /^https:\/\//i.test(photo);
+            if (!isSafeDataUri && !isSafeAssetPath && !isSafeHttpsUrl) {
+                throw new Error('Invalid photo format. Only JPEG, PNG, GIF, or WebP images or HTTPS URLs are allowed.');
+            }
+            if (photo.length > 7 * 1024 * 1024) {
+                throw new Error('Photo data exceeds maximum allowed size (5 MB).');
+            }
+            cleaned.photo = photo;
         }
-        if (photo.length > 7 * 1024 * 1024) {
-            throw new Error('Photo data exceeds maximum allowed size (5 MB).');
-        }
-        cleaned.photo = photo;
     }
 
     return cleaned;
+}
+
+function buildAdminMartyrUpdatePayload(updatedData, targetStatus = null) {
+    const processedData = sanitizeMartyrPayload(updatedData);
+    delete processedData.id;
+
+    if ('birthDate' in processedData) {
+        processedData.birthDate = toFirestoreDateOrEmpty(processedData.birthDate);
+    }
+    if ('martyrdomDate' in processedData) {
+        processedData.martyrdomDate = toFirestoreDateOrEmpty(processedData.martyrdomDate);
+    }
+
+    const hasPhotoField = 'photo' in processedData;
+    const isPhotoRemoved = Boolean(processedData.photoRemoved) || (hasPhotoField && processedData.photo === '');
+    let photoChanged = false;
+
+    if (isPhotoRemoved) {
+        processedData.photo = '';
+        processedData.photoRemoved = true;
+        processedData.photoUpdatedAt = serverTimestamp();
+        photoChanged = true;
+    } else if (hasPhotoField && processedData.photo) {
+        processedData.photoRemoved = false;
+        processedData.photoUpdatedAt = serverTimestamp();
+        photoChanged = true;
+    }
+
+    if (targetStatus) {
+        processedData.status = targetStatus;
+    }
+    processedData.updatedAt = serverTimestamp();
+    return { processedData, photoChanged, isPhotoRemoved };
 }
 
 // Database helper functions
@@ -1061,6 +1161,67 @@ export const firebaseDB = {
         return loaderPromise;
     },
 
+    // Fetch single full document (including submitter fields & photo) for admin editing
+    async getMartyrById(collectionName, docId) {
+        try {
+            if (collectionName !== 'martyrs' && collectionName !== 'pendingMartyrs') {
+                throw new Error('Unsupported collection.');
+            }
+            if (!docId || typeof docId !== 'string') {
+                throw new Error('Document ID is required.');
+            }
+            if (collectionName === 'pendingMartyrs') {
+                await requireActiveAdminSession('getPendingMartyrById');
+            } else {
+                await ensureFirebaseAuthReady();
+            }
+            const snap = await getDoc(doc(db, collectionName, docId));
+            if (!snap.exists()) {
+                return { success: false, error: 'Profile document not found in Firestore.' };
+            }
+            return { success: true, data: { id: snap.id, ...snap.data() } };
+        } catch (error) {
+            console.error('❌ Error fetching martyr document:', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    // Admin approved martyrs list including submitter metadata (still excludes bulk Base64 photos)
+    async getApprovedMartyrsForAdmin() {
+        try {
+            await requireActiveAdminSession('getApprovedMartyrsForAdmin');
+            const adminRes = await fetchApprovedMartyrsFromFirestore(memoryCache?.data || null, {
+                includeSubmitterFields: true,
+                skipIDBWrite: true
+            });
+            if (adminRes && adminRes.success && Array.isArray(adminRes.data) && adminRes.data.length > 0) {
+                return adminRes;
+            }
+            return await this.getApprovedMartyrs();
+        } catch (error) {
+            console.warn('⚠️ Admin metadata fetch fell back to standard list:', error.message);
+            return await this.getApprovedMartyrs();
+        }
+    },
+
+    // Update a pending martyr submission (admin function)
+    async updatePendingMartyr(martyrId, updatedData) {
+        try {
+            await requireActiveAdminSession('updatePendingMartyr');
+            if (!martyrId || typeof martyrId !== 'string') {
+                throw new Error('Valid pending submission ID is required.');
+            }
+            console.log(`✏️ Updating pending martyr: ${martyrId}`);
+            const { processedData } = buildAdminMartyrUpdatePayload(updatedData, 'pending');
+            await updateDoc(doc(db, 'pendingMartyrs', martyrId), processedData);
+            console.log(`✅ Pending martyr updated: ${martyrId}`);
+            return { success: true, id: martyrId };
+        } catch (error) {
+            console.error('❌ Error updating pending martyr: ', error);
+            return { success: false, error: error.message };
+        }
+    },
+
     // Get all pending martyrs (admin only) - simplified
     async getPendingMartyrs() {
         try {
@@ -1096,6 +1257,12 @@ export const firebaseDB = {
         try {
             await requireActiveAdminSession('approveMartyr');
             const sanitizedMartyr = sanitizeMartyrPayload(martyrData);
+            if ('birthDate' in sanitizedMartyr) {
+                sanitizedMartyr.birthDate = toFirestoreDateOrEmpty(sanitizedMartyr.birthDate);
+            }
+            if ('martyrdomDate' in sanitizedMartyr) {
+                sanitizedMartyr.martyrdomDate = toFirestoreDateOrEmpty(sanitizedMartyr.martyrdomDate);
+            }
 
             // Add to approved martyrs collection
             const approvedData = {
@@ -1105,23 +1272,38 @@ export const firebaseDB = {
                 updatedAt: serverTimestamp()
             };
             delete approvedData.id; // Remove old ID field
-            
+            if (approvedData.photoRemoved) {
+                approvedData.photo = '';
+                approvedData.photoUpdatedAt = serverTimestamp();
+            } else if (approvedData.photo) {
+                approvedData.photoRemoved = false;
+                approvedData.photoUpdatedAt = serverTimestamp();
+            }
+
             const docRef = await addDoc(collection(db, 'martyrs'), approvedData);
             
             // Delete from pending collection
             await deleteDoc(doc(db, 'pendingMartyrs', martyrId));
             
+            if (approvedData.photoRemoved) {
+                photoMemoryCache.set(docRef.id, '');
+            } else if (typeof approvedData.photo === 'string' && approvedData.photo) {
+                photoMemoryCache.set(docRef.id, approvedData.photo);
+            }
+
             // Update local archive cache directly so the newly approved martyr appears immediately without clearing the seed cache
             try {
                 const existing = memoryCache || (await readMartyrsFromIDB()) || (await readMartyrsFromSeed());
                 if (existing && Array.isArray(existing.data) && existing.data.length > 0) {
                     const nowTs = Timestamp.now();
+                    const { submitterEmail, submitterPhone, ...publicSanitized } = sanitizedMartyr;
                     const newMartyrObj = {
-                        ...sanitizedMartyr,
+                        ...publicSanitized,
                         id: docRef.id,
                         status: 'approved',
                         approvedAt: nowTs,
-                        updatedAt: nowTs
+                        updatedAt: nowTs,
+                        ...(approvedData.photoUpdatedAt ? { photoUpdatedAt: nowTs } : {})
                     };
                     const merged = existing.data.filter(m => m && m.id !== docRef.id);
                     merged.push(newMartyrObj);
@@ -1223,36 +1405,34 @@ export const firebaseDB = {
         try {
             await requireActiveAdminSession('updateApprovedMartyr');
             console.log(`✏️ Updating approved martyr: ${martyrId}`);
-            
-            // Process and sanitize fields
-            const processedData = sanitizeMartyrPayload(updatedData);
-            
-            // Remove id field if present (shouldn't be updated)
-            delete processedData.id;
-            
-            // Convert date strings to Timestamp objects
-            if (processedData.birthDate && typeof processedData.birthDate === 'string') {
-                processedData.birthDate = Timestamp.fromDate(new Date(processedData.birthDate));
-            }
-            if (processedData.martyrdomDate && typeof processedData.martyrdomDate === 'string') {
-                processedData.martyrdomDate = Timestamp.fromDate(new Date(processedData.martyrdomDate));
-            }
-            
-            // Add updatedAt timestamp
-            processedData.updatedAt = serverTimestamp();
-            
+
+            const { processedData, photoChanged, isPhotoRemoved } = buildAdminMartyrUpdatePayload(updatedData);
+
             // Update the document
             const martyrRef = doc(db, 'martyrs', martyrId);
             await updateDoc(martyrRef, processedData);
-            
+
+            if (photoChanged) {
+                photoMemoryCache.set(martyrId, isPhotoRemoved ? '' : (processedData.photo || ''));
+            }
+
             // Update local archive cache directly so updated profile fields appear immediately
             try {
                 const existing = memoryCache || (await readMartyrsFromIDB()) || (await readMartyrsFromSeed());
                 if (existing && Array.isArray(existing.data) && existing.data.length > 0) {
                     const nowTs = Timestamp.now();
+                    const { submitterEmail, submitterPhone, ...cachePatch } = sanitizeMartyrPayload(updatedData);
+                    delete cachePatch.id;
+                    if ('birthDate' in processedData) cachePatch.birthDate = processedData.birthDate;
+                    if ('martyrdomDate' in processedData) cachePatch.martyrdomDate = processedData.martyrdomDate;
+                    if (photoChanged) {
+                        cachePatch.photoUpdatedAt = nowTs;
+                        cachePatch.photoRemoved = isPhotoRemoved;
+                        if (isPhotoRemoved) cachePatch.photo = '';
+                    }
                     const merged = existing.data.map(m => {
                         if (m && m.id === martyrId) {
-                            return { ...m, ...sanitizeMartyrPayload(updatedData), id: martyrId, updatedAt: nowTs };
+                            return { ...m, ...cachePatch, id: martyrId, updatedAt: nowTs };
                         }
                         return m;
                     });

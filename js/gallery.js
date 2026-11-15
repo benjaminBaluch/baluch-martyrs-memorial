@@ -14,7 +14,7 @@ function escapeHTML(value) {
 }
 
 function getMartyrPhotoSrcGallery(martyr) {
-    if (!martyr) return '';
+    if (!martyr || martyr.photoRemoved === true) return '';
     if (martyr.photo && typeof martyr.photo === 'string' && martyr.photo.trim().length > 0) {
         return martyr.photo.trim();
     }
@@ -1925,6 +1925,11 @@ function showMartyrModal(martyr, navList, options = {}) {
         </div>
     `;
     
+    const modalImg = content.querySelector('.martyr-modal-photo');
+    if (modalImg && !martyr.photoRemoved && !martyr.photo && martyr.photoUpdatedAt && martyr.id && typeof window.resolveMartyrPhoto === 'function') {
+        window.resolveMartyrPhoto(martyr.id, modalImg);
+    }
+
     const shareSlot = content.querySelector('.martyr-modal-share-slot');
     if (shareSlot) {
         shareSlot.replaceWith(createShareRow(martyr, 'modal'));
@@ -2214,12 +2219,15 @@ function createGalleryCard(martyr, index = 99) {
             }
         };
         img.onerror = () => {
-            if (martyr.id && photoSrc.startsWith('/assets/photos/') && typeof window.resolveMartyrPhoto === 'function') {
+            if (martyr.id && !martyr.photoRemoved && photoSrc.startsWith('/assets/photos/') && typeof window.resolveMartyrPhoto === 'function') {
                 window.resolveMartyrPhoto(martyr.id, img, renderPlaceholder);
             } else {
                 renderPlaceholder();
             }
         };
+        if (martyr.id && !martyr.photoRemoved && !martyr.photo && martyr.photoUpdatedAt && typeof window.resolveMartyrPhoto === 'function') {
+            window.resolveMartyrPhoto(martyr.id, img);
+        }
         photoWrapper.appendChild(img);
     } else {
         // Dignified memorial silhouette placeholder (no cartoon emojis)

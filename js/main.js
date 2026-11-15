@@ -327,7 +327,7 @@ function rehydrateCachedValueMain(val) {
 }
 
 function getMartyrPhotoSrcMain(martyr) {
-    if (!martyr) return '';
+    if (!martyr || martyr.photoRemoved === true) return '';
     if (martyr.photo && typeof martyr.photo === 'string' && martyr.photo.trim().length > 0) {
         return martyr.photo.trim();
     }
@@ -925,12 +925,15 @@ function createMartyrCard(martyr, list) {
             }
         };
         img.onerror = () => {
-            if (martyr.id && photoSrc.startsWith('/assets/photos/') && typeof window.resolveMartyrPhoto === 'function') {
+            if (martyr.id && !martyr.photoRemoved && photoSrc.startsWith('/assets/photos/') && typeof window.resolveMartyrPhoto === 'function') {
                 window.resolveMartyrPhoto(martyr.id, img, renderPlaceholder);
             } else {
                 renderPlaceholder();
             }
         };
+        if (martyr.id && !martyr.photoRemoved && !martyr.photo && martyr.photoUpdatedAt && typeof window.resolveMartyrPhoto === 'function') {
+            window.resolveMartyrPhoto(martyr.id, img);
+        }
         photoWrapper.appendChild(img);
     } else {
         // Dignified memorial silhouette placeholder (no cartoon emojis)
@@ -1156,8 +1159,9 @@ function showMartyrDetails(martyr, list) {
             <div class="martyr-modal-photo-col">
                 ${(() => {
                     const photoSrc = getMartyrPhotoSrcMain(martyr);
+                    const safeId = escapeHTMLMain(martyr.id || '');
                     return photoSrc ? 
-                        `<img src="${photoSrc}" alt="${escapeHTMLMain(martyr.fullName || 'Martyr photo')}" class="martyr-modal-photo" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'martyr-modal-photo-placeholder\\' aria-label=\\'No photo available\\'>📷</div>';">` :
+                        `<img src="${photoSrc}" alt="${escapeHTMLMain(martyr.fullName || 'Martyr photo')}" class="martyr-modal-photo" loading="lazy" onerror="this.onerror=null;if(!${Boolean(martyr.photoRemoved)}&&'${safeId}'&&this.src.includes('/assets/photos/')&&window.resolveMartyrPhoto){window.resolveMartyrPhoto('${safeId}',this,()=>{if(this.parentElement)this.parentElement.innerHTML='<div class=\\'martyr-modal-photo-placeholder\\' aria-label=\\'No photo available\\'>📷</div>';});}else{this.parentElement.innerHTML='<div class=\\'martyr-modal-photo-placeholder\\' aria-label=\\'No photo available\\'>📷</div>';}">` :
                         '<div class="martyr-modal-photo-placeholder" aria-label="No photo available">📷</div>';
                 })()}
             </div>
@@ -1242,6 +1246,11 @@ function showMartyrDetails(martyr, list) {
         </div>
     `;
     
+    const modalImg = content.querySelector('.martyr-modal-photo');
+    if (modalImg && !martyr.photoRemoved && !martyr.photo && martyr.photoUpdatedAt && martyr.id && typeof window.resolveMartyrPhoto === 'function') {
+        window.resolveMartyrPhoto(martyr.id, modalImg);
+    }
+
     // Add share row
     const shareSlot = content.querySelector('.martyr-modal-share-slot');
     if (shareSlot) {

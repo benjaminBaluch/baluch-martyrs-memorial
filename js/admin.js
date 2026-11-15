@@ -9,6 +9,101 @@ function validateAdminAuth(actionName = 'admin action') {
     return adminAuth.validateAdminAction(actionName);
 }
 
+// Track loaded pending records so edits/approvals stay synchronized
+let cachedPendingMartyrs = [];
+
+function getSafeAdminPhotoSrc(martyr, allowStaticAsset = true) {
+    if (!martyr || martyr.photoRemoved === true) return '';
+    if (typeof martyr.photo === 'string') {
+        const trimmed = martyr.photo.trim();
+        if (
+            trimmed.startsWith('data:image/') ||
+            trimmed.startsWith('https://') ||
+            trimmed.startsWith('/assets/photos/')
+        ) {
+            return trimmed;
+        }
+    }
+    if (allowStaticAsset && martyr.id) {
+        return `/assets/photos/${encodeURIComponent(martyr.id)}.jpg`;
+    }
+    return '';
+}
+
+function syncPendingMartyrInLocalStorage(martyrId, updatedFields) {
+    try {
+        const raw = localStorage.getItem('pendingMartyrs');
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return;
+        const idx = parsed.findIndex((m) => m && m.id === martyrId);
+        if (idx !== -1) {
+            parsed[idx] = { ...parsed[idx], ...updatedFields };
+            localStorage.setItem('pendingMartyrs', JSON.stringify(parsed));
+        }
+    } catch (_) {
+        // Ignore storage errors (e.g., quota when storing compressed data URIs)
+    }
+}
+
+function compressImageForAdmin(file, maxWidth = 600, maxHeight = 450, quality = 0.72) {
+    return new Promise((resolve, reject) => {
+        if (!file || !file.type || !file.type.startsWith('image/')) {
+            reject(new Error('Please select a valid image file (JPEG, PNG, or WebP).'));
+            return;
+        }
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Failed to read the selected image file.'));
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onerror = () => reject(new Error('Could not decode the selected image.'));
+            img.onload = () => {
+                let width = img.naturalWidth || img.width || maxWidth;
+                let height = img.naturalHeight || img.height || maxHeight;
+                if (width > maxWidth || height > maxHeight) {
+                    const ratio = Math.min(maxWidth / width, maxHeight / height);
+                    width = Math.max(1, Math.round(width * ratio));
+                    height = Math.max(1, Math.round(height * ratio));
+                }
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    reject(new Error('Browser canvas image compression is unavailable.'));
+                    return;
+                }
+                canvas.width = width;
+                canvas.height = height;
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, width, height);
+                ctx.drawImage(img, 0, 0, width, height);
+
+                let currentQuality = quality;
+                let dataUrl = canvas.toDataURL('image/jpeg', currentQuality);
+                const maxDataUriBytes = 700 * 1024;
+                while (dataUrl.length > maxDataUriBytes && currentQuality > 0.25) {
+                    currentQuality -= 0.1;
+                    dataUrl = canvas.toDataURL('image/jpeg', currentQuality);
+                }
+
+                if (dataUrl.length > 900 * 1024) {
+                    const scale = 0.7;
+                    canvas.width = Math.max(1, Math.round(width * scale));
+                    canvas.height = Math.max(1, Math.round(height * scale));
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    dataUrl = canvas.toDataURL('image/jpeg', 0.5);
+                }
+
+                resolve(dataUrl);
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
 // ============================================
 // DUPLICATE DETECTION SYSTEM
 // ============================================
@@ -268,11 +363,11 @@ function showDuplicateWarningModal(martyrToApprove, duplicates, onConfirm, onCan
     // Helper to create structured profile card HTML
     const createProfileCard = (martyr, breakdown = {}) => {
         const orgDisplay = martyr.organization || martyr.affiliation || '';
-        const cardPhoto = martyr.photo || (martyr.id ? `/assets/photos/${encodeURIComponent(martyr.id)}.jpg` : '');
+        const cardPhoto = getSafeAdminPhotoSrc(martyr, true);
         return `
             <div class="dup-profile-photo">
                 ${cardPhoto ? 
-                    `<img src="${cardPhoto}" alt="${escapeHTML(martyr.fullName)}" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'dup-no-photo\\'><small>No Photo</small></div>';">` :
+                    `<img src="${escapeHTML(cardPhoto)}" alt="${escapeHTML(martyr.fullName)}" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'dup-no-photo\\'><small>No Photo</small></div>';">` :
                     `<div class="dup-no-photo">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                         <small>No Photo</small>
@@ -554,7 +649,7 @@ async function attemptFirebaseReconnection() {
     console.log('🔄 Attempting Firebase reconnection...');
     try {
         // Try to reimport Firebase module
-        const firebaseModule = await import('./firebase-config.js');
+        const firebaseModule = await import('./firebase-config.js?v=20261115b');
         window.firebaseDB = firebaseModule.firebaseDB;
         
         // Test the connection
@@ -883,6 +978,7 @@ async function loadPendingSubmissions() {
             
             if (result.success) {
                 pendingData = result.data || [];
+                cachedPendingMartyrs = pendingData.slice();
                 loadingSource = 'Firebase';
                 console.log(`✅ Successfully loaded ${pendingData.length} pending submissions from Firebase`);
                 
@@ -1051,10 +1147,11 @@ function formatOrgDetailHTML(orgVal, rankVal) {
 }
 
 // Helper to structure Submitter + Email/Relationship cleanly
-function formatSubmitterDetailHTML(nameVal, emailVal, relationVal) {
+function formatSubmitterDetailHTML(nameVal, emailVal, relationVal, phoneVal = '') {
     const rawName = (nameVal || '').toString().trim();
     const rawEmail = (emailVal || '').toString().trim();
     const rawRel = (relationVal || '').toString().trim();
+    const rawPhone = (phoneVal || '').toString().trim();
     const hasName = Boolean(rawName && rawName.toLowerCase() !== 'unknown');
 
     const primaryHTML = hasName
@@ -1064,6 +1161,7 @@ function formatSubmitterDetailHTML(nameVal, emailVal, relationVal) {
     const subParts = [];
     if (rawRel) subParts.push(escapeHTML(rawRel));
     if (rawEmail) subParts.push(escapeHTML(rawEmail));
+    if (rawPhone) subParts.push(escapeHTML(rawPhone));
 
     return subParts.length > 0
         ? `${primaryHTML}<span class="detail-secondary">${subParts.join(' • ')}</span>`
@@ -1096,11 +1194,8 @@ function createPendingItem(martyr) {
     const safeFamily = escapeHTML(martyr.familyDetails || '');
     const rawOrgBadge = (martyr.organization || '').toString().trim();
     
-    // Validate photo URL (only allow data: URLs for base64 images)
-    let safePhoto = '';
-    if (martyr.photo && martyr.photo.startsWith('data:image/')) {
-        safePhoto = martyr.photo;
-    }
+    // Validate photo URL (supports base64, https URLs, or /assets/photos/ paths)
+    const safePhoto = getSafeAdminPhotoSrc(martyr, false);
 
     item.innerHTML = `
         <div class="pending-header">
@@ -1119,7 +1214,7 @@ function createPendingItem(martyr) {
         <div class="pending-content">
             <div class="pending-image">
                 ${safePhoto ? 
-                    `<img src="${safePhoto}" alt="${safeName}">` :
+                    `<img src="${escapeHTML(safePhoto)}" alt="${safeName}" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'pending-no-photo\\'><span>No Photo</span></div>';">` :
                     `<div class="pending-no-photo">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         <span>No Photo</span>
@@ -1173,7 +1268,7 @@ function createPendingItem(martyr) {
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
                             <span>Submitted By</span>
                         </span>
-                        ${formatSubmitterDetailHTML(martyr.submitterName, martyr.submitterEmail, martyr.submitterRelation)}
+                        ${formatSubmitterDetailHTML(martyr.submitterName, martyr.submitterEmail, martyr.submitterRelation, martyr.submitterPhone)}
                     </div>
                 </div>
                 ${safeBio ? `
@@ -1201,6 +1296,10 @@ function createPendingItem(martyr) {
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                 <span>Approve &amp; Publish</span>
             </button>
+            <button data-action="edit" data-martyr-id="${safeId}" class="btn-edit-pending">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                <span>Edit Profile</span>
+            </button>
             <button data-action="reject" data-martyr-id="${safeId}" class="btn-reject">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 <span>Reject &amp; Delete</span>
@@ -1214,11 +1313,16 @@ function createPendingItem(martyr) {
 
     // Add event listeners to buttons
     const approveBtn = item.querySelector('.btn-approve');
+    const editBtn = item.querySelector('[data-action="edit"]');
     const rejectBtn = item.querySelector('.btn-reject');
     const previewBtn = item.querySelector('[data-action="preview"]');
     
     if (approveBtn) {
         approveBtn.addEventListener('click', () => approveMartyr(martyr.id));
+    }
+
+    if (editBtn) {
+        editBtn.addEventListener('click', () => openEditMartyrModal(martyr, { mode: 'pending' }));
     }
     
     if (rejectBtn) {
@@ -1289,7 +1393,7 @@ function openPendingPreview(martyr) {
     const imgWrapper = document.createElement('div');
     imgWrapper.style.cssText = 'height:220px;background:linear-gradient(135deg,#ddd,#aaa);display:flex;align-items:center;justify-content:center;';
 
-    const photoSrc = martyr.photo || (martyr.id ? `/assets/photos/${encodeURIComponent(martyr.id)}.jpg` : '');
+    const photoSrc = getSafeAdminPhotoSrc(martyr, false);
     if (photoSrc) {
         const img = document.createElement('img');
         img.src = photoSrc;
@@ -1319,7 +1423,7 @@ function openPendingPreview(martyr) {
     datesEl.textContent = `${formatDate(martyr.birthDate)} - ${formatDate(martyr.martyrdomDate)}`;
 
     const placeEl = document.createElement('p');
-    placeEl.styleCssText = 'margin:0 0 0.5rem 0;color:#666;';
+    placeEl.style.cssText = 'margin:0 0 0.5rem 0;color:#666;';
     placeEl.textContent = martyr.martyrdomPlace || 'Place of martyrdom unknown';
 
     info.appendChild(nameEl);
@@ -1461,22 +1565,31 @@ async function approveMartyr(martyrId) {
     }
 
     try {
-        // Get martyr data first
+        // Get martyr data first (prefer authoritative Firebase record so recent admin edits apply)
         let martyrToApprove = null;
         let foundInLocalStorage = false;
         
-        // First check localStorage
         const pendingData = JSON.parse(localStorage.getItem('pendingMartyrs') || '[]');
         const martyrIndex = pendingData.findIndex(m => m.id === martyrId);
-        
         if (martyrIndex !== -1) {
-            martyrToApprove = pendingData[martyrIndex];
             foundInLocalStorage = true;
-            console.log('✅ Found martyr in localStorage:', martyrToApprove);
-        } else {
-            // If not in localStorage, try to get from Firebase directly
-            console.log('🔍 Martyr not in localStorage, fetching from Firebase...');
-            
+            martyrToApprove = pendingData[martyrIndex];
+        }
+
+        if (window.firebaseDB && typeof window.firebaseDB.getMartyrById === 'function') {
+            try {
+                const docRes = await window.firebaseDB.getMartyrById('pendingMartyrs', martyrId);
+                if (docRes.success && docRes.data) {
+                    martyrToApprove = docRes.data;
+                    console.log('✅ Loaded authoritative pending martyr from Firebase:', martyrToApprove.fullName);
+                }
+            } catch (error) {
+                console.warn('⚠️ Single doc fetch failed during approve, checking pending query:', error.message);
+            }
+        }
+
+        if (!martyrToApprove) {
+            console.log('🔍 Fetching pending submission from Firebase collection...');
             try {
                 const firebaseResult = await window.firebaseDB.getPendingMartyrs();
                 if (firebaseResult.success) {
@@ -2199,7 +2312,7 @@ function renderApprovedMartyrsList() {
     const filtered = !query
         ? cachedApprovedMartyrs
         : cachedApprovedMartyrs.filter(m => {
-            const haystack = `${toSearchString(m.fullName)} ${toSearchString(m.fatherName)} ${toSearchString(m.birthPlace)} ${toSearchString(m.martyrdomPlace)} ${toSearchString(m.organization)} ${toSearchString(m.rank)} ${toSearchString(m.id)}`;
+            const haystack = `${toSearchString(m.fullName)} ${toSearchString(m.fatherName)} ${toSearchString(m.birthPlace)} ${toSearchString(m.martyrdomPlace)} ${toSearchString(m.organization)} ${toSearchString(m.affiliation)} ${toSearchString(m.rank)} ${toSearchString(m.submitterName)} ${toSearchString(m.submitterEmail)} ${toSearchString(m.id)}`;
             return haystack.includes(query);
         });
 
@@ -2322,7 +2435,9 @@ async function loadApprovedMartyrs() {
             throw new Error('Firebase getApprovedMartyrs method not available');
         }
         
-        const result = await window.firebaseDB.getApprovedMartyrs();
+        const result = typeof window.firebaseDB.getApprovedMartyrsForAdmin === 'function'
+            ? await window.firebaseDB.getApprovedMartyrsForAdmin()
+            : await window.firebaseDB.getApprovedMartyrs();
         
         if (result.success) {
             const martyrs = result.data || [];
@@ -2384,9 +2499,9 @@ function createApprovedMartyrItem(martyr) {
         <div class="pending-content">
             <div class="pending-image">
                 ${(() => {
-                    const approvedPhoto = martyr.photo || (martyr.id ? `/assets/photos/${encodeURIComponent(martyr.id)}.jpg` : '');
+                    const approvedPhoto = getSafeAdminPhotoSrc(martyr, true);
                     return approvedPhoto ? 
-                        `<img src="${approvedPhoto}" alt="${escapeHTML(martyr.fullName)}" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'pending-no-photo\\'><span>No Photo</span></div>';">` :
+                        `<img src="${escapeHTML(approvedPhoto)}" alt="${escapeHTML(martyr.fullName)}" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'pending-no-photo\\'><span>No Photo</span></div>';">` :
                         `<div class="pending-no-photo">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                             <span>No Photo</span>
@@ -2439,7 +2554,7 @@ function createApprovedMartyrItem(martyr) {
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
                             <span>Submitted By</span>
                         </span>
-                        ${formatSubmitterDetailHTML(martyr.submitterName, martyr.submitterEmail, martyr.submitterRelation)}
+                        ${formatSubmitterDetailHTML(martyr.submitterName, martyr.submitterEmail, martyr.submitterRelation, martyr.submitterPhone)}
                     </div>
                 </div>
                 ${safeBio ? `
@@ -2464,11 +2579,27 @@ function createApprovedMartyrItem(martyr) {
             </button>
         </div>
     `;
+
+    // Resolve updated Firestore photo when REST metadata omitted inline Base64
+    const approvedImg = item.querySelector('.pending-image img');
+    if (
+        approvedImg &&
+        !martyr.photoRemoved &&
+        !martyr.photo &&
+        martyr.photoUpdatedAt &&
+        typeof window.resolveMartyrPhoto === 'function'
+    ) {
+        window.resolveMartyrPhoto(martyr.id, approvedImg, () => {
+            if (approvedImg.parentElement) {
+                approvedImg.parentElement.innerHTML = '<div class="pending-no-photo"><span>No Photo</span></div>';
+            }
+        });
+    }
     
     // Add event listener to edit button
     const editBtn = item.querySelector('[data-action="edit"]');
     if (editBtn) {
-        editBtn.addEventListener('click', () => openEditMartyrModal(martyr));
+        editBtn.addEventListener('click', () => openEditMartyrModal(martyr, { mode: 'approved' }));
     }
     
     // Add event listener to delete button
@@ -2536,235 +2667,654 @@ async function deleteApprovedMartyr(martyrId, martyrName) {
 
 // Store the current martyr being edited
 let currentEditingMartyr = null;
+let currentEditingMode = 'approved'; // 'pending' | 'approved'
+let editPhotoState = { mode: 'keep', value: '', initialSrc: '' };
 
-// Open edit modal with martyr data
-function openEditMartyrModal(martyr) {
+function toDateInputValue(dateValue) {
+    if (!dateValue) return '';
+    try {
+        let date;
+        if (dateValue.toDate && typeof dateValue.toDate === 'function') {
+            date = dateValue.toDate();
+        } else if (typeof dateValue === 'object' && typeof dateValue.seconds === 'number') {
+            date = new Date(dateValue.seconds * 1000);
+        } else if (dateValue instanceof Date) {
+            date = dateValue;
+        } else if (typeof dateValue === 'string') {
+            const trimmed = dateValue.trim();
+            if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+            date = new Date(trimmed);
+        } else {
+            return '';
+        }
+        if (isNaN(date.getTime())) return '';
+        return date.toISOString().split('T')[0];
+    } catch (e) {
+        console.warn('Date conversion error:', e);
+        return '';
+    }
+}
+
+function isValidOptionalEmail(value) {
+    const trimmed = (value || '').trim();
+    if (!trimmed) return true;
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+}
+
+function isValidOptionalPhotoUrl(value) {
+    const trimmed = (value || '').trim();
+    if (!trimmed) return false;
+    return (
+        /^https:\/\/\S+$/i.test(trimmed) ||
+        /^\/assets\/photos\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/i.test(trimmed)
+    );
+}
+
+function getEditModalModeLabel(mode) {
+    return mode === 'pending' ? 'Edit Pending Submission' : 'Edit Published Profile';
+}
+
+// Open edit modal with martyr data (supports both pending and approved profiles)
+function openEditMartyrModal(martyr, options = {}) {
     // Validate admin authentication
     if (!validateAdminAuth('edit martyr')) {
         return;
     }
-    
-    console.log('✏️ Opening edit modal for:', martyr.fullName);
-    currentEditingMartyr = martyr;
-    
-    // Remove existing modal if present
+
+    const mode = options.mode === 'pending' ? 'pending' : 'approved';
+    console.log(`✏️ Opening ${mode} edit modal for:`, martyr.fullName);
+    currentEditingMartyr = { ...martyr };
+    currentEditingMode = mode;
+
     const existingModal = document.getElementById('editMartyrModal');
     if (existingModal) existingModal.remove();
-    
-    // Helper function to convert Firestore Timestamp or date string to YYYY-MM-DD
-    const toDateInputValue = (dateValue) => {
-        if (!dateValue) return '';
-        try {
-            let date;
-            if (dateValue.toDate && typeof dateValue.toDate === 'function') {
-                date = dateValue.toDate();
-            } else if (dateValue instanceof Date) {
-                date = dateValue;
-            } else if (typeof dateValue === 'string') {
-                date = new Date(dateValue);
-            } else {
-                return '';
-            }
-            if (isNaN(date.getTime())) return '';
-            return date.toISOString().split('T')[0];
-        } catch (e) {
-            console.warn('Date conversion error:', e);
-            return '';
+
+    const initialPhotoSrc = getSafeAdminPhotoSrc(martyr, mode !== 'pending');
+    editPhotoState = {
+        mode: 'keep',
+        value: initialPhotoSrc,
+        initialSrc: initialPhotoSrc,
+        initialRemoved: Boolean(martyr.photoRemoved)
+    };
+
+    const collectionLabel = mode === 'pending' ? 'pendingMartyrs' : 'martyrs';
+    const initialPhotoUrlInput =
+        initialPhotoSrc && !initialPhotoSrc.startsWith('data:image/')
+            ? initialPhotoSrc
+            : '';
+
+    const modal = document.createElement('dialog');
+    modal.id = 'editMartyrModal';
+    modal.className = 'edit-modal-dialog';
+    modal.setAttribute('closedby', 'any');
+    modal.setAttribute('aria-labelledby', 'editModalTitle');
+    modal.innerHTML = `
+        <div class="edit-modal-header">
+            <div class="edit-modal-title-wrap">
+                <h2 id="editModalTitle">✏️ ${escapeHTML(getEditModalModeLabel(mode))}</h2>
+                <span class="edit-modal-subtitle">Collection: ${escapeHTML(collectionLabel)} • ID: ${escapeHTML(martyr.id || '')}</span>
+            </div>
+            <button type="button" class="edit-modal-close" aria-label="Close modal">&times;</button>
+        </div>
+        <form id="editMartyrForm" class="edit-modal-form" novalidate>
+            <div class="edit-modal-body">
+                <div id="editSyncBanner" class="edit-sync-banner" role="status" aria-live="polite">
+                    <span>Syncing full record from Firestore (submitter details &amp; photo)…</span>
+                </div>
+
+                <fieldset class="edit-fieldset">
+                    <legend>Martyr Profile</legend>
+                    <div class="edit-form-grid">
+                        <div class="edit-form-group full-width">
+                            <label for="editFullName">Full Name *</label>
+                            <input type="text" id="editFullName" name="fullName" value="${escapeHTML(martyr.fullName || '')}" required maxlength="200" aria-describedby="editFullNameError">
+                            <span id="editFullNameError" class="edit-field-error" role="alert"></span>
+                        </div>
+
+                        <div class="edit-form-group">
+                            <label for="editFatherName">Father's Name</label>
+                            <input type="text" id="editFatherName" name="fatherName" value="${escapeHTML(martyr.fatherName || '')}" maxlength="200">
+                        </div>
+
+                        <div class="edit-form-group">
+                            <label for="editRank">Rank / Role</label>
+                            <input type="text" id="editRank" name="rank" value="${escapeHTML(martyr.rank || '')}" maxlength="200">
+                        </div>
+
+                        <div class="edit-form-group">
+                            <label for="editBirthDate">Birth Date</label>
+                            <input type="date" id="editBirthDate" name="birthDate" value="${toDateInputValue(martyr.birthDate)}">
+                        </div>
+
+                        <div class="edit-form-group">
+                            <label for="editBirthPlace">Birth Place</label>
+                            <input type="text" id="editBirthPlace" name="birthPlace" value="${escapeHTML(martyr.birthPlace || '')}" maxlength="250">
+                        </div>
+
+                        <div class="edit-form-group">
+                            <label for="editMartyrdomDate">Martyrdom Date</label>
+                            <input type="date" id="editMartyrdomDate" name="martyrdomDate" value="${toDateInputValue(martyr.martyrdomDate)}">
+                        </div>
+
+                        <div class="edit-form-group">
+                            <label for="editMartyrdomPlace">Martyrdom Place</label>
+                            <input type="text" id="editMartyrdomPlace" name="martyrdomPlace" value="${escapeHTML(martyr.martyrdomPlace || '')}" maxlength="250">
+                        </div>
+
+                        <div class="edit-form-group">
+                            <label for="editOrganization">Organization</label>
+                            <input type="text" id="editOrganization" name="organization" value="${escapeHTML(martyr.organization || '')}" maxlength="200">
+                        </div>
+
+                        <div class="edit-form-group">
+                            <label for="editAffiliation">Affiliation</label>
+                            <input type="text" id="editAffiliation" name="affiliation" value="${escapeHTML(martyr.affiliation || '')}" maxlength="200">
+                        </div>
+
+                        <div class="edit-form-group full-width">
+                            <label for="editBiography">Biography</label>
+                            <textarea id="editBiography" name="biography" rows="4" maxlength="15000">${escapeHTML(martyr.biography || '')}</textarea>
+                        </div>
+
+                        <div class="edit-form-group full-width">
+                            <label for="editFamilyDetails">Family Details</label>
+                            <textarea id="editFamilyDetails" name="familyDetails" rows="3" maxlength="3000">${escapeHTML(martyr.familyDetails || '')}</textarea>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="edit-fieldset">
+                    <legend>Submitted By (Submitter Details)</legend>
+                    <p class="edit-section-hint">Edit or add the details of the person who submitted this martyr's profile.</p>
+                    <div class="edit-form-grid">
+                        <div class="edit-form-group">
+                            <label for="editSubmitterName">Submitter Name</label>
+                            <input type="text" id="editSubmitterName" name="submitterName" value="${escapeHTML(martyr.submitterName || '')}" maxlength="200" placeholder="Name of submitter">
+                        </div>
+
+                        <div class="edit-form-group">
+                            <label for="editSubmitterEmail">Submitter Email</label>
+                            <input type="email" id="editSubmitterEmail" name="submitterEmail" value="${escapeHTML(martyr.submitterEmail || '')}" maxlength="254" placeholder="name@example.com" aria-describedby="editSubmitterEmailError">
+                            <span id="editSubmitterEmailError" class="edit-field-error" role="alert"></span>
+                        </div>
+
+                        <div class="edit-form-group">
+                            <label for="editSubmitterRelation">Relationship to Martyr</label>
+                            <input type="text" id="editSubmitterRelation" name="submitterRelation" value="${escapeHTML(martyr.submitterRelation || '')}" maxlength="200" placeholder="e.g., Family Member, Friend, Community Member">
+                        </div>
+
+                        <div class="edit-form-group">
+                            <label for="editSubmitterPhone">Submitter Phone (Optional)</label>
+                            <input type="tel" id="editSubmitterPhone" name="submitterPhone" value="${escapeHTML(martyr.submitterPhone || '')}" maxlength="60" placeholder="+...">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="edit-fieldset">
+                    <legend>Portrait Photo</legend>
+                    <div class="edit-photo-editor">
+                        <div class="edit-photo-preview" id="editPhotoPreviewBox"></div>
+                        <div class="edit-photo-controls">
+                            <span id="editPhotoStatus" class="edit-photo-status"></span>
+                            <div class="edit-photo-actions-row">
+                                <input type="file" id="editPhotoInput" accept="image/*" style="display: none;">
+                                <label for="editPhotoInput" class="edit-photo-upload-label">Upload New Photo</label>
+                                <button type="button" id="editPhotoRemoveBtn" class="edit-photo-btn danger">Remove Photo</button>
+                                <button type="button" id="editPhotoRevertBtn" class="edit-photo-btn" disabled>Revert</button>
+                            </div>
+                            <div class="edit-form-group">
+                                <label for="editPhotoUrlInput">Or set image URL (https://… or /assets/photos/…)</label>
+                                <div class="edit-photo-url-row">
+                                    <input type="url" id="editPhotoUrlInput" value="${escapeHTML(initialPhotoUrlInput)}" placeholder="https://example.com/photo.jpg" aria-describedby="editPhotoError">
+                                    <button type="button" id="editPhotoApplyUrlBtn" class="edit-photo-btn">Apply URL</button>
+                                </div>
+                                <span id="editPhotoError" class="edit-field-error" role="alert"></span>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+
+            <div class="edit-modal-footer">
+                <button type="button" class="btn btn-outline edit-cancel-btn">Cancel</button>
+                <button type="submit" class="btn btn-primary edit-save-btn">
+                    💾 Save Changes
+                </button>
+            </div>
+        </form>
+    `;
+
+    document.body.appendChild(modal);
+
+    const form = modal.querySelector('#editMartyrForm');
+    const syncBanner = modal.querySelector('#editSyncBanner');
+    const previewBox = modal.querySelector('#editPhotoPreviewBox');
+    const photoStatusEl = modal.querySelector('#editPhotoStatus');
+    const photoInput = modal.querySelector('#editPhotoInput');
+    const photoRemoveBtn = modal.querySelector('#editPhotoRemoveBtn');
+    const photoRevertBtn = modal.querySelector('#editPhotoRevertBtn');
+    const photoUrlInput = modal.querySelector('#editPhotoUrlInput');
+    const photoApplyUrlBtn = modal.querySelector('#editPhotoApplyUrlBtn');
+    const fullNameInput = modal.querySelector('#editFullName');
+    const submitterEmailInput = modal.querySelector('#editSubmitterEmail');
+
+    const dirtyFields = new Set();
+    let photoDirty = false;
+    let isClosed = false;
+
+    const setFieldError = (inputEl, errorElId, message) => {
+        const errorEl = modal.querySelector(`#${errorElId}`);
+        if (inputEl) {
+            inputEl.setAttribute('aria-invalid', 'true');
+        }
+        if (errorEl) {
+            errorEl.textContent = message;
+            errorEl.classList.add('visible');
         }
     };
-    
-    // Create modal
-    const modal = document.createElement('div');
-    modal.id = 'editMartyrModal';
-    modal.className = 'edit-modal-overlay';
-    modal.innerHTML = `
-        <div class="edit-modal-content">
-            <div class="edit-modal-header">
-                <h2>✏️ Edit Martyr Profile</h2>
-                <button type="button" class="edit-modal-close" aria-label="Close">&times;</button>
-            </div>
-            <form id="editMartyrForm" class="edit-modal-body">
-                <div class="edit-form-grid">
-                    <div class="edit-form-group full-width">
-                        <label for="editFullName">Full Name *</label>
-                        <input type="text" id="editFullName" name="fullName" value="${escapeHTML(martyr.fullName || '')}" required>
-                    </div>
-                    
-                    <div class="edit-form-group">
-                        <label for="editBirthDate">Birth Date</label>
-                        <input type="date" id="editBirthDate" name="birthDate" value="${toDateInputValue(martyr.birthDate)}">
-                    </div>
-                    
-                    <div class="edit-form-group">
-                        <label for="editBirthPlace">Birth Place</label>
-                        <input type="text" id="editBirthPlace" name="birthPlace" value="${escapeHTML(martyr.birthPlace || '')}">
-                    </div>
-                    
-                    <div class="edit-form-group">
-                        <label for="editMartyrdomDate">Martyrdom Date</label>
-                        <input type="date" id="editMartyrdomDate" name="martyrdomDate" value="${toDateInputValue(martyr.martyrdomDate)}">
-                    </div>
-                    
-                    <div class="edit-form-group">
-                        <label for="editMartyrdomPlace">Martyrdom Place</label>
-                        <input type="text" id="editMartyrdomPlace" name="martyrdomPlace" value="${escapeHTML(martyr.martyrdomPlace || '')}">
-                    </div>
-                    
-                    <div class="edit-form-group">
-                        <label for="editOrganization">Organization</label>
-                        <input type="text" id="editOrganization" name="organization" value="${escapeHTML(martyr.organization || '')}">
-                    </div>
-                    
-                    <div class="edit-form-group">
-                        <label for="editRank">Rank / Role</label>
-                        <input type="text" id="editRank" name="rank" value="${escapeHTML(martyr.rank || '')}">
-                    </div>
-                    
-                    <div class="edit-form-group">
-                        <label for="editFatherName">Father's Name</label>
-                        <input type="text" id="editFatherName" name="fatherName" value="${escapeHTML(martyr.fatherName || '')}">
-                    </div>
-                    
-                    <div class="edit-form-group full-width">
-                        <label for="editBiography">Biography</label>
-                        <textarea id="editBiography" name="biography" rows="4">${escapeHTML(martyr.biography || '')}</textarea>
-                    </div>
-                    
-                    <div class="edit-form-group full-width">
-                        <label for="editFamilyDetails">Family Details</label>
-                        <textarea id="editFamilyDetails" name="familyDetails" rows="3">${escapeHTML(martyr.familyDetails || '')}</textarea>
-                    </div>
-                    
-                    <div class="edit-form-group full-width">
-                        <label>Current Photo</label>
-                        <div class="edit-photo-preview">
-                            ${(() => {
-                                const photoSrc = martyr.photo || (martyr.id ? `/assets/photos/${encodeURIComponent(martyr.id)}.jpg` : '');
-                                return photoSrc ? 
-                                    `<img src="${photoSrc}" alt="Current photo" style="max-width: 150px; max-height: 150px; border-radius: 8px;" onerror="this.onerror=null;this.parentElement.innerHTML='<span style=\\'color: #666;\\'>No photo uploaded</span>';">` :
-                                    '<span style="color: #666;">No photo uploaded</span>';
-                            })()}
-                        </div>
-                        <small style="color: #666; margin-top: 0.5rem; display: block;">To change the photo, you'll need to re-submit the martyr profile or contact support.</small>
-                    </div>
-                </div>
-                
-                <div class="edit-modal-footer">
-                    <button type="button" class="btn btn-outline edit-cancel-btn">Cancel</button>
-                    <button type="submit" class="btn btn-primary edit-save-btn">
-                        💾 Save Changes
-                    </button>
-                </div>
-            </form>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    document.body.style.overflow = 'hidden';
-    
-    // Close handlers
-    const closeModal = () => {
+
+    const clearFieldError = (inputEl, errorElId) => {
+        const errorEl = modal.querySelector(`#${errorElId}`);
+        if (inputEl) {
+            inputEl.removeAttribute('aria-invalid');
+        }
+        if (errorEl) {
+            errorEl.textContent = '';
+            errorEl.classList.remove('visible');
+        }
+    };
+
+    const renderPhotoPreview = (src, statusText, isRemoved = false) => {
+        if (photoStatusEl) {
+            photoStatusEl.textContent = statusText;
+            photoStatusEl.classList.toggle('is-removed', Boolean(isRemoved));
+        }
+        if (photoRevertBtn) {
+            photoRevertBtn.disabled = editPhotoState.mode === 'keep';
+        }
+        if (!previewBox) return;
+        previewBox.innerHTML = '';
+
+        if (!src || isRemoved) {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'edit-photo-placeholder';
+            placeholder.textContent = isRemoved ? 'Photo will be removed' : 'No photo uploaded';
+            previewBox.appendChild(placeholder);
+            return;
+        }
+
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = 'Portrait preview';
+        img.onerror = () => {
+            if (!previewBox.isConnected) return;
+            previewBox.innerHTML = '';
+            const fallback = document.createElement('div');
+            fallback.className = 'edit-photo-placeholder';
+            fallback.textContent = 'No preview available';
+            previewBox.appendChild(fallback);
+        };
+        previewBox.appendChild(img);
+    };
+
+    renderPhotoPreview(
+        initialPhotoSrc,
+        editPhotoState.initialRemoved
+            ? 'No photo (previously removed)'
+            : (initialPhotoSrc ? 'Current photo' : 'No photo set'),
+        editPhotoState.initialRemoved
+    );
+
+    // Track dirty fields so background Firestore hydration never overwrites user edits
+    form.querySelectorAll('input[name], textarea[name]').forEach((el) => {
+        el.addEventListener('input', () => {
+            dirtyFields.add(el.name);
+            if (el.id === 'editFullName') clearFieldError(el, 'editFullNameError');
+            if (el.id === 'editSubmitterEmail') clearFieldError(el, 'editSubmitterEmailError');
+        });
+    });
+
+    fullNameInput.addEventListener('blur', () => {
+        if (!fullNameInput.value.trim()) {
+            setFieldError(fullNameInput, 'editFullNameError', 'Full name is required.');
+        } else {
+            clearFieldError(fullNameInput, 'editFullNameError');
+        }
+    });
+
+    submitterEmailInput.addEventListener('blur', () => {
+        if (!isValidOptionalEmail(submitterEmailInput.value)) {
+            setFieldError(submitterEmailInput, 'editSubmitterEmailError', 'Please enter a valid email address or leave blank.');
+        } else {
+            clearFieldError(submitterEmailInput, 'editSubmitterEmailError');
+        }
+    });
+
+    photoUrlInput.addEventListener('input', () => {
+        clearFieldError(photoUrlInput, 'editPhotoError');
+    });
+
+    photoUrlInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            photoApplyUrlBtn.click();
+        }
+    });
+
+    photoApplyUrlBtn.addEventListener('click', () => {
+        const rawUrl = photoUrlInput.value.trim();
+        if (!isValidOptionalPhotoUrl(rawUrl)) {
+            setFieldError(photoUrlInput, 'editPhotoError', 'Enter a valid https:// URL or /assets/photos/<file> path.');
+            return;
+        }
+        clearFieldError(photoUrlInput, 'editPhotoError');
+        photoDirty = true;
+        editPhotoState = { ...editPhotoState, mode: 'replace', value: rawUrl };
+        renderPhotoPreview(rawUrl, 'New image URL ready to save', false);
+    });
+
+    photoInput.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        clearFieldError(photoUrlInput, 'editPhotoError');
+        photoStatusEl.textContent = 'Compressing image…';
+        try {
+            const compressedDataUri = await compressImageForAdmin(file);
+            photoDirty = true;
+            editPhotoState = { ...editPhotoState, mode: 'replace', value: compressedDataUri };
+            photoUrlInput.value = '';
+            renderPhotoPreview(compressedDataUri, 'New photo selected (compressed JPEG)', false);
+        } catch (err) {
+            setFieldError(photoUrlInput, 'editPhotoError', err.message || 'Could not process image file.');
+            renderPhotoPreview(
+                editPhotoState.mode === 'remove' ? '' : editPhotoState.value,
+                'Photo unchanged',
+                editPhotoState.mode === 'remove'
+            );
+        } finally {
+            photoInput.value = '';
+        }
+    });
+
+    photoRemoveBtn.addEventListener('click', () => {
+        clearFieldError(photoUrlInput, 'editPhotoError');
+        photoDirty = true;
+        photoUrlInput.value = '';
+        editPhotoState = { ...editPhotoState, mode: 'remove', value: '' };
+        renderPhotoPreview('', 'Photo will be removed on save', true);
+    });
+
+    photoRevertBtn.addEventListener('click', () => {
+        clearFieldError(photoUrlInput, 'editPhotoError');
+        photoDirty = false;
+        editPhotoState = {
+            ...editPhotoState,
+            mode: 'keep',
+            value: editPhotoState.initialSrc
+        };
+        photoUrlInput.value =
+            editPhotoState.initialSrc && !editPhotoState.initialSrc.startsWith('data:image/')
+                ? editPhotoState.initialSrc
+                : '';
+        renderPhotoPreview(
+            editPhotoState.initialSrc,
+            editPhotoState.initialRemoved ? 'No photo (previously removed)' : 'Reverted to current photo',
+            editPhotoState.initialRemoved
+        );
+    });
+
+    const cleanupModal = () => {
+        if (isClosed) return;
+        isClosed = true;
+        if (modal.open && typeof modal.close === 'function') {
+            try { modal.close(); } catch (_) {}
+        }
         modal.remove();
-        document.body.style.overflow = 'auto';
         currentEditingMartyr = null;
     };
-    
-    modal.querySelector('.edit-modal-close').addEventListener('click', closeModal);
-    modal.querySelector('.edit-cancel-btn').addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
+
+    modal.querySelector('.edit-modal-close').addEventListener('click', cleanupModal);
+    modal.querySelector('.edit-cancel-btn').addEventListener('click', cleanupModal);
+    modal.addEventListener('close', cleanupModal);
+    modal.addEventListener('cancel', () => {
+        // Allow native Esc dismiss and clean up
     });
-    
-    // Escape key to close
-    const escHandler = (e) => {
-        if (e.key === 'Escape') {
-            closeModal();
-            document.removeEventListener('keydown', escHandler);
+
+    // Light-dismiss fallback for browsers without native dialog `closedby="any"` (e.g., Safari)
+    modal.addEventListener('click', (e) => {
+        if (e.target !== modal) return;
+        if (e.clientX === 0 && e.clientY === 0) return;
+        const rect = modal.getBoundingClientRect();
+        const clickedOutside =
+            e.clientX < rect.left ||
+            e.clientX > rect.right ||
+            e.clientY < rect.top ||
+            e.clientY > rect.bottom;
+        if (clickedOutside) {
+            cleanupModal();
         }
+    });
+
+    const validateEditForm = () => {
+        let valid = true;
+        if (!fullNameInput.value.trim()) {
+            setFieldError(fullNameInput, 'editFullNameError', 'Full name is required.');
+            valid = false;
+        }
+        if (!isValidOptionalEmail(submitterEmailInput.value)) {
+            setFieldError(submitterEmailInput, 'editSubmitterEmailError', 'Please enter a valid email address or leave blank.');
+            valid = false;
+        }
+        const pendingUrl = photoUrlInput.value.trim();
+        if (pendingUrl && editPhotoState.value !== pendingUrl && !isValidOptionalPhotoUrl(pendingUrl)) {
+            setFieldError(photoUrlInput, 'editPhotoError', 'Enter a valid https:// URL or /assets/photos/<file> path.');
+            valid = false;
+        }
+        return valid;
     };
-    document.addEventListener('keydown', escHandler);
-    
-    // Form submit handler
-    modal.querySelector('#editMartyrForm').addEventListener('submit', async (e) => {
+
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (!validateEditForm()) {
+            const firstInvalid = form.querySelector('[aria-invalid="true"]');
+            if (firstInvalid) firstInvalid.focus();
+            return;
+        }
         await saveEditedMartyr();
     });
-    
-    // Focus first input
+
+    if (typeof modal.showModal === 'function') {
+        modal.showModal();
+    } else {
+        modal.setAttribute('open', '');
+    }
+
     setTimeout(() => {
-        modal.querySelector('#editFullName').focus();
-    }, 100);
+        if (!isClosed && fullNameInput) fullNameInput.focus();
+    }, 60);
+
+    // Authoritative background hydration from Firestore so untouched fields reflect true full doc
+    if (martyr.id && window.firebaseDB && typeof window.firebaseDB.getMartyrById === 'function') {
+        window.firebaseDB.getMartyrById(collectionLabel, martyr.id).then(async (res) => {
+            if (isClosed || !modal.isConnected) return;
+            if (!res.success || !res.data) {
+                syncBanner.classList.add('is-warn');
+                syncBanner.textContent = res.error
+                    ? `Notice: ${res.error} Showing cached details.`
+                    : 'Showing cached details.';
+                return;
+            }
+
+            const fresh = res.data;
+            currentEditingMartyr = { ...currentEditingMartyr, ...fresh };
+
+            const textFieldMap = {
+                fullName: '#editFullName',
+                fatherName: '#editFatherName',
+                birthPlace: '#editBirthPlace',
+                martyrdomPlace: '#editMartyrdomPlace',
+                organization: '#editOrganization',
+                affiliation: '#editAffiliation',
+                rank: '#editRank',
+                biography: '#editBiography',
+                familyDetails: '#editFamilyDetails',
+                submitterName: '#editSubmitterName',
+                submitterEmail: '#editSubmitterEmail',
+                submitterRelation: '#editSubmitterRelation',
+                submitterPhone: '#editSubmitterPhone'
+            };
+
+            for (const [fieldName, selector] of Object.entries(textFieldMap)) {
+                if (!dirtyFields.has(fieldName)) {
+                    const inputEl = modal.querySelector(selector);
+                    if (inputEl && fresh[fieldName] !== undefined) {
+                        inputEl.value = fresh[fieldName] || '';
+                    }
+                }
+            }
+
+            if (!dirtyFields.has('birthDate')) {
+                const el = modal.querySelector('#editBirthDate');
+                if (el) el.value = toDateInputValue(fresh.birthDate);
+            }
+            if (!dirtyFields.has('martyrdomDate')) {
+                const el = modal.querySelector('#editMartyrdomDate');
+                if (el) el.value = toDateInputValue(fresh.martyrdomDate);
+            }
+
+            if (!photoDirty) {
+                const hydratedPhoto = getSafeAdminPhotoSrc(fresh, mode !== 'pending');
+                editPhotoState = {
+                    mode: 'keep',
+                    value: hydratedPhoto,
+                    initialSrc: hydratedPhoto,
+                    initialRemoved: Boolean(fresh.photoRemoved)
+                };
+                if (photoUrlInput) {
+                    photoUrlInput.value =
+                        hydratedPhoto && !hydratedPhoto.startsWith('data:image/')
+                            ? hydratedPhoto
+                            : '';
+                }
+                renderPhotoPreview(
+                    hydratedPhoto,
+                    fresh.photoRemoved
+                        ? 'No photo (removed)'
+                        : (hydratedPhoto ? 'Synced from Firestore' : 'No photo set'),
+                    Boolean(fresh.photoRemoved)
+                );
+            }
+
+            syncBanner.textContent = 'Synced full profile, submitter details & photo from Firestore.';
+        }).catch((err) => {
+            if (isClosed || !modal.isConnected) return;
+            syncBanner.classList.add('is-warn');
+            syncBanner.textContent = `Could not sync full record (${err.message}); showing cached details.`;
+        });
+    } else if (syncBanner) {
+        syncBanner.textContent = 'Editing loaded record.';
+    }
 }
 
-// Save edited martyr data
+// Save edited martyr data (pending or approved)
 async function saveEditedMartyr() {
     if (!currentEditingMartyr) {
         console.error('No martyr being edited');
         return;
     }
-    
-    // Validate admin authentication
+
     if (!validateAdminAuth('save edited martyr')) {
         return;
     }
-    
+
+    const modal = document.getElementById('editMartyrModal');
     const form = document.getElementById('editMartyrForm');
+    if (!form) return;
     const saveBtn = form.querySelector('.edit-save-btn');
-    
-    // Disable save button and show loading
+    const urlInput = form.querySelector('#editPhotoUrlInput');
+
     saveBtn.disabled = true;
-    saveBtn.innerHTML = '⏳ Saving...';
-    
+    saveBtn.textContent = '⏳ Saving...';
+
     try {
-        // Collect form data
         const formData = new FormData(form);
         const updatedData = {};
-        
-        // Process form fields
+
         for (const [key, value] of formData.entries()) {
-            // Sanitize input
-            updatedData[key] = sanitizeInput(value.trim());
+            const maxLength = key === 'biography' ? 15000 : 3000;
+            updatedData[key] = sanitizeInput(String(value).trim(), {
+                maxLength,
+                allowNewlines: key === 'biography' || key === 'familyDetails'
+            });
         }
-        
-        // Validate required fields
+
         if (!updatedData.fullName) {
             alert('Full name is required.');
             saveBtn.disabled = false;
-            saveBtn.innerHTML = '💾 Save Changes';
+            saveBtn.textContent = '💾 Save Changes';
             return;
         }
-        
-        console.log('💾 Saving updated martyr data:', updatedData);
-        
-        // Call Firebase update function
-        const result = await window.firebaseDB.updateApprovedMartyr(currentEditingMartyr.id, updatedData);
-        
-        if (result.success) {
-            console.log('✅ Martyr updated successfully');
-            
-            // Close modal
-            const modal = document.getElementById('editMartyrModal');
-            if (modal) {
-                modal.remove();
-                document.body.style.overflow = 'auto';
+
+        // Handle photo changes cleanly (also pick up a valid typed URL if user didn't click Apply URL)
+        const pendingUrl = urlInput ? urlInput.value.trim() : '';
+        if (editPhotoState.mode === 'replace') {
+            updatedData.photo = editPhotoState.value;
+            updatedData.photoRemoved = false;
+        } else if (editPhotoState.mode === 'remove') {
+            updatedData.photo = '';
+            updatedData.photoRemoved = true;
+        } else if (pendingUrl && pendingUrl !== editPhotoState.initialSrc && isValidOptionalPhotoUrl(pendingUrl)) {
+            updatedData.photo = pendingUrl;
+            updatedData.photoRemoved = false;
+        }
+
+        const targetId = currentEditingMartyr.id;
+        const targetMode = currentEditingMode;
+        console.log(`💾 Saving updated ${targetMode} martyr data:`, targetId);
+
+        let result;
+        if (targetMode === 'pending') {
+            if (!window.firebaseDB || typeof window.firebaseDB.updatePendingMartyr !== 'function') {
+                throw new Error('Firebase updatePendingMartyr method not available');
             }
-            
-            // Refresh the approved martyrs list
-            await loadApprovedMartyrs();
-            
+            result = await window.firebaseDB.updatePendingMartyr(targetId, updatedData);
+        } else {
+            if (!window.firebaseDB || typeof window.firebaseDB.updateApprovedMartyr !== 'function') {
+                throw new Error('Firebase updateApprovedMartyr method not available');
+            }
+            result = await window.firebaseDB.updateApprovedMartyr(targetId, updatedData);
+        }
+
+        if (result.success) {
+            console.log(`✅ ${targetMode} martyr updated successfully`);
+
+            if (modal) {
+                if (typeof modal.close === 'function' && modal.open) {
+                    try { modal.close(); } catch (_) {}
+                }
+                modal.remove();
+            }
+            currentEditingMartyr = null;
+
+            if (targetMode === 'pending') {
+                syncPendingMartyrInLocalStorage(targetId, updatedData);
+                await loadPendingSubmissions();
+            } else {
+                await loadApprovedMartyrs();
+            }
+
             showAdminToast(`"${updatedData.fullName}" has been updated successfully!`, 'success');
         } else {
             console.error('❌ Update failed:', result.error);
             alert(`Failed to update martyr: ${result.error}`);
             saveBtn.disabled = false;
-            saveBtn.innerHTML = '💾 Save Changes';
+            saveBtn.textContent = '💾 Save Changes';
         }
-        
     } catch (error) {
         console.error('❌ Error saving martyr:', error);
-        alert('An error occurred while saving. Please try again.');
+        alert(`An error occurred while saving: ${error.message || 'Please try again.'}`);
         saveBtn.disabled = false;
-        saveBtn.innerHTML = '💾 Save Changes';
+        saveBtn.textContent = '💾 Save Changes';
     }
 }
 

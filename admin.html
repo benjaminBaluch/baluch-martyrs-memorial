@@ -864,6 +864,19 @@
             color: #14532d !important;
         }
 
+        .btn-edit-pending {
+            background: #ffffff !important;
+            color: #15803d !important;
+            border: 1px solid #86efac !important;
+        }
+
+        .btn-edit-pending:hover {
+            background: #f0fdf4 !important;
+            border-color: #15803d !important;
+            color: #14532d !important;
+            transform: translateY(-1px);
+        }
+
         .no-pending {
             text-align: center;
             padding: 2.5rem 1.5rem;
@@ -1113,10 +1126,16 @@
             border-color: rgba(239, 68, 68, 0.3) !important;
         }
 
-        [data-theme="dark"] .btn-preview-visitor {
+        [data-theme="dark"] .btn-preview-visitor,
+        [data-theme="dark"] .btn-edit-pending {
             background: rgba(34, 197, 94, 0.14) !important;
             color: #86efac !important;
             border-color: rgba(34, 197, 94, 0.3) !important;
+        }
+
+        [data-theme="dark"] .btn-edit-pending:hover {
+            background: rgba(34, 197, 94, 0.24) !important;
+            color: #bbf7d0 !important;
         }
 
         [data-theme="dark"] .admin-btn-secondary:hover {
@@ -1131,36 +1150,35 @@
         /* ============================================
            EDIT MARTYR MODAL STYLES
            ============================================ */
-        .edit-modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            padding: 1rem;
-            overflow-y: auto;
+        dialog.edit-modal-dialog {
+            padding: 0;
+            border: 1px solid var(--admin-border);
+            border-radius: 16px;
+            width: min(860px, calc(100vw - 1.5rem));
+            max-width: min(860px, calc(100vw - 1.5rem));
+            max-height: min(92vh, 92dvh);
+            margin: auto;
+            background: var(--admin-card);
+            color: var(--admin-text);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.35);
+            overflow: hidden;
         }
 
-        .edit-modal-content {
-            background: var(--admin-card);
-            border-radius: 16px;
-            width: 100%;
-            max-width: 800px;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
-            animation: modalSlideIn 0.3s ease;
+        dialog.edit-modal-dialog[open] {
+            display: flex;
+            flex-direction: column;
+            animation: modalSlideIn 0.22s ease;
+        }
+
+        dialog.edit-modal-dialog::backdrop {
+            background: rgba(15, 23, 42, 0.72);
+            backdrop-filter: blur(4px);
         }
 
         @keyframes modalSlideIn {
             from {
                 opacity: 0;
-                transform: translateY(-20px) scale(0.95);
+                transform: translateY(-14px) scale(0.97);
             }
             to {
                 opacity: 1;
@@ -1172,51 +1190,125 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1.25rem 1.5rem;
+            gap: 1rem;
+            padding: 1.1rem 1.5rem;
             background: linear-gradient(135deg, var(--admin-primary) 0%, var(--admin-primary-light) 100%);
-            color: white;
-            border-radius: 16px 16px 0 0;
+            color: #ffffff;
+            flex-shrink: 0;
+        }
+
+        .edit-modal-title-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            min-width: 0;
         }
 
         .edit-modal-header h2 {
             margin: 0;
-            font-size: 1.35rem;
+            font-size: 1.25rem;
             font-weight: 700;
+            color: #ffffff;
+            line-height: 1.25;
+        }
+
+        .edit-modal-subtitle {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.86);
+            font-family: 'SFMono-Regular', Consolas, monospace;
         }
 
         .edit-modal-close {
             background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.32);
+            color: #ffffff;
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            font-size: 1.5rem;
+            font-size: 1.45rem;
+            line-height: 1;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s ease;
+            flex-shrink: 0;
+            transition: background 0.2s ease, transform 0.2s ease;
         }
 
         .edit-modal-close:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.32);
+            transform: scale(1.06);
+        }
+
+        .edit-modal-form {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
         }
 
         .edit-modal-body {
-            padding: 1.5rem;
+            padding: 1.25rem 1.5rem;
+            overflow-y: auto;
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .edit-sync-banner {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.6rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            background: rgba(22, 163, 74, 0.08);
+            border: 1px solid rgba(22, 163, 74, 0.22);
+            color: #15803d;
+        }
+
+        .edit-sync-banner.is-warn {
+            background: rgba(217, 119, 6, 0.09);
+            border-color: rgba(217, 119, 6, 0.3);
+            color: #b45309;
+        }
+
+        .edit-fieldset {
+            border: 1px solid var(--admin-border);
+            border-radius: 12px;
+            padding: 1rem 1.15rem 1.15rem;
+            margin: 0;
+            background: var(--admin-surface-subtle);
+        }
+
+        .edit-fieldset legend {
+            font-weight: 700;
+            font-size: 0.88rem;
+            color: var(--admin-primary);
+            padding: 0 0.5rem;
+            letter-spacing: 0.01em;
+        }
+
+        .edit-section-hint {
+            margin: 0.15rem 0 0.85rem 0;
+            font-size: 0.8rem;
+            color: var(--admin-text-muted);
         }
 
         .edit-form-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1.25rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.95rem 1.1rem;
         }
 
         .edit-form-group {
             display: flex;
             flex-direction: column;
+            min-width: 0;
         }
 
         .edit-form-group.full-width {
@@ -1226,90 +1318,261 @@
         .edit-form-group label {
             font-weight: 600;
             color: var(--admin-text);
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
+            margin-bottom: 0.4rem;
+            font-size: 0.86rem;
         }
 
         .edit-form-group input,
         .edit-form-group textarea {
-            padding: 0.75rem 1rem;
+            padding: 0.65rem 0.85rem;
             border: 1px solid var(--admin-border);
             border-radius: 8px;
-            font-size: 0.95rem;
+            font-size: 0.92rem;
+            font-family: inherit;
             color: var(--admin-text);
-            background: var(--admin-bg);
-            transition: all 0.2s ease;
+            background: var(--admin-card);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .edit-form-group input:focus,
         .edit-form-group textarea:focus {
             outline: none;
             border-color: var(--admin-primary);
-            box-shadow: 0 0 0 3px rgba(44, 85, 48, 0.1);
+            box-shadow: 0 0 0 3px rgba(44, 85, 48, 0.14);
+        }
+
+        .edit-form-group input[aria-invalid="true"],
+        .edit-form-group textarea[aria-invalid="true"] {
+            border-color: #dc2626;
+            box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.14);
+        }
+
+        .edit-field-error {
+            display: none;
+            margin-top: 0.35rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #dc2626;
+        }
+
+        .edit-field-error.visible {
+            display: block;
         }
 
         .edit-form-group textarea {
             resize: vertical;
-            min-height: 80px;
+            min-height: 82px;
+        }
+
+        .edit-photo-editor {
+            display: grid;
+            grid-template-columns: 150px minmax(0, 1fr);
+            gap: 1.1rem;
+            align-items: start;
         }
 
         .edit-photo-preview {
-            padding: 1rem;
-            background: var(--admin-bg);
+            width: 150px;
+            height: 180px;
+            background: var(--admin-card);
             border: 1px solid var(--admin-border);
-            border-radius: 8px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
-            gap: 1rem;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .edit-photo-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .edit-photo-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            padding: 0.75rem;
+            text-align: center;
+            color: var(--admin-text-muted);
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .edit-photo-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            min-width: 0;
+        }
+
+        .edit-photo-status {
+            display: inline-flex;
+            align-items: center;
+            align-self: flex-start;
+            gap: 0.35rem;
+            padding: 0.25rem 0.65rem;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 600;
+            background: rgba(22, 163, 74, 0.1);
+            color: #15803d;
+            border: 1px solid rgba(22, 163, 74, 0.24);
+        }
+
+        .edit-photo-status.is-removed {
+            background: rgba(220, 38, 38, 0.1);
+            color: #dc2626;
+            border-color: rgba(220, 38, 38, 0.26);
+        }
+
+        .edit-photo-actions-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.55rem;
+            align-items: center;
+        }
+
+        .edit-photo-upload-label,
+        .edit-photo-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.84rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--admin-border);
+            background: var(--admin-card);
+            color: var(--admin-text);
+            transition: background 0.18s ease, border-color 0.18s ease;
+        }
+
+        .edit-photo-upload-label {
+            background: #15803d;
+            border-color: #166534;
+            color: #ffffff;
+        }
+
+        .edit-photo-upload-label:hover {
+            background: #14532d;
+        }
+
+        .edit-photo-btn:hover {
+            background: var(--admin-bg);
+            border-color: var(--admin-border-strong);
+        }
+
+        .edit-photo-btn.danger {
+            color: #dc2626;
+            border-color: rgba(220, 38, 38, 0.35);
+        }
+
+        .edit-photo-btn.danger:hover {
+            background: rgba(220, 38, 38, 0.08);
+        }
+
+        .edit-photo-btn:disabled {
+            opacity: 0.48;
+            cursor: not-allowed;
+        }
+
+        .edit-photo-url-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .edit-photo-url-row input {
+            flex: 1;
+            min-width: 0;
+            padding: 0.55rem 0.8rem;
+            border: 1px solid var(--admin-border);
+            border-radius: 8px;
+            font-size: 0.84rem;
+            color: var(--admin-text);
+            background: var(--admin-card);
         }
 
         .edit-modal-footer {
             display: flex;
             justify-content: flex-end;
-            gap: 1rem;
-            padding-top: 1.5rem;
-            margin-top: 1rem;
+            align-items: center;
+            gap: 0.85rem;
+            padding: 1rem 1.5rem;
             border-top: 1px solid var(--admin-border);
+            background: var(--admin-card);
+            flex-shrink: 0;
         }
 
         .edit-modal-footer .btn {
-            padding: 0.75rem 1.5rem;
+            padding: 0.7rem 1.4rem;
             font-weight: 600;
         }
 
         .edit-save-btn {
             background: linear-gradient(135deg, var(--admin-primary) 0%, var(--admin-primary-light) 100%) !important;
+            color: #ffffff !important;
+            border: none !important;
         }
 
-        .edit-save-btn:hover {
+        .edit-save-btn:hover:not(:disabled) {
             background: linear-gradient(135deg, var(--admin-primary-light) 0%, var(--admin-primary) 100%) !important;
+        }
+
+        .edit-save-btn:disabled {
+            opacity: 0.7;
+            cursor: wait;
         }
 
         /* Edit modal responsive */
         @media (max-width: 768px) {
-            .edit-form-grid {
+            dialog.edit-modal-dialog {
+                width: calc(100vw - 1rem);
+                max-width: calc(100vw - 1rem);
+                max-height: 94dvh;
+                border-radius: 12px;
+            }
+
+            .edit-form-grid,
+            .edit-photo-editor {
                 grid-template-columns: 1fr;
             }
 
-            .edit-modal-content {
-                margin: 0.5rem;
-                max-height: 95vh;
+            .edit-photo-preview {
+                width: 140px;
+                height: 168px;
+                margin: 0 auto;
             }
 
             .edit-modal-header {
-                padding: 1rem;
+                padding: 0.95rem 1rem;
             }
 
             .edit-modal-header h2 {
-                font-size: 1.15rem;
+                font-size: 1.1rem;
             }
 
             .edit-modal-body {
                 padding: 1rem;
             }
 
-            .edit-modal-footer {
+            .edit-photo-url-row {
                 flex-direction: column;
+                align-items: stretch;
+            }
+
+            .edit-modal-footer {
+                padding: 0.85rem 1rem;
+                flex-direction: column-reverse;
             }
 
             .edit-modal-footer .btn {
@@ -1318,20 +1581,65 @@
         }
 
         /* Dark mode for edit modal */
-        [data-theme="dark"] .edit-modal-content {
+        [data-theme="dark"] dialog.edit-modal-dialog {
             background: var(--admin-card);
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .edit-fieldset {
+            background: #0f172a;
+            border-color: #334155;
+        }
+
+        [data-theme="dark"] .edit-fieldset legend {
+            color: #4ade80;
+        }
+
+        [data-theme="dark"] .edit-sync-banner {
+            background: rgba(34, 197, 94, 0.14);
+            border-color: rgba(34, 197, 94, 0.28);
+            color: #86efac;
+        }
+
+        [data-theme="dark"] .edit-sync-banner.is-warn {
+            background: rgba(245, 158, 11, 0.14);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: #fcd34d;
         }
 
         [data-theme="dark"] .edit-form-group input,
-        [data-theme="dark"] .edit-form-group textarea {
-            background: #0f172a;
+        [data-theme="dark"] .edit-form-group textarea,
+        [data-theme="dark"] .edit-photo-url-row input,
+        [data-theme="dark"] .edit-photo-btn {
+            background: #1e293b;
             border-color: #334155;
             color: #e2e8f0;
         }
 
         [data-theme="dark"] .edit-photo-preview {
-            background: #0f172a;
+            background: #1e293b;
             border-color: #334155;
+        }
+
+        [data-theme="dark"] .edit-photo-status {
+            background: rgba(34, 197, 94, 0.16);
+            border-color: rgba(34, 197, 94, 0.3);
+            color: #86efac;
+        }
+
+        [data-theme="dark"] .edit-photo-status.is-removed,
+        [data-theme="dark"] .edit-field-error {
+            color: #fca5a5;
+        }
+
+        [data-theme="dark"] .edit-photo-status.is-removed {
+            background: rgba(239, 68, 68, 0.16);
+            border-color: rgba(239, 68, 68, 0.32);
+        }
+
+        [data-theme="dark"] .edit-photo-btn.danger {
+            color: #fca5a5;
+            border-color: rgba(239, 68, 68, 0.38);
         }
 
         /* ==========================================
@@ -2583,7 +2891,7 @@
     </script>
     
     <!-- Firebase Config Script -->
-    <script type="module" src="js/firebase-config.js?v=20261111a"></script>
+    <script type="module" src="js/firebase-config.js?v=20261115b"></script>
     
     <!-- Authentication Script -->
     <script type="module" src="js/auth.js?v=20261104f"></script>
@@ -3004,6 +3312,6 @@ Please refresh the page or try again later.
         }
     </script>
     <script src="js/mobile-menu.js?v=20261008h"></script>
-    <script type="module" src="js/admin.js?v=20261110a"></script>
+    <script type="module" src="js/admin.js?v=20261115b"></script>
 </body>
 </html>

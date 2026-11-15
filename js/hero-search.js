@@ -350,7 +350,7 @@
 
                 // Avatar
                 const initial = (m.fullName || 'B').trim().charAt(0).toUpperCase();
-                const photoSrc = m.photo || (m.id ? `/assets/photos/${encodeURIComponent(m.id)}.jpg` : '');
+                const photoSrc = m.photoRemoved ? '' : (m.photo || (m.id ? `/assets/photos/${encodeURIComponent(m.id)}.jpg` : ''));
                 const avatarHtml = photoSrc
                     ? `<img src="${escapeHtml(photoSrc)}" alt="" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<span class=\\'hero-search-avatar-fallback\\'>${escapeHtml(initial)}</span>';">`
                     : `<span class="hero-search-avatar-fallback">${escapeHtml(initial)}</span>`;
@@ -377,6 +377,24 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                     </div>
                 `;
+
+                const avatarImg = card.querySelector('.hero-search-avatar img');
+                if (avatarImg) {
+                    if (!m.photoRemoved && !m.photo && m.photoUpdatedAt && m.id && typeof window.resolveMartyrPhoto === 'function') {
+                        window.resolveMartyrPhoto(m.id, avatarImg);
+                    }
+                    avatarImg.addEventListener('error', () => {
+                        if (!m.photoRemoved && m.id && avatarImg.src.includes('/assets/photos/') && typeof window.resolveMartyrPhoto === 'function') {
+                            window.resolveMartyrPhoto(m.id, avatarImg, () => {
+                                if (avatarImg.parentElement) {
+                                    avatarImg.parentElement.innerHTML = `<span class="hero-search-avatar-fallback">${escapeHtml(initial)}</span>`;
+                                }
+                            });
+                        } else if (avatarImg.parentElement) {
+                            avatarImg.parentElement.innerHTML = `<span class="hero-search-avatar-fallback">${escapeHtml(initial)}</span>`;
+                        }
+                    }, { once: true });
+                }
 
                 // Click to view profile immediately in modal
                 card.addEventListener('click', () => {
