@@ -7,11 +7,11 @@
 //
 // Collection: martyrs/{martyrId}
 // Document ID: Auto-generated Firestore ID (or legacy ID)
-// Read Access: Public (memorial gallery, statistics, search, REST cache sync)
+// Read Access: Public (memorial gallery, statistics, search, REST cache sync, tombstone delta sync)
 // Write Access: Authenticated Memorial Administrator only (isAdmin())
 // Fields:
-//   - fullName: string (required, non-empty after trim, max 200 chars)
-//   - status: string (required on create, optional on legacy docs; if present must equal 'approved')
+//   - fullName: string (required non-empty after trim on approved docs, max 200 chars; allowed '' or existing name on 'deleted' tombstones)
+//   - status: string (required 'approved' on create, optional on legacy docs; 'approved' or 'deleted' on update)
 //   - id: string (optional/legacy, max 200 chars)
 //   - fatherName: string | null (optional, max 200 chars)
 //   - birthDate: timestamp | string | null (optional, string max 64 chars)
@@ -21,19 +21,23 @@
 //   - organization: string | null (optional, max 200 chars)
 //   - affiliation: string | null (optional, max 200 chars)
 //   - rank: string | null (optional, max 200 chars)
-//   - biography: string | null (optional, max 15000 chars)
-//   - familyDetails: string | null (optional, max 3000 chars)
-//   - photo: string | null (optional, max 7000000 chars; data URI, /assets/photos/... path, https URL, or '')
+//   - biography: string | null (optional, max 15000 chars; cleared to ''/null on 'deleted' tombstones)
+//   - familyDetails: string | null (optional, max 3000 chars; cleared to ''/null on 'deleted' tombstones)
+//   - photo: string | null (optional, max 1048576 chars; data URI, /media/... R2 path, /assets/photos/... path, https URL, or ''; cleared to ''/null on 'deleted' tombstones)
+//   - photoPath: string | null (optional portable media path, max 512 chars; /media/..., /assets/photos/..., https://..., or '')
+//   - photoHash: string | null (optional media content hash for R2 deduplication, max 128 chars)
+//   - photoShard: string | null (optional Cloudflare R2 shard prefix, max 32 chars)
 //   - photoRemoved: bool | null (optional, true when admin explicitly cleared photo)
 //   - hasPhoto: bool | null (optional/legacy boolean flag)
-//   - submitterName: string | null (optional on legacy/admin edits, max 200 chars)
-//   - submitterEmail: string | null (optional on legacy/admin edits, max 254 chars)
-//   - submitterRelation: string | null (optional, max 200 chars)
-//   - submitterPhone: string | null (optional, max 60 chars)
+//   - submitterName: string | null (optional on legacy/admin edits, max 200 chars; cleared to ''/null on 'deleted' tombstones)
+//   - submitterEmail: string | null (optional on legacy/admin edits, max 254 chars; cleared to ''/null on 'deleted' tombstones)
+//   - submitterRelation: string | null (optional, max 200 chars; cleared to ''/null on 'deleted' tombstones)
+//   - submitterPhone: string | null (optional, max 60 chars; cleared to ''/null on 'deleted' tombstones)
 //   - submittedAt: timestamp | string | null (optional, string max 64 chars)
 //   - approvedAt: timestamp | string | null (optional, string max 64 chars)
 //   - updatedAt: timestamp | string | null (optional, string max 64 chars)
 //   - photoUpdatedAt: timestamp | string | null (optional, string max 64 chars)
+//   - deletedAt: timestamp | string | null (optional soft-delete timestamp, string max 64 chars)
 //   - migratedAt: timestamp | string | null (optional, string max 64 chars)
 //   - addedAt: timestamp | string | null (optional/legacy, string max 64 chars)
 //
@@ -49,8 +53,10 @@
 //   - status: string (required, must equal 'pending')
 //   - submittedAt: timestamp (required == request.time if sent on public create; timestamp | string | null for admin/legacy)
 //   - Optional fields: id, fatherName, birthDate, martyrdomDate, birthPlace, martyrdomPlace,
-//     organization, affiliation, rank, biography, familyDetails, photo, photoRemoved, hasPhoto,
-//     submitterRelation, submitterPhone, updatedAt, photoUpdatedAt, migratedAt, addedAt
+//     organization, affiliation, rank, biography, familyDetails, photo (max 1048576 chars),
+//     photoPath (admin only), photoHash (admin only), photoShard (admin only),
+//     photoRemoved, hasPhoto, submitterRelation, submitterPhone, updatedAt, photoUpdatedAt,
+//     migratedAt, addedAt
 //
 // Collection: test/{docId}
 // Read Access: Public (connectivity health check)
@@ -140,7 +146,7 @@ service cloud.firestore {
              data[field] is bool;
     }
 
-    // Validate safe raster data URI, static asset path, HTTPS URL, or empty string in O(1)
+    // Validate safe raster data URI, R2 /media/ path, static asset path, HTTPS URL, or empty string in O(1)
     function isSafePhotoPrefix(photo) {
       return photo == '' ||
              (photo.size() >= 17 && photo[0:16].lower() == 'data:image/jpeg;') ||
@@ -148,23 +154,48 @@ service cloud.firestore {
              (photo.size() >= 16 && photo[0:15].lower() == 'data:image/png;') ||
              (photo.size() >= 16 && photo[0:15].lower() == 'data:image/gif;') ||
              (photo.size() >= 17 && photo[0:16].lower() == 'data:image/webp;') ||
+             (photo.size() >= 8 && photo[0:7] == '/media/') ||
              (photo.size() >= 16 && photo[0:15] == '/assets/photos/') ||
              (photo.size() >= 9 && photo[0:8].lower() == 'https://');
     }
 
-    // Validate photo on public submission
+    // Validate safe portable media path for Cloudflare R2 (/media/), static assets, HTTPS URL, or empty string in O(1)
+    function isSafeMediaPath(path) {
+      return path == '' ||
+             (path.size() >= 8 && path[0:7] == '/media/') ||
+             (path.size() >= 16 && path[0:15] == '/assets/photos/') ||
+             (path.size() >= 9 && path[0:8].lower() == 'https://');
+    }
+
+    // Validate optional photoPath for admin creates/updates and legacy docs
+    function isValidOptionalAdminPhotoPath(data) {
+      return !('photoPath' in data) ||
+             data.photoPath == null ||
+             (data.photoPath is string &&
+              data.photoPath.size() <= 512 &&
+              isSafeMediaPath(data.photoPath));
+    }
+
+    // Check that an optional PII or heavy field is cleared (omitted, null, or empty string)
+    function isClearedField(data, field) {
+      return !(field in data) ||
+             data[field] == null ||
+             (data[field] is string && data[field] == '');
+    }
+
+    // Validate photo on public submission (bounded to Firestore's 1 MiB document ceiling)
     function isValidPublicPhoto(data) {
       return !('photo' in data) ||
              (data.photo is string &&
-              data.photo.size() <= 7000000 &&
+              data.photo.size() <= 1048576 &&
               isSafePhotoPrefix(data.photo));
     }
 
-    // Validate photo for admin creates/updates and legacy docs
+    // Validate photo for admin creates/updates and legacy docs (bounded to Firestore's 1 MiB document ceiling)
     function isValidAdminPhoto(data) {
       return !('photo' in data) ||
              data.photo == null ||
-             (data.photo is string && data.photo.size() <= 7000000);
+             (data.photo is string && data.photo.size() <= 1048576);
     }
 
     // ===============================================================
@@ -210,6 +241,9 @@ service cloud.firestore {
         'affiliation',
         'rank',
         'photo',
+        'photoPath',
+        'photoHash',
+        'photoShard',
         'photoRemoved',
         'hasPhoto',
         'submitterName',
@@ -240,6 +274,9 @@ service cloud.firestore {
         'affiliation',
         'rank',
         'photo',
+        'photoPath',
+        'photoHash',
+        'photoShard',
         'photoRemoved',
         'hasPhoto',
         'submitterName',
@@ -251,6 +288,7 @@ service cloud.firestore {
         'approvedAt',
         'updatedAt',
         'photoUpdatedAt',
+        'deletedAt',
         'migratedAt',
         'addedAt'
       ];
@@ -317,11 +355,15 @@ service cloud.firestore {
              isValidOptionalDateField(data, 'birthDate') &&
              isValidOptionalDateField(data, 'martyrdomDate') &&
              isValidAdminPhoto(data) &&
+             isValidOptionalAdminPhotoPath(data) &&
+             isValidOptionalAdminString(data, 'photoHash', 128) &&
+             isValidOptionalAdminString(data, 'photoShard', 32) &&
              isValidOptionalBool(data, 'photoRemoved') &&
              isValidOptionalBool(data, 'hasPhoto') &&
              isValidOptionalTimestampOrString(data, 'submittedAt') &&
              isValidOptionalTimestampOrString(data, 'updatedAt') &&
              isValidOptionalTimestampOrString(data, 'photoUpdatedAt') &&
+             isValidOptionalTimestampOrString(data, 'deletedAt') &&
              isValidOptionalTimestampOrString(data, 'migratedAt') &&
              isValidOptionalTimestampOrString(data, 'addedAt');
     }
@@ -340,6 +382,42 @@ service cloud.firestore {
              hasValidAdminCommonMartyrFields(data);
     }
 
+    // Admin validator for soft-delete tombstones on martyrs/{martyrId}
+    // Enforces status == 'deleted' and clears all PII and heavy fields so delta-sync reads stay safe
+    function isValidAdminTombstoneMartyr(data) {
+      return 'status' in data &&
+             data.status == 'deleted' &&
+             isValidOptionalTimestampOrString(data, 'deletedAt') &&
+             isValidOptionalTimestampOrString(data, 'updatedAt') &&
+             isValidOptionalAdminString(data, 'fullName', 200) &&
+             isValidOptionalAdminString(data, 'id', 200) &&
+             isValidOptionalAdminString(data, 'fatherName', 200) &&
+             isValidOptionalAdminString(data, 'birthPlace', 250) &&
+             isValidOptionalAdminString(data, 'martyrdomPlace', 250) &&
+             isValidOptionalAdminString(data, 'organization', 200) &&
+             isValidOptionalAdminString(data, 'affiliation', 200) &&
+             isValidOptionalAdminString(data, 'rank', 200) &&
+             isValidOptionalDateField(data, 'birthDate') &&
+             isValidOptionalDateField(data, 'martyrdomDate') &&
+             isValidOptionalAdminPhotoPath(data) &&
+             isValidOptionalAdminString(data, 'photoHash', 128) &&
+             isValidOptionalAdminString(data, 'photoShard', 32) &&
+             isValidOptionalBool(data, 'photoRemoved') &&
+             isValidOptionalBool(data, 'hasPhoto') &&
+             isValidOptionalTimestampOrString(data, 'submittedAt') &&
+             isValidOptionalTimestampOrString(data, 'approvedAt') &&
+             isValidOptionalTimestampOrString(data, 'photoUpdatedAt') &&
+             isValidOptionalTimestampOrString(data, 'migratedAt') &&
+             isValidOptionalTimestampOrString(data, 'addedAt') &&
+             isClearedField(data, 'biography') &&
+             isClearedField(data, 'familyDetails') &&
+             isClearedField(data, 'photo') &&
+             isClearedField(data, 'submitterName') &&
+             isClearedField(data, 'submitterEmail') &&
+             isClearedField(data, 'submitterPhone') &&
+             isClearedField(data, 'submitterRelation');
+    }
+
     // Validator for admin audit log entries
     function isValidAuditLogEntry(data) {
       return data is map && data.keys().size() <= 50;
@@ -351,7 +429,7 @@ service cloud.firestore {
 
     // APPROVED MARTYRS COLLECTION (Public Gallery Read, Admin Write)
     match /martyrs/{martyrId} {
-      // Anyone can read approved martyrs (public memorial gallery & REST sync)
+      // Anyone can read approved martyrs and tombstones (public memorial gallery, REST sync, delta sync)
       allow read: if true;
 
       // Only authenticated admin can create approved martyr records
@@ -362,12 +440,15 @@ service cloud.firestore {
                        isValidAdminApprovedMartyr(request.resource.data);
 
       // Only authenticated admin can update approved martyr records
-      // Uses affectedKeys() so partial updateDoc() calls on legacy documents remain clean
+      // Supports normal edits (status stays 'approved'/omitted), soft-delete tombstones (status -> 'deleted'),
+      // and restoring a tombstone back to 'approved'.
+      // Uses affectedKeys() so partial updateDoc() calls on legacy documents remain clean.
       allow update: if isAdmin() &&
                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(approvedAllowedFields()) &&
                        (!('status' in resource.data) ||
-                        ('status' in request.resource.data && request.resource.data.status == 'approved')) &&
-                       isValidAdminApprovedMartyr(request.resource.data);
+                        (resource.data.status in ['approved', 'deleted'] && 'status' in request.resource.data)) &&
+                       (isValidAdminApprovedMartyr(request.resource.data) ||
+                        isValidAdminTombstoneMartyr(request.resource.data));
 
       // Only authenticated admin can delete approved martyr records
       allow delete: if isAdmin();

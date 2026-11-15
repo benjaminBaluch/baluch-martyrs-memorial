@@ -3,16 +3,23 @@
 // /api/* and /gallery* requests (see "run_worker_first" in wrangler.jsonc) so it can
 // handle API routes and inject per-profile Open Graph metadata on /gallery?hero=<id>.
 
+import { onRequest as adminEdgeSync } from '../functions/api/admin-edge-sync.js';
 import { onRequest as adminLogin } from '../functions/api/admin-login.js';
 import { onRequest as contactHandler } from '../functions/api/contact.js';
+import { onRequest as edgeArchive } from '../functions/api/edge-archive.js';
 import { onRequest as getMartyrs } from '../functions/api/get-martyrs.js';
+import { onRequest as mediaUpload } from '../functions/api/media-upload.js';
 import { onRequest as verifyTurnstile } from '../functions/api/verify-turnstile.js';
+import { resolveR2BucketForShard, rowToMartyr } from '../functions/api/_edge-store.js';
 
 const routes = {
+    '/api/admin-edge-sync': adminEdgeSync,
     '/api/admin-login': adminLogin,
     '/api/admin-verify': adminLogin,
     '/api/contact': contactHandler,
+    '/api/edge-archive': edgeArchive,
     '/api/get-martyrs': getMartyrs,
+    '/api/media-upload': mediaUpload,
     '/api/verify-turnstile': verifyTurnstile
 };
 
@@ -101,6 +108,7 @@ function toCompactRecord(item) {
         organization: String(item.organization || '').trim(),
         bioSnippet: cleanBio.length > 260 ? cleanBio.slice(0, 260) : cleanBio,
         hasPhoto: Boolean(item.hasPhoto),
+        photoPath: typeof item.photoPath === 'string' ? item.photoPath.trim() : '',
         photo: typeof item.photo === 'string' ? item.photo.trim() : ''
     };
 }
@@ -177,6 +185,7 @@ async function fetchMartyrFromFirestore(heroId, env) {
             martyrdomPlace: decodeFirestoreValue(fields.martyrdomPlace),
             organization: decodeFirestoreValue(fields.organization),
             biography: decodeFirestoreValue(fields.biography),
+            photoPath: decodeFirestoreValue(fields.photoPath),
             photo: decodeFirestoreValue(fields.photo)
         });
     } catch {
@@ -186,10 +195,31 @@ async function fetchMartyrFromFirestore(heroId, env) {
     }
 }
 
-/** Look up a martyr record by ID, lowercase ID, or name slug, with Firestore REST fallback. */
+/** Query D1 edge replica directly for O(1) lookup without loading seed JSON into RAM. */
+async function fetchMartyrFromD1(clean, env) {
+    const db = env?.ARCHIVE_DB;
+    if (!db || !clean) return null;
+    try {
+        const slug = toSlugKey(clean);
+        const row = await db.prepare(
+            "SELECT * FROM martyrs WHERE status = 'approved' AND (id = ? OR LOWER(id) = LOWER(?) OR slug = ? OR LOWER(full_name) = LOWER(?)) LIMIT 1"
+        ).bind(clean, clean, slug, clean).first();
+        if (!row) return null;
+        return toCompactRecord(rowToMartyr(row, { lite: false }));
+    } catch {
+        return null;
+    }
+}
+
+/** Look up a martyr record by ID, lowercase ID, or name slug (D1 -> Seed -> Firestore). */
 async function resolveMartyrForHeroParam(heroParam, origin, env) {
     const clean = String(heroParam || '').trim();
     if (!clean) return null;
+
+    if (env?.ARCHIVE_DB) {
+        const fromD1 = await fetchMartyrFromD1(clean, env);
+        if (fromD1) return fromD1;
+    }
 
     const idx = await getSeedIndex(origin, env);
     const byExact = idx.byId.get(clean);
@@ -207,12 +237,13 @@ async function resolveMartyrForHeroParam(heroParam, origin, env) {
 
 /** Resolve a crawlable HTTPS image URL (crawlers reject data: URIs). */
 async function resolveWorkerOgImage(record, origin, env) {
-    if (record.photo) {
-        if (record.photo.startsWith('https://') || record.photo.startsWith('http://')) {
-            return record.photo;
+    const candidates = [record.photoPath, record.photo].filter(Boolean);
+    for (const candidate of candidates) {
+        if (candidate.startsWith('https://') || candidate.startsWith('http://')) {
+            return candidate;
         }
-        if (record.photo.startsWith('/')) {
-            return new URL(record.photo, origin).toString();
+        if (candidate.startsWith('/')) {
+            return new URL(candidate, origin).toString();
         }
     }
     if (record.id) {
@@ -389,12 +420,97 @@ async function handleGalleryHeroMeta(request, url, env) {
     }
 }
 
+function inferMimeFromMediaKey(key) {
+    const lower = String(key || '').toLowerCase();
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    if (lower.endsWith('.gif')) return 'image/gif';
+    return 'image/jpeg';
+}
+
+/** Serve content-addressed R2 portraits at /media/<shard>/<key> with immutable Edge caching. */
+async function handleMediaRequest(request, url, env, ctx) {
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+        return new Response('Method Not Allowed', { status: 405, headers: { 'Cache-Control': 'no-store' } });
+    }
+
+    const parts = url.pathname.replace(/^\/+|\/+$/g, '').split('/');
+    // Expect ["media", "<shard>", "<key>"]
+    if (parts.length !== 3 || parts[0] !== 'media') {
+        return new Response('Not Found', { status: 404, headers: { 'Cache-Control': 'no-store' } });
+    }
+    const [, shard, key] = parts;
+    if (!/^[a-z0-9_-]{1,16}$/i.test(shard) || !/^[a-z0-9._-]{1,160}$/i.test(key) || key.includes('..')) {
+        return new Response('Bad Request', { status: 400, headers: { 'Cache-Control': 'no-store' } });
+    }
+
+    const cache = typeof caches !== 'undefined' ? caches.default : null;
+    const canonicalGetReq = new Request(url.toString(), { method: 'GET' });
+    if (cache && request.method === 'GET') {
+        const cached = await cache.match(canonicalGetReq);
+        if (cached) {
+            return cached;
+        }
+    }
+
+    const bucket = resolveR2BucketForShard(env, shard);
+    if (!bucket) {
+        return new Response('Media shard unavailable', { status: 404, headers: { 'Cache-Control': 'no-store' } });
+    }
+
+    if (request.method === 'HEAD') {
+        const headObj = await bucket.head(key);
+        if (!headObj) {
+            return new Response(null, { status: 404, headers: { 'Cache-Control': 'no-store' } });
+        }
+        const headers = new Headers();
+        headers.set('Content-Type', headObj.httpMetadata?.contentType || inferMimeFromMediaKey(key));
+        if (headObj.httpEtag) headers.set('ETag', headObj.httpEtag);
+        if (typeof headObj.size === 'number') headers.set('Content-Length', String(headObj.size));
+        headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+        headers.set('X-Content-Type-Options', 'nosniff');
+        headers.set('Access-Control-Allow-Origin', '*');
+        return new Response(null, { status: 200, headers });
+    }
+
+    const object = await bucket.get(key);
+    if (!object) {
+        return new Response('Not Found', { status: 404, headers: { 'Cache-Control': 'no-store' } });
+    }
+
+    const headers = new Headers();
+    if (typeof object.writeHttpMetadata === 'function') {
+        object.writeHttpMetadata(headers);
+    }
+    if (!headers.get('Content-Type')) {
+        headers.set('Content-Type', object.httpMetadata?.contentType || inferMimeFromMediaKey(key));
+    }
+    if (object.httpEtag) {
+        headers.set('ETag', object.httpEtag);
+    }
+    headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+    headers.set('X-Content-Type-Options', 'nosniff');
+    headers.set('Access-Control-Allow-Origin', '*');
+
+    const response = new Response(object.body, { status: 200, headers });
+    if (cache) {
+        const putPromise = cache.put(canonicalGetReq, response.clone());
+        if (ctx && typeof ctx.waitUntil === 'function') {
+            ctx.waitUntil(putPromise);
+        } else {
+            await putPromise;
+        }
+    }
+    return response;
+}
+
 export {
     buildHeroOgMetadata,
     escapeAttr,
     escapeText,
     formatMetaDate,
     handleGalleryHeroMeta,
+    handleMediaRequest,
     resolveMartyrForHeroParam,
     resolveWorkerOgImage,
     rewriteGalleryHtmlMeta,
@@ -402,13 +518,17 @@ export {
 };
 
 export default {
-    async fetch(request, env) {
+    async fetch(request, env, ctx) {
         const url = new URL(request.url);
         const normalizedPath = url.pathname.replace(/\/+$/, '') || '/';
         const handler = routes[normalizedPath];
 
         if (handler) {
-            return handler({ request, env });
+            return handler({ request, env, ctx });
+        }
+
+        if (normalizedPath.startsWith('/media/')) {
+            return handleMediaRequest(request, url, env, ctx);
         }
 
         if (normalizedPath.startsWith('/api/')) {

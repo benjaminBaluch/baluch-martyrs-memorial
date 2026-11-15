@@ -99,7 +99,15 @@
                 }
             }
 
-            // 3. Fallback to Netlify API
+            // 3. Fallback to Edge Archive / legacy API
+            const edgeResp = await fetch('/api/edge-archive?mode=full', { headers: { 'Accept': 'application/json' } }).catch(() => null);
+            if (edgeResp && edgeResp.ok) {
+                const edgeJson = await edgeResp.json().catch(() => null);
+                if (Array.isArray(edgeJson?.data) && edgeJson.data.length > 0) {
+                    window.allApprovedMartyrs = edgeJson.data;
+                    return window.allApprovedMartyrs;
+                }
+            }
             const resp = await fetch('/api/get-martyrs', { headers: { 'Accept': 'application/json' } });
             if (resp.ok) {
                 const apiData = await resp.json();
@@ -350,9 +358,9 @@
 
                 // Avatar
                 const initial = (m.fullName || 'B').trim().charAt(0).toUpperCase();
-                const photoSrc = m.photoRemoved ? '' : (m.photo || (m.id ? `/assets/photos/${encodeURIComponent(m.id)}.jpg` : ''));
+                const photoSrc = m.photoRemoved ? '' : (m.photoPath || m.photo || (m.id ? `/assets/photos/${encodeURIComponent(m.id)}.jpg` : ''));
                 const avatarHtml = photoSrc
-                    ? `<img src="${escapeHtml(photoSrc)}" alt="" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<span class=\\'hero-search-avatar-fallback\\'>${escapeHtml(initial)}</span>';">`
+                    ? `<img src="${escapeHtml(photoSrc)}" alt="" loading="lazy">`
                     : `<span class="hero-search-avatar-fallback">${escapeHtml(initial)}</span>`;
 
                 // Meta details
@@ -380,7 +388,7 @@
 
                 const avatarImg = card.querySelector('.hero-search-avatar img');
                 if (avatarImg) {
-                    if (!m.photoRemoved && !m.photo && m.photoUpdatedAt && m.id && typeof window.resolveMartyrPhoto === 'function') {
+                    if (!m.photoRemoved && !m.photo && !m.photoPath && m.photoUpdatedAt && m.id && typeof window.resolveMartyrPhoto === 'function') {
                         window.resolveMartyrPhoto(m.id, avatarImg);
                     }
                     avatarImg.addEventListener('error', () => {

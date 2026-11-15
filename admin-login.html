@@ -414,7 +414,7 @@
                     if (sessionData) {
                         // Silently sign into Firebase Auth (admin@baluchmartyrs.com) so Firestore server rules recognize the admin
                         try {
-                            const { signInAdminFirebase } = await import('./js/firebase-config.js?v=20261104f');
+                            const { signInAdminFirebase } = await import('./js/firebase-config.js?v=20261116a');
                             await signInAdminFirebase(password, username);
                         } catch (fbAuthErr) {
                             console.warn('⚠️ Firebase Auth bridge warning (continuing login safely):', fbAuthErr);

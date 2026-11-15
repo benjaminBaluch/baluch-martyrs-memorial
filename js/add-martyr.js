@@ -14,7 +14,7 @@ let existingMartyrs = []; // Cache of approved martyrs for duplicate detection
 async function loadFirebaseModules() {
     try {
         console.log('🌍 Attempting to load Firebase modules...');
-        const firebaseModule = await import('./firebase-config.js');
+        const firebaseModule = await import('./firebase-config.js?v=20261116a');
         firebaseDB = firebaseModule.firebaseDB;
         storageHelper = firebaseModule.storageHelper;
         firebaseAvailable = true;
@@ -1497,66 +1497,81 @@ function initFileUploads() {
     });
 }
 
-// Compress image to fit within Firestore's 1MB field limit
-// Base64 encoding adds ~33% overhead, so blob must be under ~700KB
-function compressImage(file, maxWidth = 600, maxHeight = 450, quality = 0.7) {
-    return new Promise((resolve) => {
+// Compress image to fit cleanly inside Firestore's 1 MiB limit and R2 fast portraits.
+// Base64 encoding adds ~33% overhead, so blob <= 560 KB keeps Base64 under ~750 KB.
+function compressImage(file, maxWidth = 600, maxHeight = 450, quality = 0.72) {
+    return new Promise((resolve, reject) => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            reject(new Error('Browser canvas image compression is unavailable.'));
+            return;
+        }
         const img = new Image();
-        
-        img.onload = async function() {
-            // Calculate new dimensions
-            let { width, height } = img;
-            
-            if (width > height) {
-                if (width > maxWidth) {
-                    height = (height * maxWidth) / width;
-                    width = maxWidth;
-                }
-            } else {
-                if (height > maxHeight) {
-                    width = (width * maxHeight) / height;
-                    height = maxHeight;
-                }
-            }
-            
-            canvas.width = width;
-            canvas.height = height;
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            // Progressive compression: keep reducing quality until under 700KB
-            // 700KB blob → ~930KB base64 → safely under Firestore's 1,048,487 byte limit
-            const MAX_BLOB_SIZE = 700 * 1024; // 700KB
-            let currentQuality = quality;
-            
-            const tryCompress = (q) => new Promise(res => {
-                canvas.toBlob(res, 'image/jpeg', q);
-            });
-            
-            let blob = await tryCompress(currentQuality);
-            
-            while (blob && blob.size > MAX_BLOB_SIZE && currentQuality > 0.2) {
-                currentQuality -= 0.1;
-                console.log(`🗜️ Photo still ${(blob.size/1024).toFixed(0)}KB, reducing quality to ${(currentQuality*100).toFixed(0)}%...`);
-                blob = await tryCompress(currentQuality);
-            }
-            
-            // If still too large at 20% quality, reduce dimensions further
-            if (blob && blob.size > MAX_BLOB_SIZE) {
-                const scale = 0.6;
-                canvas.width = width * scale;
-                canvas.height = height * scale;
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                blob = await tryCompress(0.5);
-                console.log(`🗜️ Reduced dimensions to ${canvas.width.toFixed(0)}×${canvas.height.toFixed(0)} at 50% quality`);
-            }
-            
-            console.log(`✅ Final photo: ${(blob.size/1024).toFixed(0)}KB at ${(currentQuality*100).toFixed(0)}% quality`);
-            resolve(blob);
+        const objectUrl = URL.createObjectURL(file);
+
+        img.onerror = function() {
+            URL.revokeObjectURL(objectUrl);
+            reject(new Error('Could not decode the selected image file.'));
         };
-        
-        img.src = URL.createObjectURL(file);
+
+        img.onload = async function() {
+            URL.revokeObjectURL(objectUrl);
+            try {
+                let { width, height } = img;
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height = (height * maxWidth) / width;
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width = (width * maxHeight) / height;
+                        height = maxHeight;
+                    }
+                }
+
+                canvas.width = Math.max(1, Math.round(width));
+                canvas.height = Math.max(1, Math.round(height));
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                const MAX_BLOB_SIZE = 560 * 1024; // ~746 KB base64
+                const tryCompress = (q) => new Promise((res) => {
+                    canvas.toBlob(res, 'image/jpeg', q);
+                });
+
+                let currentQuality = quality;
+                let blob = await tryCompress(currentQuality);
+                while (blob && blob.size > MAX_BLOB_SIZE && currentQuality > 0.25) {
+                    currentQuality = Math.max(0.2, currentQuality - 0.12);
+                    blob = await tryCompress(currentQuality);
+                }
+
+                let scalePass = 0;
+                while (blob && blob.size > MAX_BLOB_SIZE && scalePass < 3) {
+                    scalePass++;
+                    canvas.width = Math.max(64, Math.round(canvas.width * 0.72));
+                    canvas.height = Math.max(64, Math.round(canvas.height * 0.72));
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    blob = await tryCompress(0.5);
+                }
+
+                if (!blob) {
+                    reject(new Error('Image compression produced empty output.'));
+                    return;
+                }
+                console.log(`✅ Final photo: ${(blob.size / 1024).toFixed(0)}KB (${canvas.width}x${canvas.height})`);
+                resolve(blob);
+            } catch (err) {
+                reject(err);
+            }
+        };
+
+        img.src = objectUrl;
     });
 }
 

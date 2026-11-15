@@ -15,6 +15,9 @@ function escapeHTML(value) {
 
 function getMartyrPhotoSrcGallery(martyr) {
     if (!martyr || martyr.photoRemoved === true) return '';
+    if (martyr.photoPath && typeof martyr.photoPath === 'string' && martyr.photoPath.trim().length > 0) {
+        return martyr.photoPath.trim();
+    }
     if (martyr.photo && typeof martyr.photo === 'string' && martyr.photo.trim().length > 0) {
         return martyr.photo.trim();
     }
@@ -1926,7 +1929,7 @@ function showMartyrModal(martyr, navList, options = {}) {
     `;
     
     const modalImg = content.querySelector('.martyr-modal-photo');
-    if (modalImg && !martyr.photoRemoved && !martyr.photo && martyr.photoUpdatedAt && martyr.id && typeof window.resolveMartyrPhoto === 'function') {
+    if (modalImg && !martyr.photoRemoved && !martyr.photo && !martyr.photoPath && martyr.photoUpdatedAt && martyr.id && typeof window.resolveMartyrPhoto === 'function') {
         window.resolveMartyrPhoto(martyr.id, modalImg);
     }
 
@@ -2225,7 +2228,7 @@ function createGalleryCard(martyr, index = 99) {
                 renderPlaceholder();
             }
         };
-        if (martyr.id && !martyr.photoRemoved && !martyr.photo && martyr.photoUpdatedAt && typeof window.resolveMartyrPhoto === 'function') {
+        if (martyr.id && !martyr.photoRemoved && !martyr.photo && !martyr.photoPath && martyr.photoUpdatedAt && typeof window.resolveMartyrPhoto === 'function') {
             window.resolveMartyrPhoto(martyr.id, img);
         }
         photoWrapper.appendChild(img);

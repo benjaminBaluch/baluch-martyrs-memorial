@@ -14,11 +14,14 @@ let cachedPendingMartyrs = [];
 
 function getSafeAdminPhotoSrc(martyr, allowStaticAsset = true) {
     if (!martyr || martyr.photoRemoved === true) return '';
-    if (typeof martyr.photo === 'string') {
-        const trimmed = martyr.photo.trim();
+    const candidates = [martyr.photoPath, martyr.photo];
+    for (const candidate of candidates) {
+        if (typeof candidate !== 'string') continue;
+        const trimmed = candidate.trim();
         if (
             trimmed.startsWith('data:image/') ||
             trimmed.startsWith('https://') ||
+            trimmed.startsWith('/media/') ||
             trimmed.startsWith('/assets/photos/')
         ) {
             return trimmed;
@@ -80,16 +83,17 @@ function compressImageForAdmin(file, maxWidth = 600, maxHeight = 450, quality = 
 
                 let currentQuality = quality;
                 let dataUrl = canvas.toDataURL('image/jpeg', currentQuality);
-                const maxDataUriBytes = 700 * 1024;
+                const maxDataUriBytes = 740 * 1024;
                 while (dataUrl.length > maxDataUriBytes && currentQuality > 0.25) {
                     currentQuality -= 0.1;
                     dataUrl = canvas.toDataURL('image/jpeg', currentQuality);
                 }
 
-                if (dataUrl.length > 900 * 1024) {
-                    const scale = 0.7;
-                    canvas.width = Math.max(1, Math.round(width * scale));
-                    canvas.height = Math.max(1, Math.round(height * scale));
+                let scalePass = 0;
+                while (dataUrl.length > maxDataUriBytes && scalePass < 4) {
+                    scalePass++;
+                    canvas.width = Math.max(64, Math.round(canvas.width * 0.72));
+                    canvas.height = Math.max(64, Math.round(canvas.height * 0.72));
                     ctx.fillStyle = '#ffffff';
                     ctx.fillRect(0, 0, canvas.width, canvas.height);
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -649,7 +653,7 @@ async function attemptFirebaseReconnection() {
     console.log('🔄 Attempting Firebase reconnection...');
     try {
         // Try to reimport Firebase module
-        const firebaseModule = await import('./firebase-config.js?v=20261115b');
+        const firebaseModule = await import('./firebase-config.js?v=20261116a');
         window.firebaseDB = firebaseModule.firebaseDB;
         
         // Test the connection
@@ -761,6 +765,13 @@ function initializeAdminControls() {
         approveAllBtn.addEventListener('click', approveAllPending);
         console.log('✅ Approve All Pending button event listener added');
     }
+
+    // Edge D1 + R2 Status & 1-Click Sync button
+    const syncEdgeBtn = document.getElementById('syncEdgeArchiveBtn');
+    if (syncEdgeBtn) {
+        syncEdgeBtn.addEventListener('click', handleSyncEdgeArchive);
+    }
+    refreshEdgeArchiveBanner();
     
     console.log('✅ Admin control buttons initialization completed');
     
@@ -770,6 +781,7 @@ function initializeAdminControls() {
     window.importData = importData;
     window.clearAllPending = clearAllPending;
     window.approveAllPending = approveAllPending;
+    window.handleSyncEdgeArchive = handleSyncEdgeArchive;
     window.loadPendingSubmissions = loadPendingSubmissions;
     window.loadApprovedMartyrs = loadApprovedMartyrs;
     window.showAdminToast = showAdminToast;
@@ -778,6 +790,81 @@ function initializeAdminControls() {
     // Initialize pending & approved search/filter controls
     initPendingSearch();
     initApprovedSearch();
+}
+
+async function refreshEdgeArchiveBanner() {
+    const banner = document.getElementById('edgeInfraBanner');
+    const textEl = document.getElementById('edgeInfraBannerText');
+    const pillEl = document.getElementById('edgeInfraPill');
+    if (!banner || !textEl || !window.firebaseDB?.getEdgeArchiveStatus) return;
+
+    const status = await window.firebaseDB.getEdgeArchiveStatus();
+    if (!status || !status.success) {
+        banner.style.display = 'none';
+        return;
+    }
+
+    banner.style.display = 'flex';
+    const d1Label = status.d1Bound
+        ? `D1 Edge DB: Active (${status.d1ApprovedCount || 0} profiles)`
+        : 'D1 Edge DB: Pending binding';
+    const r2Label = status.r2Bound
+        ? `R2 Photo Shelf: Active (${status.activeMediaShard || 's1'}, ${status.d1MediaPathCount || 0} portraits)`
+        : 'R2 Photo Shelf: Pending binding';
+
+    if (pillEl) {
+        pillEl.textContent = (status.d1Bound && status.r2Bound)
+            ? '9.5/10 Edge Active'
+            : (status.d1Bound || status.r2Bound ? 'Partial Edge' : 'Setup Ready');
+        pillEl.style.background = (status.d1Bound && status.r2Bound)
+            ? 'rgba(16, 185, 129, 0.14)'
+            : 'rgba(245, 158, 11, 0.14)';
+        pillEl.style.color = (status.d1Bound && status.r2Bound) ? '#047857' : '#92400e';
+    }
+    textEl.textContent = `${d1Label} • ${r2Label}`;
+}
+
+async function handleSyncEdgeArchive() {
+    const syncBtn = document.getElementById('syncEdgeArchiveBtn');
+    const textEl = document.getElementById('edgeInfraBannerText');
+    const banner = document.getElementById('edgeInfraBanner');
+    if (!window.firebaseDB?.syncAllToEdgeArchive) {
+        showAdminToast('Edge sync function unavailable.', 'error');
+        return;
+    }
+    if (!validateAdminAuth('sync archive to edge')) return;
+
+    const originalHtml = syncBtn ? syncBtn.innerHTML : '';
+    if (syncBtn) {
+        syncBtn.disabled = true;
+        syncBtn.textContent = 'Syncing Edge...';
+    }
+    if (banner) banner.style.display = 'flex';
+    if (textEl) textEl.textContent = 'Checking Cloudflare D1 + R2 readiness and reading Firestore...';
+
+    try {
+        const res = await window.firebaseDB.syncAllToEdgeArchive((progress) => {
+            if (textEl && progress?.message) {
+                textEl.textContent = progress.message;
+            }
+        });
+        if (!res.success) {
+            showAdminToast(res.error || 'Edge sync failed.', 'error');
+            if (textEl) textEl.textContent = `Edge sync error: ${res.error || 'unknown error'}`;
+            return;
+        }
+        await refreshEdgeArchiveBanner();
+        await loadApprovedMartyrs();
+        const summary = `Synced ${res.totalRecords} records${res.d1Bound ? ` (D1: ${res.d1Written})` : ''}${res.r2Bound ? ` • Uploaded ${res.r2Uploaded} portraits to R2` : ''}`;
+        showAdminToast(summary, 'success');
+    } catch (err) {
+        showAdminToast(err?.message || 'Edge sync failed.', 'error');
+    } finally {
+        if (syncBtn) {
+            syncBtn.disabled = false;
+            syncBtn.innerHTML = originalHtml;
+        }
+    }
 }
 
 // Helper to show/hide and update the "Approve All Pending" button state
@@ -2498,7 +2585,7 @@ function createApprovedMartyrItem(martyr) {
                 ${(() => {
                     const approvedPhoto = getSafeAdminPhotoSrc(martyr, true);
                     return approvedPhoto ? 
-                        `<img src="${escapeHTML(approvedPhoto)}" alt="${escapeHTML(martyr.fullName)}" loading="lazy" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'pending-no-photo\\'><span>No Photo</span></div>';">` :
+                        `<img src="${escapeHTML(approvedPhoto)}" alt="${escapeHTML(martyr.fullName)}" loading="lazy">` :
                         `<div class="pending-no-photo">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                             <span>No Photo</span>
@@ -2577,20 +2664,36 @@ function createApprovedMartyrItem(martyr) {
         </div>
     `;
 
-    // Resolve updated Firestore photo when REST metadata omitted inline Base64
+    // Resolve updated Firestore photo when REST/Edge metadata omitted inline Base64
     const approvedImg = item.querySelector('.pending-image img');
-    if (
-        approvedImg &&
-        !martyr.photoRemoved &&
-        !martyr.photo &&
-        martyr.photoUpdatedAt &&
-        typeof window.resolveMartyrPhoto === 'function'
-    ) {
-        window.resolveMartyrPhoto(martyr.id, approvedImg, () => {
+    if (approvedImg) {
+        const showNoPhotoFallback = () => {
             if (approvedImg.parentElement) {
                 approvedImg.parentElement.innerHTML = '<div class="pending-no-photo"><span>No Photo</span></div>';
             }
-        });
+        };
+        approvedImg.addEventListener('error', () => {
+            if (
+                !martyr.photoRemoved &&
+                martyr.id &&
+                approvedImg.src.includes('/assets/photos/') &&
+                typeof window.resolveMartyrPhoto === 'function'
+            ) {
+                window.resolveMartyrPhoto(martyr.id, approvedImg, showNoPhotoFallback);
+            } else {
+                showNoPhotoFallback();
+            }
+        }, { once: true });
+
+        if (
+            !martyr.photoRemoved &&
+            !martyr.photo &&
+            !martyr.photoPath &&
+            martyr.photoUpdatedAt &&
+            typeof window.resolveMartyrPhoto === 'function'
+        ) {
+            window.resolveMartyrPhoto(martyr.id, approvedImg, showNoPhotoFallback);
+        }
     }
     
     // Add event listener to edit button
@@ -2703,6 +2806,7 @@ function isValidOptionalPhotoUrl(value) {
     if (!trimmed) return false;
     return (
         /^https:\/\/\S+$/i.test(trimmed) ||
+        /^\/media\/[A-Za-z0-9_-]{1,16}\/[A-Za-z0-9._-]{1,160}$/i.test(trimmed) ||
         /^\/assets\/photos\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/i.test(trimmed)
     );
 }
@@ -3001,7 +3105,7 @@ function openEditMartyrModal(martyr, options = {}) {
     photoApplyUrlBtn.addEventListener('click', () => {
         const rawUrl = photoUrlInput.value.trim();
         if (!isValidOptionalPhotoUrl(rawUrl)) {
-            setFieldError(photoUrlInput, 'editPhotoError', 'Enter a valid https:// URL or /assets/photos/<file> path.');
+            setFieldError(photoUrlInput, 'editPhotoError', 'Enter a valid https:// URL, /media/<shard>/<file>, or /assets/photos/<file> path.');
             return;
         }
         clearFieldError(photoUrlInput, 'editPhotoError');
@@ -3104,7 +3208,7 @@ function openEditMartyrModal(martyr, options = {}) {
         }
         const pendingUrl = photoUrlInput.value.trim();
         if (pendingUrl && editPhotoState.value !== pendingUrl && !isValidOptionalPhotoUrl(pendingUrl)) {
-            setFieldError(photoUrlInput, 'editPhotoError', 'Enter a valid https:// URL or /assets/photos/<file> path.');
+            setFieldError(photoUrlInput, 'editPhotoError', 'Enter a valid https:// URL, /media/<shard>/<file>, or /assets/photos/<file> path.');
             valid = false;
         }
         return valid;

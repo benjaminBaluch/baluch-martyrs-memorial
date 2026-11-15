@@ -12,7 +12,8 @@ const PHOTOS_DIR = join(process.cwd(), 'assets', 'photos');
 
 const PUBLIC_FIELDS = [
     'id', 'fullName', 'fatherName', 'birthDate', 'birthPlace', 'martyrdomDate',
-    'martyrdomPlace', 'biography', 'organization', 'rank', 'familyDetails',
+    'martyrdomPlace', 'biography', 'organization', 'affiliation', 'rank', 'familyDetails',
+    'photoPath', 'photoHash', 'photoShard', 'photoRemoved', 'hasPhoto',
     'submittedAt', 'approvedAt', 'updatedAt', 'status'
 ];
 
@@ -123,9 +124,17 @@ async function main() {
         pageToken = page.nextPageToken || '';
     } while (pageToken);
 
-    // Ensure static photos exist for all approved martyrs
+    // Ensure static photos exist for all non-R2 approved martyrs
     let downloadedPhotos = 0;
     for (const m of martyrs) {
+        if (m.photoRemoved) {
+            m.hasPhoto = false;
+            continue;
+        }
+        if (m.photoPath && String(m.photoPath).startsWith('/media/')) {
+            m.hasPhoto = true;
+            continue;
+        }
         const photoPath = join(PHOTOS_DIR, `${m.id}.jpg`);
         if (!existsSync(photoPath)) {
             const saved = await fetchAndSaveMissingPhoto(m.id);

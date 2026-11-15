@@ -300,8 +300,8 @@ function initCopyrightYear() {
 // Zero-dependency Instant IndexedDB Archive Reader (allows instant ~25ms rendering before CDN modules finish loading)
 const BMM_IDB_NAME = 'bmm_memorial_archive_db';
 const BMM_IDB_STORE = 'martyrs_cache';
-const BMM_IDB_KEY = 'approved_martyrs_v3';
-const BMM_LEGACY_IDB_KEYS = ['approved_martyrs_v2', 'approved_martyrs_v1'];
+const BMM_IDB_KEY = 'approved_martyrs_v4';
+const BMM_LEGACY_IDB_KEYS = ['approved_martyrs_v3', 'approved_martyrs_v2', 'approved_martyrs_v1'];
 
 function rehydrateCachedValueMain(val) {
     if (!val || typeof val !== 'object') return val;
@@ -328,6 +328,9 @@ function rehydrateCachedValueMain(val) {
 
 function getMartyrPhotoSrcMain(martyr) {
     if (!martyr || martyr.photoRemoved === true) return '';
+    if (martyr.photoPath && typeof martyr.photoPath === 'string' && martyr.photoPath.trim().length > 0) {
+        return martyr.photoPath.trim();
+    }
     if (martyr.photo && typeof martyr.photo === 'string' && martyr.photo.trim().length > 0) {
         return martyr.photo.trim();
     }
@@ -394,53 +397,68 @@ window.bmmInstantCache = {
                 return idbMartyrs;
             }
 
-            // 2. Cold cache / First-time visitor: Load pre-generated instant seed archive (~100ms)
-            try {
-                const resp = await fetch('/assets/martyrs-seed.json', {
-                    headers: { 'Accept': 'application/json' },
-                    cache: 'default'
-                });
-                if (resp.ok) {
+            // 2. Cold cache / First-time visitor: Try Edge Archive (/api/edge-archive: D1/Cache) first, then static seed
+            const fetchBootstrapArchive = async (url) => {
+                const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+                const timer = controller ? setTimeout(() => controller.abort(), 4000) : null;
+                try {
+                    const resp = await fetch(url, {
+                        headers: { 'Accept': 'application/json' },
+                        cache: 'default',
+                        signal: controller ? controller.signal : undefined
+                    });
+                    if (!resp.ok) return null;
                     const record = await resp.json();
-                    if (record && Array.isArray(record.data) && record.data.length > 0) {
-                        const rehydrated = record.data.map(rehydrateCachedValueMain);
-                        if (!window.allApprovedMartyrs || window.allApprovedMartyrs.length === 0) {
-                            window.allApprovedMartyrs = rehydrated;
-                        }
-                        // Seed IndexedDB asynchronously preserving seed watermark so subsequent reads take ~15ms and delta sync catches new profiles
-                        if (typeof indexedDB !== 'undefined') {
-                            try {
-                                const maxAppMs = record.maxApprovedMs || record.syncedAt || Date.now();
-                                const maxUpdMs = record.maxUpdatedMs || maxAppMs;
-                                const syncedMs = record.syncedAt || maxUpdMs;
-                                const seedRecord = {
-                                    ...record,
-                                    maxApprovedMs: maxAppMs,
-                                    maxUpdatedMs: maxUpdMs,
-                                    syncedAt: syncedMs,
-                                    fullSyncAt: record.fullSyncAt || syncedMs
-                                };
-                                const seedReq = indexedDB.open(BMM_IDB_NAME, 1);
-                                seedReq.onsuccess = (e) => {
-                                    try {
-                                        const db = e.target.result;
-                                        const tx = db.transaction(BMM_IDB_STORE, 'readwrite');
-                                        const store = tx.objectStore(BMM_IDB_STORE);
-                                        for (const legacyKey of BMM_LEGACY_IDB_KEYS) {
-                                            try { store.delete(legacyKey); } catch (_) {}
-                                        }
-                                        store.put(seedRecord, BMM_IDB_KEY);
-                                        tx.oncomplete = () => db.close();
-                                        tx.onerror = () => db.close();
-                                    } catch (_) {}
-                                };
-                            } catch (_) {}
-                        }
-                        return rehydrated;
+                    if (!record || !Array.isArray(record.data) || record.data.length === 0) return null;
+                    return record;
+                } catch {
+                    return null;
+                } finally {
+                    if (timer) clearTimeout(timer);
+                }
+            };
+
+            try {
+                const record = (await fetchBootstrapArchive('/api/edge-archive?mode=full')) ||
+                               (await fetchBootstrapArchive('/assets/martyrs-seed.json'));
+                if (record && Array.isArray(record.data) && record.data.length > 0) {
+                    const rehydrated = record.data.map(rehydrateCachedValueMain);
+                    if (!window.allApprovedMartyrs || window.allApprovedMartyrs.length === 0) {
+                        window.allApprovedMartyrs = rehydrated;
                     }
+                    // Seed IndexedDB asynchronously preserving actual server watermarks
+                    if (typeof indexedDB !== 'undefined') {
+                        try {
+                            const maxAppMs = record.maxApprovedMs || record.syncedAt || Date.now();
+                            const maxUpdMs = record.maxUpdatedMs || maxAppMs;
+                            const syncedMs = record.syncedAt || maxUpdMs;
+                            const seedRecord = {
+                                ...record,
+                                maxApprovedMs: maxAppMs,
+                                maxUpdatedMs: maxUpdMs,
+                                syncedAt: syncedMs,
+                                fullSyncAt: record.fullSyncAt || syncedMs
+                            };
+                            const seedReq = indexedDB.open(BMM_IDB_NAME, 1);
+                            seedReq.onsuccess = (e) => {
+                                try {
+                                    const db = e.target.result;
+                                    const tx = db.transaction(BMM_IDB_STORE, 'readwrite');
+                                    const store = tx.objectStore(BMM_IDB_STORE);
+                                    for (const legacyKey of BMM_LEGACY_IDB_KEYS) {
+                                        try { store.delete(legacyKey); } catch (_) {}
+                                    }
+                                    store.put(seedRecord, BMM_IDB_KEY);
+                                    tx.oncomplete = () => db.close();
+                                    tx.onerror = () => db.close();
+                                } catch (_) {}
+                            };
+                        } catch (_) {}
+                    }
+                    return rehydrated;
                 }
             } catch (seedErr) {
-                console.warn('⚠️ Seed archive fetch skipped/failed:', seedErr);
+                console.warn('⚠️ Cold archive fetch skipped/failed:', seedErr);
             }
 
             return null;
@@ -453,7 +471,7 @@ window.bmmInstantCache = {
 
 // Initialize Firebase if not already available
 if (!window.firebaseDB) {
-    import('./firebase-config.js?v=20261111a').then(async (module) => {
+    import('./firebase-config.js?v=20261116a').then(async (module) => {
         window.firebaseDB = module.firebaseDB;
         console.log('🔥 Firebase loaded globally from main.js');
         
@@ -931,7 +949,7 @@ function createMartyrCard(martyr, list) {
                 renderPlaceholder();
             }
         };
-        if (martyr.id && !martyr.photoRemoved && !martyr.photo && martyr.photoUpdatedAt && typeof window.resolveMartyrPhoto === 'function') {
+        if (martyr.id && !martyr.photoRemoved && !martyr.photo && !martyr.photoPath && martyr.photoUpdatedAt && typeof window.resolveMartyrPhoto === 'function') {
             window.resolveMartyrPhoto(martyr.id, img);
         }
         photoWrapper.appendChild(img);
@@ -1247,7 +1265,7 @@ function showMartyrDetails(martyr, list) {
     `;
     
     const modalImg = content.querySelector('.martyr-modal-photo');
-    if (modalImg && !martyr.photoRemoved && !martyr.photo && martyr.photoUpdatedAt && martyr.id && typeof window.resolveMartyrPhoto === 'function') {
+    if (modalImg && !martyr.photoRemoved && !martyr.photo && !martyr.photoPath && martyr.photoUpdatedAt && martyr.id && typeof window.resolveMartyrPhoto === 'function') {
         window.resolveMartyrPhoto(martyr.id, modalImg);
     }
 

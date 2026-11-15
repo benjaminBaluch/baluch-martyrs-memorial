@@ -10,12 +10,14 @@ import {
     persistentMultipleTabManager,
     collection, 
     addDoc, 
+    setDoc,
     getDoc,
     getDocs,
     getCountFromServer,
     doc, 
     updateDoc, 
     deleteDoc,
+    writeBatch,
     query,
     where,
     orderBy,
@@ -68,8 +70,8 @@ try {
 
 const IDB_DB_NAME = 'bmm_memorial_archive_db';
 const IDB_STORE_NAME = 'martyrs_cache';
-const IDB_CACHE_KEY = 'approved_martyrs_v3';
-const LEGACY_IDB_CACHE_KEYS = ['approved_martyrs_v2', 'approved_martyrs_v1'];
+const IDB_CACHE_KEY = 'approved_martyrs_v4';
+const LEGACY_IDB_CACHE_KEYS = ['approved_martyrs_v3', 'approved_martyrs_v2', 'approved_martyrs_v1'];
 const FULL_REVALIDATE_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const CLOCK_SKEW_BUFFER_MS = 2 * 60 * 1000; // 2-minute safety window for delta queries
 const MAX_INLINE_DELTA_PHOTOS = 12; // Cap inline Base64 photos kept in IDB cache
@@ -77,7 +79,8 @@ const MAX_INLINE_DELTA_PHOTOS = 12; // Cap inline Base64 photos kept in IDB cach
 const PUBLIC_METADATA_FIELDS = [
     'id', 'fullName', 'fatherName', 'birthDate', 'birthPlace', 'martyrdomDate',
     'martyrdomPlace', 'biography', 'organization', 'affiliation', 'rank', 'familyDetails',
-    'submittedAt', 'approvedAt', 'updatedAt', 'photoUpdatedAt', 'photoRemoved', 'status'
+    'photoPath', 'photoHash', 'photoShard', 'hasPhoto',
+    'submittedAt', 'approvedAt', 'updatedAt', 'photoUpdatedAt', 'photoRemoved', 'deletedAt', 'status'
 ];
 
 const ADMIN_METADATA_FIELDS = [
@@ -154,7 +157,7 @@ export async function resolveMartyrPhoto(martyrId, imgElement = null, onNoPhotoF
     if (!fetchPromise) {
         fetchPromise = (async () => {
             try {
-                const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/martyrs/${encodeURIComponent(martyrId)}?mask.fieldPaths=photo&mask.fieldPaths=photoRemoved&key=${firebaseConfig.apiKey}`;
+                const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/martyrs/${encodeURIComponent(martyrId)}?mask.fieldPaths=photo&mask.fieldPaths=photoPath&mask.fieldPaths=photoRemoved&key=${firebaseConfig.apiKey}`;
                 const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
                 if (!res.ok) {
                     photoMemoryCache.set(martyrId, '');
@@ -162,29 +165,37 @@ export async function resolveMartyrPhoto(martyrId, imgElement = null, onNoPhotoF
                 }
                 const docJson = await res.json();
                 const isRemoved = Boolean(docJson?.fields?.photoRemoved?.booleanValue);
-                const rawPhoto = docJson?.fields?.photo?.stringValue || '';
-                const photoStr = typeof rawPhoto === 'string' ? rawPhoto.trim() : '';
-                const isSupportedPhoto = Boolean(
-                    photoStr &&
-                    (photoStr.startsWith('data:image/') || /^https:\/\//i.test(photoStr) || /^\/assets\/photos\//.test(photoStr))
+                const rawPath = (docJson?.fields?.photoPath?.stringValue || '').trim();
+                const rawPhoto = (docJson?.fields?.photo?.stringValue || '').trim();
+                const isSupported = (val) => Boolean(
+                    val &&
+                    (val.startsWith('data:image/') ||
+                     /^https:\/\//i.test(val) ||
+                     /^\/assets\/photos\//.test(val) ||
+                     /^\/media\/[A-Za-z0-9_-]+\/[A-Za-z0-9._-]+$/i.test(val))
                 );
-                if (!isRemoved && isSupportedPhoto) {
-                    photoMemoryCache.set(martyrId, photoStr);
+                const chosen = !isRemoved
+                    ? (isSupported(rawPath) ? rawPath : (isSupported(rawPhoto) ? rawPhoto : ''))
+                    : '';
+                if (chosen) {
+                    photoMemoryCache.set(martyrId, chosen);
                     // Also attach to in-memory martyr object if present
                     if (memoryCache && Array.isArray(memoryCache.data)) {
                         const found = memoryCache.data.find(m => m && m.id === martyrId);
                         if (found) {
-                            found.photo = photoStr;
+                            found.photo = chosen;
+                            if (isSupported(rawPath)) found.photoPath = rawPath;
                             found.photoRemoved = false;
                         }
                     }
-                    return photoStr;
+                    return chosen;
                 }
                 photoMemoryCache.set(martyrId, '');
                 if (memoryCache && Array.isArray(memoryCache.data)) {
                     const found = memoryCache.data.find(m => m && m.id === martyrId);
                     if (found) {
                         found.photo = '';
+                        found.photoPath = '';
                         if (isRemoved) found.photoRemoved = true;
                     }
                 }
@@ -369,6 +380,44 @@ async function readMartyrsFromIDB() {
     } catch (err) {
         console.warn('⚠️ IndexedDB cache read skipped:', err.message);
         return null;
+    }
+}
+
+async function readMartyrsFromEdgeArchive(fresh = false) {
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), 5000) : null;
+    try {
+        const endpoint = fresh ? '/api/edge-archive?mode=full&fresh=1' : '/api/edge-archive?mode=full';
+        const resp = await fetch(endpoint, {
+            headers: { 'Accept': 'application/json' },
+            cache: fresh ? 'no-store' : 'default',
+            signal: controller ? controller.signal : undefined
+        });
+        if (!resp.ok) return null;
+        const record = await resp.json();
+        if (!record || !Array.isArray(record.data) || record.data.length === 0) {
+            return null;
+        }
+        const rehydrated = record.data.map(rehydrateFieldFromIDB);
+        const maxApprovedMs = record.maxApprovedMs || record.syncedAt || Date.now();
+        const maxUpdatedMs = record.maxUpdatedMs || record.maxApprovedMs || record.syncedAt || Date.now();
+        const syncedAtMs = record.syncedAt || maxUpdatedMs;
+        return {
+            data: rehydrated,
+            rawCollectionSize: typeof record.rawCollectionSize === 'number' ? record.rawCollectionSize : rehydrated.length,
+            maxApprovedMs,
+            maxUpdatedMs,
+            serverWatermarkMs: maxUpdatedMs,
+            syncedAt: syncedAtMs,
+            fullSyncAt: syncedAtMs,
+            edgeMode: record.edgeMode || 'edge',
+            fromEdge: true
+        };
+    } catch (err) {
+        console.warn('⚠️ Edge archive bootstrap skipped:', err.message);
+        return null;
+    } finally {
+        if (timeoutId) clearTimeout(timeoutId);
     }
 }
 
@@ -574,7 +623,7 @@ async function fetchApprovedMartyrsFromFirestore(existingMartyrsList = null, opt
                 const parsed = parseFirestoreRestFields(docObj.fields || {});
                 if (!parsed.status || parsed.status === 'approved') {
                     const docId = docObj.name.split('/').pop();
-                    const cachedPhoto = parsed.photoRemoved ? '' : (photoMemoryCache.get(docId) || existingPhotoById.get(docId));
+                    const cachedPhoto = parsed.photoRemoved ? '' : (parsed.photoPath || photoMemoryCache.get(docId) || existingPhotoById.get(docId));
                     const martyrEntry = {
                         ...parsed,
                         id: docId,
@@ -614,8 +663,107 @@ async function fetchApprovedMartyrsFromFirestore(existingMartyrsList = null, opt
     };
 }
 
-// Phase 2: Background Delta Sync + Server Count Verification
-// Checks Firebase for any newly approved, edited, or deleted profiles since cache was saved.
+// Phase 2: Background Delta Sync (Edge D1/Cache Cursor first -> Firestore SDK fallback)
+// Checks for newly approved, edited, or soft-deleted (tombstone) profiles since cache watermark.
+async function syncWithEdgeArchiveDelta(cachedEntry) {
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), 5000) : null;
+    try {
+        const now = Date.now();
+        const sinceMs = Math.max(
+            1700000000000,
+            (cachedEntry.maxUpdatedMs || cachedEntry.maxApprovedMs || cachedEntry.syncedAt || now) - CLOCK_SKEW_BUFFER_MS
+        );
+        const resp = await fetch(`/api/edge-archive?since=${sinceMs}`, {
+            headers: { 'Accept': 'application/json' },
+            cache: 'no-store',
+            signal: controller ? controller.signal : undefined
+        });
+        if (!resp.ok) return null;
+        const delta = await resp.json();
+        if (!delta || !delta.success || delta.mode !== 'delta') return null;
+
+        const updates = Array.isArray(delta.updates) ? delta.updates.map(rehydrateFieldFromIDB) : [];
+        const deletedSet = new Set(Array.isArray(delta.deletedIds) ? delta.deletedIds : []);
+
+        const byId = new Map();
+        for (const item of cachedEntry.data) {
+            if (item && item.id) byId.set(item.id, item);
+        }
+
+        let changed = false;
+        for (const delId of deletedSet) {
+            if (byId.delete(delId)) {
+                photoMemoryCache.set(delId, '');
+                changed = true;
+            }
+        }
+
+        for (const item of updates) {
+            if (!item || !item.id) continue;
+            if (item.photoRemoved) {
+                photoMemoryCache.set(item.id, '');
+            } else if (item.photoPath) {
+                photoMemoryCache.set(item.id, item.photoPath);
+            }
+            const prev = byId.get(item.id);
+            const nextUpdated = toMillisSafe(item.updatedAt) || toMillisSafe(item.approvedAt);
+            const prevUpdated = prev ? (toMillisSafe(prev.updatedAt) || toMillisSafe(prev.approvedAt)) : -1;
+            if (!prev || nextUpdated !== prevUpdated || item.photoPath !== prev.photoPath || item.fullName !== prev.fullName || item.biography !== prev.biography || Boolean(item.photoRemoved) !== Boolean(prev.photoRemoved)) {
+                // Preserve in-memory base64 photo only if same photo version and not removed
+                const preservedPhoto = !item.photoRemoved && !item.photoPath && !item.photo && prev?.photo && prev.photo.startsWith('data:image/')
+                    ? prev.photo
+                    : item.photo;
+                byId.set(item.id, preservedPhoto ? { ...item, photo: preservedPhoto } : item);
+                changed = true;
+            }
+        }
+
+        const merged = [...byId.values()];
+        const countMismatch = typeof delta.totalCount === 'number' && delta.totalCount > 0 && delta.totalCount !== merged.length;
+
+        if (delta.hasMore || countMismatch) {
+            console.log(`🔄 Edge archive reconcile (${merged.length} → ${delta.totalCount}); loading full edge snapshot...`);
+            const fresh = await readMartyrsFromEdgeArchive(true);
+            if (fresh && fresh.data.length > 0) {
+                await writeMartyrsToIDB(fresh.data, fresh.rawCollectionSize, true, {
+                    maxApprovedMs: fresh.maxApprovedMs,
+                    maxUpdatedMs: fresh.maxUpdatedMs,
+                    syncedAt: Date.now()
+                });
+                broadcastMartyrsUpdate(fresh.data, 'edge-full-reconcile');
+                return { success: true, data: fresh.data };
+            }
+        }
+
+        if (changed) {
+            merged.sort((a, b) => {
+                const idA = String(a?.id || '');
+                const idB = String(b?.id || '');
+                return idA < idB ? -1 : (idA > idB ? 1 : 0);
+            });
+            console.log(`✨ Edge delta sync (${delta.edgeMode || 'edge'}): ${updates.length} updates, ${deletedSet.size} tombstones (Total: ${merged.length})`);
+            await writeMartyrsToIDB(merged, delta.totalCount || merged.length, false, {
+                maxApprovedMs: delta.maxApprovedMs || cachedEntry.maxApprovedMs,
+                maxUpdatedMs: delta.maxUpdatedMs || Date.now(),
+                syncedAt: Date.now()
+            });
+            broadcastMartyrsUpdate(merged, 'edge-delta-sync');
+        } else if (memoryCache) {
+            memoryCache.syncedAt = Date.now();
+            if (delta.maxUpdatedMs && delta.maxUpdatedMs > (memoryCache.maxUpdatedMs || 0)) {
+                memoryCache.maxUpdatedMs = delta.maxUpdatedMs;
+            }
+        }
+
+        return { success: true, data: merged };
+    } catch (_) {
+        return null;
+    } finally {
+        if (timeoutId) clearTimeout(timeoutId);
+    }
+}
+
 function syncWithFirebaseInBackground(cachedEntry) {
     if (backgroundSyncPromise) return backgroundSyncPromise;
     if (!cachedEntry || !Array.isArray(cachedEntry.data) || cachedEntry.data.length === 0) {
@@ -624,6 +772,12 @@ function syncWithFirebaseInBackground(cachedEntry) {
 
     backgroundSyncPromise = (async () => {
         try {
+            // Prefer Cloudflare D1 / Edge Archive delta endpoint (0 public Firestore reads)
+            const edgeResult = await syncWithEdgeArchiveDelta(cachedEntry);
+            if (edgeResult && edgeResult.success) {
+                return edgeResult;
+            }
+
             const now = Date.now();
             const baseWatermarkMs = Math.max(1700000000000, (cachedEntry.syncedAt || now) - CLOCK_SKEW_BUFFER_MS);
             const sinceApprovedMs = Math.max(1700000000000, (cachedEntry.maxApprovedMs || baseWatermarkMs) - CLOCK_SKEW_BUFFER_MS);
@@ -966,6 +1120,31 @@ function sanitizeMartyrPayload(raw) {
     if ('photoRemoved' in cleaned) {
         cleaned.photoRemoved = Boolean(cleaned.photoRemoved);
     }
+    if ('hasPhoto' in cleaned) {
+        cleaned.hasPhoto = Boolean(cleaned.hasPhoto);
+    }
+
+    const isAllowedRelativeMedia = (p) => (
+        /^\/media\/[A-Za-z0-9_-]{1,16}\/[A-Za-z0-9._-]{1,160}$/i.test(p) ||
+        /^\/assets\/photos\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/i.test(p)
+    );
+
+    if ('photoPath' in cleaned) {
+        const p = String(cleaned.photoPath || '').trim();
+        if (!p) {
+            cleaned.photoPath = '';
+        } else if (p.length <= 512 && (isAllowedRelativeMedia(p) || /^https:\/\//i.test(p))) {
+            cleaned.photoPath = p;
+        } else {
+            throw new Error('Invalid R2 media photoPath format.');
+        }
+    }
+    if ('photoHash' in cleaned) {
+        cleaned.photoHash = String(cleaned.photoHash || '').trim().slice(0, 128);
+    }
+    if ('photoShard' in cleaned) {
+        cleaned.photoShard = String(cleaned.photoShard || '').trim().slice(0, 32);
+    }
 
     if ('photo' in cleaned) {
         if (cleaned.photo === null || cleaned.photo === undefined || String(cleaned.photo).trim() === '') {
@@ -973,13 +1152,13 @@ function sanitizeMartyrPayload(raw) {
         } else {
             const photo = String(cleaned.photo).trim();
             const isSafeDataUri = /^data:image\/(jpeg|jpg|png|gif|webp);base64,[A-Za-z0-9+/=\s]+$/i.test(photo);
-            const isSafeAssetPath = /^\/assets\/photos\/[A-Za-z0-9_-]+\.(jpg|jpeg|png|webp)$/i.test(photo);
+            const isSafeRelativePath = isAllowedRelativeMedia(photo);
             const isSafeHttpsUrl = /^https:\/\//i.test(photo);
-            if (!isSafeDataUri && !isSafeAssetPath && !isSafeHttpsUrl) {
+            if (!isSafeDataUri && !isSafeRelativePath && !isSafeHttpsUrl) {
                 throw new Error('Invalid photo format. Only JPEG, PNG, GIF, or WebP images or HTTPS URLs are allowed.');
             }
-            if (photo.length > 7 * 1024 * 1024) {
-                throw new Error('Photo data exceeds maximum allowed size (5 MB).');
+            if (isSafeDataUri && photo.length > 1040000) {
+                throw new Error('Compressed photo exceeds Firestore 1 MB document limit. Please pick a smaller image or enable R2 photo shelf.');
             }
             cleaned.photo = photo;
         }
@@ -999,17 +1178,22 @@ function buildAdminMartyrUpdatePayload(updatedData, targetStatus = null) {
         processedData.martyrdomDate = toFirestoreDateOrEmpty(processedData.martyrdomDate);
     }
 
-    const hasPhotoField = 'photo' in processedData;
-    const isPhotoRemoved = Boolean(processedData.photoRemoved) || (hasPhotoField && processedData.photo === '');
+    const hasPhotoField = 'photo' in processedData || 'photoPath' in processedData;
+    const isPhotoRemoved = Boolean(processedData.photoRemoved) || ('photo' in processedData && processedData.photo === '' && !processedData.photoPath);
     let photoChanged = false;
 
     if (isPhotoRemoved) {
         processedData.photo = '';
+        processedData.photoPath = '';
+        processedData.photoHash = '';
+        processedData.photoShard = '';
         processedData.photoRemoved = true;
+        processedData.hasPhoto = false;
         processedData.photoUpdatedAt = serverTimestamp();
         photoChanged = true;
-    } else if (hasPhotoField && processedData.photo) {
+    } else if (hasPhotoField && (processedData.photo || processedData.photoPath)) {
         processedData.photoRemoved = false;
+        processedData.hasPhoto = true;
         processedData.photoUpdatedAt = serverTimestamp();
         photoChanged = true;
     }
@@ -1019,6 +1203,78 @@ function buildAdminMartyrUpdatePayload(updatedData, targetStatus = null) {
     }
     processedData.updatedAt = serverTimestamp();
     return { processedData, photoChanged, isPhotoRemoved };
+}
+
+function getAdminJwtToken() {
+    try {
+        return sessionStorage.getItem('bmm_admin_token') || '';
+    } catch {
+        return '';
+    }
+}
+
+async function uploadAdminPhotoToR2(dataUri) {
+    const token = getAdminJwtToken();
+    if (!token || typeof dataUri !== 'string' || !dataUri.startsWith('data:image/')) {
+        return { uploaded: false, r2Available: false };
+    }
+    try {
+        const resp = await fetch('/api/media-upload', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ dataUri })
+        });
+        const data = await resp.json().catch(() => null);
+        if (resp.ok && data?.success && data?.photoPath) {
+            return {
+                uploaded: true,
+                r2Available: true,
+                photoPath: data.photoPath,
+                photoHash: data.photoHash || '',
+                photoShard: data.photoShard || ''
+            };
+        }
+        return { uploaded: false, r2Available: Boolean(data?.r2Available) };
+    } catch {
+        return { uploaded: false, r2Available: false };
+    }
+}
+
+async function pushEdgeSync(action, payload = {}) {
+    const token = getAdminJwtToken();
+    if (!token) return { success: false, skipped: true };
+    try {
+        const resp = await fetch('/api/admin-edge-sync', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ action, ...payload })
+        });
+        const data = await resp.json().catch(() => null);
+        return data || { success: resp.ok };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+}
+
+function stripExtendedRuleFields(dataObj) {
+    const copy = { ...dataObj };
+    delete copy.photoPath;
+    delete copy.photoHash;
+    delete copy.photoShard;
+    delete copy.deletedAt;
+    return copy;
+}
+
+function isRulePermissionDeniedError(err) {
+    const code = String(err?.code || '').toLowerCase();
+    const msg = String(err?.message || '').toLowerCase();
+    return code.includes('permission-denied') || msg.includes('missing or insufficient permissions');
 }
 
 // Database helper functions
@@ -1092,12 +1348,15 @@ export const firebaseDB = {
                 if (!forceRefresh) {
                     let cachedEntry = await readMartyrsFromIDB();
 
-                    // If IndexedDB is empty (first-time visitor), fetch the fast instant seed archive (~100ms)
+                    // If IndexedDB is empty (first-time visitor), fetch Edge Archive (/api/edge-archive: D1 or Edge Cache) first, then CDN Seed
                     if (!cachedEntry || !Array.isArray(cachedEntry.data) || cachedEntry.data.length === 0) {
-                        cachedEntry = await readMartyrsFromSeed();
+                        cachedEntry = await readMartyrsFromEdgeArchive(false);
+                        if (!cachedEntry || !Array.isArray(cachedEntry.data) || cachedEntry.data.length === 0) {
+                            cachedEntry = await readMartyrsFromSeed();
+                        }
                         if (cachedEntry && Array.isArray(cachedEntry.data) && cachedEntry.data.length > 0) {
-                            console.log(`⚡ Instant Seed Archive hit: ${cachedEntry.data.length} martyrs loaded immediately`);
-                            // Save to IndexedDB in background preserving the seed's actual watermarks so delta sync catches all new profiles since seed generation
+                            console.log(`⚡ Instant ${cachedEntry.fromEdge ? `Edge (${cachedEntry.edgeMode})` : 'Seed'} Archive hit: ${cachedEntry.data.length} martyrs loaded immediately`);
+                            // Save to IndexedDB in background preserving actual server watermarks
                             writeMartyrsToIDB(cachedEntry.data, cachedEntry.rawCollectionSize, false, {
                                 maxApprovedMs: cachedEntry.maxApprovedMs,
                                 maxUpdatedMs: cachedEntry.maxUpdatedMs,
@@ -1113,22 +1372,42 @@ export const firebaseDB = {
                             window.allApprovedMartyrs = cachedEntry.data;
                             window.martyrsDataFromFirebase = cachedEntry.data;
                         }
-                        console.log(`⚡ Instant Memorial Archive hit (${cachedEntry.fromSeed ? 'CDN Seed' : 'IndexedDB Cache'}): ${cachedEntry.data.length} martyrs loaded immediately`);
+                        console.log(`⚡ Instant Memorial Archive hit (${cachedEntry.fromEdge ? `Edge ${cachedEntry.edgeMode}` : cachedEntry.fromSeed ? 'CDN Seed' : 'IndexedDB Cache'}): ${cachedEntry.data.length} martyrs loaded immediately`);
 
-                        // Phase 2: Asynchronously verify & sync any additions, edits, or deletions with Firebase
+                        // Phase 2: Asynchronously verify & sync any additions, edits, or deletions with Edge/Firebase
                         syncWithFirebaseInBackground(cachedEntry);
 
                         return {
                             success: true,
                             data: cachedEntry.data,
-                            source: cachedEntry.fromSeed ? 'seed-archive' : 'idb-cache',
+                            source: cachedEntry.fromEdge ? `edge-${cachedEntry.edgeMode || 'archive'}` : (cachedEntry.fromSeed ? 'seed-archive' : 'idb-cache'),
                             collections_checked: ['martyrs', 'pendingMartyrs'],
                             total_found: cachedEntry.data.length
                         };
                     }
                 }
 
-                // Cold start or explicit forceRefresh: Fetch full collection from Firestore and populate IndexedDB
+                // Force refresh: prefer fresh Edge D1 snapshot, then Firestore REST fallback
+                if (forceRefresh) {
+                    const freshEdge = await readMartyrsFromEdgeArchive(true);
+                    if (freshEdge && Array.isArray(freshEdge.data) && freshEdge.data.length > 0) {
+                        await writeMartyrsToIDB(freshEdge.data, freshEdge.rawCollectionSize, true, {
+                            maxApprovedMs: freshEdge.maxApprovedMs,
+                            maxUpdatedMs: freshEdge.maxUpdatedMs,
+                            syncedAt: Date.now()
+                        });
+                        broadcastMartyrsUpdate(freshEdge.data, 'edge-force-refresh');
+                        return {
+                            success: true,
+                            data: freshEdge.data,
+                            source: `edge-${freshEdge.edgeMode || 'archive'}`,
+                            collections_checked: ['martyrs'],
+                            total_found: freshEdge.data.length
+                        };
+                    }
+                }
+
+                // Cold start or fallback when Edge API is unreachable: Fetch full collection from Firestore and populate IndexedDB
                 console.log('🔍 Fetching martyrs from Firebase collections...');
                 const result = await fetchApprovedMartyrsFromFirestore();
                 console.log(`✅ Final result: ${result.data.length} martyrs total`);
@@ -1252,7 +1531,7 @@ export const firebaseDB = {
         }
     },
 
-    // Approve pending martyr (move to approved collection)
+    // Approve pending martyr (atomic writeBatch + optional R2 photo offload + write-through Edge sync)
     async approveMartyr(martyrId, martyrData) {
         try {
             await requireActiveAdminSession('approveMartyr');
@@ -1264,6 +1543,11 @@ export const firebaseDB = {
                 sanitizedMartyr.martyrdomDate = toFirestoreDateOrEmpty(sanitizedMartyr.martyrdomDate);
             }
 
+            const inlinePhotoOriginal =
+                typeof sanitizedMartyr.photo === 'string' && sanitizedMartyr.photo.startsWith('data:image/')
+                    ? sanitizedMartyr.photo
+                    : '';
+
             // Add to approved martyrs collection
             const approvedData = {
                 ...sanitizedMartyr,
@@ -1272,40 +1556,93 @@ export const firebaseDB = {
                 updatedAt: serverTimestamp()
             };
             delete approvedData.id; // Remove old ID field
+
             if (approvedData.photoRemoved) {
                 approvedData.photo = '';
+                approvedData.photoPath = '';
+                approvedData.photoHash = '';
+                approvedData.photoShard = '';
+                approvedData.hasPhoto = false;
                 approvedData.photoUpdatedAt = serverTimestamp();
-            } else if (approvedData.photo) {
+            } else if (inlinePhotoOriginal) {
+                const r2Res = await uploadAdminPhotoToR2(inlinePhotoOriginal);
+                if (r2Res.uploaded && r2Res.photoPath) {
+                    approvedData.photoPath = r2Res.photoPath;
+                    approvedData.photoHash = r2Res.photoHash;
+                    approvedData.photoShard = r2Res.photoShard;
+                    approvedData.photo = r2Res.photoPath;
+                }
                 approvedData.photoRemoved = false;
+                approvedData.hasPhoto = true;
+                approvedData.photoUpdatedAt = serverTimestamp();
+            } else if (approvedData.photo || approvedData.photoPath) {
+                approvedData.photoRemoved = false;
+                approvedData.hasPhoto = true;
                 approvedData.photoUpdatedAt = serverTimestamp();
             }
 
-            const docRef = await addDoc(collection(db, 'martyrs'), approvedData);
-            
-            // Delete from pending collection
-            await deleteDoc(doc(db, 'pendingMartyrs', martyrId));
-            
-            if (approvedData.photoRemoved) {
-                photoMemoryCache.set(docRef.id, '');
-            } else if (typeof approvedData.photo === 'string' && approvedData.photo) {
-                photoMemoryCache.set(docRef.id, approvedData.photo);
+            const newMartyrRef = doc(collection(db, 'martyrs'));
+            const pendingRef = doc(db, 'pendingMartyrs', martyrId);
+
+            try {
+                const batch = writeBatch(db);
+                batch.set(newMartyrRef, approvedData);
+                batch.delete(pendingRef);
+                await batch.commit();
+            } catch (batchErr) {
+                if (isRulePermissionDeniedError(batchErr) && ('photoPath' in approvedData || 'photoHash' in approvedData || 'photoShard' in approvedData)) {
+                    // Graceful compatibility if new firestore.rules have not been published yet
+                    const compatApproved = stripExtendedRuleFields(approvedData);
+                    if (inlinePhotoOriginal) compatApproved.photo = inlinePhotoOriginal;
+                    const retryBatch = writeBatch(db);
+                    retryBatch.set(newMartyrRef, compatApproved);
+                    retryBatch.delete(pendingRef);
+                    await retryBatch.commit();
+                } else {
+                    throw batchErr;
+                }
             }
 
-            // Update local archive cache directly so the newly approved martyr appears immediately without clearing the seed cache
+            const resolvedDisplayPhoto = approvedData.photoRemoved
+                ? ''
+                : (approvedData.photoPath || approvedData.photo || '');
+            if (approvedData.photoRemoved) {
+                photoMemoryCache.set(newMartyrRef.id, '');
+            } else if (resolvedDisplayPhoto) {
+                photoMemoryCache.set(newMartyrRef.id, resolvedDisplayPhoto);
+            }
+
+            const nowTs = Timestamp.now();
+            const { submitterEmail, submitterPhone, submitterRelation, ...publicSanitized } = sanitizedMartyr;
+            const newMartyrObj = {
+                ...publicSanitized,
+                ...(approvedData.photoPath ? { photoPath: approvedData.photoPath, photoHash: approvedData.photoHash, photoShard: approvedData.photoShard } : {}),
+                photo: resolvedDisplayPhoto,
+                photoRemoved: Boolean(approvedData.photoRemoved),
+                hasPhoto: Boolean(approvedData.hasPhoto ?? !approvedData.photoRemoved),
+                id: newMartyrRef.id,
+                status: 'approved',
+                approvedAt: nowTs,
+                updatedAt: nowTs,
+                ...(approvedData.photoUpdatedAt ? { photoUpdatedAt: nowTs } : {})
+            };
+
+            // Write-through to Cloudflare D1 + purge Edge Cache immediately
+            const { photo: _omitInlineB64, ...edgeBase } = newMartyrObj;
+            await pushEdgeSync('upsert', {
+                martyr: {
+                    ...edgeBase,
+                    photoPath: approvedData.photoPath || '',
+                    photoHash: approvedData.photoHash || '',
+                    photoShard: approvedData.photoShard || ''
+                }
+            });
+
+            // Update local archive cache directly so the newly approved martyr appears immediately
             try {
                 const existing = memoryCache || (await readMartyrsFromIDB()) || (await readMartyrsFromSeed());
                 if (existing && Array.isArray(existing.data) && existing.data.length > 0) {
-                    const nowTs = Timestamp.now();
-                    const { submitterEmail, submitterPhone, ...publicSanitized } = sanitizedMartyr;
-                    const newMartyrObj = {
-                        ...publicSanitized,
-                        id: docRef.id,
-                        status: 'approved',
-                        approvedAt: nowTs,
-                        updatedAt: nowTs,
-                        ...(approvedData.photoUpdatedAt ? { photoUpdatedAt: nowTs } : {})
-                    };
-                    const merged = existing.data.filter(m => m && m.id !== docRef.id);
+                    const merged = existing.data.filter(m => m && m.id !== newMartyrRef.id);
                     merged.push(newMartyrObj);
                     merged.sort((a, b) => {
                         const idA = String(a?.id || '');
@@ -1321,9 +1658,9 @@ export const firebaseDB = {
             } catch (_) {
                 await clearMartyrsCache();
             }
-            
-            console.log('Martyr approved with ID: ', docRef.id);
-            return { success: true, id: docRef.id };
+
+            console.log('Martyr approved with ID: ', newMartyrRef.id);
+            return { success: true, id: newMartyrRef.id, photoPath: approvedData.photoPath || '' };
         } catch (error) {
             console.error('Error approving martyr: ', error);
             return { success: false, error: error.message };
@@ -1400,39 +1737,81 @@ export const firebaseDB = {
         }
     },
     
-    // Update an approved martyr (admin function)
+    // Update an approved martyr (admin function: optional R2 photo offload + write-through Edge sync)
     async updateApprovedMartyr(martyrId, updatedData) {
         try {
             await requireActiveAdminSession('updateApprovedMartyr');
             console.log(`✏️ Updating approved martyr: ${martyrId}`);
 
             const { processedData, photoChanged, isPhotoRemoved } = buildAdminMartyrUpdatePayload(updatedData);
+            const inlinePhotoOriginal =
+                typeof processedData.photo === 'string' && processedData.photo.startsWith('data:image/')
+                    ? processedData.photo
+                    : '';
 
-            // Update the document
-            const martyrRef = doc(db, 'martyrs', martyrId);
-            await updateDoc(martyrRef, processedData);
-
-            if (photoChanged) {
-                photoMemoryCache.set(martyrId, isPhotoRemoved ? '' : (processedData.photo || ''));
+            if (!isPhotoRemoved && inlinePhotoOriginal) {
+                const r2Res = await uploadAdminPhotoToR2(inlinePhotoOriginal);
+                if (r2Res.uploaded && r2Res.photoPath) {
+                    processedData.photoPath = r2Res.photoPath;
+                    processedData.photoHash = r2Res.photoHash;
+                    processedData.photoShard = r2Res.photoShard;
+                    processedData.photo = r2Res.photoPath;
+                }
             }
 
-            // Update local archive cache directly so updated profile fields appear immediately
+            // Update the Firestore document
+            const martyrRef = doc(db, 'martyrs', martyrId);
+            try {
+                await updateDoc(martyrRef, processedData);
+            } catch (updateErr) {
+                if (isRulePermissionDeniedError(updateErr) && ('photoPath' in processedData || 'photoHash' in processedData || 'photoShard' in processedData)) {
+                    const compatUpdate = stripExtendedRuleFields(processedData);
+                    if (!isPhotoRemoved && inlinePhotoOriginal) compatUpdate.photo = inlinePhotoOriginal;
+                    await updateDoc(martyrRef, compatUpdate);
+                } else {
+                    throw updateErr;
+                }
+            }
+
+            const resolvedDisplayPhoto = isPhotoRemoved
+                ? ''
+                : (processedData.photoPath || processedData.photo || '');
+            if (photoChanged) {
+                photoMemoryCache.set(martyrId, resolvedDisplayPhoto);
+            }
+
+            // Update local archive cache directly & write-through to Cloudflare D1
+            let edgeUpdatedRecord = null;
             try {
                 const existing = memoryCache || (await readMartyrsFromIDB()) || (await readMartyrsFromSeed());
-                if (existing && Array.isArray(existing.data) && existing.data.length > 0) {
-                    const nowTs = Timestamp.now();
-                    const { submitterEmail, submitterPhone, ...cachePatch } = sanitizeMartyrPayload(updatedData);
-                    delete cachePatch.id;
-                    if ('birthDate' in processedData) cachePatch.birthDate = processedData.birthDate;
-                    if ('martyrdomDate' in processedData) cachePatch.martyrdomDate = processedData.martyrdomDate;
-                    if (photoChanged) {
-                        cachePatch.photoUpdatedAt = nowTs;
-                        cachePatch.photoRemoved = isPhotoRemoved;
-                        if (isPhotoRemoved) cachePatch.photo = '';
+                const nowTs = Timestamp.now();
+                const { submitterEmail, submitterPhone, submitterRelation, ...cachePatch } = sanitizeMartyrPayload(updatedData);
+                delete cachePatch.id;
+                if ('birthDate' in processedData) cachePatch.birthDate = processedData.birthDate;
+                if ('martyrdomDate' in processedData) cachePatch.martyrdomDate = processedData.martyrdomDate;
+                if (photoChanged) {
+                    cachePatch.photoUpdatedAt = nowTs;
+                    cachePatch.photoRemoved = isPhotoRemoved;
+                    cachePatch.hasPhoto = !isPhotoRemoved;
+                    if (isPhotoRemoved) {
+                        cachePatch.photo = '';
+                        cachePatch.photoPath = '';
+                        cachePatch.photoHash = '';
+                        cachePatch.photoShard = '';
+                    } else if (processedData.photoPath) {
+                        cachePatch.photo = processedData.photoPath;
+                        cachePatch.photoPath = processedData.photoPath;
+                        cachePatch.photoHash = processedData.photoHash || '';
+                        cachePatch.photoShard = processedData.photoShard || '';
                     }
+                }
+
+                if (existing && Array.isArray(existing.data) && existing.data.length > 0) {
                     const merged = existing.data.map(m => {
                         if (m && m.id === martyrId) {
-                            return { ...m, ...cachePatch, id: martyrId, updatedAt: nowTs };
+                            const updated = { ...m, ...cachePatch, id: martyrId, status: 'approved', updatedAt: nowTs };
+                            edgeUpdatedRecord = updated;
+                            return updated;
                         }
                         return m;
                     });
@@ -1441,27 +1820,71 @@ export const firebaseDB = {
                 } else {
                     await clearMartyrsCache();
                 }
+
+                if (!edgeUpdatedRecord) {
+                    edgeUpdatedRecord = { ...cachePatch, id: martyrId, status: 'approved', updatedAt: nowTs };
+                }
             } catch (_) {
                 await clearMartyrsCache();
             }
-            
+
+            if (edgeUpdatedRecord) {
+                const { photo: _omitInlineB64, ...edgeBase } = edgeUpdatedRecord;
+                await pushEdgeSync('upsert', { martyr: edgeBase });
+            } else {
+                await pushEdgeSync('reconcile_bulk', {});
+            }
+
             console.log(`✅ Approved martyr updated: ${martyrId}`);
-            return { success: true, id: martyrId };
+            return { success: true, id: martyrId, photoPath: processedData.photoPath || '' };
         } catch (error) {
             console.error('❌ Error updating approved martyr: ', error);
             return { success: false, error: error.message };
         }
     },
 
-    // Delete an approved martyr (admin function)
+    // Delete an approved martyr (row-level soft-delete tombstone with deleteDoc fallback + Edge sync)
     async deleteApprovedMartyr(martyrId) {
         try {
             await requireActiveAdminSession('deleteApprovedMartyr');
             if (!martyrId || typeof martyrId !== 'string') {
                 throw new Error('Valid martyr ID is required for deletion.');
             }
-            console.log(`🗑️ Deleting approved martyr: ${martyrId}`);
-            await deleteDoc(doc(db, 'martyrs', martyrId));
+            console.log(`🗑️ Soft-deleting (tombstone) approved martyr: ${martyrId}`);
+
+            const martyrRef = doc(db, 'martyrs', martyrId);
+            const tombstonePatch = {
+                status: 'deleted',
+                deletedAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+                biography: '',
+                familyDetails: '',
+                photo: '',
+                photoPath: '',
+                photoHash: '',
+                photoShard: '',
+                photoRemoved: true,
+                hasPhoto: false,
+                submitterName: '',
+                submitterEmail: '',
+                submitterPhone: '',
+                submitterRelation: ''
+            };
+
+            try {
+                await updateDoc(martyrRef, tombstonePatch);
+            } catch (tombErr) {
+                if (isRulePermissionDeniedError(tombErr)) {
+                    // Backward compatibility if updated tombstone firestore.rules aren't published yet
+                    await deleteDoc(martyrRef);
+                } else {
+                    throw tombErr;
+                }
+            }
+
+            photoMemoryCache.set(martyrId, '');
+            await pushEdgeSync('tombstone', { id: martyrId });
+
             try {
                 const existing = memoryCache || (await readMartyrsFromIDB()) || (await readMartyrsFromSeed());
                 if (existing && Array.isArray(existing.data) && existing.data.length > 0) {
@@ -1620,6 +2043,196 @@ export const storageHelper = {
             return { success: true };
         } catch (error) {
             console.error('Migration error: ', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    // Query live Cloudflare D1 + R2 shard readiness (used in Admin System panel)
+    async getEdgeArchiveStatus() {
+        const token = getAdminJwtToken();
+        if (!token) {
+            return { success: false, d1Bound: false, r2Bound: false, error: 'Missing admin session token' };
+        }
+        try {
+            const resp = await fetch('/api/admin-edge-sync', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                cache: 'no-store'
+            });
+            const data = await resp.json().catch(() => null);
+            if (!resp.ok || !data) {
+                return { success: false, d1Bound: false, r2Bound: false, error: data?.error || `HTTP ${resp.status}` };
+            }
+            return data;
+        } catch (err) {
+            return { success: false, d1Bound: false, r2Bound: false, error: err.message };
+        }
+    },
+
+    // One-click full backfill & photo offload from Admin panel -> Cloudflare D1 + R2 Photo Shelf
+    async syncAllToEdgeArchive(onProgress = null) {
+        const notify = (info) => {
+            if (typeof onProgress === 'function') {
+                try { onProgress(info); } catch (_) {}
+            }
+        };
+        try {
+            await requireActiveAdminSession('syncAllToEdgeArchive');
+            const statusBefore = await this.getEdgeArchiveStatus();
+            if (!statusBefore.success) {
+                return { success: false, error: statusBefore.error || 'Edge sync API unreachable.' };
+            }
+
+            notify({ stage: 'fetch', current: 0, total: 1, message: 'Fetching approved profiles from Firestore...' });
+            const liveRes = await fetchApprovedMartyrsFromFirestore(null, {
+                includeSubmitterFields: false,
+                skipIDBWrite: true
+            });
+            const records = Array.isArray(liveRes?.data) && liveRes.data.length > 0
+                ? liveRes.data
+                : ((await this.getApprovedMartyrs(false))?.data || []);
+
+            if (records.length === 0) {
+                return { success: false, error: 'No approved martyr profiles found to sync.' };
+            }
+
+            let r2Uploaded = 0;
+            let r2Skipped = 0;
+            let r2Failed = 0;
+
+            if (statusBefore.r2Bound) {
+                const candidates = records.filter((m) => (
+                    m && m.id && !m.photoRemoved &&
+                    (!m.photoPath || !String(m.photoPath).startsWith('/media/'))
+                ));
+
+                const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(String(reader.result || ''));
+                    reader.onerror = () => reject(reader.error || new Error('FileReader failed'));
+                    reader.readAsDataURL(blob);
+                });
+
+                const CONCURRENCY = 4;
+                for (let idx = 0; idx < candidates.length; idx += CONCURRENCY) {
+                    const slice = candidates.slice(idx, idx + CONCURRENCY);
+                    await Promise.all(slice.map(async (m) => {
+                        try {
+                            let dataUri = '';
+                            if (typeof m.photo === 'string' && m.photo.startsWith('data:image/')) {
+                                dataUri = m.photo;
+                            } else {
+                                try {
+                                    const assetResp = await fetch(`/assets/photos/${encodeURIComponent(m.id)}.jpg`, { cache: 'default' });
+                                    if (assetResp.ok) {
+                                        const ctype = (assetResp.headers.get('content-type') || '').toLowerCase();
+                                        if (ctype.startsWith('image/')) {
+                                            dataUri = await blobToDataUrl(await assetResp.blob());
+                                        }
+                                    }
+                                } catch (_) {}
+                                if (!dataUri) {
+                                    const resolved = await resolveMartyrPhoto(m.id, null, null, { force: true });
+                                    if (typeof resolved === 'string' && resolved.startsWith('data:image/')) {
+                                        dataUri = resolved;
+                                    }
+                                }
+                            }
+
+                            if (!dataUri) {
+                                r2Skipped++;
+                                return;
+                            }
+
+                            const up = await uploadAdminPhotoToR2(dataUri);
+                            if (up.uploaded && up.photoPath) {
+                                m.photoPath = up.photoPath;
+                                m.photoHash = up.photoHash;
+                                m.photoShard = up.photoShard;
+                                m.hasPhoto = true;
+                                m.photo = up.photoPath;
+                                photoMemoryCache.set(m.id, up.photoPath);
+                                r2Uploaded++;
+                                try {
+                                    await updateDoc(doc(db, 'martyrs', m.id), {
+                                        photoPath: up.photoPath,
+                                        photoHash: up.photoHash,
+                                        photoShard: up.photoShard,
+                                        photo: up.photoPath,
+                                        hasPhoto: true,
+                                        updatedAt: serverTimestamp()
+                                    });
+                                } catch (_) {
+                                    // Keep going cleanly even if extended firestore.rules aren't pasted yet
+                                }
+                            } else {
+                                r2Failed++;
+                            }
+                        } catch (_) {
+                            r2Failed++;
+                        }
+                    }));
+
+                    const doneCount = Math.min(candidates.length, idx + CONCURRENCY);
+                    notify({
+                        stage: 'r2',
+                        current: doneCount,
+                        total: candidates.length,
+                        message: `Uploading portraits to R2 Photo Shelf (${doneCount}/${candidates.length})...`
+                    });
+                }
+            }
+
+            let d1Written = 0;
+            if (statusBefore.d1Bound) {
+                const CHUNK = 150;
+                for (let i = 0; i < records.length; i += CHUNK) {
+                    const batch = records.slice(i, i + CHUNK).map((m) => {
+                        const { photo, ...rest } = m;
+                        return {
+                            ...rest,
+                            photoPath: m.photoPath || (typeof photo === 'string' && photo.startsWith('/media/') ? photo : ''),
+                            photoHash: m.photoHash || '',
+                            photoShard: m.photoShard || ''
+                        };
+                    });
+                    const res = await pushEdgeSync('reconcile_bulk', { martyrs: batch });
+                    if (res?.success) {
+                        d1Written += Number(res.written || batch.length);
+                    }
+                    const done = Math.min(records.length, i + CHUNK);
+                    notify({
+                        stage: 'd1',
+                        current: done,
+                        total: records.length,
+                        message: `Syncing records to Cloudflare D1 (${done}/${records.length})...`
+                    });
+                }
+            } else {
+                await pushEdgeSync('purge', {});
+            }
+
+            await pushEdgeSync('purge', {});
+            await writeMartyrsToIDB(records, records.length, true);
+            broadcastMartyrsUpdate(records, 'admin-edge-sync');
+            const statusAfter = await this.getEdgeArchiveStatus();
+
+            return {
+                success: true,
+                totalRecords: records.length,
+                d1Bound: statusBefore.d1Bound,
+                r2Bound: statusBefore.r2Bound,
+                d1Written,
+                r2Uploaded,
+                r2Skipped,
+                r2Failed,
+                statusAfter
+            };
+        } catch (error) {
+            console.error('❌ Edge archive sync failed:', error);
             return { success: false, error: error.message };
         }
     },

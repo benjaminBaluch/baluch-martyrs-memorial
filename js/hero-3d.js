@@ -69,14 +69,20 @@
         camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
         camera.position.z = 2;
 
-        // Renderer setup
-        renderer = new THREE.WebGLRenderer({
-            canvas: canvas,
-            alpha: true,
-            antialias: true
-        });
-        renderer.setSize(heroSection.offsetWidth, heroSection.offsetHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        // Renderer setup (guarded for browsers/webviews with WebGL disabled)
+        try {
+            renderer = new THREE.WebGLRenderer({
+                canvas: canvas,
+                alpha: true,
+                antialias: true
+            });
+            renderer.setSize(heroSection.offsetWidth, heroSection.offsetHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        } catch (err) {
+            console.warn('WebGL unavailable for hero 3D effect:', err?.message || err);
+            canvas.remove();
+            return;
+        }
 
         // Create particles
         createParticles();

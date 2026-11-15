@@ -3153,6 +3153,10 @@
                     </button>
                 </div>
                 <div class="admin-controls-secondary">
+                    <button id="syncEdgeArchiveBtn" class="admin-btn admin-btn-secondary" title="Sync archive records to Cloudflare D1 & offload portraits to R2">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+                        <span>Sync Edge (D1 + R2)</span>
+                    </button>
                     <button onclick="exportData()" class="admin-btn admin-btn-secondary">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                         <span>Export JSON</span>
@@ -3169,6 +3173,14 @@
                 </div>
             </div>
             
+            <!-- Cloudflare Edge Infrastructure Status Banner (populated when D1/R2 status responds) -->
+            <div id="edgeInfraBanner" style="display: none; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; background: var(--admin-card); border: 1px solid var(--admin-border-strong); border-radius: 12px; padding: 0.75rem 1rem; margin: 0 0 1.25rem 0;">
+                <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+                    <span id="edgeInfraPill" style="display: inline-block; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 999px;">Edge Status</span>
+                    <span id="edgeInfraBannerText" style="font-size: 0.875rem; color: var(--admin-text-muted);">Checking Cloudflare D1 + R2 readiness...</span>
+                </div>
+            </div>
+
             <!-- Firebase Debug Panel (initially hidden) -->
             <div id="firebaseDebugPanel" style="display: none; background: var(--admin-card); border: 1px solid var(--admin-border-strong); border-radius: 12px; padding: 1.25rem; margin: 0 0 1.5rem 0;">
                 <h4 style="margin: 0 0 0.5rem 0; color: var(--admin-text); font-size: 0.95rem;">Firebase Diagnostics Report</h4>
@@ -3472,7 +3484,7 @@
     </script>
     
     <!-- Firebase Config Script -->
-    <script type="module" src="js/firebase-config.js?v=20261115b"></script>
+    <script type="module" src="js/firebase-config.js?v=20261116a"></script>
     
     <!-- Authentication Script -->
     <script type="module" src="js/auth.js?v=20261104f"></script>
@@ -3893,6 +3905,6 @@ Please refresh the page or try again later.
         }
     </script>
     <script src="js/mobile-menu.js?v=20261008h"></script>
-    <script type="module" src="js/admin.js?v=20261115c"></script>
+    <script type="module" src="js/admin.js?v=20261116a"></script>
 </body>
 </html>

@@ -2078,8 +2078,8 @@
 
     // Center-X, top-weighted (face-safe) 4:5 portrait crop on shared canvas keeps PDF crisp & lightweight
     async function loadMartyrPortraitDataUrl(martyr, sharedCanvas, timeoutMs = 1500) {
-        if (!martyr || martyr.photoRemoved === true || (martyr.hasPhoto === false && !martyr.photo)) return null;
-        let rawSrc = martyr.photo || null;
+        if (!martyr || martyr.photoRemoved === true || (martyr.hasPhoto === false && !martyr.photo && !martyr.photoPath)) return null;
+        let rawSrc = martyr.photoPath || martyr.photo || null;
         if (!rawSrc && martyr.photoUpdatedAt && martyr.id && typeof window.resolveMartyrPhoto === 'function') {
             rawSrc = await window.resolveMartyrPhoto(martyr.id).catch(() => null);
         }

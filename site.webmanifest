@@ -13,11 +13,6 @@
             "src": "/baluch-flag-logo.png",
             "sizes": "512x512",
             "type": "image/png"
-        },
-        {
-            "src": "/images/baluch-flag-logo.png",
-            "sizes": "512x512",
-            "type": "image/png"
         }
     ],
     "theme_color": "#2c5530",

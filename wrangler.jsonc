@@ -15,8 +15,28 @@
     "html_handling": "auto-trailing-slash",
     // Serve dist/404.html with a real 404 status for unknown URLs
     "not_found_handling": "404-page",
-    // Only API and /gallery requests run the Worker first (pass-through when unfiltered;
-    // when ?hero= is present, Worker injects per-martyr Open Graph / social preview tags).
-    "run_worker_first": ["/api/*", "/gallery", "/gallery/", "/gallery.html"]
-  }
+    // Only API, sharded R2 media, and /gallery requests run the Worker first (pass-through when
+    // unfiltered; when ?hero= is present, Worker injects per-martyr Open Graph / social preview tags).
+    "run_worker_first": ["/api/*", "/media/*", "/gallery", "/gallery/", "/gallery.html"]
+  },
+  "vars": {
+    // Active R2 shard for newly uploaded photos; bump to "s2" before "s1" nears capacity.
+    "ACTIVE_MEDIA_SHARD": "s1"
+  },
+  // Edge D1 Database & Sharded R2 Photo Shelf Bindings
+  "d1_databases": [
+    {
+      "binding": "ARCHIVE_DB",
+      "database_name": "bmm-archive-db",
+      "database_id": "d1d3304b-d77f-4752-a830-ba240c513f34"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA_S1",
+      "bucket_name": "bmm-media-s1"
+    }
+    // When bmm-media-s1 nears capacity, add MEDIA_S2 and change ACTIVE_MEDIA_SHARD to "s2":
+    // ,{ "binding": "MEDIA_S2", "bucket_name": "bmm-media-s2" }
+  ]
 }
