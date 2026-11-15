@@ -1901,9 +1901,9 @@
             if (filtered.length === 0) {
                 infoEl.textContent = 'No martyrs found matching the selected filter combination.';
             } else if (desc.isFiltered) {
-                infoEl.textContent = `PDF will contain ${filtered.length} profile${filtered.length === 1 ? '' : 's'} matching "${desc.scopeSummary}"`;
+                infoEl.textContent = `Booklet will include ${filtered.length} profile${filtered.length === 1 ? '' : 's'} matching "${desc.scopeSummary}"`;
             } else {
-                infoEl.textContent = `PDF includes all ${total} profiles with photos, biographies, and dates`;
+                infoEl.textContent = `Archival booklet includes statistical overview, index, and all ${total} profiles`;
             }
         }
     }
@@ -1959,6 +1959,1426 @@
         }
     }
 
+    // ============================================
+    // BOOKLET PDF GENERATION ENGINE (A4 Archival)
+    // ============================================
+
+    function buildPdfPalette() {
+        return {
+            primary: [28, 69, 36],        // #1c4524 Deep archival forest green
+            forest: [44, 85, 48],         // #2c5530 Memorial green
+            forestLight: [238, 246, 240], // #eef6f0 Pale sage surface tint
+            ink: [15, 23, 42],            // #0f172a Deep slate ink
+            body: [45, 55, 72],           // #2d3748 Charcoal prose
+            muted: [100, 116, 139],       // #64748b Secondary slate labels
+            ruleLight: [226, 232, 240],   // #e2e8f0 Hairline divider
+            ruleMid: [203, 213, 225],     // #cbd5e1 Frame stroke
+            surface: [248, 250, 252],     // #f8fafc Light surface card
+            brass: [184, 146, 58],        // #b8923a Subtle archival brass rule
+            goldCream: [245, 226, 166],   // Soft cream subtitle on dark cover
+            mintLight: [206, 234, 214],   // Light mint eyebrow on dark cover
+            flagBlue: [0, 102, 204],
+            flagRed: [210, 28, 45],
+            flagGreen: [28, 130, 52]
+        };
+    }
+
+    function sanitizePdfText(value) {
+        if (value === null || value === undefined) return '';
+        const superscripts = {
+            '\u2070': '0', '\u00B9': '1', '\u00B2': '2', '\u00B3': '3',
+            '\u2074': '4', '\u2075': '5', '\u2076': '6', '\u2077': '7',
+            '\u2078': '8', '\u2079': '9'
+        };
+        return String(value)
+            .replace(/\u00A0/g, ' ')
+            .replace(/[\u200B-\u200F\uFEFF\u202A-\u202E]/g, '')
+            .replace(/[\u2070\u00B9\u00B2\u00B3\u2074-\u2079]/g, ch => superscripts[ch] || '')
+            .replace(/[\u2018\u2019]/g, "'")
+            .replace(/[\u201C\u201D]/g, '"')
+            .replace(/\u2026/g, '...')
+            // Keep WinAnsi-safe characters so jsPDF built-in Helvetica never renders garbled boxes
+            .replace(/[^\x09\x0A\x20-\xFF\u2013\u2014\u2022]/g, '');
+    }
+
+    function cleanPdfField(value) {
+        if (value === null || value === undefined) return null;
+        const cleaned = sanitizePdfText(value).replace(/\s+/g, ' ').trim();
+        if (!cleaned) return null;
+        if (/^(unknown|n\/a|na|nil|null|undefined|not\s*specified|unspecified|none|[-—–]+)$/i.test(cleaned)) {
+            return null;
+        }
+        return cleaned;
+    }
+
+    function fitPdfTextWithEllipsis(doc, text, maxWidth) {
+        const str = sanitizePdfText(text || '');
+        if (!str) return '';
+        if (doc.getTextWidth(str) <= maxWidth) return str;
+        const ellipsis = '...';
+        let low = 0;
+        let high = str.length;
+        while (low < high) {
+            const mid = Math.ceil((low + high) / 2);
+            const candidate = str.slice(0, mid).trimEnd() + ellipsis;
+            if (doc.getTextWidth(candidate) <= maxWidth) {
+                low = mid;
+            } else {
+                high = mid - 1;
+            }
+        }
+        return (low > 0 ? str.slice(0, low).trimEnd() : '') + ellipsis;
+    }
+
+    function drawPdfBaluchStar(doc, cx, cy, outerR, innerR) {
+        const points = [];
+        for (let i = 0; i < 10; i++) {
+            const angle = -Math.PI / 2 + (i * Math.PI / 5);
+            const r = (i % 2 === 0) ? outerR : innerR;
+            points.push({
+                x: cx + r * Math.cos(angle),
+                y: cy + r * Math.sin(angle)
+            });
+        }
+        doc.setFillColor(255, 255, 255);
+        for (let i = 0; i < 10; i++) {
+            const next = (i + 1) % 10;
+            doc.triangle(cx, cy, points[i].x, points[i].y, points[next].x, points[next].y, 'F');
+        }
+    }
+
+    function drawPdfBaluchFlagRibbon(doc, x, y, width, totalHeight, palette, withTrim = true) {
+        const stripeH = totalHeight / 3;
+        const trimH = withTrim ? 0.5 : 0;
+
+        if (withTrim) {
+            doc.setFillColor(...palette.brass);
+            doc.rect(x, y - trimH, width, trimH, 'F');
+        }
+
+        doc.setFillColor(...palette.flagBlue);
+        doc.rect(x, y, width, stripeH, 'F');
+
+        const starCx = x + (width / 2);
+        const starCy = y + (stripeH / 2);
+        const outerR = Math.min(stripeH * 0.42, 2.2);
+        drawPdfBaluchStar(doc, starCx, starCy, outerR, outerR * 0.382);
+
+        doc.setFillColor(...palette.flagRed);
+        doc.rect(x, y + stripeH, width, stripeH, 'F');
+
+        doc.setFillColor(...palette.flagGreen);
+        doc.rect(x, y + (stripeH * 2), width, stripeH, 'F');
+
+        if (withTrim) {
+            doc.setFillColor(...palette.brass);
+            doc.rect(x, y + totalHeight, width, trimH, 'F');
+        }
+    }
+
+    // Center-X, top-weighted (face-safe) 4:5 portrait crop on shared canvas keeps PDF crisp & lightweight
+    async function loadMartyrPortraitDataUrl(martyr, sharedCanvas, timeoutMs = 1500) {
+        if (!martyr || (martyr.hasPhoto === false && !martyr.photo)) return null;
+        const rawSrc = martyr.photo || (martyr.id ? `/assets/photos/${encodeURIComponent(martyr.id)}.jpg` : null);
+        if (!rawSrc || typeof rawSrc !== 'string') return null;
+
+        const trimmed = rawSrc.trim();
+        if (!/^https?:\/\/|^\/|^\.\/|^data:image\//i.test(trimmed)) {
+            return null;
+        }
+
+        return new Promise((resolve) => {
+            let done = false;
+            const img = new Image();
+            if (/^https?:\/\//i.test(trimmed)) {
+                img.crossOrigin = 'anonymous';
+            }
+
+            const cleanup = () => {
+                img.onload = null;
+                img.onerror = null;
+                img.src = '';
+            };
+
+            const timer = setTimeout(() => {
+                if (!done) {
+                    done = true;
+                    cleanup();
+                    resolve(null);
+                }
+            }, timeoutMs);
+
+            img.onload = () => {
+                if (done) return;
+                done = true;
+                clearTimeout(timer);
+                try {
+                    const natW = img.naturalWidth || img.width || 180;
+                    const natH = img.naturalHeight || img.height || 225;
+                    const targetW = 180;
+                    const targetH = 225;
+                    const targetRatio = targetW / targetH; // 0.8 (4:5 portrait)
+                    const natRatio = natW / natH;
+
+                    let sx = 0;
+                    let sy = 0;
+                    let sw = natW;
+                    let sh = natH;
+
+                    if (natRatio > targetRatio) {
+                        sw = natH * targetRatio;
+                        sx = Math.max(0, (natW - sw) / 2);
+                    } else if (natRatio < targetRatio) {
+                        sh = natW / targetRatio;
+                        // Bias upward (~20% from top) so portraits frame the face cleanly
+                        sy = Math.max(0, (natH - sh) * 0.2);
+                    }
+
+                    if (sharedCanvas.width !== targetW) sharedCanvas.width = targetW;
+                    if (sharedCanvas.height !== targetH) sharedCanvas.height = targetH;
+                    const ctx = sharedCanvas.getContext('2d');
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, targetW, targetH);
+                    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
+                    const dataUrl = sharedCanvas.toDataURL('image/jpeg', 0.76);
+                    cleanup();
+                    resolve(dataUrl);
+                } catch (err) {
+                    cleanup();
+                    resolve(null);
+                }
+            };
+
+            img.onerror = () => {
+                if (done) return;
+                done = true;
+                clearTimeout(timer);
+                cleanup();
+                resolve(null);
+            };
+
+            img.src = trimmed;
+        });
+    }
+
+    function drawPdfPhotoPlaceholder(doc, px, py, pw, ph, palette) {
+        doc.setFillColor(...palette.surface);
+        doc.rect(px, py, pw, ph, 'F');
+
+        doc.setDrawColor(...palette.ruleMid);
+        doc.setLineWidth(0.3);
+        doc.rect(px, py, pw, ph, 'S');
+
+        // Minimalist Baluchistan flag ribbon accent at top of placeholder
+        const bandH = 0.9;
+        doc.setFillColor(...palette.flagBlue);
+        doc.rect(px + 0.4, py + 0.4, pw - 0.8, bandH, 'F');
+        doc.setFillColor(...palette.flagRed);
+        doc.rect(px + 0.4, py + 0.4 + bandH, pw - 0.8, bandH, 'F');
+        doc.setFillColor(...palette.flagGreen);
+        doc.rect(px + 0.4, py + 0.4 + bandH * 2, pw - 0.8, bandH, 'F');
+
+        // Geometric head-and-shoulders memorial emblem (subtle slate tone)
+        const cx = px + pw / 2;
+        const cy = py + ph * 0.44;
+        doc.setFillColor(218, 225, 232);
+        doc.circle(cx, cy - 2.6, 3.3, 'F');
+        doc.ellipse(cx, cy + 4.4, 6.2, 3.6, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(5.5);
+        doc.setTextColor(...palette.muted);
+        doc.text('ARCHIVAL', cx, py + ph - 5.2, { align: 'center' });
+        doc.text('RECORD', cx, py + ph - 2.4, { align: 'center' });
+    }
+
+    function drawPdfCoverPage(doc, layout, filterDesc, stats, martyrCount, formattedDate, palette) {
+        const { pageWidth, pageHeight } = layout;
+
+        // Deep forest green archival header
+        doc.setFillColor(...palette.primary);
+        doc.rect(0, 0, pageWidth, 52, 'F');
+        doc.setFillColor(...palette.brass);
+        doc.rect(0, 2.5, pageWidth, 0.6, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(...palette.mintLight);
+        doc.text('OFFICIAL DIGITAL ARCHIVE  •  MEMORIAL EDITION', pageWidth / 2, 15, { align: 'center' });
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(24);
+        doc.setTextColor(255, 255, 255);
+        doc.text('BALUCH MARTYRS MEMORIAL', pageWidth / 2, 27.5, { align: 'center' });
+
+        doc.setDrawColor(...palette.brass);
+        doc.setLineWidth(0.5);
+        doc.line(pageWidth / 2 - 28, 33, pageWidth / 2 + 28, 33);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        doc.setTextColor(...palette.goldCream);
+        doc.text(sanitizePdfText(filterDesc.coverSubtitle).toUpperCase(), pageWidth / 2, 42, { align: 'center' });
+
+        // Crisp 9mm Baluchistan flag ribbon
+        drawPdfBaluchFlagRibbon(doc, 0, 52, pageWidth, 9, palette, true);
+
+        // Editorial Edition Card
+        const cardX = 16;
+        const cardY = 74;
+        const cardW = pageWidth - 32;
+        const cardH = 92;
+
+        doc.setFillColor(...palette.surface);
+        doc.roundedRect(cardX, cardY, cardW, cardH, 2.5, 2.5, 'F');
+        doc.setDrawColor(...palette.ruleLight);
+        doc.setLineWidth(0.4);
+        doc.roundedRect(cardX, cardY, cardW, cardH, 2.5, 2.5, 'S');
+
+        // Left green spine accent inside card
+        doc.setFillColor(...palette.primary);
+        doc.rect(cardX, cardY + 10, 2.2, cardH - 20, 'F');
+
+        // Top band inside card
+        doc.setFillColor(241, 245, 249);
+        doc.rect(cardX + 0.2, cardY + 0.2, cardW - 0.4, 10, 'F');
+        doc.setDrawColor(...palette.ruleMid);
+        doc.setLineWidth(0.3);
+        doc.line(cardX, cardY + 10.2, cardX + cardW, cardY + 10.2);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.setTextColor(...palette.primary);
+        doc.text('ARCHIVAL EDITION SPECIFICATION', cardX + 7, cardY + 6.7);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(...palette.muted);
+        doc.text('baluchmartyrs.com', cardX + cardW - 7, cardY + 6.7, { align: 'right' });
+
+        // Scope title
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(15);
+        doc.setTextColor(...palette.ink);
+        const safeSectionHeader = fitPdfTextWithEllipsis(doc, filterDesc.sectionHeader, cardW - 18);
+        doc.text(safeSectionHeader, pageWidth / 2, cardY + 21.5, { align: 'center' });
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(...palette.forest);
+        const scopeLine = filterDesc.isFiltered
+            ? `Filtered Edition: ${sanitizePdfText(filterDesc.scopeSummary)}`
+            : 'Unabridged Historical & Biographical Registry';
+        doc.text(fitPdfTextWithEllipsis(doc, scopeLine, cardW - 20), pageWidth / 2, cardY + 28, { align: 'center' });
+
+        doc.setDrawColor(...palette.ruleLight);
+        doc.setLineWidth(0.35);
+        doc.line(cardX + 10, cardY + 33.5, cardX + cardW - 10, cardY + 33.5);
+
+        // 2x2 Summary Metrics Grid inside card
+        const spanText = stats.years.length > 0
+            ? (stats.minYear === stats.maxYear ? String(stats.minYear) : `${stats.minYear} - ${stats.maxYear}`)
+            : 'Historical Archive';
+        const bioRate = `${stats.withBio.toLocaleString()} (${stats.storyPercent}%)`;
+        const colLeftX = cardX + cardW * 0.27;
+        const colRightX = cardX + cardW * 0.73;
+
+        const cells = [
+            { x: colLeftX, y: cardY + 43, label: 'PROFILES INCLUDED', val: `${martyrCount.toLocaleString()} Martyrs`, color: palette.primary },
+            { x: colRightX, y: cardY + 43, label: 'TIME SPAN COVERED', val: spanText, color: palette.ink },
+            { x: colLeftX, y: cardY + 61.5, label: 'RECORDED BIOGRAPHIES', val: bioRate, color: palette.ink },
+            { x: colRightX, y: cardY + 61.5, label: 'PUBLICATION DATE', val: formattedDate, color: palette.ink }
+        ];
+
+        cells.forEach(cell => {
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(6.8);
+            doc.setTextColor(...palette.muted);
+            doc.text(cell.label, cell.x, cell.y, { align: 'center' });
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(12);
+            doc.setTextColor(...cell.color);
+            doc.text(cell.val, cell.x, cell.y + 7, { align: 'center' });
+        });
+
+        // Bottom summary strip inside card
+        doc.setFillColor(...palette.forestLight);
+        doc.rect(cardX + 0.2, cardY + cardH - 12, cardW - 0.4, 11.8, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.8);
+        doc.setTextColor(...palette.primary);
+        const reachSummary = `${stats.orgCount} Documented Organizations   •   ${stats.regionCount} Affected Regions   •   Alphabetically Indexed`;
+        doc.text(reachSummary, pageWidth / 2, cardY + cardH - 4.7, { align: 'center' });
+
+        // Booklet Structure Pillars
+        const pillarY = 178;
+        const pillarH = 30;
+        const pillarGap = 4;
+        const pillarW = (cardW - pillarGap * 2) / 3;
+        const pillars = [
+            { num: 'PART I', title: 'Statistical Overview', desc: 'Timeline, organization & region breakdowns plus section index' },
+            { num: 'PART II', title: 'Memorial Directory', desc: 'Portraits, verified dates, metadata & biographical narratives' },
+            { num: 'PART III', title: 'Archival Colophon', desc: 'Solemn historical dedication & edition reference details' }
+        ];
+
+        pillars.forEach((p, idx) => {
+            const px = cardX + idx * (pillarW + pillarGap);
+            doc.setFillColor(255, 255, 255);
+            doc.roundedRect(px, pillarY, pillarW, pillarH, 1.5, 1.5, 'F');
+            doc.setDrawColor(...palette.ruleLight);
+            doc.setLineWidth(0.35);
+            doc.roundedRect(px, pillarY, pillarW, pillarH, 1.5, 1.5, 'S');
+
+            doc.setFillColor(...palette.forest);
+            doc.rect(px, pillarY, pillarW, 1.2, 'F');
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(6.5);
+            doc.setTextColor(...palette.brass);
+            doc.text(p.num, px + 4, pillarY + 6.5);
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8.8);
+            doc.setTextColor(...palette.ink);
+            doc.text(p.title, px + 4, pillarY + 12);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7.2);
+            doc.setTextColor(...palette.muted);
+            const lines = doc.splitTextToSize(p.desc, pillarW - 8);
+            lines.slice(0, 3).forEach((ln, li) => {
+                doc.text(ln, px + 4, pillarY + 17.5 + li * 3.6);
+            });
+        });
+
+        // Solemn Dedication
+        const dedY = 223;
+        doc.setDrawColor(...palette.brass);
+        doc.setLineWidth(0.45);
+        doc.line(pageWidth / 2 - 24, dedY, pageWidth / 2 + 24, dedY);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10.5);
+        doc.setTextColor(...palette.primary);
+        doc.text('In Sacred Honor and Eternal Remembrance', pageWidth / 2, dedY + 8.5, { align: 'center' });
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(...palette.body);
+        doc.text('Preserving the memory, courage, and sacrifice of those who laid down', pageWidth / 2, dedY + 16, { align: 'center' });
+        doc.text('their lives in the steadfast pursuit of freedom, dignity, and justice.', pageWidth / 2, dedY + 21.5, { align: 'center' });
+
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(8.2);
+        doc.setTextColor(...palette.muted);
+        doc.text('"Martyrs do not die; they live forever in the collective memory of the nation."', pageWidth / 2, dedY + 30, { align: 'center' });
+
+        doc.setDrawColor(...palette.brass);
+        doc.setLineWidth(0.45);
+        doc.line(pageWidth / 2 - 24, dedY + 36, pageWidth / 2 + 24, dedY + 36);
+
+        // Cover bottom bar
+        doc.setFillColor(...palette.primary);
+        doc.rect(0, pageHeight - 21, pageWidth, 21, 'F');
+        doc.setFillColor(...palette.brass);
+        doc.rect(0, pageHeight - 21, pageWidth, 0.6, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.2);
+        doc.setTextColor(255, 255, 255);
+        doc.text('BALUCH MARTYRS MEMORIAL ARCHIVE', pageWidth / 2, pageHeight - 12.2, { align: 'center' });
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.2);
+        doc.setTextColor(...palette.mintLight);
+        doc.text('baluchmartyrs.com  •  Verified Historical Registry', pageWidth / 2, pageHeight - 6.8, { align: 'center' });
+    }
+
+    function drawVectorBarPanel(doc, x, y, w, h, title, items, totalCount, barColor, palette) {
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(x, y, w, h, 1.5, 1.5, 'F');
+        doc.setDrawColor(...palette.ruleLight);
+        doc.setLineWidth(0.35);
+        doc.roundedRect(x, y, w, h, 1.5, 1.5, 'S');
+
+        // Header bar inside panel
+        doc.setFillColor(...palette.surface);
+        doc.rect(x + 0.2, y + 0.2, w - 0.4, 7.6, 'F');
+        doc.setDrawColor(...palette.ruleLight);
+        doc.setLineWidth(0.25);
+        doc.line(x, y + 7.8, x + w, y + 7.8);
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.2);
+        doc.setTextColor(...palette.primary);
+        doc.text(title, x + 3.5, y + 5.2);
+
+        const maxVal = items.reduce((m, it) => Math.max(m, it.count), 1);
+        const labelW = 33;
+        const countW = 16;
+        const barMaxW = w - labelW - countW - 9;
+        const rowStartY = y + 12.8;
+        const rowStep = 6.2;
+
+        items.forEach((item, idx) => {
+            const ry = rowStartY + idx * rowStep;
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7);
+            doc.setTextColor(...palette.ink);
+            const fittedLabel = fitPdfTextWithEllipsis(doc, item.label, labelW - 1.5);
+            doc.text(fittedLabel, x + 3.5, ry);
+
+            // Track
+            const trackX = x + 3.5 + labelW;
+            const trackY = ry - 2.6;
+            const trackH = 3.0;
+            doc.setFillColor(241, 245, 249);
+            doc.roundedRect(trackX, trackY, barMaxW, trackH, 0.7, 0.7, 'F');
+
+            // Proportional bar
+            const fillW = Math.max(1.2, (item.count / maxVal) * barMaxW);
+            doc.setFillColor(...barColor);
+            doc.roundedRect(trackX, trackY, fillW, trackH, 0.7, 0.7, 'F');
+
+            // Count & %
+            const pct = totalCount > 0 ? Math.round((item.count / totalCount) * 100) : 0;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(6.8);
+            doc.setTextColor(...palette.body);
+            doc.text(`${item.count} (${pct}%)`, x + w - 3, ry, { align: 'right' });
+        });
+    }
+
+    function drawPdfStatisticalOverview(doc, layout, stats, filterDesc, palette) {
+        const { margin, contentWidth, contentTopY } = layout;
+        let curY = contentTopY;
+
+        // Section Heading
+        doc.setFillColor(...palette.primary);
+        doc.rect(margin, curY, 2.2, 7.5, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11.5);
+        doc.setTextColor(...palette.ink);
+        doc.text('PART I  •  STATISTICAL OVERVIEW & INDEX', margin + 5, curY + 5.3);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(...palette.muted);
+        const scopeLabel = fitPdfTextWithEllipsis(doc, filterDesc.scopeSummary, 72);
+        doc.text(scopeLabel, margin + contentWidth, curY + 5.1, { align: 'right' });
+
+        curY += 10.5;
+
+        // 4-Card KPI Strip
+        const kpiGap = 3;
+        const kpiW = (contentWidth - kpiGap * 3) / 4;
+        const kpiH = 18.5;
+        const spanValue = stats.years.length > 0
+            ? (stats.minYear === stats.maxYear ? String(stats.minYear) : `${stats.minYear}-${stats.maxYear}`)
+            : 'N/A';
+
+        const kpis = [
+            { label: 'TOTAL PROFILES', value: stats.total.toLocaleString(), sub: 'Verified records', accent: palette.primary },
+            { label: 'TIME SPAN', value: spanValue, sub: `${stats.years.length} active years`, accent: palette.forest },
+            { label: 'BIOGRAPHIES', value: `${stats.storyPercent}%`, sub: `${stats.withBio.toLocaleString()} documented`, accent: palette.ink },
+            { label: 'GEOGRAPHY & ORGS', value: `${stats.regionCount} / ${stats.orgCount}`, sub: 'Regions / Organizations', accent: palette.brass }
+        ];
+
+        kpis.forEach((k, idx) => {
+            const kx = margin + idx * (kpiW + kpiGap);
+            doc.setFillColor(...palette.surface);
+            doc.roundedRect(kx, curY, kpiW, kpiH, 1.5, 1.5, 'F');
+            doc.setDrawColor(...palette.ruleLight);
+            doc.setLineWidth(0.3);
+            doc.roundedRect(kx, curY, kpiW, kpiH, 1.5, 1.5, 'S');
+
+            doc.setFillColor(...k.accent);
+            doc.rect(kx, curY, kpiW, 1.1, 'F');
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(6.2);
+            doc.setTextColor(...palette.muted);
+            doc.text(k.label, kx + 3.5, curY + 5.5);
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(12.5);
+            doc.setTextColor(...palette.ink);
+            doc.text(k.value, kx + 3.5, curY + 12.2);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(6.6);
+            doc.setTextColor(...palette.muted);
+            doc.text(k.sub, kx + 3.5, curY + 16.5);
+        });
+
+        curY += kpiH + 4.5;
+
+        // Left Panel: Top Years (or Monthly Distribution if single year)
+        let leftTitle = 'PEAK MARTYRDOM YEARS';
+        let leftItems = [];
+        const yearEntries = Object.entries(stats.byYear)
+            .map(([yr, cnt]) => ({ label: yr, count: cnt, yearNum: parseInt(yr, 10) }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 8)
+            .sort((a, b) => a.yearNum - b.yearNum);
+
+        if (yearEntries.length > 1) {
+            leftItems = yearEntries;
+        } else {
+            leftTitle = 'MONTHLY DISTRIBUTION';
+            leftItems = stats.byMonth
+                .map((cnt, idx) => ({ label: FULL_MONTHS[idx], count: cnt }))
+                .filter(it => it.count > 0)
+                .slice(0, 8);
+            if (leftItems.length === 0) {
+                leftItems = [{ label: 'Date Unspecified', count: stats.total }];
+            }
+        }
+
+        // Right Panel: Organizations Breakdown
+        const orgEntries = Object.entries(stats.byOrg)
+            .map(([org, cnt]) => ({
+                label: org === '__none__' ? 'Independent / Unspecified' : org.replace(/\s*\([^)]+\)$/, ''),
+                count: cnt
+            }))
+            .sort((a, b) => b.count - a.count);
+
+        let rightItems = orgEntries.slice(0, 7);
+        if (orgEntries.length > 7) {
+            const othersCount = orgEntries.slice(7).reduce((s, o) => s + o.count, 0);
+            if (othersCount > 0) {
+                rightItems.push({ label: `Other (${orgEntries.length - 7} orgs)`, count: othersCount });
+            }
+        }
+        if (rightItems.length === 0) {
+            rightItems = [{ label: 'Unspecified', count: stats.total }];
+        }
+
+        const chartRows = Math.max(leftItems.length, rightItems.length, 1);
+        const chartH = 11.5 + chartRows * 6.2;
+        const halfW = (contentWidth - 4) / 2;
+
+        drawVectorBarPanel(doc, margin, curY, halfW, chartH, leftTitle, leftItems, stats.total, palette.forest, palette);
+        drawVectorBarPanel(doc, margin + halfW + 4, curY, halfW, chartH, 'AFFILIATION BREAKDOWN', rightItems, stats.total, palette.primary, palette);
+
+        curY += chartH + 4.5;
+
+        // Leading Regions Strip (compact 3-column grid, dynamic row count up to 9 regions)
+        const topRegions = Object.entries(stats.byRegion)
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 9);
+
+        if (topRegions.length > 0) {
+            const regRows = Math.ceil(topRegions.length / 3);
+            const regBoxH = 10.5 + regRows * 5.6;
+
+            doc.setFillColor(255, 255, 255);
+            doc.roundedRect(margin, curY, contentWidth, regBoxH, 1.5, 1.5, 'F');
+            doc.setDrawColor(...palette.ruleLight);
+            doc.setLineWidth(0.35);
+            doc.roundedRect(margin, curY, contentWidth, regBoxH, 1.5, 1.5, 'S');
+
+            doc.setFillColor(...palette.surface);
+            doc.rect(margin + 0.2, curY + 0.2, contentWidth - 0.4, 7.2, 'F');
+            doc.setDrawColor(...palette.ruleLight);
+            doc.setLineWidth(0.25);
+            doc.line(margin, curY + 7.4, margin + contentWidth, curY + 7.4);
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(7.2);
+            doc.setTextColor(...palette.primary);
+            doc.text('LEADING DOCUMENTED REGIONS', margin + 3.5, curY + 5.0);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(6.8);
+            doc.setTextColor(...palette.muted);
+            doc.text(`${stats.regionCount} total documented places/regions`, margin + contentWidth - 3.5, curY + 5.0, { align: 'right' });
+
+            const regColW = (contentWidth - 8) / 3;
+            topRegions.forEach((reg, idx) => {
+                const col = idx % 3;
+                const row = Math.floor(idx / 3);
+                const rx = margin + 3.5 + col * regColW;
+                const ry = curY + 12.0 + row * 5.6;
+                const pct = stats.total > 0 ? Math.round((reg.count / stats.total) * 100) : 0;
+
+                doc.setFillColor(...palette.forest);
+                doc.circle(rx + 1.2, ry - 1.0, 0.85, 'F');
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(7.2);
+                doc.setTextColor(...palette.ink);
+                const label = fitPdfTextWithEllipsis(doc, reg.name, regColW - 22);
+                doc.text(label, rx + 3.5, ry);
+
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(7);
+                doc.setTextColor(...palette.muted);
+                doc.text(`${reg.count} (${pct}%)`, rx + regColW - 4, ry, { align: 'right' });
+            });
+
+            curY += regBoxH + 4.5;
+        }
+
+        return { tocStartY: curY };
+    }
+
+    function drawPdfTableOfContents(doc, layout, tocStartY, tocEntries, isGroupedSections, closingPageNum, palette) {
+        const { margin, contentWidth, contentBottomY } = layout;
+        const maxBottom = contentBottomY - 2;
+        const availH = maxBottom - tocStartY;
+        if (availH < 24) return;
+
+        // Build full index items list
+        const items = [...tocEntries];
+        items.push({ label: 'Closing Tribute', count: null, page: closingPageNum, isHighlight: true });
+
+        const cols = isGroupedSections ? 3 : 2;
+        const rowsPerCol = Math.ceil(items.length / cols);
+        const rowH = Math.min(6.2, Math.max(4.8, (availH - 13) / Math.max(rowsPerCol, 1)));
+        const boxH = Math.min(availH, 11.5 + rowsPerCol * rowH);
+
+        doc.setFillColor(...palette.surface);
+        doc.roundedRect(margin, tocStartY, contentWidth, boxH, 1.5, 1.5, 'F');
+        doc.setDrawColor(...palette.ruleLight);
+        doc.setLineWidth(0.35);
+        doc.roundedRect(margin, tocStartY, contentWidth, boxH, 1.5, 1.5, 'S');
+
+        doc.setFillColor(...palette.primary);
+        doc.rect(margin, tocStartY, contentWidth, 7.6, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.4);
+        doc.setTextColor(255, 255, 255);
+        doc.text(isGroupedSections ? 'DIRECTORY CONTENTS & SECTION INDEX' : 'DIRECTORY CONTENTS & PROFILE INDEX', margin + 4, tocStartY + 5.1);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(6.8);
+        doc.setTextColor(...palette.mintLight);
+        doc.text(`Statistical Overview: p. 2  •  ${items.length - 1} Directory Entries`, margin + contentWidth - 4, tocStartY + 5.1, { align: 'right' });
+
+        const colGap = 5;
+        const colW = (contentWidth - 8 - colGap * (cols - 1)) / cols;
+        const listStartY = tocStartY + 12.2;
+
+        items.forEach((item, idx) => {
+            const col = Math.floor(idx / rowsPerCol);
+            const row = idx % rowsPerCol;
+            if (col >= cols) return;
+
+            const ix = margin + 4 + col * (colW + colGap);
+            const iy = listStartY + row * rowH;
+            if (iy > tocStartY + boxH - 2) return;
+
+            const pageStr = `p. ${item.page}`;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(7);
+            const pageW = doc.getTextWidth(pageStr);
+
+            const titleText = item.count !== null && item.count !== undefined
+                ? `${item.label} (${item.count})`
+                : item.label;
+
+            doc.setFont('helvetica', item.isHighlight ? 'bold' : 'normal');
+            doc.setFontSize(7.1);
+            doc.setTextColor(...(item.isHighlight ? palette.primary : palette.ink));
+            const maxLabelW = colW - pageW - 5;
+            const fitted = fitPdfTextWithEllipsis(doc, titleText, maxLabelW);
+            const fittedW = doc.getTextWidth(fitted);
+            doc.text(fitted, ix, iy);
+
+            // Subtle dot leader between label and page number
+            const leaderStart = ix + fittedW + 1.5;
+            const leaderEnd = ix + colW - pageW - 1.5;
+            if (leaderEnd - leaderStart > 2.5) {
+                doc.setDrawColor(...palette.ruleMid);
+                doc.setLineWidth(0.2);
+                for (let dx = leaderStart; dx < leaderEnd; dx += 1.4) {
+                    doc.line(dx, iy - 0.4, dx + 0.35, iy - 0.4);
+                }
+            }
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(7);
+            doc.setTextColor(...palette.forest);
+            doc.text(pageStr, ix + colW, iy, { align: 'right' });
+        });
+
+        // Fill remaining lower band on Page 2 cleanly with Editorial Standards & Navigation Guide
+        const guideTop = tocStartY + boxH + 4.5;
+        const guideAvail = maxBottom - guideTop;
+        if (guideAvail >= 24) {
+            const guideH = Math.min(34, guideAvail);
+            doc.setFillColor(...palette.forestLight);
+            doc.roundedRect(margin, guideTop, contentWidth, guideH, 1.5, 1.5, 'F');
+            doc.setDrawColor(...palette.ruleMid);
+            doc.setLineWidth(0.3);
+            doc.roundedRect(margin, guideTop, contentWidth, guideH, 1.5, 1.5, 'S');
+            doc.setFillColor(...palette.forest);
+            doc.rect(margin, guideTop, 2.0, guideH, 'F');
+
+            const gHalfW = (contentWidth - 14) / 2;
+            const gx1 = margin + 5.5;
+            const gx2 = gx1 + gHalfW + 6;
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(7.0);
+            doc.setTextColor(...palette.primary);
+            doc.text('ARCHIVAL STANDARDS & ACCURACY', gx1, guideTop + 6.2);
+            doc.text('BOOKLET NAVIGATION & CITATION', gx2, guideTop + 6.2);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7.1);
+            doc.setTextColor(...palette.body);
+            const leftCopy = 'Entries are compiled from verified memorial submissions on baluchmartyrs.com. Unverified or missing birth details are omitted cleanly rather than displaying placeholder text.';
+            const rightCopy = 'Profiles are organized alphabetically with sequential record numbers (#0001+), normalized portraits, unified organization tags, and running section headers for archival reference.';
+
+            doc.splitTextToSize(leftCopy, gHalfW).slice(0, 4).forEach((ln, idx) => {
+                doc.text(ln, gx1, guideTop + 11.2 + idx * 3.8);
+            });
+            doc.splitTextToSize(rightCopy, gHalfW).slice(0, 4).forEach((ln, idx) => {
+                doc.text(ln, gx2, guideTop + 11.2 + idx * 3.8);
+            });
+        }
+    }
+
+    function prepareMartyrEntry(doc, layout, martyr, indexNum) {
+        const { contentWidth } = layout;
+        const name = cleanPdfField(martyr.fullName) || 'Unnamed Martyr';
+        const birthDate = formatDateForPdf(martyr.birthDate);
+        const martyrdomDate = formatDateForPdf(martyr.martyrdomDate);
+        const martyrdomPlace = cleanPdfField(martyr.martyrdomPlace);
+        const birthPlace = cleanPdfField(martyr.birthPlace);
+        const fatherName = cleanPdfField(martyr.fatherName);
+        const organization = cleanPdfField(martyr.organization);
+        const rank = cleanPdfField(martyr.rank);
+        const familyDetails = cleanPdfField(martyr.familyDetails);
+
+        const rawDetails = [];
+        if (birthDate && martyrdomDate) {
+            rawDetails.push({ label: 'LIVED', value: `${birthDate} - ${martyrdomDate}` });
+        } else if (martyrdomDate) {
+            rawDetails.push({ label: 'MARTYRDOM DATE', value: martyrdomDate });
+        } else if (birthDate) {
+            rawDetails.push({ label: 'BORN', value: birthDate });
+        }
+        if (martyrdomPlace) rawDetails.push({ label: 'MARTYRDOM PLACE', value: martyrdomPlace });
+        if (birthPlace) rawDetails.push({ label: 'BIRTHPLACE', value: birthPlace });
+        if (fatherName) rawDetails.push({ label: "FATHER'S NAME", value: fatherName });
+        if (organization) rawDetails.push({ label: 'ORGANIZATION', value: organization });
+        if (rank) rawDetails.push({ label: 'RANK / ROLE', value: rank });
+        if (familyDetails) rawDetails.push({ label: 'FAMILY', value: familyDetails });
+
+        const photoW = 24;
+        const photoH = 30;
+        const metaX = layout.margin + 2.5 + photoW + 5;
+        const metaW = contentWidth - 2.5 - photoW - 5 - 3;
+
+        // Name measurement
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11.5);
+        const nameLines = doc.splitTextToSize(name, metaW - 18);
+        const nameLineH = 4.6;
+        const nameBlockH = nameLines.length * nameLineH + 2.6;
+
+        // 2-column stacked metadata pairs
+        const colGap = 5;
+        const colW = (metaW - colGap) / 2;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.0);
+        const valLineH = 3.5;
+
+        const measuredDetails = rawDetails.map(det => ({
+            label: det.label,
+            valLines: doc.splitTextToSize(det.value, colW - 0.5)
+        }));
+
+        const detailRows = [];
+        let metadataGridH = 0;
+        for (let idx = 0; idx < measuredDetails.length; idx += 2) {
+            const left = measuredDetails[idx];
+            const right = measuredDetails[idx + 1] || null;
+            const maxLines = Math.max(left.valLines.length, right ? right.valLines.length : 0);
+            const rowH = 3.0 + maxLines * valLineH + 1.8;
+            detailRows.push({ left, right, rowH });
+            metadataGridH += rowH;
+        }
+
+        const metaContentH = 1.5 + nameBlockH + metadataGridH;
+        const headerInnerH = Math.max(photoH, metaContentH);
+        const headerBoxH = headerInnerH + 4; // 2mm top + 2mm bottom padding inside header frame
+
+        // Biography paragraphs & line tokens
+        const bioMaxW = contentWidth - 4.5;
+        const rawBio = sanitizePdfText(martyr.biography || '').replace(/\r\n?/g, '\n');
+        const paragraphs = rawBio
+            .split(/\n+/)
+            .map(p => p.replace(/\s+/g, ' ').trim())
+            .filter(Boolean);
+
+        const bioLineH = 3.85;
+        const paraExtraGap = 1.6;
+        const bioTokens = [];
+
+        if (paragraphs.length > 0) {
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(8.4);
+            paragraphs.forEach((p, pIdx) => {
+                const lines = doc.splitTextToSize(p, bioMaxW);
+                const isLastPara = pIdx === paragraphs.length - 1;
+                lines.forEach((ln, lIdx) => {
+                    const isLastLineInPara = lIdx === lines.length - 1;
+                    const gap = (!isLastPara && isLastLineInPara) ? paraExtraGap : 0;
+                    bioTokens.push({
+                        text: ln,
+                        lineAdvance: bioLineH + gap
+                    });
+                });
+            });
+        }
+
+        const totalBioH = bioTokens.reduce((sum, t) => sum + t.lineAdvance, 0);
+        const bioSectionHeaderH = bioTokens.length > 0 ? 7.5 : 0;
+        const noBioFooterH = bioTokens.length === 0 ? 6.0 : 0;
+        const totalEntryH = headerBoxH + bioSectionHeaderH + totalBioH + noBioFooterH + 1.5;
+
+        return {
+            indexNum,
+            martyr,
+            name,
+            nameLines,
+            nameLineH,
+            nameBlockH,
+            photoW,
+            photoH,
+            metaX,
+            metaW,
+            colW,
+            colGap,
+            valLineH,
+            detailRows,
+            headerBoxH,
+            bioTokens,
+            bioLineH,
+            bioSectionHeaderH,
+            totalBioH,
+            noBioFooterH,
+            totalEntryH
+        };
+    }
+
+    function renderMartyrHeaderBox(doc, layout, entry, topY, photoDataUrl, palette) {
+        const { margin, contentWidth } = layout;
+
+        // Clean framed header band
+        doc.setFillColor(...palette.surface);
+        doc.roundedRect(margin, topY, contentWidth, entry.headerBoxH, 1.2, 1.2, 'F');
+        doc.setDrawColor(...palette.ruleLight);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(margin, topY, contentWidth, entry.headerBoxH, 1.2, 1.2, 'S');
+
+        // Left Forest Green accent bar
+        doc.setFillColor(...palette.primary);
+        doc.rect(margin, topY, 1.8, entry.headerBoxH, 'F');
+
+        // Portrait
+        const photoX = margin + 3.2;
+        const photoY = topY + 2;
+        if (photoDataUrl) {
+            try {
+                const imgFormat = photoDataUrl.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+                doc.addImage(photoDataUrl, imgFormat, photoX, photoY, entry.photoW, entry.photoH, undefined, 'MEDIUM');
+                doc.setDrawColor(...palette.ruleMid);
+                doc.setLineWidth(0.35);
+                doc.rect(photoX, photoY, entry.photoW, entry.photoH, 'S');
+            } catch (err) {
+                drawPdfPhotoPlaceholder(doc, photoX, photoY, entry.photoW, entry.photoH, palette);
+            }
+        } else {
+            drawPdfPhotoPlaceholder(doc, photoX, photoY, entry.photoW, entry.photoH, palette);
+        }
+
+        // Index badge top-right
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.2);
+        doc.setTextColor(...palette.muted);
+        doc.text(`#${String(entry.indexNum).padStart(4, '0')}`, margin + contentWidth - 3, topY + 5.8, { align: 'right' });
+
+        // Name + Accent rule
+        let curMetaY = topY + 5.8;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11.5);
+        doc.setTextColor(...palette.ink);
+        entry.nameLines.forEach((ln, idx) => {
+            doc.text(ln, entry.metaX, curMetaY + idx * entry.nameLineH);
+        });
+
+        const ruleY = curMetaY + (entry.nameLines.length - 1) * entry.nameLineH + 2.0;
+        doc.setFillColor(...palette.forest);
+        doc.rect(entry.metaX, ruleY, 22, 0.55, 'F');
+        doc.setFillColor(...palette.brass);
+        doc.rect(entry.metaX + 23, ruleY, 6, 0.55, 'F');
+
+        // Stacked 2-column metadata grid (label directly above value prevents column collision)
+        let gridY = ruleY + 4.0;
+        entry.detailRows.forEach(pair => {
+            const cols = [
+                { det: pair.left, x: entry.metaX },
+                ...(pair.right ? [{ det: pair.right, x: entry.metaX + entry.colW + entry.colGap }] : [])
+            ];
+            cols.forEach(({ det, x }) => {
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(6.0);
+                doc.setTextColor(...palette.muted);
+                doc.text(det.label, x, gridY);
+
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(8.0);
+                doc.setTextColor(...palette.ink);
+                det.valLines.forEach((vLine, vIdx) => {
+                    doc.text(vLine, x, gridY + 3.2 + vIdx * entry.valLineH);
+                });
+            });
+            gridY += pair.rowH;
+        });
+
+        return topY + entry.headerBoxH;
+    }
+
+    function drawSectionBanner(doc, layout, topY, sectionInfo, palette) {
+        const { margin, contentWidth } = layout;
+        const barH = 8.0;
+
+        doc.setFillColor(...palette.forestLight);
+        doc.roundedRect(margin, topY, contentWidth, barH, 1.0, 1.0, 'F');
+        doc.setFillColor(...palette.primary);
+        doc.rect(margin, topY, 2.5, barH, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.8);
+        doc.setTextColor(...palette.primary);
+        doc.text(`SECTION ${sectionInfo.letter}`, margin + 5.5, topY + 5.3);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.4);
+        doc.setTextColor(...palette.forest);
+        doc.text(`${sectionInfo.count.toLocaleString()} ${sectionInfo.count === 1 ? 'Profile' : 'Profiles'}`, margin + contentWidth - 4, topY + 5.2, { align: 'right' });
+
+        return topY + barH + 2.5;
+    }
+
+    function drawEntryDivider(doc, layout, y, palette) {
+        const { margin, contentWidth, pageWidth } = layout;
+        doc.setDrawColor(...palette.ruleLight);
+        doc.setLineWidth(0.3);
+        doc.line(margin, y, margin + contentWidth, y);
+
+        doc.setFillColor(...palette.brass);
+        doc.rect(pageWidth / 2 - 3, y - 0.45, 6, 0.9, 'F');
+    }
+
+    function renderBioSlice(doc, layout, tokens, startIdx, count, bioStartY, hasMoreAfter, palette) {
+        const { margin, contentWidth } = layout;
+        const endIdx = startIdx + count;
+        let y = bioStartY;
+        const textX = margin + 4.0;
+
+        // Compute bottom for subtle left guide rule
+        let sliceTextHeight = 0;
+        for (let k = startIdx; k < endIdx; k++) {
+            sliceTextHeight += tokens[k].lineAdvance;
+        }
+        const guideTop = bioStartY - 2.6;
+        const guideBottom = Math.max(guideTop + 2, bioStartY + sliceTextHeight - 1.5);
+        doc.setDrawColor(...palette.ruleMid);
+        doc.setLineWidth(0.45);
+        doc.line(margin + 1.0, guideTop, margin + 1.0, guideBottom);
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.4);
+        doc.setTextColor(...palette.body);
+
+        for (let k = startIdx; k < endIdx; k++) {
+            doc.text(tokens[k].text, textX, y);
+            y += tokens[k].lineAdvance;
+        }
+
+        if (hasMoreAfter) {
+            doc.setFont('helvetica', 'italic');
+            doc.setFontSize(6.6);
+            doc.setTextColor(...palette.muted);
+            doc.text('Continued on next page >', margin + contentWidth, y + 0.5, { align: 'right' });
+            return y + 3.0;
+        }
+
+        return y;
+    }
+
+    function countTokensFitting(tokens, startIdx, maxHeight) {
+        let used = 0;
+        let count = 0;
+        for (let i = startIdx; i < tokens.length; i++) {
+            const step = tokens[i].lineAdvance;
+            if (used + step > maxHeight + 0.01) break;
+            used += step;
+            count++;
+        }
+        return count;
+    }
+
+    function renderSingleMartyrEntry(doc, layout, entry, state, photoDataUrl, sectionStartInfo, palette) {
+        const { contentTopY, contentBottomY, margin, contentWidth } = layout;
+
+        const addManagedPage = (sectionLabel) => {
+            doc.addPage();
+            state.currentPage = doc.internal.getNumberOfPages();
+            state.curY = contentTopY;
+            state.pageSections[state.currentPage] = sectionLabel;
+        };
+
+        const bannerH = sectionStartInfo ? 10.5 : 0;
+        const dividerH = state.curY > contentTopY ? 7.0 : 0;
+        const availH = contentBottomY - (state.curY + dividerH);
+        const fullNeededH = bannerH + entry.totalEntryH;
+
+        let renderY = state.curY;
+        const currentSectionLabel = state.activeSectionLabel || 'Memorial Directory';
+
+        // Decide whether to draw on current page or start fresh
+        let startsOnFreshPage = false;
+
+        if (fullNeededH <= availH) {
+            // Whole entry fits comfortably on current page
+            if (dividerH > 0) {
+                drawEntryDivider(doc, layout, renderY + dividerH / 2, palette);
+                renderY += dividerH;
+            }
+        } else if (entry.bioTokens.length === 0 || (entry.bioTokens.length <= 6 && fullNeededH <= layout.usableHeight)) {
+            // Keep compact / indivisible entries intact unless already at top of page
+            if (state.curY > contentTopY) {
+                addManagedPage(currentSectionLabel);
+                renderY = state.curY;
+                startsOnFreshPage = true;
+            }
+        } else {
+            // Entry has >= 7 bio lines: start on current page if >= 4 lines + header fit cleanly (prevents half-page voids)
+            const minLinesOnFirst = Math.min(4, entry.bioTokens.length);
+            let minFirstBioH = 0;
+            for (let k = 0; k < minLinesOnFirst; k++) minFirstBioH += entry.bioTokens[k].lineAdvance;
+            const minSplitStartH = bannerH + entry.headerBoxH + entry.bioSectionHeaderH + minFirstBioH + 4.5;
+
+            if (availH >= minSplitStartH) {
+                if (dividerH > 0) {
+                    drawEntryDivider(doc, layout, renderY + dividerH / 2, palette);
+                    renderY += dividerH;
+                }
+            } else if (state.curY > contentTopY) {
+                addManagedPage(currentSectionLabel);
+                renderY = state.curY;
+                startsOnFreshPage = true;
+            }
+        }
+
+        // Record start page for Table of Contents
+        const entryStartPage = state.currentPage;
+        if (sectionStartInfo) {
+            sectionStartInfo.onPageAssigned(entryStartPage);
+            state.activeSectionLabel = `Section ${sectionStartInfo.letter}`;
+            state.pageSections[entryStartPage] = state.activeSectionLabel;
+        } else if (startsOnFreshPage && !state.pageSections[entryStartPage]) {
+            state.pageSections[entryStartPage] = currentSectionLabel;
+        }
+        state.profilePages.push({ indexNum: entry.indexNum, name: entry.name, year: extractYear(entry.martyr.martyrdomDate), page: entryStartPage });
+
+        // Draw optional Section Banner (kept attached to this entry, never orphaned)
+        if (sectionStartInfo) {
+            renderY = drawSectionBanner(doc, layout, renderY, sectionStartInfo, palette);
+        }
+
+        // Render Entry Header (Portrait + Name + Metadata)
+        const afterHeaderY = renderMartyrHeaderBox(doc, layout, entry, renderY, photoDataUrl, palette);
+
+        // No-biography compact archival footer
+        if (entry.bioTokens.length === 0) {
+            doc.setFont('helvetica', 'italic');
+            doc.setFontSize(7.2);
+            doc.setTextColor(...palette.muted);
+            doc.text('Archival biographical narrative pending verification.', margin + 2.5, afterHeaderY + 4.2);
+            state.curY = afterHeaderY + entry.noBioFooterH + 1.0;
+            return;
+        }
+
+        // Biography micro-heading
+        const bioHeadY = afterHeaderY + 4.8;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(6.8);
+        doc.setTextColor(...palette.primary);
+        doc.text('BIOGRAPHY & MEMORIAL RECORD', margin + 1, bioHeadY);
+        const headW = doc.getTextWidth('BIOGRAPHY & MEMORIAL RECORD');
+        doc.setDrawColor(...palette.ruleLight);
+        doc.setLineWidth(0.3);
+        doc.line(margin + headW + 3.5, bioHeadY - 1.0, margin + contentWidth, bioHeadY - 1.0);
+
+        const bioStartY = afterHeaderY + entry.bioSectionHeaderH + 1.5;
+        let nextTokenIdx = 0;
+
+        // Check if entire bio finishes right on this page
+        const availBioFirstPageFull = contentBottomY - bioStartY;
+        const canFinishOnStartPage = entry.totalBioH <= availBioFirstPageFull;
+
+        if (canFinishOnStartPage) {
+            const endY = renderBioSlice(doc, layout, entry.bioTokens, 0, entry.bioTokens.length, bioStartY, false, palette);
+            state.curY = endY + 1.5;
+            return;
+        }
+
+        // Multi-page flow: reserve 4.5mm at bottom for "Continued on next page >"
+        let firstFit = countTokensFitting(entry.bioTokens, 0, availBioFirstPageFull - 4.5);
+        firstFit = Math.max(1, firstFit);
+        // Widow protection: ensure at least 3 lines remain for next page if possible
+        let remaining = entry.bioTokens.length - firstFit;
+        if (remaining > 0 && remaining < 3 && firstFit - (3 - remaining) >= 4) {
+            firstFit -= (3 - remaining);
+        }
+
+        renderBioSlice(doc, layout, entry.bioTokens, 0, firstFit, bioStartY, true, palette);
+        nextTokenIdx = firstFit;
+
+        // Continuation pages
+        while (nextTokenIdx < entry.bioTokens.length) {
+            addManagedPage(state.activeSectionLabel || currentSectionLabel);
+
+            // Slim inline continuation bar inside content area (never overwritten by running header)
+            const contBarH = 6.2;
+            doc.setFillColor(...palette.forestLight);
+            doc.roundedRect(margin, contentTopY, contentWidth, contBarH, 0.8, 0.8, 'F');
+            doc.setFillColor(...palette.forest);
+            doc.rect(margin, contentTopY, 1.8, contBarH, 'F');
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(7.2);
+            doc.setTextColor(...palette.primary);
+            const contLabel = fitPdfTextWithEllipsis(doc, `CONTINUED BIOGRAPHY  —  ${entry.name}`, contentWidth - 10);
+            doc.text(contLabel, margin + 4.5, contentTopY + 4.3);
+
+            const sliceStartY = contentTopY + contBarH + 4.2;
+            const availSliceFull = contentBottomY - sliceStartY;
+
+            // Check if all remaining tokens fit cleanly without reserving continuation footer
+            let remHeight = 0;
+            for (let k = nextTokenIdx; k < entry.bioTokens.length; k++) remHeight += entry.bioTokens[k].lineAdvance;
+
+            if (remHeight <= availSliceFull + 0.01) {
+                const countHere = entry.bioTokens.length - nextTokenIdx;
+                const endY = renderBioSlice(doc, layout, entry.bioTokens, nextTokenIdx, countHere, sliceStartY, false, palette);
+                state.curY = endY + 1.5;
+                nextTokenIdx = entry.bioTokens.length;
+            } else {
+                let countHere = countTokensFitting(entry.bioTokens, nextTokenIdx, availSliceFull - 4.5);
+                countHere = Math.max(1, countHere);
+                const remAfter = entry.bioTokens.length - (nextTokenIdx + countHere);
+                if (remAfter > 0 && remAfter < 3 && countHere - (3 - remAfter) >= 4) {
+                    countHere -= (3 - remAfter);
+                }
+                renderBioSlice(doc, layout, entry.bioTokens, nextTokenIdx, countHere, sliceStartY, true, palette);
+                nextTokenIdx += countHere;
+            }
+        }
+    }
+
+    function drawPdfClosingTribute(doc, layout, filterDesc, stats, totalCount, totalPagesWithClosing, formattedDate, palette) {
+        const { pageWidth, pageHeight } = layout;
+
+        doc.setFillColor(...palette.surface);
+        doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+        // Top forest band
+        doc.setFillColor(...palette.primary);
+        doc.rect(0, 0, pageWidth, 42, 'F');
+        doc.setFillColor(...palette.brass);
+        doc.rect(0, 42, pageWidth, 0.8, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(...palette.mintLight);
+        doc.text('PART III  •  ARCHIVAL COLOPHON & DEDICATION', pageWidth / 2, 14.5, { align: 'center' });
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(20);
+        doc.setTextColor(255, 255, 255);
+        doc.text('IN ETERNAL MEMORY', pageWidth / 2, 26.5, { align: 'center' });
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(...palette.goldCream);
+        doc.text('BALUCH MARTYRS MEMORIAL HISTORICAL ARCHIVE', pageWidth / 2, 34.5, { align: 'center' });
+
+        // Flag ribbon centered
+        drawPdfBaluchFlagRibbon(doc, (pageWidth - 84) / 2, 54, 84, 7.5, palette, true);
+
+        // Dedication prose
+        let cy = 78;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10.5);
+        doc.setTextColor(...palette.body);
+        const proseLines = [
+            'This memorial booklet is dedicated to the sacred memory of the martyrs of Baluchistan',
+            'who laid down their lives in steadfast devotion to freedom, sovereignty, and justice.',
+            'Their names, portraits, and life stories are preserved here so history bears witness.'
+        ];
+        proseLines.forEach(line => {
+            doc.text(line, pageWidth / 2, cy, { align: 'center' });
+            cy += 6.5;
+        });
+
+        cy += 6;
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(...palette.primary);
+        doc.text('"Martyrs do not die; they live forever in the collective memory of the nation."', pageWidth / 2, cy, { align: 'center' });
+
+        // Centered Verification & Citation Box
+        const boxW = 158;
+        const boxX = (pageWidth - boxW) / 2;
+        const boxY = 122;
+        const boxH = 86;
+
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(boxX, boxY, boxW, boxH, 2.5, 2.5, 'F');
+        doc.setDrawColor(...palette.ruleMid);
+        doc.setLineWidth(0.35);
+        doc.roundedRect(boxX, boxY, boxW, boxH, 2.5, 2.5, 'S');
+        doc.setFillColor(...palette.primary);
+        doc.rect(boxX, boxY, boxW, 8, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(255, 255, 255);
+        doc.text('EDITION VERIFICATION & ARCHIVAL CITATION', pageWidth / 2, boxY + 5.4, { align: 'center' });
+
+        const spanDisplay = stats.years.length > 0
+            ? (stats.minYear === stats.maxYear ? String(stats.minYear) : `${stats.minYear} - ${stats.maxYear}`)
+            : 'Historical Archive';
+
+        const metaRows = [
+            ['Archive Scope', sanitizePdfText(filterDesc.scopeSummary)],
+            ['Total Documented Martyrs', `${totalCount.toLocaleString()} Profiles (${stats.withBio.toLocaleString()} with Biographies)`],
+            ['Chronological Span', `${spanDisplay} (${stats.years.length} recorded years)`],
+            ['Geographic & Org Coverage', `${stats.regionCount} Documented Regions  •  ${stats.orgCount} Organizations`],
+            ['Volume Length & Date', `${totalPagesWithClosing.toLocaleString()} Pages  •  Generated ${formattedDate}`]
+        ];
+
+        let ry = boxY + 17.5;
+        metaRows.forEach(([k, v], idx) => {
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8);
+            doc.setTextColor(...palette.muted);
+            doc.text(k, boxX + 8, ry);
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8.2);
+            doc.setTextColor(...palette.ink);
+            doc.text(fitPdfTextWithEllipsis(doc, v, boxW - 58), boxX + boxW - 8, ry, { align: 'right' });
+
+            if (idx < metaRows.length - 1) {
+                doc.setDrawColor(...palette.ruleLight);
+                doc.setLineWidth(0.25);
+                doc.line(boxX + 8, ry + 3.2, boxX + boxW - 8, ry + 3.2);
+            }
+            ry += 9.8;
+        });
+
+        // Citation strip
+        doc.setFillColor(...palette.forestLight);
+        doc.rect(boxX + 0.5, boxY + boxH - 16, boxW - 1, 15.5, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.2);
+        doc.setTextColor(...palette.primary);
+        doc.text('SUGGESTED ARCHIVAL CITATION', pageWidth / 2, boxY + boxH - 10.2, { align: 'center' });
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(...palette.body);
+        doc.text(`Baluch Martyrs Memorial Archive (baluchmartyrs.com), ${filterDesc.scopeSummary}, Edition ${formattedDate}.`, pageWidth / 2, boxY + boxH - 4.8, { align: 'center' });
+
+        // Editorial Note below box
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(...palette.muted);
+        doc.text('Records in this edition reflect verified community and historical submissions preserved online.', pageWidth / 2, 228, { align: 'center' });
+        doc.text('To submit corrections, photographs, or additional biographies, please visit baluchmartyrs.com.', pageWidth / 2, 234, { align: 'center' });
+
+        // Bottom closing band
+        doc.setFillColor(...palette.primary);
+        doc.rect(0, pageHeight - 24, pageWidth, 24, 'F');
+        doc.setFillColor(...palette.brass);
+        doc.rect(0, pageHeight - 24, pageWidth, 0.7, 'F');
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        doc.setTextColor(255, 255, 255);
+        doc.text('baluchmartyrs.com', pageWidth / 2, pageHeight - 14, { align: 'center' });
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.3);
+        doc.setTextColor(...palette.mintLight);
+        doc.text(`© ${new Date().getFullYear()} Baluch Martyrs Memorial Archive  •  Forever Remembered, Forever Honored`, pageWidth / 2, pageHeight - 8, { align: 'center' });
+    }
+
+    function applyPdfRunningChrome(doc, layout, filterDesc, pageSections, palette) {
+        const { pageWidth, pageHeight, margin } = layout;
+        const totalPages = doc.internal.getNumberOfPages();
+
+        for (let p = 2; p < totalPages; p++) {
+            doc.setPage(p);
+
+            // Crisp top trim + editorial header rule (clean print-ready appearance)
+            doc.setFillColor(...palette.primary);
+            doc.rect(0, 0, pageWidth, 1.3, 'F');
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(7.2);
+            doc.setTextColor(...palette.primary);
+            doc.text('BALUCH MARTYRS MEMORIAL ARCHIVE', margin, 8.8);
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7.2);
+            doc.setTextColor(...palette.muted);
+            const midLabel = pageSections[p] || 'Memorial Directory';
+            doc.text(fitPdfTextWithEllipsis(doc, midLabel, 74), pageWidth / 2, 8.8, { align: 'center' });
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7.2);
+            doc.setTextColor(...palette.muted);
+            doc.text('baluchmartyrs.com', pageWidth - margin, 8.8, { align: 'right' });
+
+            doc.setDrawColor(...palette.ruleMid);
+            doc.setLineWidth(0.3);
+            doc.line(margin, 11.8, pageWidth - margin, 11.8);
+
+            // Clean bottom editorial footer rule
+            doc.setDrawColor(...palette.ruleMid);
+            doc.setLineWidth(0.3);
+            doc.line(margin, pageHeight - 11.5, pageWidth - margin, pageHeight - 11.5);
+
+            doc.setFont('helvetica', 'italic');
+            doc.setFontSize(7.2);
+            doc.setTextColor(...palette.muted);
+            const leftFooter = filterDesc.isFiltered
+                ? fitPdfTextWithEllipsis(doc, `${filterDesc.scopeSummary}  •  Forever Remembered`, 120)
+                : 'Forever Remembered  •  Forever Honored';
+            doc.text(leftFooter, margin, pageHeight - 6.2);
+
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(7.4);
+            doc.setTextColor(...palette.ink);
+            doc.text(`Page ${p} of ${totalPages}`, pageWidth - margin, pageHeight - 6.2, { align: 'right' });
+        }
+    }
+
     async function generatePdf() {
         const btn = document.getElementById('downloadPdfBtn');
         const progress = document.getElementById('downloadProgress');
@@ -1975,7 +3395,6 @@
             return;
         }
 
-        // Check if jsPDF is loaded
         if (typeof window.jspdf === 'undefined') {
             alert('PDF library not loaded. Please refresh and try again.');
             return;
@@ -1983,24 +3402,51 @@
 
         const { jsPDF } = window.jspdf;
 
-        // Disable button & filter dropdowns, show progress bar
+        // Lock controls during generation
         btn.disabled = true;
         if (yearSelect) yearSelect.disabled = true;
         if (monthSelect) monthSelect.disabled = true;
         if (orgSelect) orgSelect.disabled = true;
 
-        btn.innerHTML = '<div class="spinner"></div><span>Generating Memorial Book...</span>';
+        btn.innerHTML = '<div class="spinner"></div><span>Generating Memorial Booklet...</span>';
         if (progress) progress.style.display = 'block';
 
         const filterDesc = getFilterScopeDescription();
+        const palette = buildPdfPalette();
+        let finishedCleanly = false;
 
         try {
-            // Sort filtered martyrs alphabetically
-            const sortedMartyrs = [...filteredMartyrs].sort((a, b) => 
-                (a.fullName || '').localeCompare(b.fullName || '')
-            );
+            updateProgress(progressFill, progressText, 2, 'Organizing archival records & statistics...');
 
-            // Create PDF (A4 size)
+            // Sort cleanly into contiguous alphabetical groups (A-Z, then #)
+            const getGroupLetter = (nameStr) => {
+                const first = sanitizePdfText(nameStr || '').trim().charAt(0).toUpperCase();
+                return /^[A-Z]$/.test(first) ? first : '#';
+            };
+
+            const sortedMartyrs = [...filteredMartyrs].sort((a, b) => {
+                const gA = getGroupLetter(a.fullName);
+                const gB = getGroupLetter(b.fullName);
+                if (gA !== gB) {
+                    if (gA === '#') return 1;
+                    if (gB === '#') return -1;
+                    return gA.localeCompare(gB);
+                }
+                return sanitizePdfText(a.fullName || '').localeCompare(sanitizePdfText(b.fullName || ''));
+            });
+
+            const bookletStats = processData(sortedMartyrs);
+            const useGroupedSections = sortedMartyrs.length > 25;
+
+            // Count items per letter section up front
+            const sectionCounts = new Map();
+            if (useGroupedSections) {
+                sortedMartyrs.forEach(m => {
+                    const letter = getGroupLetter(m.fullName);
+                    sectionCounts.set(letter, (sectionCounts.get(letter) || 0) + 1);
+                });
+            }
+
             const doc = new jsPDF({
                 orientation: 'portrait',
                 unit: 'mm',
@@ -2008,784 +3454,250 @@
                 compress: true
             });
 
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
-            const margin = 14;
-            const contentWidth = pageWidth - (margin * 2);
-
-            // Colors
-            const primaryColor = [44, 85, 48];     // Deep Forest Green
-            const accentColor = [212, 175, 55];    // Accent Gold
-            const textColor = [51, 65, 85];        // Charcoal text
-            const darkNavy = [30, 41, 59];         // Dark slate navy
-            const lightGray = [100, 116, 139];     // Slate gray
-            const baluchBlue = [0, 102, 204];      // Baluchistan Blue
-            const baluchRed = [220, 20, 60];       // Baluchistan Red
-            const baluchGreen = [34, 139, 34];     // Baluchistan Green
-
-            // Helper: Vector 5-pointed white star using 10 crisp triangles
-            function drawBaluchStar(docRef, cx, cy, outerR, innerR) {
-                const points = [];
-                for (let i = 0; i < 10; i++) {
-                    const angle = -Math.PI / 2 + (i * Math.PI / 5);
-                    const r = (i % 2 === 0) ? outerR : innerR;
-                    points.push({
-                        x: cx + r * Math.cos(angle),
-                        y: cy + r * Math.sin(angle)
-                    });
-                }
-                docRef.setFillColor(255, 255, 255);
-                for (let i = 0; i < 10; i++) {
-                    const next = (i + 1) % 10;
-                    docRef.triangle(cx, cy, points[i].x, points[i].y, points[next].x, points[next].y, 'F');
-                }
-            }
-
-            // Helper: Draw the 3-stripe Baluchistan Flag Ribbon (Blue with white star, Red, Green)
-            function drawBaluchFlagRibbon(docRef, x, y, width, totalHeight, withGoldTrim = true) {
-                const stripeH = totalHeight / 3;
-                const trimH = withGoldTrim ? 0.8 : 0;
-
-                // Top gold accent line
-                if (withGoldTrim) {
-                    docRef.setFillColor(...accentColor);
-                    docRef.rect(x, y - trimH, width, trimH, 'F');
-                }
-
-                // 1. Blue Stripe (Top)
-                docRef.setFillColor(...baluchBlue);
-                docRef.rect(x, y, width, stripeH, 'F');
-
-                // White 5-pointed Star centered in the blue stripe
-                const starCx = x + (width / 2);
-                const starCy = y + (stripeH / 2);
-                const outerR = Math.min(stripeH * 0.42, 3.2);
-                const innerR = outerR * 0.382;
-                drawBaluchStar(docRef, starCx, starCy, outerR, innerR);
-
-                // 2. Red Stripe (Middle)
-                docRef.setFillColor(...baluchRed);
-                docRef.rect(x, y + stripeH, width, stripeH, 'F');
-
-                // 3. Green Stripe (Bottom)
-                docRef.setFillColor(...baluchGreen);
-                docRef.rect(x, y + (stripeH * 2), width, stripeH, 'F');
-
-                // Bottom gold accent line
-                if (withGoldTrim) {
-                    docRef.setFillColor(...accentColor);
-                    docRef.rect(x, y + totalHeight, width, trimH, 'F');
-                }
-            }
-
-            // Helper: Load photo as DataURL (handles both data:image and https:// or local static URLs with timeout)
-            async function loadPhotoAsDataUrl(photoSrc, timeoutMs = 1500) {
-                if (!photoSrc || typeof photoSrc !== 'string') return null;
-                const trimmed = photoSrc.trim();
-                if (trimmed.startsWith('data:image/')) {
-                    return trimmed;
-                }
-                if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://') && !trimmed.startsWith('/') && !trimmed.startsWith('./')) {
-                    return null;
-                }
-
-                return new Promise((resolve) => {
-                    let done = false;
-                    const timer = setTimeout(() => {
-                        if (!done) {
-                            done = true;
-                            resolve(null);
-                        }
-                    }, timeoutMs);
-
-                    const img = new Image();
-                    img.crossOrigin = 'anonymous';
-                    img.onload = () => {
-                        if (done) return;
-                        done = true;
-                        clearTimeout(timer);
-                        try {
-                            const canvas = document.createElement('canvas');
-                            let w = img.naturalWidth || img.width || 300;
-                            let h = img.naturalHeight || img.height || 375;
-                            const maxDim = 400;
-                            if (w > maxDim || h > maxDim) {
-                                if (w > h) {
-                                    h = Math.round((h * maxDim) / w);
-                                    w = maxDim;
-                                } else {
-                                    w = Math.round((w * maxDim) / h);
-                                    h = maxDim;
-                                }
-                            }
-                            canvas.width = w;
-                            canvas.height = h;
-                            const ctx = canvas.getContext('2d');
-                            ctx.fillStyle = '#FFFFFF';
-                            ctx.fillRect(0, 0, w, h);
-                            ctx.drawImage(img, 0, 0, w, h);
-                            const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
-                            resolve(dataUrl);
-                        } catch (err) {
-                            resolve(null);
-                        }
-                    };
-                    img.onerror = () => {
-                        if (done) return;
-                        done = true;
-                        clearTimeout(timer);
-                        resolve(null);
-                    };
-                    img.src = trimmed;
-                });
-            }
-
-            // Helper: Draw dignified photo placeholder when no photo exists
-            function renderPhotoPlaceholder(docRef, px, py, pw, ph) {
-                docRef.setFillColor(245, 247, 250);
-                docRef.roundedRect(px, py, pw, ph, 1, 1, 'F');
-
-                docRef.setDrawColor(...accentColor);
-                docRef.setLineWidth(0.4);
-                docRef.rect(px, py, pw, ph, 'S');
-
-                // Mini Baluchistan flag ribbon at top of placeholder
-                docRef.setFillColor(...baluchBlue);
-                docRef.rect(px + 0.5, py + 0.5, pw - 1, 1.2, 'F');
-                docRef.setFillColor(...baluchRed);
-                docRef.rect(px + 0.5, py + 1.7, pw - 1, 1.2, 'F');
-                docRef.setFillColor(...baluchGreen);
-                docRef.rect(px + 0.5, py + 2.9, pw - 1, 1.2, 'F');
-
-                docRef.setFontSize(6.5);
-                docRef.setTextColor(...lightGray);
-                docRef.setFont('helvetica', 'bold');
-                docRef.text('MEMORIAL', px + (pw / 2), py + 20, { align: 'center' });
-                docRef.text('PORTRAIT', px + (pw / 2), py + 24, { align: 'center' });
-
-                docRef.setFontSize(5.5);
-                docRef.setFont('helvetica', 'normal');
-                docRef.text('baluchmartyrs.com', px + (pw / 2), py + 36, { align: 'center' });
-            }
-
-            // Helper: Draw page header for multi-page bio continuation
-            function drawContinuationHeader(martyrName) {
-                doc.setFillColor(...primaryColor);
-                doc.rect(0, 0, pageWidth, 12, 'F');
-                doc.setFillColor(...accentColor);
-                doc.rect(0, 12, pageWidth, 0.8, 'F');
-
-                doc.setFontSize(8);
-                doc.setTextColor(255, 255, 255);
-                doc.setFont('helvetica', 'bold');
-                doc.text('BALUCH MARTYRS MEMORIAL', margin, 8);
-
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(7.5);
-                doc.text(`${martyrName} (biography continued)`, pageWidth / 2, 8, { align: 'center' });
-                doc.text('baluchmartyrs.com', pageWidth - margin, 8, { align: 'right' });
-            }
-
-            const formattedDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-
-            // ==========================================
-            // ---- PAGE 1: COVER PAGE ----
-            // ==========================================
-            updateProgress(progressFill, progressText, 3, 'Designing memorial cover page...');
-
-            // Forest Green top header block
-            doc.setFillColor(...primaryColor);
-            doc.rect(0, 0, pageWidth, 58, 'F');
-
-            // Top gold rule
-            doc.setFillColor(...accentColor);
-            doc.rect(0, 2, pageWidth, 0.8, 'F');
-
-            // Memorial Title
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(23);
-            doc.setFont('helvetica', 'bold');
-            doc.text('BALUCH MARTYRS MEMORIAL', pageWidth / 2, 27, { align: 'center' });
-
-            // Accent line under title
-            doc.setDrawColor(...accentColor);
-            doc.setLineWidth(0.6);
-            doc.line(pageWidth / 2 - 35, 32, pageWidth / 2 + 35, 32);
-
-            // Subtitle
-            doc.setFontSize(11);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(245, 215, 110); // Light gold
-            doc.text(filterDesc.coverSubtitle.toUpperCase(), pageWidth / 2, 41, { align: 'center' });
-
-            // Historical registry badge
-            doc.setFontSize(8);
-            doc.setTextColor(220, 240, 225);
-            doc.text('OFFICIAL HISTORICAL MEMORIAL REGISTRY', pageWidth / 2, 50, { align: 'center' });
-
-            // Three lines of color: Blue with white star, Red, Green (representing Baluchistan flag)
-            drawBaluchFlagRibbon(doc, 0, 58, pageWidth, 18, true);
-
-            // Archival Information Card
-            const cardY = 88;
-            const cardH = 82;
-            const cardMargin = 16;
-            const cardW = pageWidth - (cardMargin * 2);
-
-            doc.setFillColor(248, 250, 252);
-            doc.roundedRect(cardMargin, cardY, cardW, cardH, 3, 3, 'F');
-            doc.setDrawColor(226, 232, 240);
-            doc.setLineWidth(0.5);
-            doc.roundedRect(cardMargin, cardY, cardW, cardH, 3, 3, 'S');
-
-            // Card header banner
-            doc.setFillColor(...primaryColor);
-            doc.roundedRect(cardMargin, cardY, cardW, 11, 3, 3, 'F');
-            doc.rect(cardMargin, cardY + 5, cardW, 6, 'F');
-            doc.setFillColor(...accentColor);
-            doc.rect(cardMargin, cardY + 11, cardW, 0.8, 'F');
-
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(9.5);
-            doc.setFont('helvetica', 'bold');
-            doc.text('MEMORIAL ARCHIVE RECORD', pageWidth / 2, cardY + 7.5, { align: 'center' });
-
-            // Scope Title inside card
-            doc.setTextColor(...darkNavy);
-            doc.setFontSize(14);
-            doc.setFont('helvetica', 'bold');
-            doc.text(filterDesc.sectionHeader, pageWidth / 2, cardY + 22, { align: 'center' });
-
-            if (filterDesc.isFiltered) {
-                doc.setFontSize(9);
-                doc.setTextColor(...primaryColor);
-                doc.setFont('helvetica', 'bold');
-                doc.text(`Scope: ${filterDesc.scopeSummary}`, pageWidth / 2, cardY + 29, { align: 'center' });
-            }
-
-            // Divider inside card
-            doc.setDrawColor(226, 232, 240);
-            doc.setLineWidth(0.4);
-            doc.line(cardMargin + 10, cardY + 34, cardMargin + cardW - 10, cardY + 34);
-
-            // Pillar 1: Total Profiles (Left)
-            const pillarLeftCenterX = cardMargin + (cardW / 4);
-            doc.setFontSize(7.5);
-            doc.setTextColor(...lightGray);
-            doc.setFont('helvetica', 'bold');
-            doc.text('DOCUMENTED MARTYRS', pillarLeftCenterX, cardY + 44, { align: 'center' });
-
-            doc.setFontSize(15);
-            doc.setTextColor(...primaryColor);
-            doc.setFont('helvetica', 'bold');
-            doc.text(`${sortedMartyrs.length.toLocaleString()} Profiles`, pillarLeftCenterX, cardY + 53, { align: 'center' });
-
-            // Pillar 2: Generation Date (Right)
-            const pillarRightCenterX = cardMargin + (cardW * 3 / 4);
-            doc.setFontSize(7.5);
-            doc.setTextColor(...lightGray);
-            doc.setFont('helvetica', 'bold');
-            doc.text('ARCHIVE RECORD DATE', pillarRightCenterX, cardY + 44, { align: 'center' });
-
-            doc.setFontSize(11);
-            doc.setTextColor(...darkNavy);
-            doc.setFont('helvetica', 'bold');
-            doc.text(formattedDate, pillarRightCenterX, cardY + 53, { align: 'center' });
-
-            // Verification seal text at card bottom
-            doc.setFontSize(8);
-            doc.setTextColor(...lightGray);
-            doc.setFont('helvetica', 'italic');
-            doc.text('Historical Documentation • Digital Memorial Edition • baluchmartyrs.com', pageWidth / 2, cardY + 72, { align: 'center' });
-
-            // Solemn Dedication & Tribute
-            const dedY = 190;
-            doc.setDrawColor(...accentColor);
-            doc.setLineWidth(0.5);
-            doc.line(pageWidth / 2 - 25, dedY, pageWidth / 2 + 25, dedY);
-
-            doc.setFontSize(11);
-            doc.setTextColor(...primaryColor);
-            doc.setFont('helvetica', 'bold');
-            doc.text('In Sacred Honor and Eternal Remembrance', pageWidth / 2, dedY + 10, { align: 'center' });
-
-            doc.setFontSize(9.5);
-            doc.setTextColor(...textColor);
-            doc.setFont('helvetica', 'normal');
-            doc.text('Preserving the memory, bravery, and sacrifice of those', pageWidth / 2, dedY + 19, { align: 'center' });
-            doc.text('who laid down their lives for freedom, honor, and justice.', pageWidth / 2, dedY + 25, { align: 'center' });
-
-            doc.setFontSize(9);
-            doc.setTextColor(...lightGray);
-            doc.setFont('helvetica', 'italic');
-            doc.text('Their courage inspires generations. Their names will live forever in the soul of Baluchistan.', pageWidth / 2, dedY + 36, { align: 'center' });
-
-            doc.setDrawColor(...accentColor);
-            doc.setLineWidth(0.5);
-            doc.line(pageWidth / 2 - 25, dedY + 44, pageWidth / 2 + 25, dedY + 44);
-
-            // Cover Footer Block
-            doc.setFillColor(...primaryColor);
-            doc.rect(0, pageHeight - 22, pageWidth, 22, 'F');
-            doc.setFillColor(...accentColor);
-            doc.rect(0, pageHeight - 22, pageWidth, 0.8, 'F');
-
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(8.5);
-            doc.setFont('helvetica', 'bold');
-            doc.text('BALUCH MARTYRS MEMORIAL ARCHIVE', pageWidth / 2, pageHeight - 13, { align: 'center' });
-
-            doc.setFontSize(7.5);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(220, 240, 225);
-            doc.text('baluchmartyrs.com • Preserving Truth and Sacred Memory', pageWidth / 2, pageHeight - 7.5, { align: 'center' });
-
-            // ==========================================
-            // ---- MARTYR PROFILES (SMART 2-PER-PAGE) ----
-            // ==========================================
-            let currentSlot = 2; // Initialize to 2 so the first martyr creates page 2
-
-            for (let i = 0; i < sortedMartyrs.length; i++) {
-                const martyr = sortedMartyrs[i];
-                const martyrName = martyr.fullName || 'Unnamed Martyr';
-                const profileNum = i + 1;
-
-                const progressPercent = Math.round(5 + ((i / sortedMartyrs.length) * 90));
-                updateProgress(progressFill, progressText, progressPercent, `Documenting martyr ${profileNum} of ${sortedMartyrs.length}...`);
-
-                // Yield to UI thread every 3 profiles for smooth UI progress
-                if (i % 3 === 0) {
-                    await new Promise(resolve => setTimeout(resolve, 0));
-                }
-
-                // Check biography length to decide slot vs full page
-                const bioText = (martyr.biography || '').trim();
-                const bioLines = bioText ? doc.splitTextToSize(bioText, contentWidth) : [];
-                const isLongBio = bioLines.length > 17;
-
-                // If long bio and we are already at slot 1, start on a fresh page
-                if (isLongBio && currentSlot === 1) {
-                    currentSlot = 2;
-                }
-
-                // If page is full, start a new page
-                if (currentSlot >= 2) {
-                    doc.addPage();
-                    currentSlot = 0;
-                }
-
-                const isFullPage = isLongBio;
-                const slotY = (currentSlot === 0) ? 17 : 148;
-                const slotH = isFullPage ? 260 : ((currentSlot === 0) ? 126 : 130);
-
-                // If this is Slot 1 (lower slot on page), draw divider above it
-                if (currentSlot === 1) {
-                    doc.setDrawColor(226, 232, 240);
-                    doc.setLineWidth(0.4);
-                    doc.line(margin + 8, 145, pageWidth - margin - 8, 145);
-
-                    // Tiny gold emblem at center of divider
-                    doc.setFillColor(...accentColor);
-                    doc.rect(pageWidth / 2 - 2, 144.25, 4, 1.5, 'F');
-                }
-
-                // Photo coordinates
-                const photoSizeW = 32;
-                const photoSizeH = 40;
-                const photoX = margin;
-                const photoY = slotY + 2;
-
-                // Load photo asynchronously (Base64 or external URL or local static asset)
-                const photoPath = martyr.photo || (martyr.id ? `/assets/photos/${encodeURIComponent(martyr.id)}.jpg` : null);
-                const photoDataUrl = await loadPhotoAsDataUrl(photoPath, 1500);
-
-                if (photoDataUrl) {
-                    try {
-                        const imgFormat = (photoDataUrl && photoDataUrl.startsWith('data:image/png')) ? 'PNG' : 'JPEG';
-                        doc.addImage(photoDataUrl, imgFormat, photoX, photoY, photoSizeW, photoSizeH);
-                        // Gold frame
-                        doc.setDrawColor(...accentColor);
-                        doc.setLineWidth(0.4);
-                        doc.rect(photoX, photoY, photoSizeW, photoSizeH, 'S');
-                    } catch (e) {
-                        renderPhotoPlaceholder(doc, photoX, photoY, photoSizeW, photoSizeH);
-                    }
-                } else {
-                    renderPhotoPlaceholder(doc, photoX, photoY, photoSizeW, photoSizeH);
-                }
-
-                // Metadata block (right of photo)
-                const metaStartX = margin + photoSizeW + 5;
-                const metaWidth = contentWidth - photoSizeW - 5;
-
-                // Name
-                doc.setTextColor(...primaryColor);
-                doc.setFontSize(13);
-                doc.setFont('helvetica', 'bold');
-                const nameLines = doc.splitTextToSize(martyrName, metaWidth);
-                nameLines.forEach((line, idx) => {
-                    doc.text(line, metaStartX, slotY + 6 + (idx * 5));
-                });
-
-                const nameEndY = slotY + 6 + ((nameLines.length - 1) * 5) + 3;
-
-                // Decorative gold underline under name
-                doc.setDrawColor(...accentColor);
-                doc.setLineWidth(0.4);
-                doc.line(metaStartX, nameEndY, metaStartX + 42, nameEndY);
-
-                // Build details list
-                const details = [];
-                const birthDate = formatDateForPdf(martyr.birthDate);
-                const martyrdomDate = formatDateForPdf(martyr.martyrdomDate);
-
-                if (birthDate && martyrdomDate) {
-                    details.push({ label: 'Lived', value: `${birthDate} – ${martyrdomDate}` });
-                } else if (martyrdomDate) {
-                    details.push({ label: 'Martyrdom', value: martyrdomDate });
-                } else if (birthDate) {
-                    details.push({ label: 'Born', value: birthDate });
-                }
-
-                if (martyr.martyrdomPlace) {
-                    details.push({ label: 'Martyrdom Place', value: martyr.martyrdomPlace });
-                }
-                if (martyr.birthPlace) {
-                    details.push({ label: 'Birthplace', value: martyr.birthPlace });
-                }
-                if (martyr.fatherName) {
-                    details.push({ label: 'Father', value: martyr.fatherName });
-                }
-                if (martyr.organization) {
-                    details.push({ label: 'Organization', value: martyr.organization });
-                }
-                if (martyr.rank) {
-                    details.push({ label: 'Rank', value: martyr.rank });
-                }
-
-                // Render details in 2 columns
-                const col1X = metaStartX;
-                const col1Width = 68;
-                const col2X = metaStartX + 72;
-                const col2Width = metaWidth - 72;
-                const rowH = 4.6;
-
-                let row1Y = nameEndY + 4;
-                let row2Y = nameEndY + 4;
-
-                details.forEach((det, dIdx) => {
-                    const isCol2 = (dIdx % 2 === 1) && (col2Width > 35);
-                    const curX = isCol2 ? col2X : col1X;
-                    const curW = isCol2 ? col2Width : col1Width;
-                    let curY = isCol2 ? row2Y : row1Y;
-
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(7.5);
-                    doc.setTextColor(...lightGray);
-                    doc.text(det.label + ':', curX, curY);
-
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(8);
-                    doc.setTextColor(...darkNavy);
-
-                    const labelW = 22;
-                    const valLines = doc.splitTextToSize(String(det.value), curW - labelW);
-                    valLines.forEach((vL, vIdx) => {
-                        doc.text(vL, curX + labelW, curY + (vIdx * rowH));
-                    });
-
-                    const advY = Math.max(valLines.length * rowH, rowH);
-                    if (isCol2) {
-                        row2Y += advY;
-                    } else {
-                        row1Y += advY;
-                    }
-                });
-
-                const metadataEndY = Math.max(row1Y, row2Y);
-                const photoBottomY = photoY + photoSizeH;
-                const bioTopY = Math.max(photoBottomY + 3, metadataEndY + 2);
-
-                // Biography header bar
-                doc.setFillColor(248, 250, 252);
-                doc.rect(margin, bioTopY, contentWidth, 5.2, 'F');
-                doc.setFillColor(...primaryColor);
-                doc.rect(margin, bioTopY, 2.5, 5.2, 'F');
-
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(7.5);
-                doc.setTextColor(...primaryColor);
-                doc.text('BIOGRAPHY & MEMORIAL RECORD', margin + 5, bioTopY + 3.8);
-
-                // Biography text
-                let curBioY = bioTopY + 8;
-                const bioLineH = 3.7;
-
-                if (bioLines.length > 0) {
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(8);
-                    doc.setTextColor(...textColor);
-
-                    if (isFullPage) {
-                        // Full page biography with multi-page continuation support
-                        let lineIdx = 0;
-                        while (lineIdx < bioLines.length) {
-                            if (curBioY + bioLineH > 278) {
-                                doc.addPage();
-                                drawContinuationHeader(martyrName);
-                                curBioY = 18;
-                                doc.setFont('helvetica', 'normal');
-                                doc.setFontSize(8);
-                                doc.setTextColor(...textColor);
-                            }
-                            doc.text(bioLines[lineIdx], margin, curBioY);
-                            curBioY += bioLineH;
-                            lineIdx++;
-                        }
-                    } else {
-                        // Slot biography
-                        const maxSlotBioY = slotY + slotH - 3;
-                        for (let lineIdx = 0; lineIdx < bioLines.length; lineIdx++) {
-                            if (curBioY + bioLineH > maxSlotBioY) break;
-                            doc.text(bioLines[lineIdx], margin, curBioY);
-                            curBioY += bioLineH;
-                        }
-                    }
-                } else {
-                    doc.setFont('helvetica', 'italic');
-                    doc.setFontSize(7.5);
-                    doc.setTextColor(...lightGray);
-                    doc.text('Archival biographical details are currently being compiled for this memorial entry.', margin + 2, curBioY);
-                }
-
-                // Advance slot
-                if (isFullPage) {
-                    currentSlot = 2; // Full page used
-                } else {
-                    currentSlot++;
-                }
-            }
-
-            // ==========================================
-            // ---- FINAL TRIBUTE PAGE ----
-            // ==========================================
-            updateProgress(progressFill, progressText, 98, 'Finalizing memorial tribute page...');
-
-            doc.addPage();
-
-            // Parchment background
-            doc.setFillColor(248, 250, 252);
-            doc.rect(0, 0, pageWidth, pageHeight, 'F');
-
-            // Top header block
-            doc.setFillColor(...primaryColor);
-            doc.rect(0, 0, pageWidth, 40, 'F');
-            doc.setFillColor(...accentColor);
-            doc.rect(0, 40, pageWidth, 1.5, 'F');
-
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(18);
-            doc.setFont('helvetica', 'bold');
-            doc.text('IN ETERNAL MEMORY', pageWidth / 2, 23, { align: 'center' });
-
-            doc.setFontSize(9);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(245, 215, 110);
-            doc.text('BALUCH MARTYRS MEMORIAL HISTORICAL ARCHIVE', pageWidth / 2, 32, { align: 'center' });
-
-            // Baluchistan Flag Ribbon accent (centered, 90mm wide)
-            drawBaluchFlagRibbon(doc, (pageWidth - 90) / 2, 52, 90, 8, true);
-
-            // Tribute Text
-            doc.setTextColor(...textColor);
-            doc.setFontSize(10.5);
-            doc.setFont('helvetica', 'normal');
-
-            const closingLines = [
-                'This historical memorial document is dedicated to the sacred memory',
-                'of the brave martyrs of Baluchistan who laid down their lives',
-                'in the steadfast pursuit of freedom, sovereignty, and justice.',
-                '',
-                '"Martyrs do not die; they live forever in the collective memory of the nation."',
-                '',
-                'Their selfless courage illuminates the path of future generations.',
-                'Their names, sacrifices, and ideals are forever preserved in this archive.',
-                '',
-                `Total Documented Martyrs: ${sortedMartyrs.length.toLocaleString()}`,
-            ];
-
-            if (filterDesc.isFiltered) {
-                closingLines.push(`Archive Scope: ${filterDesc.scopeSummary}`);
-            }
-
-            let closingY = 76;
-            closingLines.forEach(line => {
-                if (line === '') {
-                    closingY += 6;
-                } else if (line.startsWith('"')) {
-                    doc.setFont('helvetica', 'bold');
-                    doc.setTextColor(...primaryColor);
-                    doc.setFontSize(11);
-                    doc.text(line, pageWidth / 2, closingY, { align: 'center' });
-                    doc.setFont('helvetica', 'normal');
-                    doc.setTextColor(...textColor);
-                    doc.setFontSize(10);
-                    closingY += 8;
-                } else {
-                    doc.text(line, pageWidth / 2, closingY, { align: 'center' });
-                    closingY += 7.5;
-                }
+            const layout = {
+                pageWidth: doc.internal.pageSize.getWidth(),
+                pageHeight: doc.internal.pageSize.getHeight(),
+                margin: 14,
+                contentWidth: doc.internal.pageSize.getWidth() - 28,
+                contentTopY: 17.5,
+                contentBottomY: doc.internal.pageSize.getHeight() - 15.5,
+                usableHeight: doc.internal.pageSize.getHeight() - 33.0
+            };
+
+            const formattedDate = new Date().toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
             });
 
-            // Gold decorative accent line
-            doc.setDrawColor(...accentColor);
-            doc.setLineWidth(0.6);
-            doc.line(pageWidth / 2 - 35, closingY + 8, pageWidth / 2 + 35, closingY + 8);
+            // Page 1: Cover Page
+            updateProgress(progressFill, progressText, 5, 'Designing archival cover page...');
+            drawPdfCoverPage(doc, layout, filterDesc, bookletStats, sortedMartyrs.length, formattedDate, palette);
 
-            // Archival note
-            doc.setFontSize(10);
-            doc.setTextColor(...primaryColor);
-            doc.setFont('helvetica', 'bold');
-            doc.text('baluchmartyrs.com', pageWidth / 2, closingY + 22, { align: 'center' });
+            // Page 2: Statistical Overview & Reserved TOC Page (for collections >= 4 profiles)
+            const hasDedicatedOverviewPage = sortedMartyrs.length >= 4;
+            let overviewTocStartY = null;
+            const pageSections = {};
 
-            doc.setFontSize(8);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(...lightGray);
-            doc.text('The Official Digital Memorial & Historical Registry of Baluchistan', pageWidth / 2, closingY + 28, { align: 'center' });
+            if (hasDedicatedOverviewPage) {
+                doc.addPage();
+                pageSections[2] = 'Statistical Overview & Index';
+                updateProgress(progressFill, progressText, 7, 'Compiling statistical overview...');
+                const ovResult = drawPdfStatisticalOverview(doc, layout, bookletStats, filterDesc, palette);
+                overviewTocStartY = ovResult.tocStartY;
 
-            // Closing footer
-            doc.setFillColor(...primaryColor);
-            doc.rect(0, pageHeight - 26, pageWidth, 26, 'F');
-            doc.setFillColor(...accentColor);
-            doc.rect(0, pageHeight - 26, pageWidth, 1, 'F');
+                // Start Memorial Directory cleanly on Page 3
+                doc.addPage();
+                pageSections[3] = 'Memorial Directory';
+            } else {
+                // Ultra-small filtered sets (1-3 profiles): start directory directly on Page 2 with compact header strip
+                doc.addPage();
+                pageSections[2] = filterDesc.sectionHeader;
+            }
 
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(8);
-            doc.setFont('helvetica', 'normal');
-            doc.text(`Official Archive Generated on ${formattedDate}`, pageWidth / 2, pageHeight - 15, { align: 'center' });
-            doc.text(`© ${new Date().getFullYear()} Baluch Martyrs Memorial. All rights reserved.`, pageWidth / 2, pageHeight - 9, { align: 'center' });
+            const state = {
+                currentPage: doc.internal.getNumberOfPages(),
+                curY: layout.contentTopY,
+                activeSectionLabel: useGroupedSections ? 'Section A' : 'Memorial Directory',
+                pageSections,
+                profilePages: []
+            };
 
-            // ==========================================
-            // ---- TWO-PASS RUNNING HEADERS & FOOTERS ----
-            // ==========================================
-            const totalPages = doc.internal.getNumberOfPages();
+            if (!hasDedicatedOverviewPage) {
+                // Compact edition summary bar for 1-3 profile exports so Page 2 feels complete
+                doc.setFillColor(...palette.forestLight);
+                doc.roundedRect(layout.margin, state.curY, layout.contentWidth, 10, 1.2, 1.2, 'F');
+                doc.setFillColor(...palette.primary);
+                doc.rect(layout.margin, state.curY, 2.2, 10, 'F');
 
-            for (let p = 2; p < totalPages; p++) {
-                doc.setPage(p);
-
-                // Running header (pages 2 to totalPages - 1)
-                doc.setFillColor(...primaryColor);
-                doc.rect(0, 0, pageWidth, 12, 'F');
-                doc.setFillColor(...accentColor);
-                doc.rect(0, 12, pageWidth, 0.8, 'F');
-
-                doc.setFontSize(8);
-                doc.setTextColor(255, 255, 255);
                 doc.setFont('helvetica', 'bold');
-                doc.text('BALUCH MARTYRS MEMORIAL', margin, 8);
+                doc.setFontSize(8.2);
+                doc.setTextColor(...palette.primary);
+                doc.text(`MEMORIAL DIRECTORY  •  ${sortedMartyrs.length} ${sortedMartyrs.length === 1 ? 'PROFILE' : 'PROFILES'}`, layout.margin + 5.5, state.curY + 6.2);
 
                 doc.setFont('helvetica', 'normal');
-                doc.setFontSize(7.5);
-                const headerScope = filterDesc.isFiltered ? `Archive • ${filterDesc.scopeSummary}` : 'Verified Historical Archive';
-                doc.text(headerScope, pageWidth / 2, 8, { align: 'center' });
-                doc.text('baluchmartyrs.com', pageWidth - margin, 8, { align: 'right' });
+                doc.setFontSize(7.4);
+                doc.setTextColor(...palette.muted);
+                doc.text(fitPdfTextWithEllipsis(doc, filterDesc.scopeSummary, 72), layout.margin + layout.contentWidth - 4, state.curY + 6.2, { align: 'right' });
 
-                // Running footer (pages 2 to totalPages - 1)
-                doc.setFillColor(...primaryColor);
-                doc.rect(0, pageHeight - 12, pageWidth, 12, 'F');
-                doc.setFillColor(...accentColor);
-                doc.rect(0, pageHeight - 12, pageWidth, 0.8, 'F');
-
-                doc.setTextColor(255, 255, 255);
-                doc.setFontSize(7.5);
-                doc.setFont('helvetica', 'italic');
-                doc.text('Forever Remembered • Forever Honored', margin, pageHeight - 4.5);
-
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(7.5);
-                doc.text(`Page ${p} of ${totalPages}`, pageWidth - margin, pageHeight - 4.5, { align: 'right' });
+                state.curY += 13.5;
             }
 
-            // Filename construction
+            const sharedCanvas = document.createElement('canvas');
+            const tocSectionEntries = [];
+            let currentLetter = null;
+            const BATCH_SIZE = 8;
+
+            for (let batchStart = 0; batchStart < sortedMartyrs.length; batchStart += BATCH_SIZE) {
+                const batchEnd = Math.min(batchStart + BATCH_SIZE, sortedMartyrs.length);
+                const batchSlice = sortedMartyrs.slice(batchStart, batchEnd);
+
+                const pct = Math.round(9 + ((batchStart / sortedMartyrs.length) * 84));
+                updateProgress(progressFill, progressText, pct, `Formatting profiles ${batchStart + 1}-${batchEnd} of ${sortedMartyrs.length}...`);
+
+                // Load batch portraits concurrently onto normalized 4:5 canvases
+                const photoBatch = await Promise.all(
+                    batchSlice.map(m => loadMartyrPortraitDataUrl(m, sharedCanvas, 1500))
+                );
+
+                for (let bIdx = 0; bIdx < batchSlice.length; bIdx++) {
+                    const i = batchStart + bIdx;
+                    const martyr = batchSlice[bIdx];
+                    const photoDataUrl = photoBatch[bIdx];
+                    const entry = prepareMartyrEntry(doc, layout, martyr, i + 1);
+
+                    let sectionStartInfo = null;
+                    if (useGroupedSections) {
+                        const letter = getGroupLetter(martyr.fullName);
+                        if (letter !== currentLetter) {
+                            currentLetter = letter;
+                            const count = sectionCounts.get(letter) || 0;
+                            sectionStartInfo = {
+                                letter,
+                                count,
+                                onPageAssigned: (assignedPage) => {
+                                    tocSectionEntries.push({
+                                        label: `Section ${letter}`,
+                                        count,
+                                        page: assignedPage
+                                    });
+                                }
+                            };
+                        }
+                    }
+
+                    renderSingleMartyrEntry(doc, layout, entry, state, photoDataUrl, sectionStartInfo, palette);
+                }
+
+                // Yield cleanly so browser UI & progress bar never freeze on iOS/mobile
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
+
+            // Free canvas buffer reference
+            sharedCanvas.width = 0;
+            sharedCanvas.height = 0;
+
+            // Final Closing Tribute & Archival Colophon Page
+            updateProgress(progressFill, progressText, 95, 'Finalizing Table of Contents & tribute...');
+            doc.addPage();
+            const closingPageNum = doc.internal.getNumberOfPages();
+            drawPdfClosingTribute(doc, layout, filterDesc, bookletStats, sortedMartyrs.length, closingPageNum, formattedDate, palette);
+
+            // Pass 2: Populate Table of Contents with exact live page numbers
+            if (hasDedicatedOverviewPage && overviewTocStartY !== null) {
+                doc.setPage(2);
+                const tocList = useGroupedSections
+                    ? tocSectionEntries
+                    : state.profilePages.map(p => ({
+                        label: `${String(p.indexNum).padStart(2, '0')}. ${p.name}${p.year ? ` (${p.year})` : ''}`,
+                        count: null,
+                        page: p.page
+                    }));
+                drawPdfTableOfContents(doc, layout, overviewTocStartY, tocList, useGroupedSections, closingPageNum, palette);
+            }
+
+            // Pass 2: Crisp editorial running headers & footers across pages 2 .. totalPages - 1
+            updateProgress(progressFill, progressText, 98, 'Applying page numbers & archival chrome...');
+            applyPdfRunningChrome(doc, layout, filterDesc, state.pageSections, palette);
+
+            // Construct filename
             const dateStamp = new Date().toISOString().split('T')[0];
             const nameParts = ['Baluch_Martyrs_Memorial'];
-
-            if (filterDesc.orgTitle) {
-                nameParts.push(filterDesc.orgTitle.replace(/[^a-zA-Z0-9]/g, '_'));
-            }
-            if (filterDesc.yearText) {
-                nameParts.push(filterDesc.yearText.replace(/[^a-zA-Z0-9]/g, '_'));
-            }
-            if (filterDesc.monthName) {
-                nameParts.push(filterDesc.monthName);
-            }
-            if (!filterDesc.isFiltered) {
-                nameParts.push('Complete_Archive');
-            }
+            if (filterDesc.orgTitle) nameParts.push(filterDesc.orgTitle.replace(/[^a-zA-Z0-9]/g, '_'));
+            if (filterDesc.yearText) nameParts.push(filterDesc.yearText.replace(/[^a-zA-Z0-9]/g, '_'));
+            if (filterDesc.monthName) nameParts.push(filterDesc.monthName);
+            if (!filterDesc.isFiltered) nameParts.push('Archival_Booklet');
             nameParts.push(dateStamp);
 
             const filename = `${nameParts.filter(Boolean).join('_')}.pdf`;
 
-            // Save PDF
             updateProgress(progressFill, progressText, 100, 'Complete!');
             doc.save(filename);
-
-            // Reset UI
+            finishedCleanly = true;
+        } catch (error) {
+            console.error('PDF generation failed:', error);
+            alert('Failed to generate PDF booklet. Please try again.');
+        } finally {
             setTimeout(() => {
-                if (btn) {
-                    btn.disabled = false;
-                }
+                if (btn) btn.disabled = false;
                 if (yearSelect) yearSelect.disabled = false;
                 if (monthSelect) monthSelect.disabled = false;
                 if (orgSelect) orgSelect.disabled = false;
                 updatePdfFilterSummary();
                 if (progress) progress.style.display = 'none';
                 if (progressFill) progressFill.style.width = '0%';
-            }, 1200);
-
-        } catch (error) {
-            console.error('PDF generation failed:', error);
-            alert('Failed to generate PDF. Please try again.');
-
-            if (btn) {
-                btn.disabled = false;
-            }
-            if (yearSelect) yearSelect.disabled = false;
-            if (monthSelect) monthSelect.disabled = false;
-            if (orgSelect) orgSelect.disabled = false;
-            updatePdfFilterSummary();
-            if (progress) progress.style.display = 'none';
-            if (progressFill) progressFill.style.width = '0%';
+            }, finishedCleanly ? 1200 : 0);
         }
     }
-    
+
     function updateProgress(fillEl, textEl, percent, text) {
         if (fillEl) fillEl.style.width = `${percent}%`;
         if (textEl) textEl.textContent = text;
     }
-    
+
     function formatDateForPdf(dateStr) {
         if (!dateStr) return null;
-        
-        // Firestore Timestamp
-        if (dateStr && typeof dateStr === 'object' && dateStr.seconds) {
+
+        // Firestore Timestamp (handles 0 and negative historical timestamps safely in UTC)
+        if (typeof dateStr === 'object' && typeof dateStr.seconds === 'number') {
             const d = new Date(dateStr.seconds * 1000);
-            return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-        }
-        
-        const s = String(dateStr).trim();
-        
-        // Try to parse as date
-        try {
-            const d = new Date(s);
             if (!isNaN(d.getTime())) {
-                return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                return d.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    timeZone: 'UTC'
+                });
+            }
+            return null;
+        }
+
+        const s = cleanPdfField(dateStr);
+        if (!s) return null;
+
+        // Exact year-only input
+        if (/^\d{4}$/.test(s)) return s;
+
+        // ISO YYYY-MM-DD parsed safely in UTC to avoid timezone off-by-one shifts
+        const isoMatch = s.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s].*)?$/);
+        if (isoMatch) {
+            const d = new Date(Date.UTC(parseInt(isoMatch[1], 10), parseInt(isoMatch[2], 10) - 1, parseInt(isoMatch[3], 10)));
+            if (!isNaN(d.getTime())) {
+                return d.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    timeZone: 'UTC'
+                });
+            }
+        }
+
+        // DD/MM/YYYY format
+        const dmyMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (dmyMatch) {
+            const d = new Date(Date.UTC(parseInt(dmyMatch[3], 10), parseInt(dmyMatch[2], 10) - 1, parseInt(dmyMatch[1], 10)));
+            if (!isNaN(d.getTime())) {
+                return d.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    timeZone: 'UTC'
+                });
+            }
+        }
+
+        try {
+            const parsed = new Date(s);
+            if (!isNaN(parsed.getTime())) {
+                return parsed.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    timeZone: 'UTC'
+                });
             }
         } catch (e) {}
-        
-        // Return as-is if it looks like a year
-        if (/^\d{4}$/.test(s)) return s;
-        
+
         return s;
     }
 
