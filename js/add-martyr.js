@@ -274,7 +274,7 @@ function formatDateDisplay(dateVal) {
     }
 }
 
-// Ensure duplicate modal styles (Forest-Green Archival UI matching Admin) are injected once
+// Ensure duplicate modal styles (Archival Design System matching Homepage & Gallery) are injected once
 function ensureDuplicateModalStyles() {
     if (document.getElementById('duplicateModalStyles')) return;
     const style = document.createElement('style');
@@ -283,7 +283,7 @@ function ensureDuplicateModalStyles() {
         .duplicate-modal-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(10, 22, 14, 0.78);
+            background: rgba(13, 16, 19, 0.8);
             backdrop-filter: blur(6px);
             -webkit-backdrop-filter: blur(6px);
             display: flex;
@@ -294,10 +294,10 @@ function ensureDuplicateModalStyles() {
             overflow-y: auto;
         }
         .duplicate-modal-content {
-            background: #ffffff;
-            border: 1px solid #d1fae5;
-            border-radius: 18px;
-            box-shadow: 0 24px 64px -12px rgba(6, 24, 14, 0.45);
+            background: var(--arch-surface, #FFFFFF);
+            border: 1px solid var(--arch-border-strong, #C9C2B5);
+            border-radius: var(--radius-md, 10px);
+            box-shadow: 0 24px 64px -12px rgba(13, 16, 19, 0.45);
             max-width: 1040px;
             width: 100%;
             max-height: calc(100vh - 3rem);
@@ -312,32 +312,30 @@ function ensureDuplicateModalStyles() {
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
         .duplicate-modal-header {
-            background:
-                radial-gradient(circle at 15% 25%, rgba(34, 197, 94, 0.18) 0%, transparent 48%),
-                linear-gradient(135deg, #16381c 0%, #0e2412 100%);
-            color: #ffffff;
-            padding: 1.25rem 1.5rem;
+            background: var(--arch-surface-subtle, #F2EFE9);
+            color: var(--arch-ink, #141815);
+            padding: 1.2rem 1.5rem;
             display: flex;
             align-items: center;
             gap: 1rem;
             flex-shrink: 0;
-            border-bottom: 1px solid rgba(134, 239, 172, 0.2);
+            border-bottom: 1px solid var(--arch-border, #E2DDD3);
         }
         .dup-header-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            background: rgba(34, 197, 94, 0.18);
-            border: 1px solid rgba(134, 239, 172, 0.35);
-            color: #86efac;
+            width: 42px;
+            height: 42px;
+            border-radius: var(--radius-sm, 6px);
+            background: var(--arch-gold-subtle, #F7F2E2);
+            border: 1px solid var(--arch-gold, #B89535);
+            color: var(--arch-ink, #141815);
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
         }
         .dup-header-icon svg {
-            width: 22px;
-            height: 22px;
+            width: 20px;
+            height: 20px;
         }
         .dup-header-text {
             flex: 1;
@@ -345,92 +343,92 @@ function ensureDuplicateModalStyles() {
         }
         .dup-header-text h2 {
             margin: 0;
-            font-family: 'Inter', sans-serif;
-            font-size: 1.25rem;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            color: #ffffff !important;
-            line-height: 1.25;
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 1.4rem;
+            font-weight: 600;
+            letter-spacing: -0.015em;
+            color: var(--arch-ink, #141815) !important;
+            line-height: 1.2;
         }
         .dup-header-text p {
             margin: 0.2rem 0 0;
-            font-size: 0.85rem;
-            color: rgba(220, 252, 231, 0.88) !important;
+            font-size: 0.84rem;
+            color: var(--arch-ink-muted, #525954) !important;
             line-height: 1.4;
         }
         .duplicate-modal-close {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            color: #ffffff;
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            font-size: 1.35rem;
+            background: var(--arch-surface, #FFFFFF);
+            border: 1px solid var(--arch-border-strong, #C9C2B5);
+            color: var(--arch-ink, #141815);
+            width: 34px;
+            height: 34px;
+            border-radius: var(--radius-sm, 6px);
+            font-size: 1.25rem;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.18s ease;
+            transition: border-color 0.18s ease, background-color 0.18s ease;
             flex-shrink: 0;
             line-height: 1;
         }
         .duplicate-modal-close:hover {
-            background: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.32);
-            transform: translateY(-1px);
+            border-color: var(--arch-accent, #1F4224);
+            background: var(--arch-paper, #FAF8F4);
         }
         .duplicate-modal-body {
             padding: 1.35rem 1.5rem;
             overflow-y: auto;
             flex: 1;
-            background: #f4f7f4;
+            background: var(--arch-paper, #FAF8F4);
         }
         .dup-alert-banner {
             display: flex;
             align-items: center;
             gap: 0.85rem;
             padding: 0.85rem 1.15rem;
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            border-left: 4px solid #16a34a;
-            border-radius: 12px;
+            background: var(--arch-gold-subtle, #F7F2E2);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            border-left: 3px solid var(--arch-gold, #B89535);
+            border-radius: var(--radius-sm, 6px);
             margin-bottom: 1.25rem;
         }
         .dup-alert-icon {
             width: 32px;
             height: 32px;
-            border-radius: 8px;
-            background: #dcfce7;
-            color: #15803d;
+            border-radius: var(--radius-sm, 6px);
+            background: var(--arch-surface, #FFFFFF);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            color: var(--arch-accent, #1F4224);
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
         }
         .dup-alert-icon svg {
-            width: 18px;
-            height: 18px;
+            width: 17px;
+            height: 17px;
         }
         .dup-alert-text {
-            font-size: 0.88rem;
-            color: #1e293b;
+            font-size: 0.86rem;
+            color: var(--arch-ink-muted, #525954);
             line-height: 1.45;
         }
         .dup-alert-text strong {
-            color: #14532d;
+            color: var(--arch-ink, #141815);
             font-weight: 700;
         }
         .dup-comparisons-container {
             display: flex;
             flex-direction: column;
-            gap: 1.5rem;
+            gap: 1.35rem;
         }
         .dup-comparison-row {
-            border: 1px solid #cbd5e1;
-            border-radius: 16px;
+            border: 1px solid var(--arch-border, #E2DDD3);
+            border-radius: var(--radius-sm, 6px);
             overflow: hidden;
-            background: #ffffff;
-            box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+            background: var(--arch-surface, #FFFFFF);
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04));
         }
         .dup-match-indicator {
             padding: 0.8rem 1.25rem;
@@ -439,9 +437,9 @@ function ensureDuplicateModalStyles() {
             justify-content: space-between;
             gap: 1rem;
             flex-wrap: wrap;
-            background: linear-gradient(135deg, #1b4323 0%, #14331a 100%);
-            color: #ffffff;
-            border-bottom: 1px solid rgba(134, 239, 172, 0.2);
+            background: var(--arch-surface-subtle, #F2EFE9);
+            color: var(--arch-ink, #141815);
+            border-bottom: 1px solid var(--arch-border, #E2DDD3);
         }
         .dup-match-left {
             display: flex;
@@ -449,24 +447,25 @@ function ensureDuplicateModalStyles() {
             gap: 0.75rem;
         }
         .dup-match-percent {
-            font-size: 1.25rem;
-            font-weight: 800;
+            font-size: 1.15rem;
+            font-weight: 700;
             letter-spacing: -0.02em;
-            background: rgba(34, 197, 94, 0.22);
-            border: 1px solid rgba(134, 239, 172, 0.4);
-            color: #dcfce7;
-            padding: 0.2rem 0.65rem;
-            border-radius: 8px;
+            background: var(--arch-gold-subtle, #F7F2E2);
+            border: 1px solid var(--arch-gold, #B89535);
+            color: var(--arch-ink, #141815);
+            padding: 0.2rem 0.6rem;
+            border-radius: var(--radius-sm, 6px);
             line-height: 1.2;
+            font-variant-numeric: tabular-nums;
         }
         .dup-match-label {
             font-size: 0.9rem;
             font-weight: 700;
-            color: #ffffff;
+            color: var(--arch-ink, #141815);
         }
         .dup-match-sub {
             font-size: 0.75rem;
-            color: rgba(220, 252, 231, 0.78);
+            color: var(--arch-ink-muted, #525954);
             font-weight: 500;
         }
         .dup-match-details {
@@ -479,26 +478,26 @@ function ensureDuplicateModalStyles() {
             display: inline-flex;
             align-items: center;
             gap: 0.3rem;
-            padding: 0.28rem 0.65rem;
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(134, 239, 172, 0.32);
-            color: #dcfce7;
-            border-radius: 999px;
-            font-size: 0.74rem;
+            padding: 0.25rem 0.62rem;
+            background: var(--arch-surface, #FFFFFF);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            color: var(--arch-ink, #141815);
+            border-radius: var(--radius-pill, 999px);
+            font-size: 0.73rem;
             font-weight: 600;
         }
         .dup-match-tag svg {
             width: 12px;
             height: 12px;
-            color: #4ade80;
+            color: var(--arch-accent, #1F4224);
             flex-shrink: 0;
         }
         .dup-side-by-side {
             display: grid;
             grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
             gap: 0;
-            padding: 1.25rem;
-            background: #ffffff;
+            padding: 1.2rem;
+            background: var(--arch-surface, #FFFFFF);
             align-items: stretch;
         }
         .dup-vs-divider {
@@ -515,66 +514,57 @@ function ensureDuplicateModalStyles() {
             bottom: 12%;
             left: 50%;
             width: 1px;
-            background: #e2e8f0;
+            background: var(--arch-border, #E2DDD3);
             transform: translateX(-50%);
             z-index: 0;
         }
         .dup-vs-divider span {
             position: relative;
             z-index: 1;
-            background: #f0fdf4;
-            color: #15803d;
-            border: 1.5px solid #86efac;
-            font-weight: 800;
-            font-size: 0.74rem;
-            width: 36px;
-            height: 36px;
+            background: var(--arch-surface-subtle, #F2EFE9);
+            color: var(--arch-ink-muted, #525954);
+            border: 1px solid var(--arch-border-strong, #C9C2B5);
+            font-weight: 700;
+            font-size: 0.7rem;
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             letter-spacing: 0.04em;
-            box-shadow: 0 2px 8px rgba(21, 128, 61, 0.12);
         }
         .dup-profile-card {
-            border: 1.5px solid #e2e8f0;
-            border-radius: 14px;
+            border: 1px solid var(--arch-border, #E2DDD3);
+            border-radius: var(--radius-sm, 6px);
             overflow: hidden;
-            background: #ffffff;
+            background: var(--arch-paper, #FAF8F4);
             display: flex;
             flex-direction: column;
         }
-        .dup-profile-card.dup-new-submission {
-            border-color: #cbd5e1;
-        }
         .dup-profile-card.dup-existing {
-            border-color: #86efac;
-            background: #fcfffd;
+            border-color: var(--arch-gold, #B89535);
         }
         .dup-card-header {
             padding: 0.65rem 1rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--arch-border, #E2DDD3);
+            background: var(--arch-surface-subtle, #F2EFE9);
             gap: 0.5rem;
         }
-        .dup-new-submission .dup-card-header {
-            background: #f8fafc;
-            border-bottom-color: #e2e8f0;
-        }
         .dup-existing .dup-card-header {
-            background: #f0fdf4;
-            border-bottom-color: #bbf7d0;
+            background: var(--arch-gold-subtle, #F7F2E2);
         }
         .dup-card-badge {
             display: inline-flex;
             align-items: center;
             gap: 0.4rem;
-            font-size: 0.75rem;
+            font-size: 0.74rem;
             font-weight: 700;
-            padding: 0.26rem 0.65rem;
-            border-radius: 999px;
+            padding: 0.24rem 0.62rem;
+            border-radius: var(--radius-pill, 999px);
         }
         .dup-card-badge svg {
             width: 13px;
@@ -582,41 +572,38 @@ function ensureDuplicateModalStyles() {
             flex-shrink: 0;
         }
         .dup-card-badge.new {
-            background: #e2e8f0;
-            color: #1e293b;
+            background: var(--arch-surface, #FFFFFF);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            color: var(--arch-ink, #141815);
         }
         .dup-card-badge.existing {
-            background: #15803d;
-            color: #ffffff;
+            background: var(--arch-accent, #1F4224);
+            color: var(--arch-paper, #FAF8F4);
         }
         .dup-card-status-hint {
             font-size: 0.72rem;
             font-weight: 600;
-            color: #64748b;
+            color: var(--arch-ink-muted, #525954);
             text-decoration: none;
         }
         .dup-existing .dup-card-status-hint {
-            color: #15803d;
+            color: var(--arch-accent, #1F4224);
         }
         .dup-card-body {
-            padding: 1.1rem;
+            padding: 1.05rem;
             display: flex;
             gap: 1rem;
             align-items: flex-start;
             flex: 1;
         }
         .dup-profile-photo {
-            width: 92px;
-            height: 118px;
+            width: 90px;
+            height: 114px;
             flex-shrink: 0;
-            border-radius: 10px;
+            border-radius: var(--radius-sm, 6px);
             overflow: hidden;
-            border: 1.5px solid #cbd5e1;
-            background: #f1f5f9;
-            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-        }
-        .dup-existing .dup-profile-photo {
-            border-color: #86efac;
+            border: 1px solid var(--arch-border-strong, #C9C2B5);
+            background: var(--arch-surface-subtle, #F2EFE9);
         }
         .dup-profile-photo img {
             width: 100%;
@@ -631,17 +618,17 @@ function ensureDuplicateModalStyles() {
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: #f8fafc;
-            color: #94a3b8;
+            background: var(--arch-surface-subtle, #F2EFE9);
+            color: var(--arch-ink-muted, #525954);
             gap: 0.25rem;
         }
         .dup-no-photo svg {
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
             stroke-width: 1.75;
         }
         .dup-no-photo small {
-            font-size: 0.68rem;
+            font-size: 0.66rem;
             font-weight: 600;
         }
         .dup-profile-details {
@@ -649,27 +636,26 @@ function ensureDuplicateModalStyles() {
             min-width: 0;
         }
         .dup-profile-name {
-            margin: 0 0 0.65rem 0;
-            font-family: 'Inter', sans-serif;
-            font-size: 1.05rem;
-            font-weight: 800;
-            color: #0f172a;
-            line-height: 1.28;
-            letter-spacing: -0.015em;
+            margin: 0 0 0.6rem 0;
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 1.18rem;
+            font-weight: 600;
+            color: var(--arch-ink, #141815);
+            line-height: 1.25;
             word-break: break-word;
         }
         .dup-profile-fields {
             display: flex;
             flex-direction: column;
-            border-top: 1px solid #f1f5f9;
+            border-top: 1px solid var(--arch-border, #E2DDD3);
         }
         .dup-field {
             display: flex;
             align-items: baseline;
             justify-content: space-between;
             gap: 0.75rem;
-            padding: 0.38rem 0;
-            border-bottom: 1px dashed #e2e8f0;
+            padding: 0.36rem 0;
+            border-bottom: 1px dashed var(--arch-border, #E2DDD3);
             font-size: 0.8rem;
         }
         .dup-field:last-child {
@@ -677,31 +663,31 @@ function ensureDuplicateModalStyles() {
             padding-bottom: 0;
         }
         .dup-field-label {
-            color: #64748b;
+            color: var(--arch-ink-muted, #525954);
             font-weight: 600;
-            font-size: 0.73rem;
+            font-size: 0.72rem;
             text-transform: uppercase;
-            letter-spacing: 0.03em;
+            letter-spacing: 0.04em;
             flex-shrink: 0;
         }
         .dup-field-value {
-            color: #0f172a;
+            color: var(--arch-ink, #141815);
             font-weight: 600;
             text-align: right;
             word-break: break-word;
         }
         .dup-field.is-matching-field .dup-field-value {
-            color: #15803d;
+            color: var(--arch-accent, #1F4224);
         }
         .dup-field-value em {
-            color: #94a3b8;
+            color: var(--arch-ink-muted, #525954);
             font-weight: 400;
             font-style: normal;
         }
         .duplicate-modal-footer {
             padding: 1rem 1.5rem;
-            background: #ffffff;
-            border-top: 1px solid #e2e8f0;
+            background: var(--arch-surface, #FFFFFF);
+            border-top: 1px solid var(--arch-border, #E2DDD3);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -710,7 +696,7 @@ function ensureDuplicateModalStyles() {
         }
         .dup-footer-hint {
             font-size: 0.8rem;
-            color: #64748b;
+            color: var(--arch-ink-muted, #525954);
             font-weight: 500;
         }
         .dup-footer-actions {
@@ -724,12 +710,12 @@ function ensureDuplicateModalStyles() {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.72rem 1.25rem;
-            font-size: 0.88rem;
-            font-weight: 700;
-            border-radius: 10px;
+            padding: 0.7rem 1.2rem;
+            font-size: 0.86rem;
+            font-weight: 600;
+            border-radius: var(--radius-sm, 6px);
             cursor: pointer;
-            transition: all 0.18s ease;
+            transition: background 0.18s ease, border-color 0.18s ease;
             font-family: inherit;
         }
         .dup-btn-cancel svg,
@@ -739,34 +725,29 @@ function ensureDuplicateModalStyles() {
             flex-shrink: 0;
         }
         .dup-btn-cancel {
-            background: #f8fafc;
-            color: #334155;
-            border: 1px solid #cbd5e1;
+            background: var(--arch-surface-subtle, #F2EFE9);
+            color: var(--arch-ink, #141815);
+            border: 1px solid var(--arch-border-strong, #C9C2B5);
         }
         .dup-btn-cancel:hover {
-            background: #f1f5f9;
-            color: #0f172a;
-            border-color: #94a3b8;
+            border-color: var(--arch-accent, #1F4224);
         }
         .dup-btn-proceed {
-            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-            color: #ffffff;
-            border: 1px solid #15803d;
-            box-shadow: 0 3px 10px rgba(21, 128, 61, 0.22);
+            background: linear-gradient(135deg, var(--btn-gradient-start, #1F4224), var(--btn-gradient-end, #2A5630));
+            color: var(--btn-text-color, #FAF8F4);
+            border: 1px solid var(--arch-accent, #1F4224);
         }
         .dup-btn-proceed:hover {
-            background: linear-gradient(135deg, #15803d 0%, #166534 100%);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 16px rgba(21, 128, 61, 0.3);
+            background: linear-gradient(135deg, var(--btn-gradient-hover-start, #2A5630), var(--btn-gradient-hover-end, #34693B));
         }
 
         /* Live Inline Duplicate Banner inside Add Martyr Form */
         .live-dup-banner {
             margin-top: 0.75rem;
-            border: 1.5px solid #86efac;
-            border-left: 4px solid #16a34a;
-            background: #f0fdf4;
-            border-radius: 12px;
+            border: 1px solid var(--arch-border, #E2DDD3);
+            border-left: 3px solid var(--arch-gold, #B89535);
+            background: var(--arch-gold-subtle, #F7F2E2);
+            border-radius: var(--radius-sm, 6px);
             padding: 0.85rem 1rem;
             animation: dupModalSlide 0.2s ease-out;
             font-family: 'Inter', sans-serif;
@@ -785,53 +766,52 @@ function ensureDuplicateModalStyles() {
             gap: 0.45rem;
             font-size: 0.82rem;
             font-weight: 700;
-            color: #14532d;
+            color: var(--arch-ink, #141815);
         }
         .live-dup-title svg {
             width: 16px;
             height: 16px;
-            color: #16a34a;
+            color: var(--arch-gold, #B89535);
             flex-shrink: 0;
         }
         .live-dup-compare-btn {
-            background: #15803d;
-            color: #ffffff;
-            border: none;
-            border-radius: 8px;
-            padding: 0.38rem 0.75rem;
+            background: linear-gradient(135deg, var(--btn-gradient-start, #1F4224), var(--btn-gradient-end, #2A5630));
+            color: var(--btn-text-color, #FAF8F4);
+            border: 1px solid var(--arch-accent, #1F4224);
+            border-radius: var(--radius-sm, 6px);
+            padding: 0.36rem 0.75rem;
             font-size: 0.76rem;
-            font-weight: 700;
+            font-weight: 600;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
             gap: 0.35rem;
-            transition: all 0.15s ease;
+            transition: opacity 0.15s ease;
         }
         .live-dup-compare-btn:hover {
-            background: #166534;
-            transform: translateY(-1px);
+            opacity: 0.92;
         }
         .live-dup-item {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            background: #ffffff;
-            border: 1px solid #bbf7d0;
-            border-radius: 10px;
+            background: var(--arch-surface, #FFFFFF);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            border-radius: var(--radius-sm, 6px);
             padding: 0.6rem 0.75rem;
         }
         .live-dup-thumb {
             width: 44px;
             height: 54px;
-            border-radius: 7px;
+            border-radius: var(--radius-sm, 6px);
             overflow: hidden;
-            background: #f1f5f9;
-            border: 1px solid #86efac;
+            background: var(--arch-surface-subtle, #F2EFE9);
+            border: 1px solid var(--arch-border, #E2DDD3);
             flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #94a3b8;
+            color: var(--arch-ink-muted, #525954);
         }
         .live-dup-thumb img {
             width: 100%;
@@ -844,8 +824,8 @@ function ensureDuplicateModalStyles() {
         }
         .live-dup-name {
             font-size: 0.9rem;
-            font-weight: 800;
-            color: #0f172a;
+            font-weight: 700;
+            color: var(--arch-ink, #141815);
             margin: 0 0 0.15rem;
             white-space: nowrap;
             overflow: hidden;
@@ -853,17 +833,17 @@ function ensureDuplicateModalStyles() {
         }
         .live-dup-meta {
             font-size: 0.76rem;
-            color: #475569;
+            color: var(--arch-ink-muted, #525954);
             margin: 0;
         }
         .live-dup-badge {
-            background: #dcfce7;
-            color: #166534;
-            border: 1px solid #86efac;
+            background: var(--arch-gold-subtle, #F7F2E2);
+            color: var(--arch-ink, #141815);
+            border: 1px solid var(--arch-gold, #B89535);
             font-size: 0.72rem;
-            font-weight: 800;
+            font-weight: 700;
             padding: 0.22rem 0.55rem;
-            border-radius: 999px;
+            border-radius: var(--radius-pill, 999px);
             flex-shrink: 0;
         }
 
@@ -890,14 +870,14 @@ function ensureDuplicateModalStyles() {
                 padding: 0.65rem;
             }
             .duplicate-modal-content {
-                border-radius: 14px;
+                border-radius: var(--radius-md, 10px);
                 max-height: calc(100vh - 1.3rem);
             }
             .duplicate-modal-header {
                 padding: 1rem 1.1rem;
             }
             .dup-header-text h2 {
-                font-size: 1.05rem;
+                font-size: 1.15rem;
             }
             .dup-header-text p {
                 font-size: 0.78rem;
@@ -934,81 +914,6 @@ function ensureDuplicateModalStyles() {
                 width: 100%;
                 justify-content: center;
             }
-        }
-        [data-theme="dark"] .duplicate-modal-content {
-            background: #111c2d;
-            border-color: rgba(134, 239, 172, 0.22);
-        }
-        [data-theme="dark"] .duplicate-modal-body {
-            background: #0b131e;
-        }
-        [data-theme="dark"] .dup-alert-banner,
-        [data-theme="dark"] .live-dup-banner {
-            background: rgba(22, 163, 74, 0.1);
-            border-color: rgba(134, 239, 172, 0.25);
-            border-left-color: #22c55e;
-        }
-        [data-theme="dark"] .live-dup-title,
-        [data-theme="dark"] .dup-alert-text strong {
-            color: #86efac;
-        }
-        [data-theme="dark"] .dup-alert-text {
-            color: #e2e8f0;
-        }
-        [data-theme="dark"] .live-dup-item {
-            background: #111c2d;
-            border-color: rgba(134, 239, 172, 0.25);
-        }
-        [data-theme="dark"] .live-dup-name {
-            color: #f8fafc;
-        }
-        [data-theme="dark"] .live-dup-meta {
-            color: #94a3b8;
-        }
-        [data-theme="dark"] .dup-comparison-row,
-        [data-theme="dark"] .dup-side-by-side {
-            background: #111c2d;
-            border-color: #26354d;
-        }
-        [data-theme="dark"] .dup-profile-card {
-            background: #0f172a;
-            border-color: #26354d;
-        }
-        [data-theme="dark"] .dup-profile-card.dup-existing {
-            border-color: rgba(74, 222, 128, 0.45);
-            background: rgba(20, 51, 26, 0.22);
-        }
-        [data-theme="dark"] .dup-new-submission .dup-card-header {
-            background: #162235;
-            border-bottom-color: #26354d;
-        }
-        [data-theme="dark"] .dup-existing .dup-card-header {
-            background: rgba(22, 163, 74, 0.16);
-            border-bottom-color: rgba(134, 239, 172, 0.25);
-        }
-        [data-theme="dark"] .dup-profile-name {
-            color: #f8fafc;
-        }
-        [data-theme="dark"] .dup-field {
-            border-bottom-color: #1e293b;
-        }
-        [data-theme="dark"] .dup-field-label {
-            color: #94a3b8;
-        }
-        [data-theme="dark"] .dup-field-value {
-            color: #e2e8f0;
-        }
-        [data-theme="dark"] .dup-field.is-matching-field .dup-field-value {
-            color: #4ade80;
-        }
-        [data-theme="dark"] .duplicate-modal-footer {
-            background: #111c2d;
-            border-top-color: #26354d;
-        }
-        [data-theme="dark"] .dup-btn-cancel {
-            background: #1e293b;
-            border-color: #334155;
-            color: #e2e8f0;
         }
     `;
     document.head.appendChild(style);

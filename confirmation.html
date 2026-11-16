@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Submission Confirmed - Baluch Martyrs Memorial</title>
     <meta name="description" content="Thank you for your submission to the Baluch Martyrs Memorial">
-    <link rel="stylesheet" href="css/styles.css?v=20261116f">
+    <link rel="stylesheet" href="css/styles.css?v=20261116g">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" sizes="any">
     <link rel="shortcut icon" type="image/svg+xml" href="/favicon.svg">
 </head>
@@ -94,28 +94,36 @@
                 <h3>Important Information</h3>
                 <div class="info-grid">
                     <div class="info-item">
-                        <div class="info-icon">🛡️</div>
+                        <div class="info-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        </div>
                         <div>
-                            <h4>Privacy & Security</h4>
+                            <h4>Privacy &amp; Security</h4>
                             <p>Your personal contact information is kept confidential and used only for verification purposes.</p>
                         </div>
                     </div>
                     <div class="info-item">
-                        <div class="info-icon">✋</div>
+                        <div class="info-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></svg>
+                        </div>
                         <div>
                             <h4>Content Guidelines</h4>
                             <p>All submissions are reviewed to ensure they meet our guidelines for respectful and accurate memorialization.</p>
                         </div>
                     </div>
                     <div class="info-item">
-                        <div class="info-icon">📧</div>
+                        <div class="info-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                        </div>
                         <div>
                             <h4>Stay Updated</h4>
                             <p>We'll notify you by email when your submission is approved and published in the memorial gallery.</p>
                         </div>
                     </div>
                     <div class="info-item">
-                        <div class="info-icon">🤝</div>
+                        <div class="info-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        </div>
                         <div>
                             <h4>Community Effort</h4>
                             <p>Thank you for helping preserve the memory of our martyrs for future generations.</p>
@@ -178,19 +186,34 @@
             
             if (martyrName) {
                 const detailsDiv = document.getElementById('submissionDetails');
-                detailsDiv.innerHTML = `
-                    <div class="submitted-martyr-info">
-                        <h3>Submitted Information:</h3>
-                        <p><strong>Martyr Name:</strong> ${martyrName}</p>
-                        <p><strong>Submission Date:</strong> ${new Date().toLocaleDateString()}</p>
-                        <p><strong>Status:</strong> <span class="status-pending">Pending Verification</span></p>
-                    </div>
-                `;
+                if (detailsDiv) {
+                    const box = document.createElement('div');
+                    box.className = 'submitted-martyr-info';
+                    const heading = document.createElement('h3');
+                    heading.textContent = 'Submitted Information:';
+                    const pName = document.createElement('p');
+                    const pNameLabel = document.createElement('strong');
+                    pNameLabel.textContent = 'Martyr Name: ';
+                    pName.appendChild(pNameLabel);
+                    pName.appendChild(document.createTextNode(martyrName));
+                    const pDate = document.createElement('p');
+                    pDate.innerHTML = '<strong>Submission Date:</strong> ' + new Date().toLocaleDateString();
+                    const pStatus = document.createElement('p');
+                    pStatus.innerHTML = '<strong>Status:</strong> <span class="status-pending">Pending Verification</span>';
+                    box.appendChild(heading);
+                    box.appendChild(pName);
+                    box.appendChild(pDate);
+                    box.appendChild(pStatus);
+                    detailsDiv.innerHTML = '';
+                    detailsDiv.appendChild(box);
+                }
                 // Clear from localStorage after displaying
                 localStorage.removeItem('lastSubmittedMartyr');
             }
         });
     </script>
+    <script src="js/main.js?v=20261116g"></script>
+    <script src="js/mobile-menu.js?v=20261020c"></script>
 
     <!-- Google Translate Scripts -->
     <script type="text/javascript">

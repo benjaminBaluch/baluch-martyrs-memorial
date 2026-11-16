@@ -1079,7 +1079,7 @@
         if (!grid) return;
 
         if (!stats.years || stats.years.length === 0) {
-            grid.innerHTML = '<span style="font-size: 0.8rem; color: #64748b; grid-column: 1 / -1;">No chronological data for this filter.</span>';
+            grid.innerHTML = '<span style="font-size: 0.8rem; color: var(--arch-ink-muted, #525954); grid-column: 1 / -1;">No chronological data for this filter.</span>';
             if (toggleBtn) toggleBtn.style.display = 'none';
             return;
         }
@@ -1105,8 +1105,8 @@
                 <button type="button"
                     class="year-card-btn${isPeak ? ' is-peak' : ''}${isSelected ? ' is-active' : ''}"
                     data-year="${year}"
-                    title="Filter dashboard by ${year} (${count} documented)">
-                    <span class="year-card-yr">${year}${isPeak ? ' ★' : ''}</span>
+                    title="Filter dashboard by ${year} (${count} documented)${isPeak ? ' — Peak Year' : ''}">
+                    <span class="year-card-yr">${year}${isPeak ? '<span class="year-peak-dot" title="Peak Year" aria-label="Peak Year"></span>' : ''}</span>
                     <span class="year-card-count">${count.toLocaleString()} ${count === 1 ? 'martyr' : 'martyrs'}</span>
                     <span class="year-card-bar" style="width: ${barPct}%"></span>
                 </button>
@@ -1134,6 +1134,27 @@
         }
     }
 
+    function getArchivalChartPalette() {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const cs = getComputedStyle(document.documentElement);
+        const readVar = (name, fallback) => (cs.getPropertyValue(name) || '').trim() || fallback;
+        return {
+            isDark,
+            surface: readVar('--arch-surface', isDark ? '#151A1E' : '#FFFFFF'),
+            ink: readVar('--arch-ink', isDark ? '#F1F4F2' : '#141815'),
+            inkMuted: readVar('--arch-ink-muted', isDark ? '#9AA5A0' : '#525954'),
+            borderStrong: readVar('--arch-border-strong', isDark ? '#36434D' : '#C9C2B5'),
+            accent: readVar('--arch-accent', isDark ? '#68A878' : '#1F4224'),
+            accentHover: readVar('--arch-accent-hover', isDark ? '#7DBD8D' : '#2A5630'),
+            gold: readVar('--arch-gold', isDark ? '#D4B45A' : '#B89535'),
+            accentSoft: isDark ? 'rgba(104, 168, 120, 0.85)' : 'rgba(31, 66, 36, 0.85)',
+            accentDim: isDark ? 'rgba(104, 168, 120, 0.24)' : 'rgba(31, 66, 36, 0.22)',
+            areaTop: isDark ? 'rgba(104, 168, 120, 0.28)' : 'rgba(31, 66, 36, 0.22)',
+            areaBottom: isDark ? 'rgba(104, 168, 120, 0.02)' : 'rgba(31, 66, 36, 0.02)',
+            grid: isDark ? 'rgba(241, 244, 242, 0.08)' : 'rgba(20, 24, 21, 0.08)'
+        };
+    }
+
     // Render interactive timeline chart
     function renderTimeline(stats) {
         const canvas = document.getElementById('timelineChart');
@@ -1156,25 +1177,23 @@
         const labels = yearsList.map(y => String(y));
         const data = yearsList.map(y => stats.byYear[y] || 0);
 
-        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        const gridColor = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(15, 23, 42, 0.06)';
-        const textColor = isDark ? '#94a3b8' : '#64748b';
+        const pal = getArchivalChartPalette();
+        const gridColor = pal.grid;
+        const textColor = pal.inkMuted;
 
         // Highlight selected year bar if a year filter is active
         const bgColors = yearsList.map(y => {
             if (activeStatsFilter.year !== null) {
-                return y === activeStatsFilter.year
-                    ? (isDark ? '#4ade80' : '#15803d')
-                    : (isDark ? 'rgba(134, 239, 172, 0.25)' : 'rgba(21, 128, 61, 0.22)');
+                return y === activeStatsFilter.year ? pal.gold : pal.accentDim;
             }
-            return isDark ? 'rgba(74, 222, 128, 0.78)' : 'rgba(21, 128, 61, 0.82)';
+            return pal.accentSoft;
         });
 
         const borderColors = yearsList.map(y => {
             if (activeStatsFilter.year !== null && y === activeStatsFilter.year) {
-                return isDark ? '#bbf7d0' : '#0d2110';
+                return pal.gold;
             }
-            return isDark ? '#4ade80' : '#15803d';
+            return pal.accent;
         });
 
         timelineChart = new Chart(canvas, {
@@ -1184,10 +1203,10 @@
                 datasets: [{
                     data: data,
                     backgroundColor: bgColors,
-                    hoverBackgroundColor: isDark ? '#86efac' : '#16a34a',
+                    hoverBackgroundColor: pal.accentHover,
                     borderColor: borderColors,
                     borderWidth: 1,
-                    borderRadius: 5,
+                    borderRadius: 4,
                     barPercentage: yearsList.length > 35 ? 0.85 : 0.72,
                     maxBarThickness: 38
                 }]
@@ -1212,10 +1231,10 @@
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: isDark ? '#0f172a' : '#ffffff',
-                        titleColor: isDark ? '#f8fafc' : '#0f172a',
-                        bodyColor: isDark ? '#86efac' : '#15803d',
-                        borderColor: isDark ? '#22c55e' : '#bbf7d0',
+                        backgroundColor: pal.surface,
+                        titleColor: pal.ink,
+                        bodyColor: pal.accent,
+                        borderColor: pal.borderStrong,
                         borderWidth: 1,
                         padding: 11,
                         displayColors: false,
@@ -1257,7 +1276,7 @@
         if (yearsList.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="4" style="text-align: center; color: #64748b; padding: 1.5rem;">
+                    <td colspan="4" class="stats-empty-cell">
                         No timeline records found for current selection.
                     </td>
                 </tr>
@@ -1278,7 +1297,7 @@
             return `
                 <tr class="${isSelected ? 'is-selected' : ''}" data-row-year="${year}">
                     <td style="font-weight: 700; white-space: nowrap;">
-                        ${year} ${count === maxCount && count > 0 ? '<span style="color:#eab308;" title="Peak Year">★</span>' : ''}
+                        ${year} ${count === maxCount && count > 0 ? '<span class="peak-tag" title="Peak Year">Peak</span>' : ''}
                     </td>
                     <td style="font-variant-numeric: tabular-nums; font-weight: 600;">
                         ${count.toLocaleString()} ${count === 1 ? 'martyr' : 'martyrs'}
@@ -1288,7 +1307,7 @@
                             <div class="bar-track" style="flex: 1; min-width: 60px; max-width: 140px; margin: 0;">
                                 <div class="bar-fill" style="width: ${barWidth}%;"></div>
                             </div>
-                            <span style="font-size: 0.76rem; color: #64748b; font-weight: 600; min-width: 32px;">${sharePct}%</span>
+                            <span class="table-share-pct">${sharePct}%</span>
                         </div>
                     </td>
                     <td style="text-align: right; white-space: nowrap;">
@@ -1330,7 +1349,7 @@
         }
 
         if (allSorted.length === 0) {
-            list.innerHTML = '<li class="bar-item" style="cursor: default;"><span style="color: #64748b;">No region data for current filter</span></li>';
+            list.innerHTML = '<li class="bar-item" style="cursor: default;"><span style="color: var(--arch-ink-muted, #525954);">No region data for current filter</span></li>';
             if (toggleBtn) toggleBtn.style.display = 'none';
             return;
         }
@@ -1397,7 +1416,7 @@
         }
 
         if (entries.length === 0) {
-            list.innerHTML = '<li class="bar-item" style="cursor: default;"><span style="color: #64748b;">No affiliation data for current filter</span></li>';
+            list.innerHTML = '<li class="bar-item" style="cursor: default;"><span style="color: var(--arch-ink-muted, #525954);">No affiliation data for current filter</span></li>';
             if (toggleBtn) toggleBtn.style.display = 'none';
             return;
         }
@@ -1473,21 +1492,21 @@
             monthlyChart = null;
         }
 
-        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        const gridColor = isDark ? 'rgba(148, 163, 184, 0.1)' : 'rgba(15, 23, 42, 0.06)';
-        const textColor = isDark ? '#94a3b8' : '#64748b';
+        const pal = getArchivalChartPalette();
+        const gridColor = pal.grid;
+        const textColor = pal.inkMuted;
 
-        // Create memorial green gradient
+        // Create archival gradient
         const ctx = canvas.getContext('2d');
         const gradient = ctx.createLinearGradient(0, 0, 0, 220);
-        gradient.addColorStop(0, isDark ? 'rgba(74, 222, 128, 0.32)' : 'rgba(22, 163, 74, 0.28)');
-        gradient.addColorStop(1, isDark ? 'rgba(74, 222, 128, 0.02)' : 'rgba(22, 163, 74, 0.02)');
+        gradient.addColorStop(0, pal.areaTop);
+        gradient.addColorStop(1, pal.areaBottom);
 
         const pointBgColors = MONTHS.map((_, idx) => {
             if (activeStatsFilter.month === idx) {
-                return isDark ? '#ffffff' : '#0d2110';
+                return pal.gold;
             }
-            return isDark ? '#4ade80' : '#15803d';
+            return pal.accent;
         });
 
         const pointRadii = MONTHS.map((_, idx) => {
@@ -1504,11 +1523,11 @@
                     data: stats.byMonth,
                     fill: true,
                     backgroundColor: gradient,
-                    borderColor: isDark ? '#4ade80' : '#15803d',
-                    borderWidth: 2.5,
-                    tension: 0.38,
+                    borderColor: pal.accent,
+                    borderWidth: 2.25,
+                    tension: 0.36,
                     pointBackgroundColor: pointBgColors,
-                    pointBorderColor: isDark ? '#0f172a' : '#ffffff',
+                    pointBorderColor: pal.surface,
                     pointBorderWidth: 2,
                     pointRadius: pointRadii,
                     pointHoverRadius: 6
@@ -1531,10 +1550,10 @@
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: isDark ? '#0f172a' : '#ffffff',
-                        titleColor: isDark ? '#f8fafc' : '#0f172a',
-                        bodyColor: isDark ? '#86efac' : '#15803d',
-                        borderColor: isDark ? '#22c55e' : '#bbf7d0',
+                        backgroundColor: pal.surface,
+                        titleColor: pal.ink,
+                        bodyColor: pal.accent,
+                        borderColor: pal.borderStrong,
                         borderWidth: 1,
                         padding: 11,
                         displayColors: false,
@@ -1582,7 +1601,7 @@
             return `
                 <tr class="${isSelected ? 'is-selected' : ''}" data-row-month="${idx}">
                     <td style="font-weight: 700; white-space: nowrap;">
-                        ${monthName} ${isPeak ? '<span style="color:#eab308;" title="Peak Month">★ Peak</span>' : ''}
+                        ${monthName} ${isPeak ? '<span class="peak-tag" title="Peak Month">Peak</span>' : ''}
                     </td>
                     <td style="font-variant-numeric: tabular-nums; font-weight: 600;">
                         ${count.toLocaleString()} ${count === 1 ? 'martyr' : 'martyrs'}
@@ -1592,7 +1611,7 @@
                             <div class="bar-track" style="flex: 1; min-width: 60px; max-width: 140px; margin: 0;">
                                 <div class="bar-fill" style="width: ${barWidth}%;"></div>
                             </div>
-                            <span style="font-size: 0.76rem; color: #64748b; font-weight: 600; min-width: 32px;">${sharePct}%</span>
+                            <span class="table-share-pct">${sharePct}%</span>
                         </div>
                     </td>
                     <td style="text-align: right; white-space: nowrap;">

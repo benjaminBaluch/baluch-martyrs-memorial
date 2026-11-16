@@ -265,14 +265,14 @@ html[data-theme="dark"] .confirmation-card p {
 html[data-theme="dark"] .form-group input,
 html[data-theme="dark"] .form-group textarea,
 html[data-theme="dark"] .form-group select {
-    background: #020617;
-    border-color: #334155;
-    color: var(--text-color);
+    background: var(--arch-surface-subtle);
+    border-color: var(--arch-border);
+    color: var(--arch-ink);
 }
 
 html[data-theme="dark"] .form-group input::placeholder,
 html[data-theme="dark"] .form-group textarea::placeholder {
-    color: #64748b;
+    color: var(--arch-ink-muted);
 }
 
 /* Header/footer remain branded but text is light already; just deepen footer */
@@ -1097,14 +1097,14 @@ html[data-theme="dark"] .theme-toggle:hover {
 }
 
 html[data-theme="dark"] .btn-ghost {
-    background: rgba(148, 210, 189, 0.1);
-    color: #94d2bd;
+    background: var(--arch-surface-subtle);
+    color: var(--arch-accent);
 }
 
 html[data-theme="dark"] .btn-ghost:hover {
-    background: rgba(148, 210, 189, 0.9);
-    color: #0f172a;
-    box-shadow: 0 4px 14px rgba(148, 210, 189, 0.25);
+    background: var(--arch-accent);
+    color: var(--arch-paper);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
 }
 
 .btn-secondary {
@@ -1543,22 +1543,22 @@ section {
 /* Image compression feedback */
 .compression-info {
     font-size: 12px;
-    color: #28a745;
+    color: var(--arch-accent);
     margin: 5px 0;
     text-align: center;
     padding: 5px;
-    background-color: #f8f9fa;
-    border-radius: 4px;
-    border-left: 3px solid #28a745;
+    background-color: var(--arch-surface-subtle);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--arch-accent);
 }
 
 .compression-progress {
     font-size: 14px;
-    color: #6c757d;
+    color: var(--arch-ink-muted);
     text-align: center;
     padding: 10px;
-    background-color: #f8f9fa;
-    border-radius: 4px;
+    background-color: var(--arch-surface-subtle);
+    border-radius: var(--radius-sm);
     margin: 10px 0;
 }
 
@@ -1573,7 +1573,7 @@ section {
     width: 100%;
     height: 150px;
     object-fit: cover;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     box-shadow: var(--shadow);
 }
 
@@ -1588,6 +1588,9 @@ section {
 /* Add Martyr page – upload UI polish */
 .file-upload-display {
     cursor: pointer;
+    background: var(--arch-surface-subtle);
+    border: 1px dashed var(--arch-border-strong);
+    border-radius: var(--radius-sm);
     transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -1595,20 +1598,20 @@ section {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    color: var(--arch-ink-muted);
 }
 
 .file-upload-wrapper:hover .file-upload-display {
-    border-color: rgba(44, 85, 48, 0.45);
-    box-shadow: 0 0 0 3px rgba(44, 85, 48, 0.08);
+    border-color: var(--arch-accent);
 }
 
 html[data-theme="dark"] .file-upload-display {
-    background: rgba(15, 23, 42, 0.55);
-    border-color: rgba(148, 163, 184, 0.35);
+    background: var(--arch-surface-subtle);
+    border-color: var(--arch-border-strong);
 }
 
 html[data-theme="dark"] .file-upload-text {
-    color: #cbd5e1;
+    color: var(--arch-ink-muted);
 }
 
 /* Add Martyr page – mobile layout refinements */
@@ -1634,7 +1637,7 @@ html[data-theme="dark"] .file-upload-text {
 
     .add-martyr-section .martyr-form {
         padding: 1.25rem;
-        border-radius: 14px;
+        border-radius: var(--radius-sm);
     }
 
     .add-martyr-section .form-section {
@@ -1659,7 +1662,7 @@ html[data-theme="dark"] .file-upload-text {
     .add-martyr-section .form-group textarea,
     .add-martyr-section .form-group select {
         padding: 0.85rem 0.95rem;
-        border-radius: 10px;
+        border-radius: var(--radius-sm);
     }
 
     .add-martyr-section .file-upload-display {
@@ -1667,13 +1670,13 @@ html[data-theme="dark"] .file-upload-text {
         align-items: stretch;
         gap: 0.75rem;
         padding: 1rem;
-        border-radius: 12px;
+        border-radius: var(--radius-sm);
     }
 
     .add-martyr-section .file-upload-text {
         white-space: normal;
         font-size: 0.95rem;
-        color: #475569;
+        color: var(--arch-ink-muted);
     }
 
     .add-martyr-section .file-upload-display .btn {
@@ -3666,65 +3669,72 @@ html[data-theme="dark"] .no-results-clear-btn:hover {
 /* Confirmation Page Styles */
 .confirmation-page {
     padding: 4rem 0;
-    background: var(--light-color);
+    background: var(--arch-paper);
+    color: var(--arch-ink);
     min-height: 60vh;
 }
 
 .confirmation-card {
     max-width: 800px;
     margin: 0 auto;
-    background: white;
-    border-radius: 8px;
-    box-shadow: var(--shadow);
+    background: var(--arch-surface);
+    border: 1px solid var(--arch-border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--elev-hairline);
     padding: 3rem;
     text-align: center;
 }
 
 .confirmation-icon {
-    margin-bottom: 2rem;
+    margin-bottom: 1.75rem;
 }
 
 .checkmark {
-    display: inline-block;
-    width: 80px;
-    height: 80px;
-    background: #28a745;
+    display: inline-flex;
+    width: 72px;
+    height: 72px;
+    background: var(--arch-accent);
     border-radius: 50%;
-    display: flex;
     align-items: center;
     justify-content: center;
     margin: 0 auto;
 }
 
 .checkmark svg {
-    stroke: white;
-    stroke-width: 3;
-    width: 40px;
-    height: 40px;
+    stroke: var(--arch-paper);
+    stroke-width: 2.5;
+    width: 36px;
+    height: 36px;
 }
 
 .confirmation-content h1 {
-    color: var(--primary-color);
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
+    font-family: 'EB Garamond', Georgia, serif;
+    font-weight: 600;
+    color: var(--arch-ink);
+    font-size: 2.35rem;
+    margin-bottom: 0.4rem;
 }
 
 .confirmation-content h2 {
-    color: var(--secondary-color);
-    font-size: 1.5rem;
-    margin-bottom: 2rem;
+    font-family: 'EB Garamond', Georgia, serif;
+    font-weight: 500;
+    color: var(--arch-accent);
+    font-size: 1.4rem;
+    margin-bottom: 1.75rem;
 }
 
 .verification-info {
     text-align: left;
     margin: 2rem 0;
-    background: var(--light-color);
-    padding: 2rem;
-    border-radius: 8px;
+    background: var(--arch-surface-subtle);
+    border: 1px solid var(--arch-border);
+    padding: 1.75rem;
+    border-radius: var(--radius-sm);
 }
 
 .verification-info h3 {
-    color: var(--primary-color);
+    font-family: 'EB Garamond', Georgia, serif;
+    color: var(--arch-ink);
     margin-bottom: 1rem;
 }
 
@@ -3737,31 +3747,34 @@ html[data-theme="dark"] .no-results-clear-btn:hover {
     margin-bottom: 1rem;
     padding-left: 2rem;
     position: relative;
+    color: var(--arch-ink);
 }
 
 .step-number {
     position: absolute;
     left: 0;
-    top: 0;
-    background: var(--primary-color);
-    color: white;
+    top: 2px;
+    background: var(--arch-accent);
+    color: var(--arch-paper);
     width: 20px;
     height: 20px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.8rem;
-    font-weight: bold;
+    font-size: 0.78rem;
+    font-weight: 700;
 }
 
 .timeline-info {
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
-    border-radius: 8px;
-    padding: 1.5rem;
+    background: var(--arch-gold-subtle);
+    border: 1px solid var(--arch-border);
+    border-left: 3px solid var(--arch-gold);
+    border-radius: var(--radius-sm);
+    padding: 1.25rem 1.5rem;
     margin: 1.5rem 0;
-    color: #856404;
+    color: var(--arch-ink);
+    text-align: left;
 }
 
 .confirmation-actions {
@@ -3773,74 +3786,102 @@ html[data-theme="dark"] .no-results-clear-btn:hover {
 }
 
 .btn-outline {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1.5px solid var(--btn-outline-border);
-    color: var(--btn-gradient-start);
+    background: transparent;
+    border: 1.5px solid var(--arch-border-strong);
+    color: var(--arch-ink);
     box-shadow: none;
 }
 
 .btn-outline:hover {
-    background: rgba(44, 85, 48, 0.08);
-    color: var(--btn-gradient-start);
-    box-shadow: 0 10px 22px rgba(44, 85, 48, 0.2);
+    background: var(--arch-surface-subtle);
+    color: var(--arch-ink);
+    border-color: var(--arch-accent);
+    box-shadow: var(--elev-hairline);
+}
+
+html[data-theme="dark"] .btn-outline,
+[data-theme="dark"] .btn-outline {
+    color: var(--arch-ink);
+    border-color: var(--arch-border-strong);
+}
+
+html[data-theme="dark"] .btn-outline:hover,
+[data-theme="dark"] .btn-outline:hover {
+    background: var(--arch-surface-subtle);
+    color: var(--arch-ink);
+    border-color: var(--arch-accent);
 }
 
 .contact-info {
-    background: var(--light-color);
-    padding: 2rem;
-    border-radius: 8px;
+    background: var(--arch-surface-subtle);
+    border: 1px solid var(--arch-border);
+    padding: 1.75rem;
+    border-radius: var(--radius-sm);
     margin-top: 2rem;
 }
 
 .contact-info h3 {
-    color: var(--primary-color);
-    margin-bottom: 1rem;
+    font-family: 'EB Garamond', Georgia, serif;
+    color: var(--arch-ink);
+    margin-bottom: 0.75rem;
 }
 
 .submission-id {
     font-family: monospace;
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 4px;
+    background: var(--arch-surface);
+    border: 1px solid var(--arch-border);
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-sm);
     margin-top: 1rem;
-    border-left: 4px solid var(--primary-color);
+    border-left: 3px solid var(--arch-accent);
+    color: var(--arch-ink);
 }
 
 .reference-number {
-    font-weight: bold;
-    color: var(--primary-color);
+    font-weight: 700;
+    color: var(--arch-accent);
 }
 
 .submitted-martyr-info {
-    background: #e8f5e8;
-    border: 1px solid #c3e6cb;
-    border-radius: 8px;
-    padding: 1.5rem;
+    background: var(--arch-surface-subtle);
+    border: 1px solid var(--arch-border);
+    border-left: 3px solid var(--arch-accent);
+    border-radius: var(--radius-sm);
+    padding: 1.35rem 1.5rem;
     margin: 1.5rem 0;
     text-align: left;
+    color: var(--arch-ink);
 }
 
 .status-pending {
-    color: #856404;
-    background: #fff3cd;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.9rem;
+    color: var(--arch-ink);
+    background: var(--arch-gold-subtle);
+    border: 1px solid var(--arch-gold);
+    padding: 0.2rem 0.55rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.84rem;
+    font-weight: 600;
 }
 
 .info-card {
     max-width: 800px;
     margin: 2rem auto 0;
-    background: white;
-    border-radius: 8px;
-    box-shadow: var(--shadow);
+    background: var(--arch-surface);
+    border: 1px solid var(--arch-border);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--elev-hairline);
     padding: 2rem;
+}
+
+.info-card h3 {
+    font-family: 'EB Garamond', Georgia, serif;
+    color: var(--arch-ink);
 }
 
 .info-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.75rem;
     margin-top: 1.5rem;
 }
 
@@ -3851,13 +3892,35 @@ html[data-theme="dark"] .no-results-clear-btn:hover {
 }
 
 .info-icon {
-    font-size: 2rem;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    background: var(--arch-surface-subtle);
+    border: 1px solid var(--arch-border);
+    color: var(--arch-accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
 }
 
+.info-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
 .info-item h4 {
-    color: var(--primary-color);
-    margin-bottom: 0.5rem;
+    font-family: 'EB Garamond', Georgia, serif;
+    font-size: 1.15rem;
+    color: var(--arch-ink);
+    margin-bottom: 0.35rem;
+}
+
+.info-item p {
+    color: var(--arch-ink-muted);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin: 0;
 }
 
 /* =============================================
@@ -3872,30 +3935,30 @@ html[data-theme="dark"] .no-results-clear-btn:hover {
 
 /* Introduction card */
 .about-intro {
-    background: #f8f9fa;
+    background: var(--arch-surface-subtle);
     padding: 2rem;
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
     margin-bottom: 3rem;
     text-align: center;
 }
 
 html[data-theme="dark"] .about-intro {
-    background: #0f172a;
+    background: var(--arch-surface-subtle);
 }
 
 .about-intro h3 {
-    color: var(--primary-color);
+    color: var(--arch-accent);
     margin-bottom: 1rem;
 }
 
 .about-intro-text {
     font-size: 1.1rem;
     line-height: 1.7;
-    color: #555;
+    color: var(--arch-ink-muted);
 }
 
 html[data-theme="dark"] .about-intro-text {
-    color: #94a3b8;
+    color: var(--arch-ink-muted);
 }
 
 /* Reusable mission/why/services/contribute section wrapper */
@@ -6107,19 +6170,19 @@ html[data-theme="dark"] .shimmer {
     bottom: 0;
     left: 0;
     width: 100%;
-    background: rgba(255, 255, 255, 0.94);
+    background: rgba(250, 248, 244, 0.96);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border-top: 1px solid rgba(0, 0, 0, 0.08);
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+    border-top: 1px solid var(--arch-border, #E2DDD3);
+    box-shadow: 0 -4px 16px rgba(20, 24, 21, 0.05);
     z-index: 9999;
     padding-bottom: env(safe-area-inset-bottom);
     transition: transform 0.3s ease;
 }
 
 html[data-theme="dark"] .mobile-bottom-nav {
-    background: rgba(15, 23, 42, 0.92);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(21, 26, 30, 0.96);
+    border-top: 1px solid var(--arch-border, #252E35);
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.45);
 }
 
@@ -6136,7 +6199,7 @@ html[data-theme="dark"] .mobile-bottom-nav {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: #64748b;
+    color: var(--arch-ink-muted, #525954);
     text-decoration: none;
     transition: color 0.2s ease, transform 0.2s ease;
     gap: 3px;
@@ -6144,7 +6207,7 @@ html[data-theme="dark"] .mobile-bottom-nav {
 }
 
 html[data-theme="dark"] .bottom-nav-item {
-    color: #94a3b8;
+    color: var(--arch-ink-muted, #9AA5A0);
 }
 
 .bottom-nav-icon {
@@ -6162,11 +6225,11 @@ html[data-theme="dark"] .bottom-nav-item {
 
 /* Active State */
 .bottom-nav-item.active {
-    color: var(--primary-color);
+    color: var(--arch-accent, #1F4224);
 }
 
 html[data-theme="dark"] .bottom-nav-item.active {
-    color: #86efac;
+    color: var(--arch-accent, #68A878);
 }
 
 .bottom-nav-item.active .bottom-nav-icon {
