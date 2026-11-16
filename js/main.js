@@ -740,7 +740,7 @@ function renderRecentMartyrsToDOM(martyrsData) {
         const fragment = document.createDocumentFragment();
 
         recentMartyrs.forEach(martyr => {
-            const martyrCard = createMartyrCard(martyr, recentMartyrs);
+            const martyrCard = createMartyrCard(martyr, recentMartyrs, { eager: true });
             fragment.appendChild(martyrCard);
         });
         recentMartyrsContainer.appendChild(fragment);
@@ -752,9 +752,9 @@ function renderRecentMartyrsToDOM(martyrsData) {
             <div class="martyr-card placeholder">
                 <div class="martyr-image"></div>
                 <div class="martyr-info">
-                    <h3>🎯 Start Building Our Memorial</h3>
+                    <h3>Start Building Our Memorial</h3>
                     <p>Be the first to honor a martyr by adding their story to our digital memorial</p>
-                    <a href="/add-martyr" class="btn btn-small">➕ Honor a Martyr</a>
+                    <a href="/add-martyr" class="btn btn-small">Honor a Martyr</a>
                 </div>
             </div>
         `;
@@ -894,8 +894,8 @@ function getYearMain(dateValue) {
     return '';
 }
 
-// Create Martyr Card Element - Matching Gallery Professional Design
-function createMartyrCard(martyr, list) {
+// Create Martyr Card Element - Archival Museum Plate Design
+function createMartyrCard(martyr, list, options = {}) {
     const card = document.createElement('div');
     card.className = 'martyr-card';
     card.setAttribute('role', 'button');
@@ -922,7 +922,7 @@ function createMartyrCard(martyr, list) {
         const img = document.createElement('img');
         img.src = photoSrc;
         img.alt = martyr.fullName || 'Martyr portrait';
-        img.loading = 'lazy';
+        img.loading = options.eager ? 'eager' : 'lazy';
         img.decoding = 'async';
         img.width = 300;
         img.height = 220;
@@ -1184,60 +1184,65 @@ function showMartyrDetails(martyr, list) {
 
         <div class="martyr-modal-body">
             <div class="martyr-modal-photo-col">
-                ${(() => {
-                    const photoSrc = getMartyrPhotoSrcMain(martyr);
-                    const plaqueHtml = '<div class="martyr-modal-photo-placeholder" aria-label="Portrait unavailable"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span>Portrait Archived</span></div>';
-                    return photoSrc
-                        ? `<img src="${escapeHTMLMain(photoSrc)}" alt="${escapeHTMLMain(martyr.fullName || 'Martyr photo')}" class="martyr-modal-photo" loading="lazy">`
-                        : plaqueHtml;
-                })()}
+                <div class="martyr-modal-photo-frame">
+                    ${(() => {
+                        const photoSrc = getMartyrPhotoSrcMain(martyr);
+                        const plaqueHtml = '<div class="martyr-modal-photo-placeholder" aria-label="Portrait unavailable"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span>Portrait Archived</span></div>';
+                        return photoSrc
+                            ? `<img src="${escapeHTMLMain(photoSrc)}" alt="${escapeHTMLMain(martyr.fullName || 'Martyr photo')}" class="martyr-modal-photo">`
+                            : plaqueHtml;
+                    })()}
+                </div>
+
+                <div class="martyr-dossier-ledger">
+                    <div class="martyr-dossier-ledger-title">Archival Ledger</div>
+                    <div class="martyr-modal-meta-grid">
+                        ${martyr.fatherName ? `
+                            <div class="martyr-modal-meta-row">
+                                <span class="martyr-modal-meta-label">Father</span>
+                                <span class="martyr-modal-meta-val">${escapeHTMLMain(martyr.fatherName)}</span>
+                            </div>
+                        ` : ''}
+                        ${hasBirthDate ? `
+                            <div class="martyr-modal-meta-row">
+                                <span class="martyr-modal-meta-label">Birth</span>
+                                <span class="martyr-modal-meta-val">${escapeHTMLMain(birthPretty)}</span>
+                            </div>
+                        ` : ''}
+                        ${hasBirthPlace ? `
+                            <div class="martyr-modal-meta-row">
+                                <span class="martyr-modal-meta-label">Birth place</span>
+                                <span class="martyr-modal-meta-val">${escapeHTMLMain(rawBirthPlace)}</span>
+                            </div>
+                        ` : ''}
+                        <div class="martyr-modal-meta-row">
+                            <span class="martyr-modal-meta-label">Martyrdom</span>
+                            <span class="martyr-modal-meta-val">${escapeHTMLMain(martyrdomPretty)}</span>
+                        </div>
+                        <div class="martyr-modal-meta-row">
+                            <span class="martyr-modal-meta-label">Martyrdom place</span>
+                            <span class="martyr-modal-meta-val">${escapeHTMLMain(martyr.martyrdomPlace || 'Unknown')}</span>
+                        </div>
+                        ${martyr.organization ? `
+                            <div class="martyr-modal-meta-row">
+                                <span class="martyr-modal-meta-label">Organization</span>
+                                <span class="martyr-modal-meta-val">${escapeHTMLMain(martyr.organization)}</span>
+                            </div>
+                        ` : ''}
+                        ${martyr.rank ? `
+                            <div class="martyr-modal-meta-row">
+                                <span class="martyr-modal-meta-label">Rank</span>
+                                <span class="martyr-modal-meta-val">${escapeHTMLMain(martyr.rank)}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
             </div>
             
             <div class="martyr-modal-details-col">
-                <div class="martyr-modal-meta-grid">
-                    ${martyr.fatherName ? `
-                        <div class="martyr-modal-meta-row">
-                            <span class="martyr-modal-meta-label">Father</span>
-                            <span class="martyr-modal-meta-val">${escapeHTMLMain(martyr.fatherName)}</span>
-                        </div>
-                    ` : ''}
-                    ${hasBirthDate ? `
-                        <div class="martyr-modal-meta-row">
-                            <span class="martyr-modal-meta-label">Birth</span>
-                            <span class="martyr-modal-meta-val">${escapeHTMLMain(birthPretty)}</span>
-                        </div>
-                    ` : ''}
-                    ${hasBirthPlace ? `
-                        <div class="martyr-modal-meta-row">
-                            <span class="martyr-modal-meta-label">Birth place</span>
-                            <span class="martyr-modal-meta-val">${escapeHTMLMain(rawBirthPlace)}</span>
-                        </div>
-                    ` : ''}
-                    <div class="martyr-modal-meta-row">
-                        <span class="martyr-modal-meta-label">Martyrdom</span>
-                        <span class="martyr-modal-meta-val">${escapeHTMLMain(martyrdomPretty)}</span>
-                    </div>
-                    <div class="martyr-modal-meta-row">
-                        <span class="martyr-modal-meta-label">Martyrdom place</span>
-                        <span class="martyr-modal-meta-val">${escapeHTMLMain(martyr.martyrdomPlace || 'Unknown')}</span>
-                    </div>
-                    ${martyr.organization ? `
-                        <div class="martyr-modal-meta-row">
-                            <span class="martyr-modal-meta-label">Organization</span>
-                            <span class="martyr-modal-meta-val">${escapeHTMLMain(martyr.organization)}</span>
-                        </div>
-                    ` : ''}
-                    ${martyr.rank ? `
-                        <div class="martyr-modal-meta-row">
-                            <span class="martyr-modal-meta-label">Rank</span>
-                            <span class="martyr-modal-meta-val">${escapeHTMLMain(martyr.rank)}</span>
-                        </div>
-                    ` : ''}
-                </div>
-                
                 ${martyr.biography ? `
                     <div class="martyr-modal-section">
-                        <h3 class="martyr-modal-section-title">Biography</h3>
+                        <h3 class="martyr-modal-section-title">Biographical Record</h3>
                         <div class="martyr-modal-section-box martyr-modal-bio-text">
                             ${escapeHTMLMain(martyr.biography)}
                         </div>
@@ -1249,6 +1254,15 @@ function showMartyrDetails(martyr, list) {
                         <h3 class="martyr-modal-section-title">Family Details</h3>
                         <div class="martyr-modal-section-box">
                             ${escapeHTMLMain(martyr.familyDetails)}
+                        </div>
+                    </div>
+                ` : ''}
+
+                ${(!martyr.biography && !martyr.familyDetails) ? `
+                    <div class="martyr-modal-section">
+                        <h3 class="martyr-modal-section-title">Biographical Record</h3>
+                        <div class="martyr-modal-section-box martyr-modal-empty-bio">
+                            No extended biography has been submitted for this record yet. Relatives and historians may contribute verified details via <a href="/add-martyr">Submit a Record</a>.
                         </div>
                     </div>
                 ` : ''}
@@ -2164,7 +2178,7 @@ function renderAnniversarySlider() {
         slide.className = 'slide';
         if (index === 0) slide.classList.add('active');
         
-        const martyrCard = createAnniversaryCard(martyr, anniversaryMartyrs);
+        const martyrCard = createAnniversaryCard(martyr, anniversaryMartyrs, index === 0);
         slide.appendChild(martyrCard);
         slider.appendChild(slide);
         
@@ -2178,7 +2192,7 @@ function renderAnniversarySlider() {
 }
 
 // Create anniversary card
-function createAnniversaryCard(martyr, list) {
+function createAnniversaryCard(martyr, list, isActiveSlide = false) {
     const card = document.createElement('div');
     card.className = 'martyr-card anniversary-card';
     
@@ -2194,15 +2208,30 @@ function createAnniversaryCard(martyr, list) {
     if (photoSrc) {
         const img = document.createElement('img');
         img.src = photoSrc;
-        img.alt = martyr.fullName;
-        img.loading = 'lazy';
+        img.alt = martyr.fullName || 'Martyr portrait';
         img.decoding = 'async';
+        if (isActiveSlide) {
+            img.loading = 'eager';
+        } else {
+            img.loading = 'lazy';
+            img.setAttribute('fetchpriority', 'low');
+        }
         img.width = 340;
         img.height = 380;
         img.onerror = () => {
-            img.remove();
-            renderAnniversaryPlaque(imageDiv);
+            if (martyr.id && !martyr.photoRemoved && photoSrc.startsWith('/assets/photos/') && typeof window.resolveMartyrPhoto === 'function') {
+                window.resolveMartyrPhoto(martyr.id, img, () => {
+                    img.remove();
+                    renderAnniversaryPlaque(imageDiv);
+                });
+            } else {
+                img.remove();
+                renderAnniversaryPlaque(imageDiv);
+            }
         };
+        if (martyr.id && !martyr.photoRemoved && !martyr.photo && !martyr.photoPath && martyr.photoUpdatedAt && typeof window.resolveMartyrPhoto === 'function') {
+            window.resolveMartyrPhoto(martyr.id, img);
+        }
         imageDiv.appendChild(img);
     } else {
         renderAnniversaryPlaque(imageDiv);

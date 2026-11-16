@@ -29,7 +29,7 @@
     <link rel="modulepreload" href="js/firebase-config.js?v=20261116d">
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="css/styles.css?v=20261116e">
+    <link rel="stylesheet" href="css/styles.css?v=20261116f">
     
     <!-- Three.js for 3D effects -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js" defer></script>
@@ -48,46 +48,50 @@
             animation: heroReveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
         .hero-text .hero-eyebrow { animation-delay: 0.1s; }
-        .hero-text h2               { animation-delay: 0.28s; }
-        .hero-text .hero-description { animation-delay: 0.44s; }
-        .hero-text .hero-search-wrapper { animation-delay: 0.58s; }
-        .hero-text .hero-buttons     { animation-delay: 0.72s; }
-        .hero-text .hero-live-count  { animation-delay: 0.86s; }
+        .hero-text h1,
+        .hero-text h2               { animation-delay: 0.24s; }
+        .hero-text .hero-description { animation-delay: 0.36s; }
+        .hero-text .hero-search-wrapper { animation-delay: 0.48s; }
+        .hero-text .hero-buttons     { animation-delay: 0.6s; }
+        .hero-text .hero-live-count  { animation-delay: 0.72s; }
         @keyframes heroReveal {
-            from { opacity: 0; transform: translateY(24px); }
+            from { opacity: 0; transform: translateY(20px); }
             to   { opacity: 1; transform: translateY(0); }
         }
 
-        /* Engraving-style eyebrow — replaces old white pill */
+        /* Engraving-style eyebrow */
         .hero-eyebrow {
             display: block;
             font-family: 'Inter', sans-serif;
-            font-size: 0.78rem;
+            font-size: 0.76rem;
             font-weight: 600;
             letter-spacing: 0.22em;
             text-transform: uppercase;
-            color: rgba(255,255,255,0.65);
-            margin-bottom: 1.1rem;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 1rem;
         }
         .hero-eyebrow::before { content: '— '; }
         .hero-eyebrow::after  { content: ' —'; }
 
         /* Hero headline */
+        .hero-text h1,
         .hero-text h2 {
-            font-size: clamp(2.4rem, 6vw, 4.2rem);
-            font-weight: 700;
-            line-height: 1.1;
-            color: #fff;
-            text-shadow: 0 2px 24px rgba(0,0,0,0.4);
-            margin-bottom: 1.25rem;
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: clamp(2.4rem, 5.6vw, 4.1rem);
+            font-weight: 500;
+            line-height: 1.08;
+            color: #FAF8F4;
+            text-shadow: 0 2px 14px rgba(0, 0, 0, 0.32);
+            margin-bottom: 1.1rem;
+            letter-spacing: -0.01em;
         }
 
         .hero-description {
-            font-size: 1.15rem;
-            line-height: 1.7;
+            font-size: 1.08rem;
+            line-height: 1.68;
             margin-bottom: 1.75rem;
-            color: rgba(255,255,255,0.88);
-            max-width: 560px;
+            color: rgba(250, 248, 244, 0.88);
+            max-width: 540px;
             margin-left: auto;
             margin-right: auto;
         }
@@ -95,9 +99,9 @@
         /* Hero Container Dimensions */
         .hero {
             position: relative;
-            min-height: 640px;
+            min-height: 620px;
             height: auto;
-            padding: 4.5rem 1rem 4rem;
+            padding: 4.25rem 1rem 3.75rem;
             overflow: visible !important;
             z-index: 50;
         }
@@ -112,9 +116,9 @@
         /* Hero Instant Search Bar */
         .hero-search-wrapper {
             position: relative;
-            max-width: 580px;
+            max-width: 560px;
             width: 100%;
-            margin: 0 auto 1.75rem;
+            margin: 0 auto 1.65rem;
             z-index: 100;
         }
 
@@ -123,29 +127,26 @@
             align-items: center;
             position: relative;
             width: 100%;
-            background: rgba(15, 23, 42, 0.75);
+            background: rgba(13, 16, 19, 0.78);
             border: 1px solid rgba(255, 255, 255, 0.22);
             border-radius: 999px;
-            padding: 0.35rem 0.45rem 0.35rem 1.25rem;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            box-shadow: 0 14px 35px rgba(0, 0, 0, 0.4), 
-                        inset 0 1px 0 rgba(255, 255, 255, 0.15);
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 0.3rem 0.38rem 0.3rem 1.15rem;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.34);
+            transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
         .hero-search-bar:hover {
-            background: rgba(15, 23, 42, 0.84);
-            border-color: rgba(212, 175, 55, 0.5);
-            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.48), 
-                        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            background: rgba(13, 16, 19, 0.86);
+            border-color: rgba(212, 180, 90, 0.55);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.42);
         }
 
         .hero-search-bar.is-focused {
-            background: rgba(15, 23, 42, 0.94);
-            border-color: rgba(212, 175, 55, 0.85);
-            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.25), 
-                        0 20px 50px rgba(0, 0, 0, 0.55);
+            background: rgba(13, 16, 19, 0.94);
+            border-color: rgba(212, 180, 90, 0.85);
+            box-shadow: 0 0 0 3px rgba(212, 180, 90, 0.22), 0 14px 36px rgba(0, 0, 0, 0.48);
         }
 
         .hero-search-icon-wrap {
@@ -522,10 +523,11 @@
                 letter-spacing: 0.16em !important;
                 margin-bottom: 0.65rem !important;
             }
+            .hero-text h1,
             .hero-text h2 {
-                font-size: clamp(1.8rem, 6.5vw, 2.35rem) !important;
-                line-height: 1.15 !important;
-                margin-bottom: 0.75rem !important;
+                font-size: clamp(1.85rem, 6.4vw, 2.35rem) !important;
+                line-height: 1.14 !important;
+                margin-bottom: 0.7rem !important;
             }
             .hero-description {
                 font-size: 0.92rem !important;
@@ -549,7 +551,7 @@
                 padding: 0.5rem 0.75rem !important;
             }
             .hero-search-dropdown {
-                border-radius: 16px;
+                border-radius: var(--radius-md, 10px);
                 z-index: 9999;
             }
             .hero-search-results-list {
@@ -573,7 +575,7 @@
                 min-height: 42px !important;
                 padding: 0.6rem 0.75rem !important;
                 font-size: 0.86rem !important;
-                border-radius: 10px !important;
+                border-radius: var(--radius-sm, 6px) !important;
                 white-space: nowrap !important;
             }
             .hero-live-count {
@@ -586,6 +588,7 @@
             .hero {
                 padding: 1.75rem 0.85rem 2rem !important;
             }
+            .hero-text h1,
             .hero-text h2 {
                 font-size: clamp(1.65rem, 6.2vw, 2.1rem) !important;
             }
@@ -778,9 +781,9 @@
             margin: 0 auto;
         }
 
-        /* Purpose Section - Archival Design */
+        /* Purpose Section — Editorial Documentation Standards & Chronological Era Ledger */
         .purpose-section {
-            padding: 5.5rem 0;
+            padding: 5.25rem 0;
             background: var(--arch-surface-subtle, #F2EFE9);
             border-top: 1px solid var(--arch-border, #E2DDD3);
             border-bottom: 1px solid var(--arch-border, #E2DDD3);
@@ -788,132 +791,247 @@
         }
         .purpose-content {
             display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
-            gap: 4.5rem;
-            align-items: center;
+            grid-template-columns: 1.05fr 0.95fr;
+            gap: 4rem;
+            align-items: start;
             position: relative;
             z-index: 1;
         }
         .section-tag {
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.45rem;
             background: var(--arch-gold-subtle, #F7F2E2);
             color: var(--arch-accent, #1F4224);
             border: 1px solid var(--arch-border, #E2DDD3);
-            padding: 0.38rem 0.95rem;
+            padding: 0.34rem 0.85rem;
             border-radius: var(--radius-pill, 999px);
-            font-size: 0.78rem;
+            font-size: 0.74rem;
             font-weight: 600;
-            margin-bottom: 1.15rem;
+            margin-bottom: 1rem;
             text-transform: uppercase;
             letter-spacing: 0.08em;
         }
+        .purpose-text .section-header {
+            text-align: left;
+            margin-bottom: 1.5rem;
+        }
+        .purpose-text .section-header::after {
+            left: 0;
+            transform: none;
+            bottom: -0.75rem;
+        }
         .purpose-text .section-header h2 {
             font-family: 'EB Garamond', Georgia, serif;
-            font-size: 2.35rem;
-            line-height: 1.18;
-            margin-bottom: 1.25rem;
+            font-size: clamp(1.85rem, 3.2vw, 2.45rem);
+            line-height: 1.15;
+            margin-bottom: 0.85rem;
             color: var(--arch-ink, #141815);
             font-weight: 600;
             letter-spacing: -0.015em;
         }
         .section-description {
-            font-size: 1.05rem;
-            line-height: 1.72;
+            font-size: 1.02rem;
+            line-height: 1.7;
             color: var(--arch-ink-muted, #525954);
-            margin-bottom: 2.25rem;
-            max-width: 92%;
+            margin-bottom: 0;
+            max-width: 56ch;
         }
-        .purpose-features {
-            margin-bottom: 2.25rem;
+        .standards-list {
+            list-style: none;
+            margin: 2rem 0 2.15rem;
+            padding: 0;
+            border-top: 1px solid var(--arch-border, #E2DDD3);
+        }
+        .standard-item {
             display: grid;
-            gap: 1.25rem;
+            grid-template-columns: 38px minmax(0, 1fr);
+            gap: 0.9rem;
+            padding: 1.1rem 0;
+            border-bottom: 1px solid var(--arch-border, #E2DDD3);
+            align-items: baseline;
         }
-        .purpose-feature {
-            display: flex;
-            gap: 1.1rem;
-            align-items: flex-start;
-            padding: 1.25rem 1.35rem;
-            background: var(--arch-surface, #FFFFFF);
-            border-radius: var(--radius-sm, 6px);
-            border: 1px solid var(--arch-border, #E2DDD3);
-            transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
-        }
-        .purpose-feature:hover {
-            background: var(--arch-surface, #FFFFFF);
-            transform: translateY(-1px);
-            box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04));
-            border-color: var(--arch-accent, #1F4224);
-        }
-        .purpose-feature-icon {
-            font-size: 1.35rem;
-            color: var(--arch-accent, #1F4224);
-            flex-shrink: 0;
-            width: 44px;
-            height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: var(--radius-sm, 6px);
-            background-color: var(--arch-surface-subtle, #F2EFE9);
-            border: 1px solid var(--arch-border, #E2DDD3);
-        }
-        .purpose-feature-content h4 {
-            color: var(--arch-ink, #141815);
-            margin-bottom: 0.4rem;
-            font-size: 1.05rem;
-            font-weight: 600;
-            letter-spacing: -0.01em;
-        }
-        .purpose-feature-content p {
-            color: var(--arch-ink-muted, #525954);
-            line-height: 1.6;
-            margin: 0;
-            font-size: 0.94rem;
-        }
-        .memorial-showcase {
-            display: grid;
-            gap: 1.35rem;
-        }
-        .showcase-card {
-            background: var(--arch-surface, #FFFFFF);
-            padding: 1.75rem;
-            border-radius: var(--radius-sm, 6px);
-            border: 1px solid var(--arch-border, #E2DDD3);
-            box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04));
-            transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
-            position: relative;
-        }
-        .showcase-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--elev-hover, 0 8px 20px rgba(20, 24, 21, 0.07));
-            border-color: var(--arch-accent, #1F4224);
-        }
-        .showcase-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 46px;
-            height: 46px;
-            background: var(--arch-surface-subtle, #F2EFE9);
-            border-radius: var(--radius-sm, 6px);
-            margin-bottom: 0.9rem;
-            color: var(--arch-accent, #1F4224);
-            border: 1px solid var(--arch-border, #E2DDD3);
-        }
-        .showcase-title {
+        .standard-num {
             font-family: 'EB Garamond', Georgia, serif;
+            font-size: 1.18rem;
             font-weight: 600;
-            font-size: 1.32rem;
+            font-variant-numeric: tabular-nums;
+            color: var(--arch-accent, #1F4224);
+        }
+        .standard-copy h3 {
+            font-family: 'Inter', sans-serif;
+            font-size: 0.98rem;
+            font-weight: 600;
             color: var(--arch-ink, #141815);
-            margin-bottom: 0.55rem;
+            margin: 0 0 0.28rem;
             letter-spacing: -0.01em;
         }
-        .showcase-text {
+        .standard-copy p {
+            margin: 0;
+            font-size: 0.9rem;
+            line-height: 1.58;
             color: var(--arch-ink-muted, #525954);
-            line-height: 1.62;
-            font-size: 0.95rem;
+        }
+        .purpose-actions-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
+        }
+        .era-ledger-card {
+            background: var(--arch-surface, #FFFFFF);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            border-radius: var(--radius-sm, 6px);
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04));
+            overflow: hidden;
+        }
+        .era-ledger-header {
+            padding: 1.25rem 1.4rem 1rem;
+            border-bottom: 1px solid var(--arch-border, #E2DDD3);
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+        .era-ledger-kicker {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--arch-ink-muted, #525954);
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+        .era-ledger-title {
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 1.45rem;
+            font-weight: 600;
+            color: var(--arch-ink, #141815);
+            margin: 0;
+            line-height: 1.2;
+        }
+        .era-ledger-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .era-ledger-row a {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 0.45rem 1rem;
+            padding: 0.95rem 1.4rem;
+            border-bottom: 1px solid var(--arch-border, #E2DDD3);
+            color: var(--arch-ink, #141815);
+            text-decoration: none;
+            transition: background-color 0.18s ease;
+        }
+        .era-ledger-row a:hover {
+            background: var(--arch-paper, #FAF8F4);
+        }
+        .era-ledger-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+        .era-label {
+            font-weight: 600;
+            font-size: 0.94rem;
+            color: var(--arch-ink, #141815);
+        }
+        .era-count {
+            font-size: 0.88rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            color: var(--arch-accent, #1F4224);
+            white-space: nowrap;
+        }
+        .era-bar-track {
+            grid-column: 1 / 2;
+            height: 5px;
+            background: var(--arch-surface-subtle, #F2EFE9);
+            border-radius: var(--radius-pill, 999px);
+            overflow: hidden;
+        }
+        .era-bar-fill {
+            display: block;
+            height: 100%;
+            width: 0%;
+            background: var(--arch-accent, #1F4224);
+            border-radius: var(--radius-pill, 999px);
+            transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .era-arrow {
+            grid-column: 2 / 3;
+            grid-row: 1 / 3;
+            align-self: center;
+            color: var(--arch-ink-muted, #525954);
+            transition: transform 0.18s ease, color 0.18s ease;
+        }
+        .era-ledger-row a:hover .era-arrow {
+            transform: translateX(3px);
+            color: var(--arch-accent, #1F4224);
+        }
+        .era-ledger-footer {
+            padding: 0.95rem 1.4rem;
+            background: var(--arch-paper, #FAF8F4);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            font-size: 0.86rem;
+            color: var(--arch-ink-muted, #525954);
+        }
+        .era-ledger-footer strong {
+            color: var(--arch-ink, #141815);
+            font-variant-numeric: tabular-nums;
+        }
+        .era-ledger-footer a {
+            color: var(--arch-accent, #1F4224);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        html[data-theme="dark"] .purpose-section,
+        [data-theme="dark"] .purpose-section {
+            background: var(--arch-surface-subtle, #1A2127) !important;
+            border-color: var(--arch-border, #252E35) !important;
+        }
+        html[data-theme="dark"] .era-ledger-card {
+            background: var(--arch-surface, #151A1E) !important;
+            border-color: var(--arch-border, #252E35) !important;
+        }
+        html[data-theme="dark"] .era-ledger-header,
+        html[data-theme="dark"] .standards-list,
+        html[data-theme="dark"] .standard-item,
+        html[data-theme="dark"] .era-ledger-row a {
+            border-color: var(--arch-border, #252E35) !important;
+        }
+        html[data-theme="dark"] .standard-copy h3,
+        html[data-theme="dark"] .era-ledger-title,
+        html[data-theme="dark"] .era-label,
+        html[data-theme="dark"] .era-ledger-footer strong {
+            color: var(--arch-ink, #F1F4F2) !important;
+        }
+        html[data-theme="dark"] .standard-num,
+        html[data-theme="dark"] .era-count,
+        html[data-theme="dark"] .era-ledger-footer a {
+            color: var(--arch-accent, #68A878) !important;
+        }
+        html[data-theme="dark"] .era-bar-fill {
+            background: var(--arch-accent, #68A878) !important;
+        }
+        html[data-theme="dark"] .era-bar-track,
+        html[data-theme="dark"] .era-ledger-footer {
+            background: var(--arch-paper, #0D1013) !important;
+        }
+        html[data-theme="dark"] .era-ledger-row a:hover {
+            background: var(--arch-surface-subtle, #1A2127) !important;
+        }
+        html[data-theme="dark"] .standard-copy p,
+        html[data-theme="dark"] .era-ledger-kicker,
+        html[data-theme="dark"] .era-arrow,
+        html[data-theme="dark"] .era-ledger-footer {
+            color: var(--arch-ink-muted, #9AA5A0) !important;
         }
 
         /* ========================================================
@@ -1496,48 +1614,44 @@
                 grid-template-columns: 1fr;
                 gap: 1.75rem;
             }
+            .purpose-text .section-header {
+                margin-bottom: 1.15rem;
+            }
             .purpose-text .section-header h2 {
                 font-size: 1.5rem;
-                line-height: 1.25;
+                line-height: 1.22;
             }
             .section-description {
                 font-size: 0.92rem;
-                line-height: 1.5;
+                line-height: 1.55;
                 max-width: 100%;
             }
-            .purpose-feature {
-                padding: 0.95rem 1rem;
-                border-radius: var(--radius-sm, 6px);
+            .standards-list {
+                margin: 1.4rem 0 1.5rem;
             }
-            .purpose-feature:hover {
-                transform: translateY(-1px);
+            .standard-item {
+                grid-template-columns: 32px minmax(0, 1fr);
+                gap: 0.7rem;
+                padding: 0.9rem 0;
             }
-            .purpose-feature-icon {
-                width: 36px;
-                height: 36px;
-                font-size: 1.4rem;
+            .standard-copy h3 {
+                font-size: 0.92rem;
             }
-            .purpose-feature-content h4 {
-                font-size: 0.98rem;
-                margin-bottom: 0.2rem;
-            }
-            .purpose-feature-content p {
+            .standard-copy p {
                 font-size: 0.84rem;
-                line-height: 1.45;
             }
-            .showcase-card {
-                padding: 1.25rem;
-                border-radius: var(--radius-sm, 6px);
+            .purpose-actions-row .btn {
+                width: 100%;
+                justify-content: center;
             }
-            .action-grid {
-                grid-template-columns: 1fr;
-                gap: 0.75rem;
+            .era-ledger-header,
+            .era-ledger-row a,
+            .era-ledger-footer {
+                padding-left: 1rem;
+                padding-right: 1rem;
             }
-            .community-message {
-                flex-direction: column;
-                text-align: center;
-                padding: 1.25rem;
-                gap: 0.85rem;
+            .era-ledger-title {
+                font-size: 1.28rem;
             }
         }
         @media (max-width: 480px) {
@@ -1577,8 +1691,8 @@
                 padding: 2rem 0;
             }
             .section-tag {
-                font-size: 0.75rem;
-                padding: 0.35rem 0.85rem;
+                font-size: 0.72rem;
+                padding: 0.3rem 0.75rem;
             }
             .purpose-text .section-header h2 {
                 font-size: 1.4rem;
@@ -1586,30 +1700,6 @@
             .section-description {
                 font-size: 0.88rem;
                 line-height: 1.5;
-            }
-            .purpose-feature {
-                padding: 1rem;
-                gap: 1rem;
-            }
-            .purpose-feature-icon {
-                width: 36px;
-                height: 36px;
-                font-size: 1.5rem;
-            }
-            .purpose-feature-content h4 {
-                font-size: 1rem;
-            }
-            .purpose-feature-content p {
-                font-size: 0.925rem;
-            }
-            .showcase-card {
-                padding: 1.25rem;
-            }
-            .showcase-title {
-                font-size: 1.1rem;
-            }
-            .showcase-text {
-                font-size: 0.925rem;
             }
         }
         /* Anniversary Slider - Archival Plate Layout */
@@ -2240,16 +2330,25 @@
         }
 
         .martyr-modal-body {
-            padding: 1.75rem 1.75rem 1.5rem;
-            display: flex;
-            gap: 1.75rem;
-            align-items: flex-start;
+            padding: 1.75rem 1.75rem 1.6rem;
+            display: grid;
+            grid-template-columns: 280px minmax(0, 1fr);
+            gap: 2rem;
+            align-items: start;
         }
 
         .martyr-modal-photo-col {
-            flex: 0 0 260px;
-            max-width: 260px;
             width: 100%;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1.1rem;
+        }
+
+        .martyr-modal-photo-frame {
+            width: 100%;
+            overflow: hidden;
+            border-radius: var(--radius-sm, 6px);
         }
 
         .martyr-modal-photo {
@@ -2264,7 +2363,7 @@
 
         .martyr-modal-photo-placeholder {
             width: 100%;
-            height: 300px;
+            height: 290px;
             border-radius: var(--radius-sm, 6px);
             background: var(--arch-surface-subtle, #F2EFE9);
             border: 1px solid var(--arch-border, #E2DDD3);
@@ -2277,100 +2376,175 @@
             font-weight: 600;
             letter-spacing: 0.09em;
             text-transform: uppercase;
-            color: var(--arch-ink-muted, #575C57);
+            color: var(--arch-ink-muted, #525954);
             text-align: center;
             padding: 1rem;
         }
 
         html[data-theme="dark"] .martyr-modal-photo-placeholder,
         [data-theme="dark"] .martyr-modal-photo-placeholder {
-            background: var(--arch-surface-subtle, #1C2328);
+            background: var(--arch-surface-subtle, #1A2127);
             border-color: var(--arch-border, #252E35);
-            color: var(--arch-ink-muted, #9BA3A8);
+            color: var(--arch-ink-muted, #9AA5A0);
+        }
+
+        .martyr-dossier-ledger {
+            background: var(--arch-paper, #FAF8F4);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            border-radius: var(--radius-sm, 6px);
+            padding: 0.85rem 1rem 0.45rem;
+        }
+
+        html[data-theme="dark"] .martyr-dossier-ledger,
+        [data-theme="dark"] .martyr-dossier-ledger {
+            background: var(--arch-surface-subtle, #1A2127);
+            border-color: var(--arch-border, #252E35);
+        }
+
+        .martyr-dossier-ledger-title {
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--arch-accent, #1F4224);
+            padding-bottom: 0.45rem;
+            border-bottom: 1px solid var(--arch-border, #E2DDD3);
+        }
+
+        html[data-theme="dark"] .martyr-dossier-ledger-title,
+        [data-theme="dark"] .martyr-dossier-ledger-title {
+            color: var(--arch-accent, #68A878);
+            border-bottom-color: var(--arch-border, #252E35);
         }
 
         .martyr-modal-details-col {
-            flex: 1;
-            min-width: 260px;
+            min-inline-size: 0;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .martyr-modal-meta-grid {
-            display: grid;
-            gap: 0.65rem;
-            font-size: 0.95rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            font-size: 0.88rem;
         }
 
         .martyr-modal-meta-row {
             display: flex;
-            gap: 0.75rem;
-            align-items: flex-start;
+            flex-direction: column;
+            gap: 0.12rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--arch-border, #E2DDD3);
+        }
+
+        .martyr-modal-meta-row:last-child {
+            border-bottom: none;
+        }
+
+        html[data-theme="dark"] .martyr-modal-meta-row,
+        [data-theme="dark"] .martyr-modal-meta-row {
+            border-bottom-color: var(--arch-border, #252E35);
         }
 
         .martyr-modal-meta-label {
-            min-width: 120px;
+            font-size: 0.68rem;
             font-weight: 600;
-            color: #4b5563;
-            flex-shrink: 0;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--arch-ink-muted, #525954);
         }
 
         html[data-theme="dark"] .martyr-modal-meta-label,
         [data-theme="dark"] .martyr-modal-meta-label {
-            color: #94a3b8 !important;
+            color: var(--arch-ink-muted, #9AA5A0) !important;
         }
 
         .martyr-modal-meta-val {
-            color: #111827;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--arch-ink, #141815);
             word-break: break-word;
+            line-height: 1.4;
         }
 
         html[data-theme="dark"] .martyr-modal-meta-val,
         [data-theme="dark"] .martyr-modal-meta-val {
-            color: #f8fafc !important;
+            color: var(--arch-ink, #F1F4F2) !important;
         }
 
         .martyr-modal-section {
-            margin-top: 1.5rem;
+            margin-top: 1.35rem;
+        }
+
+        .martyr-modal-details-col > .martyr-modal-section:first-child {
+            margin-top: 0;
         }
 
         .martyr-modal-section-title {
-            margin: 0 0 0.65rem;
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: #111827;
+            font-family: 'EB Garamond', Georgia, serif;
+            margin: 0 0 0.55rem;
+            font-size: 1.24rem;
+            font-weight: 600;
+            color: var(--arch-ink, #141815);
+            letter-spacing: -0.01em;
         }
 
         html[data-theme="dark"] .martyr-modal-section-title,
         [data-theme="dark"] .martyr-modal-section-title {
-            color: #f8fafc !important;
+            color: var(--arch-ink, #F1F4F2) !important;
         }
 
         .martyr-modal-section-box {
-            background: #f8fafc;
-            padding: 1.25rem 1.2rem;
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-            line-height: 1.7;
-            color: #334155;
-            font-size: 0.95rem;
+            background: var(--arch-paper, #FAF8F4);
+            padding: 1.2rem 1.3rem;
+            border-radius: var(--radius-sm, 6px);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            line-height: 1.75;
+            color: var(--arch-ink, #141815);
+            font-size: 0.97rem;
         }
 
         .martyr-modal-bio-text {
-            text-align: justify;
+            max-width: 62ch;
+            text-align: start;
+        }
+
+        .martyr-modal-empty-bio {
+            color: var(--arch-ink-muted, #525954);
+            font-size: 0.92rem;
+        }
+
+        .martyr-modal-empty-bio a {
+            color: var(--arch-accent, #1F4224);
+            font-weight: 600;
+            text-decoration: underline;
         }
 
         html[data-theme="dark"] .martyr-modal-section-box,
         [data-theme="dark"] .martyr-modal-section-box {
-            background: #0f1a29 !important;
-            border-color: rgba(148, 163, 184, 0.2) !important;
-            color: #cbd5e1 !important;
+            background: var(--arch-surface-subtle, #1A2127) !important;
+            border-color: var(--arch-border, #252E35) !important;
+            color: var(--arch-ink, #F1F4F2) !important;
+        }
+
+        html[data-theme="dark"] .martyr-modal-empty-bio,
+        [data-theme="dark"] .martyr-modal-empty-bio {
+            color: var(--arch-ink-muted, #9AA5A0) !important;
+        }
+
+        html[data-theme="dark"] .martyr-modal-empty-bio a,
+        [data-theme="dark"] .martyr-modal-empty-bio a {
+            color: var(--arch-accent, #68A878) !important;
         }
 
         .martyr-modal-submit-row {
-            margin-top: 1.5rem;
-            padding-top: 1rem;
-            border-top: 1px solid #e2e8f0;
-            color: #64748b;
-            font-size: 0.88rem;
+            margin-top: 1.4rem;
+            padding-top: 0.95rem;
+            border-top: 1px solid var(--arch-border, #E2DDD3);
+            color: var(--arch-ink-muted, #525954);
+            font-size: 0.85rem;
             display: flex;
             flex-wrap: wrap;
             gap: 0.75rem;
@@ -2379,8 +2553,8 @@
 
         html[data-theme="dark"] .martyr-modal-submit-row,
         [data-theme="dark"] .martyr-modal-submit-row {
-            border-top-color: rgba(148, 163, 184, 0.2) !important;
-            color: #94a3b8 !important;
+            border-top-color: var(--arch-border, #252E35) !important;
+            color: var(--arch-ink-muted, #9AA5A0) !important;
         }
 
         .martyr-modal-submit-row p {
@@ -2388,29 +2562,29 @@
         }
 
         .martyr-modal-actions {
-            margin-top: 1.5rem;
+            margin-top: 1.35rem;
             display: flex;
             flex-wrap: wrap;
             gap: 0.75rem;
         }
 
         .martyr-modal-actions .martyr-close-btn {
-            border-radius: 8px;
+            border-radius: var(--radius-sm, 6px);
             padding: 0.5rem 1.25rem;
-            font-size: 0.92rem;
+            font-size: 0.9rem;
             font-weight: 600;
         }
 
         html[data-theme="dark"] .martyr-modal-actions .martyr-close-btn,
         [data-theme="dark"] .martyr-modal-actions .martyr-close-btn {
-            border-color: rgba(148, 163, 184, 0.35) !important;
-            color: #f8fafc !important;
+            border-color: var(--arch-border-strong, #36434D) !important;
+            color: var(--arch-ink, #F1F4F2) !important;
             background: transparent !important;
         }
 
         html[data-theme="dark"] .martyr-modal-actions .martyr-close-btn:hover,
         [data-theme="dark"] .martyr-modal-actions .martyr-close-btn:hover {
-            background: rgba(255, 255, 255, 0.1) !important;
+            background: var(--arch-surface-subtle, #1A2127) !important;
         }
 
         @media (max-width: 768px) {
@@ -2515,6 +2689,7 @@
 
             .martyr-modal-body {
                 padding: 0.9rem 0.95rem 1.75rem !important;
+                display: flex !important;
                 flex-direction: column !important;
                 gap: 0.9rem !important;
             }
@@ -2523,19 +2698,38 @@
                 flex: none !important;
                 max-width: 100% !important;
                 width: 100% !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 0.85rem !important;
+                background: transparent !important;
+                border: none !important;
+                padding: 0 !important;
+            }
+
+            .martyr-modal-photo-frame {
+                width: 100% !important;
                 text-align: center;
-                background: rgba(15, 23, 42, 0.04);
-                border-radius: 14px;
+                background: var(--arch-surface-subtle, #F2EFE9);
+                border: 1px solid var(--arch-border, #E2DDD3);
+                border-radius: var(--radius-sm, 6px);
                 padding: 8px;
                 display: flex;
                 justify-content: center;
                 align-items: center;
             }
 
-            html[data-theme="dark"] .martyr-modal-photo-col,
-            [data-theme="dark"] .martyr-modal-photo-col {
-                background: rgba(0, 0, 0, 0.28) !important;
-                border: 1px solid rgba(148, 163, 184, 0.15) !important;
+            html[data-theme="dark"] .martyr-modal-photo-frame,
+            [data-theme="dark"] .martyr-modal-photo-frame {
+                background: var(--arch-surface-subtle, #1A2127) !important;
+                border-color: var(--arch-border, #252E35) !important;
+            }
+
+            .martyr-dossier-ledger {
+                padding: 0.7rem 0.75rem !important;
+            }
+
+            .martyr-dossier-ledger-title {
+                margin-bottom: 0.45rem !important;
             }
 
             .martyr-modal-photo {
@@ -2559,6 +2753,10 @@
                 min-width: 0 !important;
             }
 
+            .martyr-modal-bio-text {
+                max-width: none !important;
+            }
+
             .martyr-modal-meta-grid {
                 display: grid !important;
                 grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -2571,15 +2769,15 @@
                 align-items: flex-start !important;
                 gap: 0.12rem !important;
                 padding: 0.48rem 0.6rem !important;
-                background: rgba(15, 23, 42, 0.035) !important;
-                border: 1px solid rgba(148, 163, 184, 0.18) !important;
-                border-radius: 10px !important;
+                background: var(--arch-surface, #FFFFFF) !important;
+                border: 1px solid var(--arch-border, #E2DDD3) !important;
+                border-radius: var(--radius-sm, 6px) !important;
             }
 
             html[data-theme="dark"] .martyr-modal-meta-row,
             [data-theme="dark"] .martyr-modal-meta-row {
-                background: rgba(255, 255, 255, 0.03) !important;
-                border-color: rgba(148, 163, 184, 0.14) !important;
+                background: var(--arch-surface, #151A1E) !important;
+                border-color: var(--arch-border, #252E35) !important;
             }
 
             .martyr-modal-meta-label {
@@ -2640,18 +2838,18 @@
 <body>
     <!-- Header Section -->
     <header class="site-header">
-        <nav class="navbar">
+        <nav class="navbar" aria-label="Primary">
             <div class="container">
                 <div class="nav-brand">
-                    <h1>Baluch Martyrs Memorial</h1>
+                    <a href="/" class="nav-brand-link"><svg class="nav-crest-svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6 12 2"/></svg><span>Baluch Martyrs Memorial</span></a>
                 </div>
                 <ul class="nav-menu">
                     <li><a href="/" class="active">Home</a></li>
-                    <li><a href="/add-martyr">Add Martyr</a></li>
                     <li><a href="/gallery">Gallery</a></li>
                     <li><a href="/statistics">Statistics</a></li>
                     <li><a href="/about">About</a></li>
                     <li><a href="/contact">Contact</a></li>
+                    <li><a href="/add-martyr" class="nav-cta">Submit a Record</a></li>
                     <li><button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle dark mode"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></button></li>
                 </ul>
                 <div class="hamburger">
@@ -2679,8 +2877,8 @@
         <div class="hero-content">
             <div class="hero-text">
                 <span class="hero-eyebrow">In Memory of Freedom Fighters</span>
-                <h2>Baluch Martyrs Memorial</h2>
-                <p class="hero-description">A sacred digital sanctuary preserving the legacy of brave souls who made the ultimate sacrifice for freedom, justice, and the dignity of the Baluch nation.</p>
+                <h1>Baluch Martyrs Memorial</h1>
+                <p class="hero-description">An independent biographical archive preserving documented records, portraits, and historical accounts of Baluch martyrs.</p>
                 
                 <!-- Instant Hero Search Bar -->
                 <div class="hero-search-wrapper" id="heroSearchWrapper">
@@ -2885,69 +3083,99 @@
             </div>
         </section>
 
-        <!-- Our Purpose Section -->
+        <!-- Archive Standards & Chronological Era Ledger -->
         <section class="purpose-section">
             <div class="container">
                 <div class="purpose-content">
                     <div class="purpose-text">
                         <div class="section-header">
-                            <span class="section-tag">Our Sacred Mission</span>
-                            <h2>Preserving Martyrs, Inspiring Generations</h2>
-                            <p class="section-description">We believe that every martyr's story deserves to be told, remembered, and passed down through history. This memorial serves as a beacon of honor, ensuring that the ultimate sacrifices made for freedom are never forgotten.</p>
+                            <span class="section-tag">Documentation Standards</span>
+                            <h2>Primary Biographical Archive</h2>
+                            <p class="section-description">Records in this repository are preserved as lasting historical entries, reviewed prior to publication to maintain accurate dates, places, and family testimonies.</p>
                         </div>
-                        <div class="purpose-features">
-                            <div class="purpose-feature">
-                                <div class="purpose-feature-icon" aria-hidden="true">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <ul class="standards-list">
+                            <li class="standard-item">
+                                <span class="standard-num" aria-hidden="true">01</span>
+                                <div class="standard-copy">
+                                    <h3>Family &amp; Witness Submissions</h3>
+                                    <p>Entries originate from relatives, local historians, and documented community archives.</p>
                                 </div>
-                                <div class="purpose-feature-content">
-                                    <h4>Eternal Preservation</h4>
-                                    <p>Digital archival ensures stories survive for generations to come.</p>
+                            </li>
+                            <li class="standard-item">
+                                <span class="standard-num" aria-hidden="true">02</span>
+                                <div class="standard-copy">
+                                    <h3>Editorial Verification</h3>
+                                    <p>Each submission is checked by moderators against dates, districts, and existing dossiers.</p>
                                 </div>
-                            </div>
-                            <div class="purpose-feature">
-                                <div class="purpose-feature-icon" aria-hidden="true">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                            </li>
+                            <li class="standard-item">
+                                <span class="standard-num" aria-hidden="true">03</span>
+                                <div class="standard-copy">
+                                    <h3>Permanent Preservation</h3>
+                                    <p>Approved records and portraits are replicated across durable edge storage for reliable public access.</p>
                                 </div>
-                                <div class="purpose-feature-content">
-                                    <h4>Global Recognition</h4>
-                                    <p>Sharing heroic stories with the world, transcending borders.</p>
-                                </div>
-                            </div>
-                            <div class="purpose-feature">
-                                <div class="purpose-feature-icon" aria-hidden="true">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                                </div>
-                                <div class="purpose-feature-content">
-                                    <h4>Inspiring Legacy</h4>
-                                    <p>Stories of courage that inspire freedom through resilience and peaceful change.</p>
-                                </div>
-                            </div>
+                            </li>
+                        </ul>
+                        <div class="purpose-actions-row">
+                            <a href="/about" class="btn btn-outline">Archival Methodology</a>
+                            <a href="/add-martyr" class="btn btn-primary">Submit a Record</a>
                         </div>
-                        <a href="/about" class="btn btn-outline">Learn More About Our Mission</a>
                     </div>
+
                     <div class="purpose-visual">
-                        <div class="memorial-showcase">
-                            <div class="showcase-card">
-                                <div class="showcase-icon" aria-hidden="true">
-                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <div class="era-ledger-card" id="eraBreakdownPanel">
+                            <div class="era-ledger-header">
+                                <div>
+                                    <span class="era-ledger-kicker">Chronological Index</span>
+                                    <h3 class="era-ledger-title">Records by Era</h3>
                                 </div>
-                                <div class="showcase-title">Our Vision</div>
-                                <div class="showcase-text">A world where every martyr's sacrifice is remembered and honored with dignity.</div>
+                                <a href="/statistics" style="font-size:0.84rem;font-weight:600;color:var(--arch-accent);text-decoration:none;white-space:nowrap;">Full Charts &rarr;</a>
                             </div>
-                            <div class="showcase-card">
-                                <div class="showcase-icon" aria-hidden="true">
-                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                                </div>
-                                <div class="showcase-title">Our Impact</div>
-                                <div class="showcase-text">Creating lasting memorials that educate and inspire people worldwide.</div>
-                            </div>
-                            <div class="showcase-card">
-                                <div class="showcase-icon" aria-hidden="true">
-                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                                </div>
-                                <div class="showcase-title">Our Community</div>
-                                <div class="showcase-text">Bringing together families, historians, and supporters in remembrance.</div>
+                            <ul class="era-ledger-list">
+                                <li class="era-ledger-row">
+                                    <a href="/gallery?year=2020-2029">
+                                        <div class="era-ledger-top">
+                                            <span class="era-label">2020 — Present</span>
+                                            <span class="era-count" id="eraCount2020">—</span>
+                                        </div>
+                                        <div class="era-bar-track" aria-hidden="true"><span class="era-bar-fill" id="eraBar2020"></span></div>
+                                        <svg class="era-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                    </a>
+                                </li>
+                                <li class="era-ledger-row">
+                                    <a href="/gallery?year=2010-2019">
+                                        <div class="era-ledger-top">
+                                            <span class="era-label">2010 — 2019</span>
+                                            <span class="era-count" id="eraCount2010">—</span>
+                                        </div>
+                                        <div class="era-bar-track" aria-hidden="true"><span class="era-bar-fill" id="eraBar2010"></span></div>
+                                        <svg class="era-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                    </a>
+                                </li>
+                                <li class="era-ledger-row">
+                                    <a href="/gallery?year=2000-2009">
+                                        <div class="era-ledger-top">
+                                            <span class="era-label">2000 — 2009</span>
+                                            <span class="era-count" id="eraCount2000">—</span>
+                                        </div>
+                                        <div class="era-bar-track" aria-hidden="true"><span class="era-bar-fill" id="eraBar2000"></span></div>
+                                        <svg class="era-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                    </a>
+                                </li>
+                                <li class="era-ledger-row">
+                                    <a href="/gallery?year=pre-2000">
+                                        <div class="era-ledger-top">
+                                            <span class="era-label">Before 2000</span>
+                                            <span class="era-count" id="eraCountPre2000">—</span>
+                                        </div>
+                                        <div class="era-bar-track" aria-hidden="true"><span class="era-bar-fill" id="eraBarPre2000"></span></div>
+                                        <svg class="era-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                    </a>
+                                </li>
+                            </ul>
+                            <div class="era-ledger-footer">
+                                <span id="monthMemorialSummary">Connecting archival index…</span>
+                                <a href="/gallery">Browse Archive &rarr;</a>
                             </div>
                         </div>
                     </div>
@@ -3088,6 +3316,56 @@
             // Hero live counter (instant)
             const heroCount = document.getElementById('heroMartyrCount');
             if (heroCount) heroCount.textContent = total.toLocaleString();
+
+            // Chronological Era Ledger & Monthly Remembrance Summary
+            let era2020 = 0, era2010 = 0, era2000 = 0, eraPre2000 = 0, monthHits = 0;
+            const currentMonth = new Date().getMonth();
+            const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long' });
+
+            martyrs.forEach(m => {
+                const raw = m.martyrdomDate || m.dateOfMartyrdom || m.martyrdom_date || m.martyrdomYear || m.year;
+                let parsed = null;
+                if (typeof window.parseMartyrDate === 'function') {
+                    parsed = window.parseMartyrDate(raw);
+                } else if (raw) {
+                    const sec = raw && (raw.seconds !== undefined ? raw.seconds : raw._seconds);
+                    if (sec !== undefined && sec !== null) {
+                        parsed = new Date(Number(sec) * 1000);
+                    } else {
+                        parsed = new Date(raw);
+                    }
+                }
+                let yr = parsed && !isNaN(parsed.getTime()) ? parsed.getFullYear() : 0;
+                if (!yr && typeof raw === 'string') {
+                    const match = raw.match(/\b(19\d{2}|20\d{2})\b/);
+                    if (match) yr = parseInt(match[1], 10);
+                }
+                if (yr >= 2020) era2020++;
+                else if (yr >= 2010) era2010++;
+                else if (yr >= 2000) era2000++;
+                else if (yr > 0) eraPre2000++;
+
+                if (parsed && !isNaN(parsed.getTime()) && parsed.getMonth() === currentMonth) {
+                    monthHits++;
+                }
+            });
+
+            const maxEra = Math.max(era2020, era2010, era2000, eraPre2000, 1);
+            const setEra = (countId, barId, val) => {
+                const countEl = document.getElementById(countId);
+                const barEl = document.getElementById(barId);
+                if (countEl) countEl.textContent = `${val.toLocaleString()} records`;
+                if (barEl) barEl.style.width = `${Math.max(val > 0 ? 4 : 0, Math.round((val / maxEra) * 100))}%`;
+            };
+            setEra('eraCount2020', 'eraBar2020', era2020);
+            setEra('eraCount2010', 'eraBar2010', era2010);
+            setEra('eraCount2000', 'eraBar2000', era2000);
+            setEra('eraCountPre2000', 'eraBarPre2000', eraPre2000);
+
+            const monthSummary = document.getElementById('monthMemorialSummary');
+            if (monthSummary) {
+                monthSummary.innerHTML = `<strong>${monthHits.toLocaleString()}</strong> documented anniversaries in ${currentMonthName}`;
+            }
         }
 
         // Function to update homepage statistics
@@ -3145,10 +3423,10 @@
             window.addEventListener('firebaseReady', updateHomepageStats);
         }
     </script>
-    <script src="js/main.js?v=20261116e"></script>
+    <script src="js/main.js?v=20261116f"></script>
     <script src="js/hero-3d.js"></script>
     <script src="js/mobile-menu.js"></script>
-    <script src="js/hero-search.js?v=20261116e"></script>
+    <script src="js/hero-search.js?v=20261116f"></script>
 
     <!-- Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav">

@@ -1843,60 +1843,65 @@ function showMartyrModal(martyr, navList, options = {}) {
 
         <div class="martyr-modal-body">
             <div class="martyr-modal-photo-col">
-                ${(() => {
-                    const photoSrc = getMartyrPhotoSrcGallery(martyr);
-                    const plaqueHtml = '<div class="martyr-modal-photo-placeholder" aria-label="Portrait unavailable"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span>Portrait Archived</span></div>';
-                    return photoSrc
-                        ? `<img src="${escapeHTML(photoSrc)}" alt="${escapeHTML(martyr.fullName || 'Martyr photo')}" class="martyr-modal-photo" loading="lazy">`
-                        : plaqueHtml;
-                })()}
+                <div class="martyr-modal-photo-frame">
+                    ${(() => {
+                        const photoSrc = getMartyrPhotoSrcGallery(martyr);
+                        const plaqueHtml = '<div class="martyr-modal-photo-placeholder" aria-label="Portrait unavailable"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span>Portrait Archived</span></div>';
+                        return photoSrc
+                            ? `<img src="${escapeHTML(photoSrc)}" alt="${escapeHTML(martyr.fullName || 'Martyr photo')}" class="martyr-modal-photo">`
+                            : plaqueHtml;
+                    })()}
+                </div>
+
+                <div class="martyr-dossier-ledger">
+                    <div class="martyr-dossier-ledger-title">Archival Ledger</div>
+                    <div class="martyr-modal-meta-grid">
+                        ${martyr.fatherName ? `
+                            <div class="martyr-modal-meta-row">
+                                <span class="martyr-modal-meta-label">Father</span>
+                                <span class="martyr-modal-meta-val">${escapeHTML(martyr.fatherName)}</span>
+                            </div>
+                        ` : ''}
+                        ${hasBirthDate ? `
+                            <div class="martyr-modal-meta-row">
+                                <span class="martyr-modal-meta-label">Birth</span>
+                                <span class="martyr-modal-meta-val">${escapeHTML(birthPretty)}</span>
+                            </div>
+                        ` : ''}
+                        ${hasBirthPlace ? `
+                            <div class="martyr-modal-meta-row">
+                                <span class="martyr-modal-meta-label">Birth place</span>
+                                <span class="martyr-modal-meta-val">${escapeHTML(rawBirthPlace)}</span>
+                            </div>
+                        ` : ''}
+                        <div class="martyr-modal-meta-row">
+                            <span class="martyr-modal-meta-label">Martyrdom</span>
+                            <span class="martyr-modal-meta-val">${escapeHTML(martyrdomPretty)}</span>
+                        </div>
+                        <div class="martyr-modal-meta-row">
+                            <span class="martyr-modal-meta-label">Martyrdom place</span>
+                            <span class="martyr-modal-meta-val">${escapeHTML(martyr.martyrdomPlace || 'Unknown')}</span>
+                        </div>
+                        ${martyr.organization ? `
+                            <div class="martyr-modal-meta-row">
+                                <span class="martyr-modal-meta-label">Organization</span>
+                                <span class="martyr-modal-meta-val">${escapeHTML(martyr.organization)}</span>
+                            </div>
+                        ` : ''}
+                        ${martyr.rank ? `
+                            <div class="martyr-modal-meta-row">
+                                <span class="martyr-modal-meta-label">Rank</span>
+                                <span class="martyr-modal-meta-val">${escapeHTML(martyr.rank)}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
             </div>
             
             <div class="martyr-modal-details-col">
-                <div class="martyr-modal-meta-grid">
-                    ${martyr.fatherName ? `
-                        <div class="martyr-modal-meta-row">
-                            <span class="martyr-modal-meta-label">Father</span>
-                            <span class="martyr-modal-meta-val">${escapeHTML(martyr.fatherName)}</span>
-                        </div>
-                    ` : ''}
-                    ${hasBirthDate ? `
-                        <div class="martyr-modal-meta-row">
-                            <span class="martyr-modal-meta-label">Birth</span>
-                            <span class="martyr-modal-meta-val">${escapeHTML(birthPretty)}</span>
-                        </div>
-                    ` : ''}
-                    ${hasBirthPlace ? `
-                        <div class="martyr-modal-meta-row">
-                            <span class="martyr-modal-meta-label">Birth place</span>
-                            <span class="martyr-modal-meta-val">${escapeHTML(rawBirthPlace)}</span>
-                        </div>
-                    ` : ''}
-                    <div class="martyr-modal-meta-row">
-                        <span class="martyr-modal-meta-label">Martyrdom</span>
-                        <span class="martyr-modal-meta-val">${escapeHTML(martyrdomPretty)}</span>
-                    </div>
-                    <div class="martyr-modal-meta-row">
-                        <span class="martyr-modal-meta-label">Martyrdom place</span>
-                        <span class="martyr-modal-meta-val">${escapeHTML(martyr.martyrdomPlace || 'Unknown')}</span>
-                    </div>
-                    ${martyr.organization ? `
-                        <div class="martyr-modal-meta-row">
-                            <span class="martyr-modal-meta-label">Organization</span>
-                            <span class="martyr-modal-meta-val">${escapeHTML(martyr.organization)}</span>
-                        </div>
-                    ` : ''}
-                    ${martyr.rank ? `
-                        <div class="martyr-modal-meta-row">
-                            <span class="martyr-modal-meta-label">Rank</span>
-                            <span class="martyr-modal-meta-val">${escapeHTML(martyr.rank)}</span>
-                        </div>
-                    ` : ''}
-                </div>
-                
                 ${martyr.biography ? `
                     <div class="martyr-modal-section">
-                        <h3 class="martyr-modal-section-title">Biography</h3>
+                        <h3 class="martyr-modal-section-title">Biographical Record</h3>
                         <div class="martyr-modal-section-box martyr-modal-bio-text">
                             ${escapeHTML(martyr.biography)}
                         </div>
@@ -1908,6 +1913,15 @@ function showMartyrModal(martyr, navList, options = {}) {
                         <h3 class="martyr-modal-section-title">Family Details</h3>
                         <div class="martyr-modal-section-box">
                             ${escapeHTML(martyr.familyDetails)}
+                        </div>
+                    </div>
+                ` : ''}
+
+                ${(!martyr.biography && !martyr.familyDetails) ? `
+                    <div class="martyr-modal-section">
+                        <h3 class="martyr-modal-section-title">Biographical Record</h3>
+                        <div class="martyr-modal-section-box martyr-modal-empty-bio">
+                            No extended biography has been submitted for this record yet. Relatives and historians may contribute verified details via <a href="/add-martyr">Submit a Record</a>.
                         </div>
                     </div>
                 ` : ''}
@@ -2500,8 +2514,17 @@ function matchesChipFilters(martyr, filters = currentFilters) {
     }
 
     if (yearTarget) {
-        const martyrdomYear = martyr.martyrdomDate ? getYear(martyr.martyrdomDate) : '';
-        if (martyrdomYear !== yearTarget) {
+        const rawMartyrdomDate = martyr.martyrdomDate || martyr.dateOfMartyrdom || martyr.martyrdom_date || martyr.martyrdomYear || martyr.year;
+        const martyrdomYear = rawMartyrdomDate ? getYear(rawMartyrdomDate) : '';
+        const yrNum = parseInt(martyrdomYear, 10);
+        const rangeMatch = yearTarget.match(/^(\d{4})-(\d{4})$/);
+        if (yearTarget.toLowerCase() === 'pre-2000') {
+            if (!yrNum || yrNum >= 2000) return false;
+        } else if (rangeMatch) {
+            const startY = parseInt(rangeMatch[1], 10);
+            const endY = parseInt(rangeMatch[2], 10);
+            if (!yrNum || yrNum < startY || yrNum > endY) return false;
+        } else if (martyrdomYear !== yearTarget) {
             return false;
         }
     }
@@ -2686,6 +2709,13 @@ function updateFilterUI(count) {
         { id: 'chipAz', key: 'letter', defaultLabel: 'A–Z', prefix: 'A–Z' }
     ];
 
+    const formatYearDisplay = (yr) => {
+        if (!yr) return '';
+        if (yr.toLowerCase() === 'pre-2000') return 'Pre-2000';
+        if (yr === '2020-2029') return '2020–Present';
+        return yr.replace('-', '–');
+    };
+
     chipConfigs.forEach(({ id, key, defaultLabel, prefix }) => {
         const chip = document.getElementById(id);
         if (!chip) return;
@@ -2693,7 +2723,8 @@ function updateFilterUI(count) {
         const val = currentFilters[key];
         if (val) {
             chip.classList.add('active');
-            if (labelEl) labelEl.textContent = `${prefix}: ${val}`;
+            const displayVal = key === 'year' ? formatYearDisplay(val) : val;
+            if (labelEl) labelEl.textContent = `${prefix}: ${displayVal}`;
         } else {
             chip.classList.remove('active');
             if (labelEl) labelEl.textContent = defaultLabel;
@@ -2743,7 +2774,7 @@ function updateFilterUI(count) {
         activeTagDefs.push({ key: 'region', category: 'Region', value: currentFilters.region });
     }
     if (currentFilters.year) {
-        activeTagDefs.push({ key: 'year', category: 'Year', value: currentFilters.year });
+        activeTagDefs.push({ key: 'year', category: 'Year', value: formatYearDisplay(currentFilters.year) });
     }
     if (currentFilters.organization) {
         activeTagDefs.push({ key: 'organization', category: 'Organization', value: currentFilters.organization });

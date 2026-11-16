@@ -26,7 +26,7 @@
     <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
     <link rel="modulepreload" href="js/firebase-config.js?v=20261116d">
     
-    <link rel="stylesheet" href="css/styles.css?v=20261116e">
+    <link rel="stylesheet" href="css/styles.css?v=20261116f">
 
     <style>
         /* ========================================================
@@ -249,14 +249,14 @@
         }
 
         .martyr-modal-dialog {
-            background: #ffffff;
-            color: #111827;
-            max-width: 960px;
+            background: var(--arch-surface, #FFFFFF);
+            color: var(--arch-ink, #141815);
+            max-width: 980px;
             width: 100%;
             max-height: 90vh;
-            border-radius: 18px;
-            border: 1px solid rgba(148, 163, 184, 0.3);
-            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.45);
+            border-radius: var(--radius-md, 10px);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            box-shadow: 0 20px 48px rgba(20, 24, 21, 0.28);
             position: relative;
             overflow-y: auto;
             overscroll-behavior: contain;
@@ -279,10 +279,10 @@
 
         html[data-theme="dark"] .martyr-modal-dialog,
         [data-theme="dark"] .martyr-modal-dialog {
-            background: #162234 !important;
-            color: #f8fafc !important;
-            border: 1px solid rgba(148, 163, 184, 0.22) !important;
-            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7) !important;
+            background: var(--arch-surface, #151A1E) !important;
+            color: var(--arch-ink, #F1F4F2) !important;
+            border: 1px solid var(--arch-border, #252E35) !important;
+            box-shadow: 0 24px 56px rgba(0, 0, 0, 0.65) !important;
         }
 
         .martyr-modal-sheet-handle {
@@ -293,17 +293,17 @@
             position: sticky;
             top: 0;
             z-index: 30;
-            padding: 1.15rem 1.6rem;
-            background: linear-gradient(135deg, #0f172a, #1e293b);
-            border-bottom: 1px solid rgba(148, 163, 184, 0.25);
-            color: #f9fafb;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            padding: 1.1rem 1.6rem;
+            background: #141815;
+            border-bottom: 1px solid var(--arch-border, #252E35);
+            color: #FAF8F4;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
         }
 
         html[data-theme="dark"] .martyr-modal-header,
         [data-theme="dark"] .martyr-modal-header {
-            background: linear-gradient(135deg, #0b1320, #162438);
-            border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+            background: #0D1013;
+            border-bottom: 1px solid var(--arch-border, #252E35);
         }
 
         .martyr-modal-header-inner {
@@ -400,22 +400,32 @@
         }
 
         .martyr-modal-body {
-            padding: 1.75rem 1.75rem 1.5rem;
-            display: flex;
-            gap: 1.75rem;
-            align-items: flex-start;
+            padding: 1.75rem 1.75rem 1.6rem;
+            display: grid;
+            grid-template-columns: 280px minmax(0, 1fr);
+            gap: 2rem;
+            align-items: start;
         }
 
         .martyr-modal-photo-col {
-            flex: 0 0 260px;
-            max-width: 260px;
             width: 100%;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 1.1rem;
+        }
+
+        .martyr-modal-photo-frame {
+            width: 100%;
+            overflow: hidden;
+            border-radius: var(--radius-sm, 6px);
         }
 
         .martyr-modal-photo {
             width: 100%;
-            border-radius: var(--radius-md, 10px);
+            border-radius: var(--radius-sm, 6px);
             object-fit: cover;
+            object-position: 50% 20%;
             border: 1px solid var(--arch-border, #E2DDD3);
             box-shadow: var(--elev-hairline);
             display: block;
@@ -423,8 +433,8 @@
 
         .martyr-modal-photo-placeholder {
             width: 100%;
-            height: 300px;
-            border-radius: var(--radius-md, 10px);
+            height: 290px;
+            border-radius: var(--radius-sm, 6px);
             background: var(--arch-surface-subtle, #F2EFE9);
             border: 1px solid var(--arch-border, #E2DDD3);
             display: flex;
@@ -432,7 +442,7 @@
             align-items: center;
             justify-content: center;
             gap: 0.55rem;
-            font-size: 0.74rem;
+            font-size: 0.72rem;
             font-weight: 600;
             letter-spacing: 0.08em;
             text-transform: uppercase;
@@ -446,73 +456,138 @@
             color: var(--arch-ink-muted, #9AA5A0);
         }
 
+        .martyr-dossier-ledger {
+            background: var(--arch-paper, #FAF8F4);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            border-radius: var(--radius-sm, 6px);
+            padding: 0.85rem 1rem 0.45rem;
+        }
+
+        html[data-theme="dark"] .martyr-dossier-ledger,
+        [data-theme="dark"] .martyr-dossier-ledger {
+            background: var(--arch-surface-subtle, #1A2127);
+            border-color: var(--arch-border, #252E35);
+        }
+
+        .martyr-dossier-ledger-title {
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--arch-accent, #1F4224);
+            padding-bottom: 0.45rem;
+            border-bottom: 1px solid var(--arch-border, #E2DDD3);
+        }
+
+        html[data-theme="dark"] .martyr-dossier-ledger-title,
+        [data-theme="dark"] .martyr-dossier-ledger-title {
+            color: var(--arch-accent, #68A878);
+            border-bottom-color: var(--arch-border, #252E35);
+        }
+
         .martyr-modal-details-col {
-            flex: 1;
-            min-width: 260px;
+            min-inline-size: 0;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
         }
 
         .martyr-modal-meta-grid {
-            display: grid;
-            gap: 0.65rem;
-            font-size: 0.95rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            font-size: 0.88rem;
         }
 
         .martyr-modal-meta-row {
             display: flex;
-            gap: 0.75rem;
-            align-items: flex-start;
+            flex-direction: column;
+            gap: 0.12rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--arch-border, #E2DDD3);
+        }
+
+        .martyr-modal-meta-row:last-child {
+            border-bottom: none;
+        }
+
+        html[data-theme="dark"] .martyr-modal-meta-row,
+        [data-theme="dark"] .martyr-modal-meta-row {
+            border-bottom-color: var(--arch-border, #252E35);
         }
 
         .martyr-modal-meta-label {
-            min-width: 120px;
+            font-size: 0.68rem;
             font-weight: 600;
-            color: #4b5563;
-            flex-shrink: 0;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--arch-ink-muted, #525954);
         }
 
         html[data-theme="dark"] .martyr-modal-meta-label,
         [data-theme="dark"] .martyr-modal-meta-label {
-            color: #94a3b8 !important;
+            color: var(--arch-ink-muted, #9AA5A0) !important;
         }
 
         .martyr-modal-meta-val {
-            color: #111827;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--arch-ink, #141815);
             word-break: break-word;
+            line-height: 1.4;
         }
 
         html[data-theme="dark"] .martyr-modal-meta-val,
         [data-theme="dark"] .martyr-modal-meta-val {
-            color: #f8fafc !important;
+            color: var(--arch-ink, #F1F4F2) !important;
         }
 
         .martyr-modal-section {
-            margin-top: 1.5rem;
+            margin-top: 1.35rem;
+        }
+
+        .martyr-modal-details-col > .martyr-modal-section:first-child {
+            margin-top: 0;
         }
 
         .martyr-modal-section-title {
-            margin: 0 0 0.65rem;
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: #111827;
+            font-family: 'EB Garamond', Georgia, serif;
+            margin: 0 0 0.55rem;
+            font-size: 1.24rem;
+            font-weight: 600;
+            color: var(--arch-ink, #141815);
+            letter-spacing: -0.01em;
         }
 
         html[data-theme="dark"] .martyr-modal-section-title,
         [data-theme="dark"] .martyr-modal-section-title {
-            color: #f8fafc !important;
+            color: var(--arch-ink, #F1F4F2) !important;
         }
 
         .martyr-modal-section-box {
-            background: #f8fafc;
-            padding: 1.25rem 1.2rem;
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-            line-height: 1.7;
-            color: #334155;
-            font-size: 0.95rem;
+            background: var(--arch-paper, #FAF8F4);
+            padding: 1.2rem 1.3rem;
+            border-radius: var(--radius-sm, 6px);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            line-height: 1.75;
+            color: var(--arch-ink, #141815);
+            font-size: 0.97rem;
         }
 
         .martyr-modal-bio-text {
+            max-width: 62ch;
             text-align: start;
+        }
+
+        .martyr-modal-empty-bio {
+            color: var(--arch-ink-muted, #525954);
+            font-size: 0.92rem;
+        }
+
+        .martyr-modal-empty-bio a {
+            color: var(--arch-accent, #1F4224);
+            font-weight: 600;
+            text-decoration: underline;
         }
 
         /* Enhanced Modal Share Controls + Toast */
@@ -720,17 +795,27 @@
 
         html[data-theme="dark"] .martyr-modal-section-box,
         [data-theme="dark"] .martyr-modal-section-box {
-            background: #0f1a29 !important;
-            border-color: rgba(148, 163, 184, 0.2) !important;
-            color: #cbd5e1 !important;
+            background: var(--arch-surface-subtle, #1A2127) !important;
+            border-color: var(--arch-border, #252E35) !important;
+            color: var(--arch-ink, #F1F4F2) !important;
+        }
+
+        html[data-theme="dark"] .martyr-modal-empty-bio,
+        [data-theme="dark"] .martyr-modal-empty-bio {
+            color: var(--arch-ink-muted, #9AA5A0) !important;
+        }
+
+        html[data-theme="dark"] .martyr-modal-empty-bio a,
+        [data-theme="dark"] .martyr-modal-empty-bio a {
+            color: var(--arch-accent, #68A878) !important;
         }
 
         .martyr-modal-submit-row {
-            margin-top: 1.5rem;
-            padding-top: 1rem;
-            border-top: 1px solid #e2e8f0;
-            color: #64748b;
-            font-size: 0.88rem;
+            margin-top: 1.4rem;
+            padding-top: 0.95rem;
+            border-top: 1px solid var(--arch-border, #E2DDD3);
+            color: var(--arch-ink-muted, #525954);
+            font-size: 0.85rem;
             display: flex;
             flex-wrap: wrap;
             gap: 0.75rem;
@@ -739,8 +824,8 @@
 
         html[data-theme="dark"] .martyr-modal-submit-row,
         [data-theme="dark"] .martyr-modal-submit-row {
-            border-top-color: rgba(148, 163, 184, 0.2) !important;
-            color: #94a3b8 !important;
+            border-top-color: var(--arch-border, #252E35) !important;
+            color: var(--arch-ink-muted, #9AA5A0) !important;
         }
 
         .martyr-modal-submit-row p {
@@ -748,29 +833,29 @@
         }
 
         .martyr-modal-actions {
-            margin-top: 1.5rem;
+            margin-top: 1.35rem;
             display: flex;
             flex-wrap: wrap;
             gap: 0.75rem;
         }
 
         .martyr-modal-actions .martyr-close-btn {
-            border-radius: 8px;
+            border-radius: var(--radius-sm, 6px);
             padding: 0.5rem 1.25rem;
-            font-size: 0.92rem;
+            font-size: 0.9rem;
             font-weight: 600;
         }
 
         html[data-theme="dark"] .martyr-modal-actions .martyr-close-btn,
         [data-theme="dark"] .martyr-modal-actions .martyr-close-btn {
-            border-color: rgba(148, 163, 184, 0.35) !important;
-            color: #f8fafc !important;
+            border-color: var(--arch-border-strong, #36434D) !important;
+            color: var(--arch-ink, #F1F4F2) !important;
             background: transparent !important;
         }
 
         html[data-theme="dark"] .martyr-modal-actions .martyr-close-btn:hover,
         [data-theme="dark"] .martyr-modal-actions .martyr-close-btn:hover {
-            background: rgba(255, 255, 255, 0.1) !important;
+            background: var(--arch-surface-subtle, #1A2127) !important;
         }
 
         @media (max-width: 768px) {
@@ -786,7 +871,7 @@
                 width: 100% !important;
                 max-height: 90vh !important;
                 max-height: calc(100dvh - 36px) !important;
-                border-radius: 22px 22px 0 0 !important;
+                border-radius: 14px 14px 0 0 !important;
                 border-bottom: none !important;
                 margin: 0 !important;
                 box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.45) !important;
@@ -820,7 +905,7 @@
                 top: 0 !important;
                 z-index: 30 !important;
                 padding: 0.55rem 0.95rem 0.65rem !important;
-                border-radius: 22px 22px 0 0 !important;
+                border-radius: 14px 14px 0 0 !important;
             }
 
             .martyr-modal-header-inner {
@@ -877,6 +962,7 @@
 
             .martyr-modal-body {
                 padding: 0.9rem 0.95rem calc(2.1rem + env(safe-area-inset-bottom, 0px)) !important;
+                display: flex !important;
                 flex-direction: column !important;
                 gap: 0.9rem !important;
             }
@@ -889,19 +975,38 @@
                 flex: none !important;
                 max-width: 100% !important;
                 width: 100% !important;
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 0.85rem !important;
+                background: transparent !important;
+                border: none !important;
+                padding: 0 !important;
+            }
+
+            .martyr-modal-photo-frame {
+                width: 100% !important;
                 text-align: center;
-                background: rgba(15, 23, 42, 0.04);
-                border-radius: 14px;
+                background: var(--arch-surface-subtle, #F2EFE9);
+                border: 1px solid var(--arch-border, #E2DDD3);
+                border-radius: var(--radius-sm, 6px);
                 padding: 8px;
                 display: flex;
                 justify-content: center;
                 align-items: center;
             }
 
-            html[data-theme="dark"] .martyr-modal-photo-col,
-            [data-theme="dark"] .martyr-modal-photo-col {
-                background: rgba(0, 0, 0, 0.28) !important;
-                border: 1px solid rgba(148, 163, 184, 0.15) !important;
+            html[data-theme="dark"] .martyr-modal-photo-frame,
+            [data-theme="dark"] .martyr-modal-photo-frame {
+                background: var(--arch-surface-subtle, #1A2127) !important;
+                border-color: var(--arch-border, #252E35) !important;
+            }
+
+            .martyr-dossier-ledger {
+                padding: 0.7rem 0.75rem !important;
+            }
+
+            .martyr-dossier-ledger-title {
+                margin-bottom: 0.45rem !important;
             }
 
             .martyr-modal-photo {
@@ -910,8 +1015,8 @@
                 max-height: 215px !important;
                 object-fit: contain !important;
                 margin: 0 auto;
-                border-radius: 10px !important;
-                box-shadow: 0 6px 20px rgba(15, 23, 42, 0.22) !important;
+                border-radius: var(--radius-sm, 6px) !important;
+                box-shadow: var(--elev-hairline) !important;
             }
 
             .martyr-modal-photo-placeholder {
@@ -923,6 +1028,10 @@
             .martyr-modal-details-col {
                 width: 100% !important;
                 min-width: 0 !important;
+            }
+
+            .martyr-modal-bio-text {
+                max-width: none !important;
             }
 
             .martyr-modal-meta-grid {
@@ -937,15 +1046,15 @@
                 align-items: flex-start !important;
                 gap: 0.12rem !important;
                 padding: 0.48rem 0.6rem !important;
-                background: rgba(15, 23, 42, 0.035) !important;
-                border: 1px solid rgba(148, 163, 184, 0.18) !important;
-                border-radius: 10px !important;
+                background: var(--arch-surface, #FFFFFF) !important;
+                border: 1px solid var(--arch-border, #E2DDD3) !important;
+                border-radius: var(--radius-sm, 6px) !important;
             }
 
             html[data-theme="dark"] .martyr-modal-meta-row,
             [data-theme="dark"] .martyr-modal-meta-row {
-                background: rgba(255, 255, 255, 0.03) !important;
-                border-color: rgba(148, 163, 184, 0.14) !important;
+                background: var(--arch-surface, #151A1E) !important;
+                border-color: var(--arch-border, #252E35) !important;
             }
 
             .martyr-modal-meta-label {
@@ -1058,18 +1167,18 @@
 <body>
     <!-- Header Section -->
     <header class="site-header">
-        <nav class="navbar">
+        <nav class="navbar" aria-label="Primary">
             <div class="container">
                 <div class="nav-brand">
-                    <h1>Baluch Martyrs Memorial</h1>
+                    <a href="/" class="nav-brand-link"><svg class="nav-crest-svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6 12 2"/></svg><span>Baluch Martyrs Memorial</span></a>
                 </div>
                 <ul class="nav-menu">
                     <li><a href="/">Home</a></li>
-                    <li><a href="/add-martyr">Add Martyr</a></li>
                     <li><a href="/gallery" class="active">Gallery</a></li>
                     <li><a href="/statistics">Statistics</a></li>
                     <li><a href="/about">About</a></li>
                     <li><a href="/contact">Contact</a></li>
+                    <li><a href="/add-martyr" class="nav-cta">Submit a Record</a></li>
                     <li><button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button></li>
                 </ul>
                 <div class="hamburger">
@@ -1086,7 +1195,7 @@
         <section class="gallery-section">
             <div class="container">
                 <div class="page-header">
-                    <h2>Martyrs Gallery</h2>
+                    <h1>Martyrs Gallery</h1>
                     <p>Browse through our memorial database to honor and remember our martyrs</p>
                 </div>
 
@@ -1236,9 +1345,9 @@
     </script>
     
     <!-- Load main scripts; gallery.js renders immediately from Instant Cache and syncs live with Firebase -->
-    <script src="js/main.js?v=20261116e"></script>
+    <script src="js/main.js?v=20261116f"></script>
     <script src="js/mobile-menu.js?v=20261020c"></script>
-    <script src="js/gallery.js?v=20261116e"></script>
+    <script src="js/gallery.js?v=20261116f"></script>
 
     <!-- Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav">
