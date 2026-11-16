@@ -1807,7 +1807,7 @@ function printMartyrProfile(martyr) {
     width: 100%;
     height: 250px;
     border-radius: 10px;
-    border: 3px solid #d4af37;
+    border: 3px solid #1A6B3C;
     object-fit: cover;
     display: block;
     background: #f8fafc;
@@ -1816,7 +1816,7 @@ function printMartyrProfile(martyr) {
     width: 100%;
     height: 250px;
     border-radius: 10px;
-    border: 3px solid #d4af37;
+    border: 3px solid #1A6B3C;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2307,9 +2307,9 @@ function getAnniversaryText(martyr) {
     }
     
     if (martyr.daysUntil === 0) {
-        return `<strong style="color: #d4af37;">🌟 Anniversary Today!</strong>`;
+        return `<strong style="color: var(--arch-red, #B4232C);">Anniversary Today</strong>`;
     } else if (martyr.daysUntil === 1) {
-        return `<strong style="color: #2c5530;">Anniversary Tomorrow</strong>`;
+        return `<strong style="color: var(--arch-accent, #1A6B3C);">Anniversary Tomorrow</strong>`;
     } else {
         return `<strong>Anniversary in ${martyr.daysUntil} days</strong>`;
     }
@@ -2577,23 +2577,23 @@ function ensureProfileNavStyles() {
             border:1px solid rgba(255,255,255,0.22);background:rgba(15,23,42,0.55);color:#fff;cursor:pointer;display:flex;
             align-items:center;justify-content:center;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
             transition:background .2s ease,transform .2s ease,opacity .2s ease;box-shadow:0 8px 24px rgba(0,0,0,0.35)}
-        .pn-arrow:hover:not(:disabled){background:rgba(44,85,48,0.9);transform:translateY(-50%) scale(1.06)}
-        .pn-arrow:focus-visible,.pn-bar button:focus-visible{outline:3px solid #d4af37;outline-offset:2px}
+        .pn-arrow:hover:not(:disabled){background:rgba(26,107,60,0.9);transform:translateY(-50%) scale(1.06)}
+        .pn-arrow:focus-visible,.pn-bar button:focus-visible{outline:3px solid #64A2EC;outline-offset:2px}
         .pn-arrow:disabled{opacity:.25;cursor:default}
         .pn-prev{left:max(16px,calc(50% - 480px - 76px))}
         .pn-next{right:max(16px,calc(50% - 480px - 76px))}
         .pn-bar{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:10002;
-            display:flex;align-items:center;gap:.35rem;padding:.35rem;border-radius:999px;background:rgba(15,23,42,0.82);
+            display:flex;align-items:center;gap:.35rem;padding:.35rem;border-radius:999px;background:rgba(16,26,34,0.88);
             border:1px solid rgba(255,255,255,0.16);color:#f8fafc;box-shadow:0 10px 30px rgba(0,0,0,0.4);
             backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-family:'Inter',sans-serif;max-width:calc(100vw - 24px)}
         .pn-bar button{width:44px;height:44px;border-radius:50%;border:none;background:rgba(255,255,255,0.1);color:#fff;
             cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
         .pn-bar button:disabled{opacity:.3;cursor:default}
-        .pn-bar button:active:not(:disabled){background:rgba(44,85,48,0.95)}
+        .pn-bar button:active:not(:disabled){background:rgba(26,107,60,0.95)}
         .pn-counter{padding:0 .6rem;font-size:.82rem;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
         .pn-hint{font-weight:400;opacity:.7;margin-left:.4rem}
         .pn-toast{position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:10003;
-            background:rgba(212,175,55,0.95);color:#1f1504;padding:.5rem 1rem;border-radius:999px;font-family:'Inter',sans-serif;
+            background:rgba(30,90,168,0.96);color:#F8FAFC;padding:.5rem 1rem;border-radius:999px;font-family:'Inter',sans-serif;
             font-size:.82rem;font-weight:600;pointer-events:none;animation:pnToast 3s ease forwards}
         @keyframes pnToast{0%{opacity:0;transform:translate(-50%,8px)}12%,80%{opacity:1;transform:translate(-50%,0)}100%{opacity:0}}
         @keyframes pnInNext{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
@@ -2616,11 +2616,11 @@ function ensureProfileNavStyles() {
         .bmm-share-feedback.visible{opacity:1}
         .bmm-share-actions{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.55rem;width:100%}
         .bmm-share-primary,.bmm-share-socials{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
-        .bmm-share-pill{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;min-height:40px;padding:.45rem .9rem;border-radius:999px;border:1px solid rgba(44,85,48,.32);background:#fff;color:#1f4d2b;font-size:.84rem;font-weight:600;cursor:pointer;transition:background .18s ease,border-color .18s ease,transform .18s ease}
-        .bmm-share-pill.bmm-share-native{background:#1f4d2b;border-color:#1f4d2b;color:#fff}
-        .bmm-share-pill.copied{background:#15803d;border-color:#15803d;color:#fff}
+        .bmm-share-pill{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;min-height:40px;padding:.45rem .9rem;border-radius:999px;border:1px solid rgba(26,107,60,.32);background:#fff;color:#1A6B3C;font-size:.84rem;font-weight:600;cursor:pointer;transition:background .18s ease,border-color .18s ease,transform .18s ease}
+        .bmm-share-pill.bmm-share-native{background:#1A6B3C;border-color:#1A6B3C;color:#fff}
+        .bmm-share-pill.copied{background:#155731;border-color:#155731;color:#fff}
         .bmm-share-icon{width:40px;height:40px;border-radius:50%;border:1px solid rgba(148,163,184,.3);background:#fff;color:#334155;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .18s ease,color .18s ease}
-        .bmm-share-pill:focus-visible,.bmm-share-icon:focus-visible,.martyr-header-share-btn:focus-visible{outline:3px solid #d4af37;outline-offset:2px}
+        .bmm-share-pill:focus-visible,.bmm-share-icon:focus-visible,.martyr-header-share-btn:focus-visible{outline:3px solid #64A2EC;outline-offset:2px}
         html[data-theme="dark"] .bmm-share-row,[data-theme="dark"] .bmm-share-row{background:rgba(15,26,41,.85);border-color:rgba(148,163,184,.2)}
         html[data-theme="dark"] .bmm-share-label,[data-theme="dark"] .bmm-share-label{color:#cbd5e1}
         html[data-theme="dark"] .bmm-share-pill,[data-theme="dark"] .bmm-share-pill,html[data-theme="dark"] .bmm-share-icon,[data-theme="dark"] .bmm-share-icon{background:rgba(30,41,59,.95);border-color:rgba(148,163,184,.28);color:#e2e8f0}

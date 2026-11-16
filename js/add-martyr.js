@@ -295,7 +295,7 @@ function ensureDuplicateModalStyles() {
         }
         .duplicate-modal-content {
             background: var(--arch-surface, #FFFFFF);
-            border: 1px solid var(--arch-border-strong, #C9C2B5);
+            border: 1px solid var(--arch-border-strong, #C8CDD4);
             border-radius: var(--radius-md, 10px);
             box-shadow: 0 24px 64px -12px rgba(13, 16, 19, 0.45);
             max-width: 1040px;
@@ -312,22 +312,22 @@ function ensureDuplicateModalStyles() {
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
         .duplicate-modal-header {
-            background: var(--arch-surface-subtle, #F2EFE9);
-            color: var(--arch-ink, #141815);
+            background: var(--arch-surface-subtle, #EEF0F3);
+            color: var(--arch-ink, #121518);
             padding: 1.2rem 1.5rem;
             display: flex;
             align-items: center;
             gap: 1rem;
             flex-shrink: 0;
-            border-bottom: 1px solid var(--arch-border, #E2DDD3);
+            border-bottom: 1px solid var(--arch-border, #E3E6EA);
         }
         .dup-header-icon {
             width: 42px;
             height: 42px;
             border-radius: var(--radius-sm, 6px);
-            background: var(--arch-gold-subtle, #F7F2E2);
-            border: 1px solid var(--arch-gold, #B89535);
-            color: var(--arch-ink, #141815);
+            background: var(--arch-red-subtle, rgba(180, 35, 44, 0.08));
+            border: 1px solid var(--arch-red, #B4232C);
+            color: var(--arch-red, #B4232C);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -347,19 +347,19 @@ function ensureDuplicateModalStyles() {
             font-size: 1.4rem;
             font-weight: 600;
             letter-spacing: -0.015em;
-            color: var(--arch-ink, #141815) !important;
+            color: var(--arch-ink, #121518) !important;
             line-height: 1.2;
         }
         .dup-header-text p {
             margin: 0.2rem 0 0;
             font-size: 0.84rem;
-            color: var(--arch-ink-muted, #525954) !important;
+            color: var(--arch-ink-muted, #555E68) !important;
             line-height: 1.4;
         }
         .duplicate-modal-close {
             background: var(--arch-surface, #FFFFFF);
-            border: 1px solid var(--arch-border-strong, #C9C2B5);
-            color: var(--arch-ink, #141815);
+            border: 1px solid var(--arch-border-strong, #C8CDD4);
+            color: var(--arch-ink, #121518);
             width: 34px;
             height: 34px;
             border-radius: var(--radius-sm, 6px);
@@ -373,23 +373,23 @@ function ensureDuplicateModalStyles() {
             line-height: 1;
         }
         .duplicate-modal-close:hover {
-            border-color: var(--arch-accent, #1F4224);
-            background: var(--arch-paper, #FAF8F4);
+            border-color: var(--arch-accent, #1A6B3C);
+            background: var(--arch-paper, #F7F8FA);
         }
         .duplicate-modal-body {
             padding: 1.35rem 1.5rem;
             overflow-y: auto;
             flex: 1;
-            background: var(--arch-paper, #FAF8F4);
+            background: var(--arch-paper, #F7F8FA);
         }
         .dup-alert-banner {
             display: flex;
             align-items: center;
             gap: 0.85rem;
             padding: 0.85rem 1.15rem;
-            background: var(--arch-gold-subtle, #F7F2E2);
-            border: 1px solid var(--arch-border, #E2DDD3);
-            border-left: 3px solid var(--arch-gold, #B89535);
+            background: var(--arch-red-subtle, rgba(180, 35, 44, 0.08));
+            border: 1px solid var(--arch-border, #E3E6EA);
+            border-left: 3px solid var(--arch-red, #B4232C);
             border-radius: var(--radius-sm, 6px);
             margin-bottom: 1.25rem;
         }
@@ -398,8 +398,8 @@ function ensureDuplicateModalStyles() {
             height: 32px;
             border-radius: var(--radius-sm, 6px);
             background: var(--arch-surface, #FFFFFF);
-            border: 1px solid var(--arch-border, #E2DDD3);
-            color: var(--arch-accent, #1F4224);
+            border: 1px solid var(--arch-border, #E3E6EA);
+            color: var(--arch-red, #B4232C);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -450,9 +450,9 @@ function ensureDuplicateModalStyles() {
             font-size: 1.15rem;
             font-weight: 700;
             letter-spacing: -0.02em;
-            background: var(--arch-gold-subtle, #F7F2E2);
-            border: 1px solid var(--arch-gold, #B89535);
-            color: var(--arch-ink, #141815);
+            background: var(--arch-red-subtle, rgba(180, 35, 44, 0.08));
+            border: 1px solid var(--arch-red, #B4232C);
+            color: var(--arch-red, #B4232C);
             padding: 0.2rem 0.6rem;
             border-radius: var(--radius-sm, 6px);
             line-height: 1.2;
@@ -461,11 +461,11 @@ function ensureDuplicateModalStyles() {
         .dup-match-label {
             font-size: 0.9rem;
             font-weight: 700;
-            color: var(--arch-ink, #141815);
+            color: var(--arch-ink, #121518);
         }
         .dup-match-sub {
             font-size: 0.75rem;
-            color: var(--arch-ink-muted, #525954);
+            color: var(--arch-ink-muted, #555E68);
             font-weight: 500;
         }
         .dup-match-details {
@@ -480,8 +480,8 @@ function ensureDuplicateModalStyles() {
             gap: 0.3rem;
             padding: 0.25rem 0.62rem;
             background: var(--arch-surface, #FFFFFF);
-            border: 1px solid var(--arch-border, #E2DDD3);
-            color: var(--arch-ink, #141815);
+            border: 1px solid var(--arch-border, #E3E6EA);
+            color: var(--arch-ink, #121518);
             border-radius: var(--radius-pill, 999px);
             font-size: 0.73rem;
             font-weight: 600;
@@ -489,7 +489,7 @@ function ensureDuplicateModalStyles() {
         .dup-match-tag svg {
             width: 12px;
             height: 12px;
-            color: var(--arch-accent, #1F4224);
+            color: var(--arch-accent, #1A6B3C);
             flex-shrink: 0;
         }
         .dup-side-by-side {
@@ -514,16 +514,16 @@ function ensureDuplicateModalStyles() {
             bottom: 12%;
             left: 50%;
             width: 1px;
-            background: var(--arch-border, #E2DDD3);
+            background: var(--arch-border, #E3E6EA);
             transform: translateX(-50%);
             z-index: 0;
         }
         .dup-vs-divider span {
             position: relative;
             z-index: 1;
-            background: var(--arch-surface-subtle, #F2EFE9);
-            color: var(--arch-ink-muted, #525954);
-            border: 1px solid var(--arch-border-strong, #C9C2B5);
+            background: var(--arch-surface-subtle, #EEF0F3);
+            color: var(--arch-ink-muted, #555E68);
+            border: 1px solid var(--arch-border-strong, #C8CDD4);
             font-weight: 700;
             font-size: 0.7rem;
             width: 34px;
@@ -535,27 +535,27 @@ function ensureDuplicateModalStyles() {
             letter-spacing: 0.04em;
         }
         .dup-profile-card {
-            border: 1px solid var(--arch-border, #E2DDD3);
+            border: 1px solid var(--arch-border, #E3E6EA);
             border-radius: var(--radius-sm, 6px);
             overflow: hidden;
-            background: var(--arch-paper, #FAF8F4);
+            background: var(--arch-paper, #F7F8FA);
             display: flex;
             flex-direction: column;
         }
         .dup-profile-card.dup-existing {
-            border-color: var(--arch-gold, #B89535);
+            border-color: var(--arch-red, #B4232C);
         }
         .dup-card-header {
             padding: 0.65rem 1rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 1px solid var(--arch-border, #E2DDD3);
-            background: var(--arch-surface-subtle, #F2EFE9);
+            border-bottom: 1px solid var(--arch-border, #E3E6EA);
+            background: var(--arch-surface-subtle, #EEF0F3);
             gap: 0.5rem;
         }
         .dup-existing .dup-card-header {
-            background: var(--arch-gold-subtle, #F7F2E2);
+            background: var(--arch-red-subtle, rgba(180, 35, 44, 0.08));
         }
         .dup-card-badge {
             display: inline-flex;
@@ -573,12 +573,12 @@ function ensureDuplicateModalStyles() {
         }
         .dup-card-badge.new {
             background: var(--arch-surface, #FFFFFF);
-            border: 1px solid var(--arch-border, #E2DDD3);
-            color: var(--arch-ink, #141815);
+            border: 1px solid var(--arch-border, #E3E6EA);
+            color: var(--arch-ink, #121518);
         }
         .dup-card-badge.existing {
-            background: var(--arch-accent, #1F4224);
-            color: var(--arch-paper, #FAF8F4);
+            background: var(--arch-accent, #1A6B3C);
+            color: var(--arch-paper, #F7F8FA);
         }
         .dup-card-status-hint {
             font-size: 0.72rem;
@@ -744,9 +744,9 @@ function ensureDuplicateModalStyles() {
         /* Live Inline Duplicate Banner inside Add Martyr Form */
         .live-dup-banner {
             margin-top: 0.75rem;
-            border: 1px solid var(--arch-border, #E2DDD3);
-            border-left: 3px solid var(--arch-gold, #B89535);
-            background: var(--arch-gold-subtle, #F7F2E2);
+            border: 1px solid var(--arch-border, #E3E6EA);
+            border-left: 3px solid var(--arch-red, #B4232C);
+            background: var(--arch-red-subtle, rgba(180, 35, 44, 0.08));
             border-radius: var(--radius-sm, 6px);
             padding: 0.85rem 1rem;
             animation: dupModalSlide 0.2s ease-out;
@@ -766,18 +766,18 @@ function ensureDuplicateModalStyles() {
             gap: 0.45rem;
             font-size: 0.82rem;
             font-weight: 700;
-            color: var(--arch-ink, #141815);
+            color: var(--arch-ink, #121518);
         }
         .live-dup-title svg {
             width: 16px;
             height: 16px;
-            color: var(--arch-gold, #B89535);
+            color: var(--arch-red, #B4232C);
             flex-shrink: 0;
         }
         .live-dup-compare-btn {
-            background: linear-gradient(135deg, var(--btn-gradient-start, #1F4224), var(--btn-gradient-end, #2A5630));
-            color: var(--btn-text-color, #FAF8F4);
-            border: 1px solid var(--arch-accent, #1F4224);
+            background: linear-gradient(135deg, var(--btn-gradient-start, #1A6B3C), var(--btn-gradient-end, #247F4B));
+            color: var(--btn-text-color, #F8FAFC);
+            border: 1px solid var(--arch-accent, #1A6B3C);
             border-radius: var(--radius-sm, 6px);
             padding: 0.36rem 0.75rem;
             font-size: 0.76rem;
@@ -796,7 +796,7 @@ function ensureDuplicateModalStyles() {
             align-items: center;
             gap: 0.75rem;
             background: var(--arch-surface, #FFFFFF);
-            border: 1px solid var(--arch-border, #E2DDD3);
+            border: 1px solid var(--arch-border, #E3E6EA);
             border-radius: var(--radius-sm, 6px);
             padding: 0.6rem 0.75rem;
         }
@@ -805,13 +805,13 @@ function ensureDuplicateModalStyles() {
             height: 54px;
             border-radius: var(--radius-sm, 6px);
             overflow: hidden;
-            background: var(--arch-surface-subtle, #F2EFE9);
-            border: 1px solid var(--arch-border, #E2DDD3);
+            background: var(--arch-surface-subtle, #EEF0F3);
+            border: 1px solid var(--arch-border, #E3E6EA);
             flex-shrink: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--arch-ink-muted, #525954);
+            color: var(--arch-ink-muted, #555E68);
         }
         .live-dup-thumb img {
             width: 100%;
@@ -825,7 +825,7 @@ function ensureDuplicateModalStyles() {
         .live-dup-name {
             font-size: 0.9rem;
             font-weight: 700;
-            color: var(--arch-ink, #141815);
+            color: var(--arch-ink, #121518);
             margin: 0 0 0.15rem;
             white-space: nowrap;
             overflow: hidden;
@@ -833,13 +833,13 @@ function ensureDuplicateModalStyles() {
         }
         .live-dup-meta {
             font-size: 0.76rem;
-            color: var(--arch-ink-muted, #525954);
+            color: var(--arch-ink-muted, #555E68);
             margin: 0;
         }
         .live-dup-badge {
-            background: var(--arch-gold-subtle, #F7F2E2);
-            color: var(--arch-ink, #141815);
-            border: 1px solid var(--arch-gold, #B89535);
+            background: var(--arch-red-subtle, rgba(180, 35, 44, 0.08));
+            color: var(--arch-red, #B4232C);
+            border: 1px solid rgba(180, 35, 44, 0.32);
             font-size: 0.72rem;
             font-weight: 700;
             padding: 0.22rem 0.55rem;

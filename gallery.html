@@ -26,7 +26,7 @@
     <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
     <link rel="modulepreload" href="js/firebase-config.js?v=20261116d">
     
-    <link rel="stylesheet" href="css/styles.css?v=20261116g">
+    <link rel="stylesheet" href="css/styles.css?v=20261116h">
 
     <style>
         /* ========================================================
@@ -34,9 +34,9 @@
            ======================================================== */
         .gallery-grid .martyr-card {
             background: var(--arch-surface, #FFFFFF);
-            border: 1px solid var(--arch-border, #E2DDD3);
+            border: 1px solid var(--arch-border, #E3E6EA);
             border-radius: var(--radius-sm, 6px);
-            box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04));
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(18, 21, 24, 0.04));
             transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.2s ease;
             cursor: pointer;
             outline: none;
@@ -52,25 +52,26 @@
 
         .gallery-grid .martyr-card:hover {
             transform: translateY(-2px);
-            box-shadow: var(--elev-hover, 0 8px 20px rgba(20, 24, 21, 0.08));
-            border-color: var(--arch-border-strong, #C9C2B5);
+            box-shadow: var(--elev-hover, 0 8px 20px rgba(18, 21, 24, 0.08));
+            border-color: var(--arch-border-strong, #C8CDD4);
         }
 
         .gallery-grid .martyr-card:focus-visible {
-            box-shadow: 0 0 0 3px rgba(184, 149, 53, 0.35);
+            box-shadow: 0 0 0 3px var(--arch-blue-subtle, rgba(30, 90, 168, 0.28));
+            border-color: var(--arch-blue, #1E5AA8);
         }
 
         /* Dark Mode Obsidian Plate */
         html[data-theme="dark"] .gallery-grid .martyr-card,
         [data-theme="dark"] .gallery-grid .martyr-card {
-            background: var(--arch-surface, #151A1E) !important;
-            border: 1px solid var(--arch-border, #252E35) !important;
+            background: var(--arch-surface, #15181D) !important;
+            border: 1px solid var(--arch-border, #252A32) !important;
             box-shadow: var(--elev-hairline) !important;
         }
 
         html[data-theme="dark"] .gallery-grid .martyr-card:hover,
         [data-theme="dark"] .gallery-grid .martyr-card:hover {
-            border-color: var(--arch-border-strong, #36434D) !important;
+            border-color: var(--arch-border-strong, #353C47) !important;
             box-shadow: var(--elev-hover) !important;
             transform: translateY(-2px);
         }
@@ -84,12 +85,12 @@
             gap: 0.5rem;
             width: 100%;
             height: 230px;
-            background: var(--arch-surface-subtle, #F2EFE9);
-            color: var(--arch-ink-muted, #525954);
+            background: var(--arch-surface-subtle, #EEF0F3);
+            color: var(--arch-ink-muted, #555E68);
         }
 
         .gallery-grid .placeholder-crest-svg {
-            color: var(--arch-ink-muted, #525954);
+            color: var(--arch-ink-muted, #555E68);
             opacity: 0.75;
         }
 
@@ -140,43 +141,44 @@
 
         html[data-theme="dark"] .gallery-grid .martyr-meta,
         [data-theme="dark"] .gallery-grid .martyr-meta {
-            color: var(--arch-ink-muted, #9AA5A0) !important;
+            color: var(--arch-ink-muted, #98A1AD) !important;
         }
 
         .gallery-grid .martyr-meta-icon {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            color: var(--arch-accent, #1F4224);
+            color: var(--arch-accent, #1A6B3C);
             flex-shrink: 0;
         }
 
         html[data-theme="dark"] .gallery-grid .martyr-meta-icon,
         [data-theme="dark"] .gallery-grid .martyr-meta-icon {
-            color: var(--arch-accent, #68A878) !important;
+            color: var(--arch-accent, #52B77A) !important;
         }
 
-        /* Organization Tag */
+        /* Organization Tag — Makran Cobalt subtle archival tag */
         .martyr-org-pill {
             display: inline-flex;
             align-items: center;
             gap: 0.35rem;
             padding: 0.22rem 0.6rem;
             border-radius: var(--radius-pill, 999px);
-            background: var(--arch-surface-subtle, #F2EFE9);
-            border: 1px solid var(--arch-border, #E2DDD3);
-            color: var(--arch-accent, #1F4224);
+            background: var(--arch-blue-subtle, rgba(30, 90, 168, 0.08));
+            border: 1px solid rgba(30, 90, 168, 0.22);
+            color: var(--arch-blue, #1E5AA8);
             font-size: 0.74rem;
             font-weight: 600;
             margin-top: 0.55rem;
             width: fit-content;
         }
 
+        html[data-theme="dark"] .gallery-grid .martyr-org-pill,
         html[data-theme="dark"] .martyr-org-pill,
         [data-theme="dark"] .martyr-org-pill {
-            background: var(--arch-surface-subtle, #1A2127) !important;
-            border-color: var(--arch-border-strong, #36434D) !important;
-            color: var(--arch-accent, #68A878) !important;
+            background: var(--arch-blue-subtle, rgba(100, 162, 236, 0.14)) !important;
+            border-color: rgba(100, 162, 236, 0.32) !important;
+            color: var(--arch-blue, #64A2EC) !important;
         }
 
         /* Card Button (Affordance) */
@@ -187,9 +189,9 @@
             padding: 0.44rem 0.9rem;
             font-size: 0.82rem;
             font-weight: 600;
-            border: 1px solid var(--arch-border-strong, #C9C2B5);
+            border: 1px solid var(--arch-border-strong, #C8CDD4);
             background: transparent;
-            color: var(--arch-ink, #141815);
+            color: var(--arch-ink, #121518);
             display: inline-flex;
             align-items: center;
             gap: 0.42rem;
@@ -202,23 +204,23 @@
         }
 
         .gallery-grid .martyr-card:hover .martyr-card-button {
-            background: var(--arch-accent, #1F4224);
-            color: #FAF8F4;
-            border-color: var(--arch-accent, #1F4224);
+            background: var(--arch-accent, #1A6B3C);
+            color: #F8FAFC;
+            border-color: var(--arch-accent, #1A6B3C);
         }
 
         html[data-theme="dark"] .gallery-grid .martyr-card-button,
         [data-theme="dark"] .gallery-grid .martyr-card-button {
             background: transparent !important;
-            border-color: var(--arch-border-strong, #36434D) !important;
-            color: var(--arch-ink, #F1F4F2) !important;
+            border-color: var(--arch-border-strong, #353C47) !important;
+            color: var(--arch-ink, #F1F3F5) !important;
         }
 
         html[data-theme="dark"] .gallery-grid .martyr-card:hover .martyr-card-button,
         [data-theme="dark"] .gallery-grid .martyr-card:hover .martyr-card-button {
-            background: var(--arch-accent, #68A878) !important;
-            color: #0D1013 !important;
-            border-color: var(--arch-accent, #68A878) !important;
+            background: var(--arch-accent, #52B77A) !important;
+            color: #0D0F12 !important;
+            border-color: var(--arch-accent, #52B77A) !important;
         }
 
         /* ========================================================
@@ -374,7 +376,7 @@
         .martyr-voice-btn:focus-visible,
         .martyr-header-share-btn:focus-visible,
         .close-martyr-modal:focus-visible {
-            outline: 3px solid #d4af37;
+            outline: 3px solid #64A2EC;
             outline-offset: 2px;
         }
 
@@ -723,7 +725,7 @@
         html[data-theme="dark"] .martyr-share-pill-btn:hover,
         [data-theme="dark"] .martyr-share-pill-btn:hover {
             background: rgba(51, 65, 85, 0.95);
-            border-color: rgba(212, 175, 55, 0.55);
+            border-color: rgba(100, 162, 236, 0.55);
         }
 
         html[data-theme="dark"] .martyr-share-pill-btn.martyr-share-native-btn,
@@ -757,7 +759,7 @@
 
         .martyr-share-pill-btn:focus-visible,
         .martyr-share-row-modal .martyr-share-icon:focus-visible {
-            outline: 3px solid #d4af37;
+            outline: 3px solid #64A2EC;
             outline-offset: 2px;
         }
 
@@ -770,7 +772,7 @@
             max-width: min(92vw, 440px);
             padding: 0.65rem 1.05rem;
             border-radius: 999px;
-            background: #0f172a;
+            background: #101A22;
             color: #f8fafc;
             border: 1px solid rgba(148, 163, 184, 0.28);
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.32);
@@ -788,9 +790,9 @@
         }
 
         .gallery-toast.warning {
-            background: #78350f;
-            border-color: rgba(251, 191, 36, 0.45);
-            color: #fef3c7;
+            background: #7F1D1D;
+            border-color: rgba(227, 93, 102, 0.55);
+            color: #FEE2E2;
         }
 
         html[data-theme="dark"] .martyr-modal-section-box,
@@ -1345,9 +1347,9 @@
     </script>
     
     <!-- Load main scripts; gallery.js renders immediately from Instant Cache and syncs live with Firebase -->
-    <script src="js/main.js?v=20261116f"></script>
+    <script src="js/main.js?v=20261116h"></script>
     <script src="js/mobile-menu.js?v=20261020c"></script>
-    <script src="js/gallery.js?v=20261116f"></script>
+    <script src="js/gallery.js?v=20261116h"></script>
 
     <!-- Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav">

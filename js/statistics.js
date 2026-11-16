@@ -1140,18 +1140,19 @@
         const readVar = (name, fallback) => (cs.getPropertyValue(name) || '').trim() || fallback;
         return {
             isDark,
-            surface: readVar('--arch-surface', isDark ? '#151A1E' : '#FFFFFF'),
-            ink: readVar('--arch-ink', isDark ? '#F1F4F2' : '#141815'),
-            inkMuted: readVar('--arch-ink-muted', isDark ? '#9AA5A0' : '#525954'),
-            borderStrong: readVar('--arch-border-strong', isDark ? '#36434D' : '#C9C2B5'),
-            accent: readVar('--arch-accent', isDark ? '#68A878' : '#1F4224'),
-            accentHover: readVar('--arch-accent-hover', isDark ? '#7DBD8D' : '#2A5630'),
-            gold: readVar('--arch-gold', isDark ? '#D4B45A' : '#B89535'),
-            accentSoft: isDark ? 'rgba(104, 168, 120, 0.85)' : 'rgba(31, 66, 36, 0.85)',
-            accentDim: isDark ? 'rgba(104, 168, 120, 0.24)' : 'rgba(31, 66, 36, 0.22)',
-            areaTop: isDark ? 'rgba(104, 168, 120, 0.28)' : 'rgba(31, 66, 36, 0.22)',
-            areaBottom: isDark ? 'rgba(104, 168, 120, 0.02)' : 'rgba(31, 66, 36, 0.02)',
-            grid: isDark ? 'rgba(241, 244, 242, 0.08)' : 'rgba(20, 24, 21, 0.08)'
+            surface: readVar('--arch-surface', isDark ? '#15181D' : '#FFFFFF'),
+            ink: readVar('--arch-ink', isDark ? '#F1F3F5' : '#121518'),
+            inkMuted: readVar('--arch-ink-muted', isDark ? '#98A1AD' : '#555E68'),
+            borderStrong: readVar('--arch-border-strong', isDark ? '#353C47' : '#C8CDD4'),
+            accent: readVar('--arch-accent', isDark ? '#52B77A' : '#1A6B3C'),
+            accentHover: readVar('--arch-accent-hover', isDark ? '#67C68D' : '#155731'),
+            blue: readVar('--arch-blue', isDark ? '#64A2EC' : '#1E5AA8'),
+            red: readVar('--arch-red', isDark ? '#E35D66' : '#B4232C'),
+            accentSoft: isDark ? 'rgba(82, 183, 122, 0.85)' : 'rgba(26, 107, 60, 0.85)',
+            accentDim: isDark ? 'rgba(82, 183, 122, 0.22)' : 'rgba(26, 107, 60, 0.20)',
+            blueAreaTop: isDark ? 'rgba(100, 162, 236, 0.28)' : 'rgba(30, 90, 168, 0.22)',
+            blueAreaBottom: isDark ? 'rgba(100, 162, 236, 0.02)' : 'rgba(30, 90, 168, 0.02)',
+            grid: isDark ? 'rgba(241, 243, 245, 0.08)' : 'rgba(18, 21, 24, 0.08)'
         };
     }
 
@@ -1181,17 +1182,17 @@
         const gridColor = pal.grid;
         const textColor = pal.inkMuted;
 
-        // Highlight selected year bar if a year filter is active
+        // Highlight selected year bar in Deep Crimson
         const bgColors = yearsList.map(y => {
             if (activeStatsFilter.year !== null) {
-                return y === activeStatsFilter.year ? pal.gold : pal.accentDim;
+                return y === activeStatsFilter.year ? pal.red : pal.accentDim;
             }
             return pal.accentSoft;
         });
 
         const borderColors = yearsList.map(y => {
             if (activeStatsFilter.year !== null && y === activeStatsFilter.year) {
-                return pal.gold;
+                return pal.red;
             }
             return pal.accent;
         });
@@ -1496,17 +1497,20 @@
         const gridColor = pal.grid;
         const textColor = pal.inkMuted;
 
-        // Create archival gradient
+        // Create Makran Cobalt seasonal gradient
         const ctx = canvas.getContext('2d');
         const gradient = ctx.createLinearGradient(0, 0, 0, 220);
-        gradient.addColorStop(0, pal.areaTop);
-        gradient.addColorStop(1, pal.areaBottom);
+        gradient.addColorStop(0, pal.blueAreaTop);
+        gradient.addColorStop(1, pal.blueAreaBottom);
 
         const pointBgColors = MONTHS.map((_, idx) => {
             if (activeStatsFilter.month === idx) {
-                return pal.gold;
+                return pal.red;
             }
-            return pal.accent;
+            if (idx === peakIdx && maxVal > 0) {
+                return pal.red;
+            }
+            return pal.blue;
         });
 
         const pointRadii = MONTHS.map((_, idx) => {
@@ -1523,7 +1527,7 @@
                     data: stats.byMonth,
                     fill: true,
                     backgroundColor: gradient,
-                    borderColor: pal.accent,
+                    borderColor: pal.blue,
                     borderWidth: 2.25,
                     tension: 0.36,
                     pointBackgroundColor: pointBgColors,
@@ -1552,7 +1556,7 @@
                     tooltip: {
                         backgroundColor: pal.surface,
                         titleColor: pal.ink,
-                        bodyColor: pal.accent,
+                        bodyColor: pal.blue,
                         borderColor: pal.borderStrong,
                         borderWidth: 1,
                         padding: 11,

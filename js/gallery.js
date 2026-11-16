@@ -905,12 +905,14 @@ function showOfflineWarning() {
     const warning = document.createElement('div');
     warning.id = 'offline-warning';
     warning.style.cssText = `
-        background: #fff3cd; border: 1px solid #ffeaa7; color: #856404;
-        padding: 1rem; margin-bottom: 2rem; border-radius: 8px; text-align: center; font-weight: 500;
+        background: var(--arch-red-subtle, rgba(180, 35, 44, 0.08));
+        border: 1px solid var(--arch-red, #B4232C);
+        color: var(--arch-ink, #121518);
+        padding: 1rem; margin-bottom: 2rem; border-radius: 6px; text-align: center; font-weight: 500;
     `;
     warning.innerHTML = `
-        ⚠️ <strong>Offline Mode:</strong> Showing cached data. Some recent martyrs may not be visible.
-        <button onclick="window.retryFirebaseConnection?.()" style="margin-left: 1rem; padding: 0.25rem 0.75rem; border-radius: 4px; border: 1px solid #856404; background: transparent; color: #856404; cursor: pointer;">Retry Connection</button>
+        <strong>Offline Mode:</strong> Showing cached data. Some recent martyrs may not be visible.
+        <button onclick="window.retryFirebaseConnection?.()" style="margin-left: 1rem; padding: 0.25rem 0.75rem; border-radius: 4px; border: 1px solid var(--arch-red, #B4232C); background: transparent; color: var(--arch-red, #B4232C); font-weight: 600; cursor: pointer;">Retry Connection</button>
     `;
     
     galleryGrid.parentNode.insertBefore(warning, galleryGrid);
@@ -1505,7 +1507,7 @@ function printMartyrProfile(martyr) {
     width: 100%;
     height: 250px;
     border-radius: 10px;
-    border: 3px solid #d4af37;
+    border: 3px solid #1A6B3C;
     object-fit: cover;
     display: block;
     background: #f8fafc;
@@ -1514,7 +1516,7 @@ function printMartyrProfile(martyr) {
     width: 100%;
     height: 250px;
     border-radius: 10px;
-    border: 3px solid #d4af37;
+    border: 3px solid #1A6B3C;
     display: flex;
     align-items: center;
     justify-content: center;

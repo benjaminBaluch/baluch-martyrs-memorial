@@ -29,7 +29,7 @@
     <link rel="modulepreload" href="js/firebase-config.js?v=20261116d">
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="css/styles.css?v=20261116g">
+    <link rel="stylesheet" href="css/styles.css?v=20261116h">
     
     <!-- Three.js for 3D effects -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js" defer></script>
@@ -127,7 +127,7 @@
             align-items: center;
             position: relative;
             width: 100%;
-            background: rgba(13, 16, 19, 0.78);
+            background: rgba(16, 26, 34, 0.82);
             border: 1px solid rgba(255, 255, 255, 0.22);
             border-radius: 999px;
             padding: 0.3rem 0.38rem 0.3rem 1.15rem;
@@ -138,22 +138,22 @@
         }
 
         .hero-search-bar:hover {
-            background: rgba(13, 16, 19, 0.86);
-            border-color: rgba(212, 180, 90, 0.55);
+            background: rgba(16, 26, 34, 0.9);
+            border-color: rgba(82, 183, 122, 0.55);
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.42);
         }
 
         .hero-search-bar.is-focused {
-            background: rgba(13, 16, 19, 0.94);
-            border-color: rgba(212, 180, 90, 0.85);
-            box-shadow: 0 0 0 3px rgba(212, 180, 90, 0.22), 0 14px 36px rgba(0, 0, 0, 0.48);
+            background: rgba(16, 26, 34, 0.96);
+            border-color: rgba(100, 162, 236, 0.85);
+            box-shadow: 0 0 0 3px rgba(100, 162, 236, 0.24), 0 14px 36px rgba(0, 0, 0, 0.48);
         }
 
         .hero-search-icon-wrap {
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #d4af37;
+            color: #52B77A;
             margin-right: 0.75rem;
             flex-shrink: 0;
         }
@@ -218,8 +218,8 @@
         .hero-search-spinner {
             width: 18px;
             height: 18px;
-            border: 2px solid rgba(212, 175, 55, 0.25);
-            border-top-color: #d4af37;
+            border: 2px solid rgba(100, 162, 236, 0.25);
+            border-top-color: #64A2EC;
             border-radius: 50%;
             animation: heroSearchSpin 0.7s linear infinite;
         }
@@ -234,8 +234,8 @@
             gap: 0.4rem;
             padding: 0.55rem 1.15rem;
             border-radius: 999px;
-            background: linear-gradient(135deg, #2c5530 0%, #1a3d20 100%);
-            border: 1px solid rgba(212, 175, 55, 0.4);
+            background: linear-gradient(135deg, #1A6B3C 0%, #247F4B 100%);
+            border: 1px solid rgba(82, 183, 122, 0.45);
             color: #ffffff;
             font-family: 'Inter', sans-serif;
             font-size: 0.9rem;
@@ -248,10 +248,10 @@
         }
 
         .hero-search-btn:hover {
-            background: linear-gradient(135deg, #35673a 0%, #204c26 100%);
-            border-color: rgba(212, 175, 55, 0.75);
+            background: linear-gradient(135deg, #155731 0%, #1E6B3E 100%);
+            border-color: rgba(100, 162, 236, 0.72);
             transform: translateY(-1px);
-            box-shadow: 0 6px 18px rgba(44, 85, 48, 0.45);
+            box-shadow: 0 6px 18px rgba(26, 107, 60, 0.45);
         }
 
         .hero-search-btn:active {
@@ -328,8 +328,8 @@
 
         .hero-search-item:hover,
         .hero-search-item.is-selected {
-            background: rgba(44, 85, 48, 0.35);
-            border-color: rgba(212, 175, 55, 0.35);
+            background: rgba(26, 107, 60, 0.32);
+            border-color: rgba(82, 183, 122, 0.4);
             transform: translateX(3px);
         }
 
@@ -339,8 +339,8 @@
             border-radius: 12px;
             overflow: hidden;
             flex-shrink: 0;
-            background: linear-gradient(135deg, rgba(44, 85, 48, 0.5) 0%, rgba(15, 23, 42, 0.8) 100%);
-            border: 1.5px solid rgba(212, 175, 55, 0.35);
+            background: linear-gradient(135deg, rgba(26, 107, 60, 0.45) 0%, rgba(16, 26, 34, 0.85) 100%);
+            border: 1.5px solid rgba(100, 162, 236, 0.4);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -358,7 +358,7 @@
             font-size: 1.25rem;
             line-height: 1;
             font-weight: 700;
-            color: #d4af37;
+            color: #52B77A;
         }
 
         .hero-search-item-info {
@@ -379,7 +379,7 @@
 
         .hero-search-item-name mark {
             background: transparent;
-            color: #d4af37;
+            color: #64A2EC;
             font-weight: 800;
             text-decoration: underline;
             text-decoration-thickness: 1.5px;
@@ -406,9 +406,9 @@
         }
 
         .hero-search-meta-badge.org {
-            background: rgba(44, 85, 48, 0.4);
-            border-color: rgba(134, 239, 172, 0.25);
-            color: #86efac;
+            background: rgba(26, 107, 60, 0.4);
+            border-color: rgba(82, 183, 122, 0.35);
+            color: #52B77A;
             font-weight: 600;
         }
 
@@ -425,7 +425,7 @@
 
         .hero-search-item:hover .hero-search-item-action,
         .hero-search-item.is-selected .hero-search-item-action {
-            color: #d4af37;
+            color: #52B77A;
             transform: translateX(2px);
         }
 
@@ -441,7 +441,7 @@
             justify-content: space-between;
             padding: 0.75rem 1rem;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(10, 15, 25, 0.85);
+            background: rgba(16, 26, 34, 0.92);
             font-size: 0.84rem;
         }
 
@@ -457,14 +457,14 @@
             display: inline-flex;
             align-items: center;
             gap: 0.35rem;
-            color: #d4af37;
+            color: #64A2EC;
             font-weight: 600;
             text-decoration: none;
             transition: gap 0.2s ease, color 0.2s ease;
         }
 
         .hero-search-view-all-link:hover {
-            color: #f0c929;
+            color: #93C5FD;
             gap: 0.55rem;
         }
 
@@ -631,9 +631,9 @@
         .hero-live-count .hlc-dot {
             width: 8px;
             height: 8px;
-            background: #4ade80;
+            background: #52B77A;
             border-radius: 50%;
-            box-shadow: 0 0 0 3px rgba(74,222,128,0.25);
+            box-shadow: 0 0 0 3px rgba(82, 183, 122, 0.25);
             animation: pulse 2s ease-in-out infinite;
             flex-shrink: 0;
         }
@@ -676,8 +676,8 @@
         /* Impact Section - Archival Living Memorial */
         .impact-section {
             padding: 5rem 0;
-            background: var(--arch-paper, #FAF8F4);
-            border-bottom: 1px solid var(--arch-border, #E2DDD3);
+            background: var(--arch-paper, #F7F8FA);
+            border-bottom: 1px solid var(--arch-border, #E3E6EA);
             position: relative;
         }
         .section-header {
@@ -690,7 +690,7 @@
             font-family: 'EB Garamond', Georgia, serif;
             font-size: clamp(1.85rem, 4.5vw, 2.75rem);
             font-weight: 600;
-            color: var(--arch-ink, #141815);
+            color: var(--arch-ink, #121518);
             margin-bottom: 0.65rem;
             letter-spacing: -0.015em;
             line-height: 1.18;
@@ -703,11 +703,11 @@
             transform: translateX(-50%);
             width: 56px;
             height: 2px;
-            background: var(--arch-gold, #B89535);
+            background: var(--arch-red, #B4232C);
             border-radius: 1px;
         }
         .section-subtitle {
-            color: var(--arch-ink-muted, #525954);
+            color: var(--arch-ink-muted, #555E68);
             font-size: 1.05rem;
             margin-top: 0.65rem;
             font-weight: 400;
@@ -732,16 +732,19 @@
             padding: 2.25rem 2rem;
             border-radius: var(--radius-sm, 6px);
             text-align: center;
-            box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04));
-            border: 1px solid var(--arch-border, #E2DDD3);
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(18, 21, 24, 0.04));
+            border: 1px solid var(--arch-border, #E3E6EA);
             transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
             position: relative;
             overflow: hidden;
         }
         .impact-card:hover {
             transform: translateY(-2px);
-            box-shadow: var(--elev-hover, 0 8px 20px rgba(20, 24, 21, 0.07));
-            border-color: var(--arch-accent, #1F4224);
+            box-shadow: var(--elev-hover, 0 8px 20px rgba(18, 21, 24, 0.07));
+            border-color: var(--arch-accent, #1A6B3C);
+        }
+        .impact-card:nth-child(2):hover {
+            border-color: var(--arch-blue, #1E5AA8);
         }
         .impact-icon {
             margin: 0 auto 1.25rem;
@@ -750,32 +753,40 @@
             justify-content: center;
             width: 54px;
             height: 54px;
-            background: var(--arch-surface-subtle, #F2EFE9);
+            background: var(--arch-accent-subtle, rgba(26, 107, 60, 0.08));
             border-radius: var(--radius-sm, 6px);
-            border: 1px solid var(--arch-border, #E2DDD3);
-            color: var(--arch-accent, #1F4224);
+            border: 1px solid rgba(26, 107, 60, 0.2);
+            color: var(--arch-accent, #1A6B3C);
+        }
+        .impact-card:nth-child(2) .impact-icon {
+            background: var(--arch-blue-subtle, rgba(30, 90, 168, 0.08));
+            border-color: rgba(30, 90, 168, 0.22);
+            color: var(--arch-blue, #1E5AA8);
         }
         .impact-number {
             font-family: 'EB Garamond', Georgia, serif;
             font-size: 3.1rem;
             font-weight: 600;
             font-variant-numeric: tabular-nums;
-            color: var(--arch-accent, #1F4224);
+            color: var(--arch-accent, #1A6B3C);
             margin-bottom: 0.4rem;
             display: block;
             line-height: 1;
             letter-spacing: -0.02em;
         }
+        .impact-card:nth-child(2) .impact-number {
+            color: var(--arch-blue, #1E5AA8);
+        }
         .impact-label {
             font-size: 1.05rem;
             font-weight: 600;
-            color: var(--arch-ink, #141815);
+            color: var(--arch-ink, #121518);
             margin-bottom: 0.55rem;
             letter-spacing: -0.01em;
         }
         .impact-description {
             font-size: 0.92rem;
-            color: var(--arch-ink-muted, #525954);
+            color: var(--arch-ink-muted, #555E68);
             line-height: 1.55;
             max-width: 90%;
             margin: 0 auto;
@@ -784,9 +795,9 @@
         /* Purpose Section — Editorial Documentation Standards & Chronological Era Ledger */
         .purpose-section {
             padding: 5.25rem 0;
-            background: var(--arch-surface-subtle, #F2EFE9);
-            border-top: 1px solid var(--arch-border, #E2DDD3);
-            border-bottom: 1px solid var(--arch-border, #E2DDD3);
+            background: var(--arch-surface-subtle, #EEF0F3);
+            border-top: 1px solid var(--arch-border, #E3E6EA);
+            border-bottom: 1px solid var(--arch-border, #E3E6EA);
             position: relative;
         }
         .purpose-content {
@@ -801,9 +812,9 @@
             display: inline-flex;
             align-items: center;
             gap: 0.45rem;
-            background: var(--arch-gold-subtle, #F7F2E2);
-            color: var(--arch-accent, #1F4224);
-            border: 1px solid var(--arch-border, #E2DDD3);
+            background: var(--arch-blue-subtle, rgba(30, 90, 168, 0.08));
+            color: var(--arch-blue, #1E5AA8);
+            border: 1px solid rgba(30, 90, 168, 0.22);
             padding: 0.34rem 0.85rem;
             border-radius: var(--radius-pill, 999px);
             font-size: 0.74rem;
@@ -826,7 +837,7 @@
             font-size: clamp(1.85rem, 3.2vw, 2.45rem);
             line-height: 1.15;
             margin-bottom: 0.85rem;
-            color: var(--arch-ink, #141815);
+            color: var(--arch-ink, #121518);
             font-weight: 600;
             letter-spacing: -0.015em;
         }
@@ -856,7 +867,7 @@
             font-size: 1.18rem;
             font-weight: 600;
             font-variant-numeric: tabular-nums;
-            color: var(--arch-accent, #1F4224);
+            color: var(--arch-red, #B4232C);
         }
         .standard-copy h3 {
             font-family: 'Inter', sans-serif;
@@ -880,14 +891,14 @@
         }
         .era-ledger-card {
             background: var(--arch-surface, #FFFFFF);
-            border: 1px solid var(--arch-border, #E2DDD3);
+            border: 1px solid var(--arch-border, #E3E6EA);
             border-radius: var(--radius-sm, 6px);
-            box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04));
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(18, 21, 24, 0.04));
             overflow: hidden;
         }
         .era-ledger-header {
             padding: 1.25rem 1.4rem 1rem;
-            border-bottom: 1px solid var(--arch-border, #E2DDD3);
+            border-bottom: 1px solid var(--arch-border, #E3E6EA);
             display: flex;
             align-items: baseline;
             justify-content: space-between;
@@ -898,7 +909,7 @@
             font-weight: 700;
             letter-spacing: 0.1em;
             text-transform: uppercase;
-            color: var(--arch-ink-muted, #525954);
+            color: var(--arch-blue, #1E5AA8);
             display: block;
             margin-bottom: 0.25rem;
         }
@@ -906,7 +917,7 @@
             font-family: 'EB Garamond', Georgia, serif;
             font-size: 1.45rem;
             font-weight: 600;
-            color: var(--arch-ink, #141815);
+            color: var(--arch-ink, #121518);
             margin: 0;
             line-height: 1.2;
         }
@@ -920,13 +931,13 @@
             grid-template-columns: minmax(0, 1fr) auto;
             gap: 0.45rem 1rem;
             padding: 0.95rem 1.4rem;
-            border-bottom: 1px solid var(--arch-border, #E2DDD3);
-            color: var(--arch-ink, #141815);
+            border-bottom: 1px solid var(--arch-border, #E3E6EA);
+            color: var(--arch-ink, #121518);
             text-decoration: none;
             transition: background-color 0.18s ease;
         }
         .era-ledger-row a:hover {
-            background: var(--arch-paper, #FAF8F4);
+            background: var(--arch-paper, #F7F8FA);
         }
         .era-ledger-top {
             display: flex;
@@ -937,19 +948,19 @@
         .era-label {
             font-weight: 600;
             font-size: 0.94rem;
-            color: var(--arch-ink, #141815);
+            color: var(--arch-ink, #121518);
         }
         .era-count {
             font-size: 0.88rem;
             font-weight: 600;
             font-variant-numeric: tabular-nums;
-            color: var(--arch-accent, #1F4224);
+            color: var(--arch-accent, #1A6B3C);
             white-space: nowrap;
         }
         .era-bar-track {
             grid-column: 1 / 2;
             height: 5px;
-            background: var(--arch-surface-subtle, #F2EFE9);
+            background: var(--arch-surface-subtle, #EEF0F3);
             border-radius: var(--radius-pill, 999px);
             overflow: hidden;
         }
@@ -957,7 +968,7 @@
             display: block;
             height: 100%;
             width: 0%;
-            background: var(--arch-accent, #1F4224);
+            background: var(--arch-accent, #1A6B3C);
             border-radius: var(--radius-pill, 999px);
             transition: width 0.55s cubic-bezier(0.22, 1, 0.36, 1);
         }
@@ -965,73 +976,77 @@
             grid-column: 2 / 3;
             grid-row: 1 / 3;
             align-self: center;
-            color: var(--arch-ink-muted, #525954);
+            color: var(--arch-ink-muted, #555E68);
             transition: transform 0.18s ease, color 0.18s ease;
         }
         .era-ledger-row a:hover .era-arrow {
             transform: translateX(3px);
-            color: var(--arch-accent, #1F4224);
+            color: var(--arch-accent, #1A6B3C);
         }
         .era-ledger-footer {
             padding: 0.95rem 1.4rem;
-            background: var(--arch-paper, #FAF8F4);
+            background: var(--arch-paper, #F7F8FA);
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 0.75rem;
             font-size: 0.86rem;
-            color: var(--arch-ink-muted, #525954);
+            color: var(--arch-ink-muted, #555E68);
         }
         .era-ledger-footer strong {
-            color: var(--arch-ink, #141815);
+            color: var(--arch-ink, #121518);
             font-variant-numeric: tabular-nums;
         }
         .era-ledger-footer a {
-            color: var(--arch-accent, #1F4224);
+            color: var(--arch-blue, #1E5AA8);
             font-weight: 600;
             white-space: nowrap;
         }
         html[data-theme="dark"] .purpose-section,
         [data-theme="dark"] .purpose-section {
-            background: var(--arch-surface-subtle, #1A2127) !important;
-            border-color: var(--arch-border, #252E35) !important;
+            background: var(--arch-surface-subtle, #1B2026) !important;
+            border-color: var(--arch-border, #252A32) !important;
         }
         html[data-theme="dark"] .era-ledger-card {
-            background: var(--arch-surface, #151A1E) !important;
-            border-color: var(--arch-border, #252E35) !important;
+            background: var(--arch-surface, #15181D) !important;
+            border-color: var(--arch-border, #252A32) !important;
         }
         html[data-theme="dark"] .era-ledger-header,
         html[data-theme="dark"] .standards-list,
         html[data-theme="dark"] .standard-item,
         html[data-theme="dark"] .era-ledger-row a {
-            border-color: var(--arch-border, #252E35) !important;
+            border-color: var(--arch-border, #252A32) !important;
         }
         html[data-theme="dark"] .standard-copy h3,
         html[data-theme="dark"] .era-ledger-title,
         html[data-theme="dark"] .era-label,
         html[data-theme="dark"] .era-ledger-footer strong {
-            color: var(--arch-ink, #F1F4F2) !important;
+            color: var(--arch-ink, #F1F3F5) !important;
         }
-        html[data-theme="dark"] .standard-num,
-        html[data-theme="dark"] .era-count,
+        html[data-theme="dark"] .era-ledger-kicker,
         html[data-theme="dark"] .era-ledger-footer a {
-            color: var(--arch-accent, #68A878) !important;
+            color: var(--arch-blue, #64A2EC) !important;
+        }
+        html[data-theme="dark"] .standard-num {
+            color: var(--arch-red, #E35D66) !important;
+        }
+        html[data-theme="dark"] .era-count {
+            color: var(--arch-accent, #52B77A) !important;
         }
         html[data-theme="dark"] .era-bar-fill {
-            background: var(--arch-accent, #68A878) !important;
+            background: var(--arch-accent, #52B77A) !important;
         }
         html[data-theme="dark"] .era-bar-track,
         html[data-theme="dark"] .era-ledger-footer {
-            background: var(--arch-paper, #0D1013) !important;
+            background: var(--arch-paper, #0D0F12) !important;
         }
         html[data-theme="dark"] .era-ledger-row a:hover {
-            background: var(--arch-surface-subtle, #1A2127) !important;
+            background: var(--arch-surface-subtle, #1B2026) !important;
         }
         html[data-theme="dark"] .standard-copy p,
-        html[data-theme="dark"] .era-ledger-kicker,
         html[data-theme="dark"] .era-arrow,
         html[data-theme="dark"] .era-ledger-footer {
-            color: var(--arch-ink-muted, #9AA5A0) !important;
+            color: var(--arch-ink-muted, #98A1AD) !important;
         }
 
         /* ========================================================
@@ -1298,7 +1313,7 @@
             color: var(--arch-accent, #68A878) !important;
         }
 
-        /* Organization Tag */
+        /* Organization Tag — Makran Cobalt subtle archival tag */
         .featured-martyrs .martyr-org-pill,
         .martyrs-showcase .martyr-org-pill {
             display: inline-flex;
@@ -1306,9 +1321,9 @@
             gap: 0.35rem;
             padding: 0.24rem 0.65rem;
             border-radius: var(--radius-pill, 999px);
-            background: var(--arch-surface-subtle, #F2EFE9);
-            border: 1px solid var(--arch-border, #E2DDD3);
-            color: var(--arch-accent, #1F4224);
+            background: var(--arch-blue-subtle, rgba(30, 90, 168, 0.08));
+            border: 1px solid rgba(30, 90, 168, 0.22);
+            color: var(--arch-blue, #1E5AA8);
             font-size: 0.74rem;
             font-weight: 600;
             margin-top: 0.55rem;
@@ -1319,9 +1334,9 @@
         [data-theme="dark"] .featured-martyrs .martyr-org-pill,
         html[data-theme="dark"] .martyrs-showcase .martyr-org-pill,
         [data-theme="dark"] .martyrs-showcase .martyr-org-pill {
-            background: var(--arch-surface-subtle, #1A2127) !important;
-            border-color: var(--arch-border-strong, #36434D) !important;
-            color: var(--arch-accent, #68A878) !important;
+            background: var(--arch-blue-subtle, rgba(100, 162, 236, 0.14)) !important;
+            border-color: rgba(100, 162, 236, 0.32) !important;
+            color: var(--arch-blue, #64A2EC) !important;
         }
 
         /* Card Button (Affordance) */
@@ -1333,9 +1348,9 @@
             padding: 0.45rem 0.95rem;
             font-size: 0.84rem;
             font-weight: 600;
-            border: 1px solid var(--arch-border-strong, #C9C2B5);
-            background: var(--arch-surface-subtle, #F2EFE9);
-            color: var(--arch-ink, #141815);
+            border: 1px solid var(--arch-border-strong, #C8CDD4);
+            background: var(--arch-surface-subtle, #EEF0F3);
+            color: var(--arch-ink, #121518);
             display: inline-flex;
             align-items: center;
             gap: 0.45rem;
@@ -1350,27 +1365,27 @@
 
         .featured-martyrs .martyr-card:hover .martyr-card-button,
         .martyrs-showcase .martyr-card:hover .martyr-card-button {
-            background: var(--arch-accent, #1F4224);
+            background: var(--arch-accent, #1A6B3C);
             color: #ffffff;
-            border-color: var(--arch-accent, #1F4224);
+            border-color: var(--arch-accent, #1A6B3C);
         }
 
         html[data-theme="dark"] .featured-martyrs .martyr-card-button,
         [data-theme="dark"] .featured-martyrs .martyr-card-button,
         html[data-theme="dark"] .martyrs-showcase .martyr-card-button,
         [data-theme="dark"] .martyrs-showcase .martyr-card-button {
-            background: var(--arch-surface-subtle, #1A2127) !important;
-            border-color: var(--arch-border-strong, #36434D) !important;
-            color: var(--arch-ink, #F1F4F2) !important;
+            background: var(--arch-surface-subtle, #1B2026) !important;
+            border-color: var(--arch-border-strong, #353C47) !important;
+            color: var(--arch-ink, #F1F3F5) !important;
         }
 
         html[data-theme="dark"] .featured-martyrs .martyr-card:hover .martyr-card-button,
         [data-theme="dark"] .featured-martyrs .martyr-card:hover .martyr-card-button,
         html[data-theme="dark"] .martyrs-showcase .martyr-card:hover .martyr-card-button,
         [data-theme="dark"] .martyrs-showcase .martyr-card:hover .martyr-card-button {
-            background: var(--arch-accent, #68A878) !important;
-            color: #0D1013 !important;
-            border-color: var(--arch-accent, #68A878) !important;
+            background: var(--arch-accent, #52B77A) !important;
+            color: #0D0F12 !important;
+            border-color: var(--arch-accent, #52B77A) !important;
         }
         .featured-martyrs .placeholder {
             grid-column: 1 / -1;
@@ -1860,8 +1875,8 @@
             content: none;
         }
         .anniversary-card .anniversary-date {
-            background: var(--arch-gold-subtle, #F7F2E2);
-            color: #7A5C12;
+            background: var(--arch-red-subtle, rgba(180, 35, 44, 0.08));
+            color: var(--arch-red, #B4232C);
             padding: 0.45rem 1rem;
             border-radius: var(--radius-pill, 999px);
             display: inline-flex;
@@ -1870,7 +1885,7 @@
             font-size: 0.85rem;
             font-weight: 600;
             margin-bottom: 1.1rem;
-            border: 1px solid rgba(184, 149, 53, 0.35);
+            border: 1px solid rgba(180, 35, 44, 0.28);
             width: fit-content;
         }
         .anniversary-card .anniversary-date strong {
@@ -3423,8 +3438,8 @@
             window.addEventListener('firebaseReady', updateHomepageStats);
         }
     </script>
-    <script src="js/main.js?v=20261116f"></script>
-    <script src="js/hero-3d.js"></script>
+    <script src="js/main.js?v=20261116h"></script>
+    <script src="js/hero-3d.js?v=20261116h"></script>
     <script src="js/mobile-menu.js"></script>
     <script src="js/hero-search.js?v=20261116f"></script>
 

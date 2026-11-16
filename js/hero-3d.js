@@ -12,11 +12,11 @@
         particleSize: { min: 0.02, max: 0.08 },
         particleSpeed: { min: 0.002, max: 0.008 },
         colors: [
-            0xd4af37, // Gold (accent color)
+            0x52B77A, // Cypress Green (accent color)
             0xffffff, // White
-            0xf0c929, // Light gold
-            0xffd700, // Golden
-            0xffeaa7  // Soft gold
+            0x64A2EC, // Makran Blue
+            0xe2e8f0, // Slate white
+            0xE35D66  // Deep Crimson accent
         ],
         fadeInDuration: 2000,
         mouseInfluence: 0.0003

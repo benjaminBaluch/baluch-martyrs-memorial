@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Honor a martyr — preserve the legacy of a Baluch martyr by adding their story to the memorial">
     <title>Honor a Martyr — Baluch Martyrs Memorial</title>
-    <link rel="stylesheet" href="css/styles.css?v=20261116g">
+    <link rel="stylesheet" href="css/styles.css?v=20261116h">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" sizes="any">
     <link rel="shortcut icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -38,17 +38,17 @@
            Matches Homepage & Gallery (--arch-* tokens)
            ========================================================= */
         body {
-            background-color: var(--arch-paper, #FAF8F4);
-            color: var(--arch-ink, #141815);
+            background-color: var(--arch-paper, #F7F8FA);
+            color: var(--arch-ink, #121518);
         }
 
-        /* 1. EDITORIAL ARCHIVAL PAGE HEADER */
+        /* 1. DEEP COASTAL-MIDNIGHT ARCHITECTURAL HEADER */
         .add-hero-banner {
-            background: var(--arch-paper, #FAF8F4);
-            color: var(--arch-ink, #141815);
-            padding: 2.35rem 0 1.85rem;
+            background: var(--arch-hero-bg, #101A22);
+            color: var(--arch-hero-ink, #F8FAFC);
+            padding: 2.5rem 0 2rem;
             position: relative;
-            border-bottom: 1px solid var(--arch-border, #E2DDD3);
+            border-bottom: 1px solid var(--arch-hero-border, #252A32);
             text-align: left;
         }
 
@@ -79,7 +79,7 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            color: var(--arch-ink-muted, #525954);
+            color: var(--arch-hero-muted, #A6B1BE);
             margin-bottom: 0.65rem;
         }
 
@@ -87,7 +87,7 @@
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background: var(--arch-accent, #1F4224);
+            background: #52B77A;
             flex-shrink: 0;
         }
 
@@ -95,7 +95,7 @@
             font-family: 'EB Garamond', Georgia, serif;
             font-size: clamp(2rem, 3.4vw, 2.6rem);
             font-weight: 600;
-            color: var(--arch-ink, #141815);
+            color: var(--arch-hero-ink, #F8FAFC);
             margin: 0 0 0.45rem;
             letter-spacing: -0.02em;
             line-height: 1.15;
@@ -105,7 +105,7 @@
             font-family: 'Inter', sans-serif;
             font-size: 0.98rem;
             font-style: normal;
-            color: var(--arch-ink-muted, #525954);
+            color: var(--arch-hero-muted, #A6B1BE);
             margin: 0;
             line-height: 1.58;
             max-width: 620px;
@@ -124,10 +124,10 @@
             font-family: 'Inter', sans-serif;
             font-size: 0.84rem;
             font-weight: 600;
-            color: var(--arch-ink, #141815);
-            background: var(--arch-surface, #FFFFFF);
-            border: 1px solid var(--arch-border-strong, #C9C2B5);
-            padding: 0.62rem 1.05rem;
+            color: var(--arch-hero-ink, #F8FAFC);
+            background: var(--arch-hero-surface, #15222D);
+            border: 1px solid #2F3B47;
+            padding: 0.64rem 1.1rem;
             border-radius: var(--radius-sm, 6px);
             text-decoration: none;
             cursor: pointer;
@@ -135,9 +135,9 @@
         }
 
         .hero-action-btn:hover {
-            background: var(--arch-surface-subtle, #F2EFE9);
-            border-color: var(--arch-accent, #1F4224);
-            color: var(--arch-ink, #141815);
+            background: #1C2B38;
+            border-color: #64A2EC;
+            color: #FFFFFF;
         }
 
         /* 2. MAIN CONTENT CONTAINER */
@@ -292,15 +292,15 @@
         }
 
         .field-pill.required {
-            background: var(--arch-gold-subtle, #F7F2E2);
-            color: var(--arch-ink, #141815);
-            border: 1px solid var(--arch-gold, #B89535);
+            background: var(--arch-red-subtle, rgba(180, 35, 44, 0.08));
+            color: var(--arch-red, #B4232C);
+            border: 1px solid rgba(180, 35, 44, 0.32);
         }
 
         .field-pill.optional {
-            background: var(--arch-surface-subtle, #F2EFE9);
-            color: var(--arch-ink-muted, #525954);
-            border: 1px solid var(--arch-border, #E2DDD3);
+            background: var(--arch-surface-subtle, #EEF0F3);
+            color: var(--arch-ink-muted, #555E68);
+            border: 1px solid var(--arch-border, #E3E6EA);
         }
 
         .martyr-form input[type="text"],
@@ -311,9 +311,9 @@
             width: 100%;
             font-family: 'Inter', sans-serif;
             font-size: 16px; /* Prevents iOS Safari auto-zoom */
-            color: var(--arch-ink, #141815);
-            background: var(--arch-surface-subtle, #F2EFE9);
-            border: 1px solid var(--arch-border-strong, #C9C2B5);
+            color: var(--arch-ink, #121518);
+            background: var(--arch-surface-subtle, #EEF0F3);
+            border: 1px solid var(--arch-border-strong, #C8CDD4);
             border-radius: var(--radius-sm, 6px);
             padding: 0.72rem 0.95rem;
             transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
@@ -325,8 +325,8 @@
         .martyr-form textarea:focus {
             outline: none;
             background: var(--arch-surface, #FFFFFF);
-            border-color: var(--arch-accent, #1F4224);
-            box-shadow: 0 0 0 3px rgba(184, 149, 53, 0.22);
+            border-color: var(--arch-accent, #1A6B3C);
+            box-shadow: 0 0 0 3px var(--arch-blue-subtle, rgba(30, 90, 168, 0.2));
         }
 
         .age-display {
@@ -556,15 +556,15 @@
             display: flex;
             align-items: flex-start;
             gap: 0.65rem;
-            background: var(--arch-gold-subtle, #F7F2E2);
-            border: 1px solid var(--arch-border, #E2DDD3);
-            border-left: 3px solid var(--arch-gold, #B89535);
+            background: var(--arch-blue-subtle, rgba(30, 90, 168, 0.08));
+            border: 1px solid var(--arch-border, #E3E6EA);
+            border-left: 3px solid var(--arch-blue, #1E5AA8);
             border-radius: var(--radius-sm, 6px);
             padding: 0.85rem 1rem;
             margin-bottom: 1.25rem;
             font-family: 'Inter', sans-serif;
             font-size: 0.83rem;
-            color: var(--arch-ink-muted, #525954);
+            color: var(--arch-ink-muted, #555E68);
             line-height: 1.5;
         }
 
@@ -738,7 +738,7 @@
             width: 56px;
             height: 2px;
             border-radius: var(--radius-pill, 999px);
-            background: var(--arch-gold, #B89535);
+            background: var(--arch-red, #B4232C);
             margin: 1.2rem auto;
         }
 
@@ -974,9 +974,9 @@
         }
 
         .preview-org-badge {
-            background: var(--arch-gold-subtle, #F7F2E2);
-            color: var(--arch-ink, #141815);
-            border: 1px solid var(--arch-gold, #B89535);
+            background: var(--arch-blue-subtle, rgba(30, 90, 168, 0.08));
+            color: var(--arch-blue, #1E5AA8);
+            border: 1px solid rgba(30, 90, 168, 0.28);
             padding: 0.24rem 0.72rem;
             border-radius: var(--radius-pill, 999px);
             font-family: 'Inter', sans-serif;
@@ -1545,9 +1545,9 @@
         <div class="mobile-preview-content" id="mobilePreviewContent"></div>
     </div>
 
-    <script src="js/main.js?v=20261116g"></script>
+    <script src="js/main.js?v=20261116h"></script>
     <script src="js/mobile-menu.js?v=20261008i"></script>
-    <script type="module" src="js/add-martyr.js?v=20261116g"></script>
+    <script type="module" src="js/add-martyr.js?v=20261116h"></script>
 
     <script>
     (function(){

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Contact Baluch Martyrs Memorial - Archival correspondence, profile submissions, and historical verification.">
     <title>Contact - Baluch Martyrs Memorial</title>
-    <link rel="stylesheet" href="css/styles.css?v=20261116g">
+    <link rel="stylesheet" href="css/styles.css?v=20261116h">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" sizes="any">
     <link rel="shortcut icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="preconnect" href="https://challenges.cloudflare.com">
@@ -37,20 +37,20 @@
            ======================================================== */
         .contact-page {
             min-height: 100vh;
-            background: var(--arch-paper, #FAF8F4);
-            color: var(--arch-ink, #141815);
+            background: var(--arch-paper, #F7F8FA);
+            color: var(--arch-ink, #121518);
             width: 100%;
             overflow-x: hidden;
             box-sizing: border-box;
         }
 
-        /* 1. Editorial Archival Page Header */
+        /* 1. Deep Coastal-Midnight Architectural Header */
         .contact-hero {
-            background: var(--arch-paper, #FAF8F4);
-            color: var(--arch-ink, #141815);
-            padding: 2.35rem 0 1.85rem;
+            background: var(--arch-hero-bg, #101A22);
+            color: var(--arch-hero-ink, #F8FAFC);
+            padding: 2.5rem 0 2rem;
             position: relative;
-            border-bottom: 1px solid var(--arch-border, #E2DDD3);
+            border-bottom: 1px solid var(--arch-hero-border, #252A32);
         }
 
         .contact-hero .container {
@@ -92,14 +92,14 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            color: var(--arch-ink-muted, #525954);
+            color: var(--arch-hero-muted, #A6B1BE);
         }
 
         .status-dot {
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background: var(--arch-accent, #1F4224);
+            background: #52B77A;
             flex-shrink: 0;
         }
 
@@ -110,12 +110,12 @@
             margin: 0 0 0.45rem;
             letter-spacing: -0.02em;
             line-height: 1.15;
-            color: var(--arch-ink, #141815);
+            color: var(--arch-hero-ink, #F8FAFC);
         }
 
         .contact-hero p {
             font-size: 0.98rem;
-            color: var(--arch-ink-muted, #525954);
+            color: var(--arch-hero-muted, #A6B1BE);
             margin: 0;
             line-height: 1.6;
             max-width: 580px;
@@ -145,28 +145,28 @@
         }
 
         .hero-action-btn.primary {
-            background: linear-gradient(135deg, var(--btn-gradient-start, #1F4224), var(--btn-gradient-end, #2A5630));
-            color: var(--btn-text-color, #FAF8F4);
-            border-color: var(--arch-accent, #1F4224);
-            box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04));
+            background: linear-gradient(135deg, var(--btn-gradient-start, #1A6B3C), var(--btn-gradient-end, #247F4B));
+            color: var(--btn-text-color, #F8FAFC);
+            border-color: rgba(82, 183, 122, 0.45);
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(18, 21, 24, 0.04));
         }
 
         .hero-action-btn.primary:hover {
-            background: linear-gradient(135deg, var(--btn-gradient-hover-start, #2A5630), var(--btn-gradient-hover-end, #34693B));
+            background: linear-gradient(135deg, var(--btn-gradient-hover-start, #155731), var(--btn-gradient-hover-end, #1E6B3E));
             transform: translateY(-1px);
-            color: var(--btn-text-color, #FAF8F4);
+            color: var(--btn-text-color, #F8FAFC);
         }
 
         .hero-action-btn.secondary {
-            background: var(--arch-surface, #FFFFFF);
-            color: var(--arch-ink, #141815);
-            border-color: var(--arch-border-strong, #C9C2B5);
+            background: var(--arch-hero-surface, #15222D);
+            color: var(--arch-hero-ink, #F8FAFC);
+            border-color: #2F3B47;
         }
 
         .hero-action-btn.secondary:hover {
-            background: var(--arch-surface-subtle, #F2EFE9);
-            border-color: var(--arch-accent, #1F4224);
-            color: var(--arch-ink, #141815);
+            background: #1C2B38;
+            border-color: #64A2EC;
+            color: #FFFFFF;
         }
 
         /* 2. Main Content Container */
@@ -199,36 +199,48 @@
 
         .contact-card {
             background: var(--arch-surface, #FFFFFF);
-            border: 1px solid var(--arch-border, #E2DDD3);
+            border: 1px solid var(--arch-border, #E3E6EA);
             border-radius: var(--radius-sm, 6px);
             padding: 1.55rem 1.45rem;
-            box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04));
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(18, 21, 24, 0.04));
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
         .contact-card:hover {
-            border-color: var(--arch-border-strong, #C9C2B5);
-            box-shadow: var(--elev-hover, 0 8px 20px rgba(20, 24, 21, 0.08));
+            border-color: var(--arch-border-strong, #C8CDD4);
+            box-shadow: var(--elev-hover, 0 8px 20px rgba(18, 21, 24, 0.08));
         }
 
         .contact-card-icon {
             width: 38px;
             height: 38px;
             border-radius: var(--radius-sm, 6px);
-            background: var(--arch-surface-subtle, #F2EFE9);
-            border: 1px solid var(--arch-border, #E2DDD3);
-            color: var(--arch-accent, #1F4224);
+            background: var(--arch-blue-subtle, rgba(30, 90, 168, 0.08));
+            border: 1px solid rgba(30, 90, 168, 0.22);
+            color: var(--arch-blue, #1E5AA8);
             display: flex;
             align-items: center;
             justify-content: center;
             margin-bottom: 0.9rem;
         }
 
+        .contact-card:nth-child(2) .contact-card-icon {
+            background: var(--arch-accent-subtle, rgba(26, 107, 60, 0.08));
+            border-color: rgba(26, 107, 60, 0.22);
+            color: var(--arch-accent, #1A6B3C);
+        }
+
+        .contact-card:nth-child(3) .contact-card-icon {
+            background: var(--arch-red-subtle, rgba(180, 35, 44, 0.08));
+            border-color: rgba(180, 35, 44, 0.22);
+            color: var(--arch-red, #B4232C);
+        }
+
         .contact-card h3 {
             font-family: 'EB Garamond', Georgia, serif;
             font-size: 1.35rem;
             font-weight: 600;
-            color: var(--arch-ink, #141815);
+            color: var(--arch-ink, #121518);
             margin-bottom: 0.45rem;
             line-height: 1.25;
         }
@@ -236,7 +248,7 @@
         .contact-card p {
             font-size: 0.94rem;
             line-height: 1.65;
-            color: var(--arch-ink-muted, #525954);
+            color: var(--arch-ink-muted, #555E68);
             margin-bottom: 1rem;
             text-align: left;
         }
@@ -245,7 +257,7 @@
             display: inline-block;
             font-weight: 600;
             font-size: 1rem;
-            color: var(--arch-accent, #1F4224);
+            color: var(--arch-blue, #1E5AA8);
             text-decoration: none;
             word-break: break-all;
             margin-bottom: 0.85rem;
@@ -274,14 +286,14 @@
             text-decoration: none;
             transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease;
             font-family: inherit;
-            border: 1px solid var(--arch-border-strong, #C9C2B5);
-            background: var(--arch-surface-subtle, #F2EFE9);
-            color: var(--arch-ink, #141815);
+            border: 1px solid var(--arch-border-strong, #C8CDD4);
+            background: var(--arch-surface-subtle, #EEF0F3);
+            color: var(--arch-ink, #121518);
         }
 
         .contact-btn-action:hover {
-            border-color: var(--arch-accent, #1F4224);
-            color: var(--arch-accent, #1F4224);
+            border-color: var(--arch-blue, #1E5AA8);
+            color: var(--arch-blue, #1E5AA8);
         }
 
         .contact-btn-portal {
@@ -291,21 +303,21 @@
             gap: 0.5rem;
             width: 100%;
             padding: 0.78rem 1.2rem;
-            background: linear-gradient(135deg, var(--btn-gradient-start, #1F4224), var(--btn-gradient-end, #2A5630));
-            color: var(--btn-text-color, #FAF8F4);
+            background: linear-gradient(135deg, var(--btn-gradient-start, #1A6B3C), var(--btn-gradient-end, #247F4B));
+            color: var(--btn-text-color, #F8FAFC);
             border-radius: var(--radius-sm, 6px);
             font-weight: 600;
             font-size: 0.9rem;
             text-decoration: none;
             transition: background 0.2s ease, transform 0.2s ease;
-            border: 1px solid var(--arch-accent, #1F4224);
-            box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04));
+            border: 1px solid var(--arch-accent, #1A6B3C);
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(18, 21, 24, 0.04));
         }
 
         .contact-btn-portal:hover {
-            background: linear-gradient(135deg, var(--btn-gradient-hover-start, #2A5630), var(--btn-gradient-hover-end, #34693B));
+            background: linear-gradient(135deg, var(--btn-gradient-hover-start, #155731), var(--btn-gradient-hover-end, #1E6B3E));
             transform: translateY(-1px);
-            color: var(--btn-text-color, #FAF8F4);
+            color: var(--btn-text-color, #F8FAFC);
         }
 
         .contact-meta-badge {
@@ -313,14 +325,14 @@
             align-items: center;
             gap: 0.5rem;
             font-size: 0.85rem;
-            color: var(--arch-ink-muted, #525954);
+            color: var(--arch-ink-muted, #555E68);
             margin-top: 0.35rem;
         }
 
         /* Right Column: Form Card */
         .contact-form-card {
             background: var(--arch-surface, #FFFFFF);
-            border: 1px solid var(--arch-border, #E2DDD3);
+            border: 1px solid var(--arch-border, #E3E6EA);
             border-radius: var(--radius-sm, 6px);
             padding: 2.5rem 2.35rem;
             box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04));
@@ -381,10 +393,10 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             font-size: 16px; /* Prevents auto-zoom on iOS */
             padding: 0.82rem 0.95rem;
-            border: 1px solid var(--arch-border-strong, #C9C2B5);
+            border: 1px solid var(--arch-border-strong, #C8CDD4);
             border-radius: var(--radius-sm, 6px);
-            background: var(--arch-surface-subtle, #F2EFE9);
-            color: var(--arch-ink, #141815);
+            background: var(--arch-surface-subtle, #EEF0F3);
+            color: var(--arch-ink, #121518);
             line-height: 1.5;
             transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
             box-sizing: border-box;
@@ -396,16 +408,16 @@
         .contact-field-group textarea:focus {
             outline: none;
             background: var(--arch-surface, #FFFFFF);
-            border-color: var(--arch-accent, #1F4224);
-            box-shadow: 0 0 0 3px rgba(184, 149, 53, 0.22);
+            border-color: var(--arch-accent, #1A6B3C);
+            box-shadow: 0 0 0 3px var(--arch-blue-subtle, rgba(30, 90, 168, 0.2));
         }
 
         .contact-field-group input:user-invalid,
         .contact-field-group select:user-invalid,
         .contact-field-group textarea:user-invalid,
         .contact-field-group [aria-invalid="true"] {
-            border-color: var(--baluch-red, #DC143C);
-            box-shadow: 0 0 0 3px rgba(220, 20, 60, 0.14);
+            border-color: var(--arch-red, #B4232C);
+            box-shadow: 0 0 0 3px var(--arch-red-subtle, rgba(180, 35, 44, 0.14));
         }
 
         .contact-field-group textarea {
@@ -422,23 +434,18 @@
             padding: 0.9rem 1.65rem;
             font-size: 0.98rem;
             font-weight: 600;
-            color: var(--btn-text-color, #FAF8F4);
-            background: linear-gradient(135deg, var(--btn-gradient-start, #1F4224), var(--btn-gradient-end, #2A5630));
-            border: 1px solid var(--arch-accent, #1F4224);
+            color: var(--btn-text-color, #F8FAFC);
+            background: linear-gradient(135deg, var(--btn-gradient-start, #1A6B3C), var(--btn-gradient-end, #247F4B));
+            border: 1px solid var(--arch-accent, #1A6B3C);
             border-radius: var(--radius-sm, 6px);
             cursor: pointer;
             transition: background 0.2s ease, transform 0.2s ease;
-            box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04));
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(18, 21, 24, 0.04));
         }
 
         .contact-submit-btn:hover:not(:disabled) {
-            background: linear-gradient(135deg, var(--btn-gradient-hover-start, #2A5630), var(--btn-gradient-hover-end, #34693B));
+            background: linear-gradient(135deg, var(--btn-gradient-hover-start, #155731), var(--btn-gradient-hover-end, #1E6B3E));
             transform: translateY(-1px);
-        }
-
-        .contact-submit-btn:disabled {
-            opacity: 0.72;
-            cursor: wait;
         }
 
         .contact-submit-notice {
@@ -447,15 +454,15 @@
             border-radius: var(--radius-sm, 6px);
             font-size: 0.9rem;
             line-height: 1.55;
-            border: 1px solid var(--arch-gold, #B89535);
-            background: var(--arch-gold-subtle, #F7F2E2);
-            color: var(--arch-ink, #141815);
+            border: 1px solid var(--arch-blue, #1E5AA8);
+            background: var(--arch-blue-subtle, rgba(30, 90, 168, 0.08));
+            color: var(--arch-ink, #121518);
         }
 
         .contact-submit-notice.error {
-            border-color: var(--baluch-red, #DC143C);
-            background: rgba(220, 20, 60, 0.08);
-            color: var(--arch-ink, #141815);
+            border-color: var(--arch-red, #B4232C);
+            background: var(--arch-red-subtle, rgba(180, 35, 44, 0.08));
+            color: var(--arch-ink, #121518);
         }
 
         .contact-notice-actions {
@@ -830,7 +837,7 @@
         </div>
     </footer>
 
-    <script src="js/main.js?v=20261116g"></script>
+    <script src="js/main.js?v=20261116h"></script>
 
     <!-- Interactive Form & Copy Logic -->
     <script>
