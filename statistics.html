@@ -18,7 +18,7 @@
     <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
     <link rel="modulepreload" href="js/firebase-config.js?v=20261116d">
 
-    <link rel="stylesheet" href="css/styles.css?v=20261116h">
+    <link rel="stylesheet" href="css/styles.css?v=20261116i">
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -43,14 +43,14 @@
         }
 
         /* ============================================
-           1. DEEP COASTAL-MIDNIGHT ARCHITECTURAL HEADER
+           1. DEEP OLIVE ARCHITECTURAL HEADER
            ============================================ */
         .stats-hero {
-            background: var(--arch-hero-bg, #101A22);
-            color: var(--arch-hero-ink, #F8FAFC);
+            background: var(--arch-hero-bg, #404E3B);
+            color: var(--arch-hero-ink, #F7F8F6);
             padding: 2.5rem 0 2rem;
             position: relative;
-            border-bottom: 1px solid var(--arch-hero-border, #252A32);
+            border-bottom: 1px solid var(--arch-hero-border, #55664E);
         }
 
         .stats-hero .container {
@@ -89,19 +89,19 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.1em;
-            color: var(--arch-hero-muted, #A6B1BE);
+            color: var(--arch-hero-muted, #D5DDD1);
         }
 
         .status-dot {
             width: 6px;
             height: 6px;
             border-radius: 50%;
-            background: #52B77A;
+            background: #BAC8B1;
             flex-shrink: 0;
         }
 
         .status-dot.loading {
-            background: #E35D66;
+            background: #DE7A7E;
             animation: gentleFade 1.5s ease-in-out infinite;
         }
 
@@ -117,12 +117,12 @@
             margin: 0 0 0.45rem;
             letter-spacing: -0.02em;
             line-height: 1.15;
-            color: var(--arch-hero-ink, #F8FAFC);
+            color: var(--arch-hero-ink, #F7F8F6);
         }
 
         .stats-hero p {
             font-size: 0.98rem;
-            color: var(--arch-hero-muted, #A6B1BE);
+            color: var(--arch-hero-muted, #D5DDD1);
             margin: 0;
             line-height: 1.58;
             max-width: 580px;
@@ -158,27 +158,42 @@
         }
 
         .hero-action-btn.primary {
-            background: linear-gradient(135deg, var(--btn-gradient-start, #1A6B3C), var(--btn-gradient-end, #247F4B));
-            color: var(--btn-text-color, #F8FAFC);
-            border-color: rgba(82, 183, 122, 0.45);
-            box-shadow: var(--elev-hairline, 0 1px 2px rgba(18, 21, 24, 0.04));
+            background: #F4F5F3;
+            color: #253022;
+            border-color: #BAC8B1;
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(27, 33, 25, 0.08));
         }
 
         .hero-action-btn.primary:hover {
-            background: linear-gradient(135deg, var(--btn-gradient-hover-start, #155731), var(--btn-gradient-hover-end, #1E6B3E));
-            color: var(--btn-text-color, #F8FAFC);
+            background: #FFFFFF;
+            border-color: #FFFFFF;
+            color: #1B2119;
             transform: translateY(-1px);
         }
 
+        html[data-theme="dark"] .hero-action-btn.primary,
+        [data-theme="dark"] .hero-action-btn.primary {
+            background: #404E3B;
+            color: #EEF1EC;
+            border-color: #7B9669;
+        }
+
+        html[data-theme="dark"] .hero-action-btn.primary:hover,
+        [data-theme="dark"] .hero-action-btn.primary:hover {
+            background: #4E5F48;
+            border-color: #BAC8B1;
+            color: #FFFFFF;
+        }
+
         .hero-action-btn.secondary {
-            background: var(--arch-hero-surface, #15222D);
-            color: var(--arch-hero-ink, #F8FAFC);
-            border-color: #2F3B47;
+            background: var(--arch-hero-surface, #344030);
+            color: var(--arch-hero-ink, #F7F8F6);
+            border-color: rgba(186, 200, 177, 0.42);
         }
 
         .hero-action-btn.secondary:hover {
-            background: #1C2B38;
-            border-color: #64A2EC;
+            background: rgba(186, 200, 177, 0.16);
+            border-color: #BAC8B1;
             color: #FFFFFF;
         }
 
@@ -490,7 +505,7 @@
 
         html[data-theme="dark"] .kpi-insight-btn:hover,
         [data-theme="dark"] .kpi-insight-btn:hover {
-            background: var(--arch-paper, #0D0F12);
+            background: var(--arch-paper, #0F120E);
         }
 
         .kpi-mini-progress {
@@ -504,7 +519,7 @@
 
         .kpi-mini-progress-fill {
             height: 100%;
-            background: var(--arch-accent, #1A6B3C);
+            background: var(--arch-accent-fill, #7B9669);
             border-radius: var(--radius-pill, 999px);
             width: 0%;
             transition: width 0.5s ease;
@@ -888,19 +903,19 @@
 
         html[data-theme="dark"] .year-card-btn:hover,
         [data-theme="dark"] .year-card-btn:hover {
-            background: var(--arch-paper, #0D0F12);
+            background: var(--arch-paper, #0F120E);
         }
 
         .year-card-btn.is-peak {
-            border-color: rgba(180, 35, 44, 0.42);
-            background: var(--arch-red-subtle, rgba(180, 35, 44, 0.08));
+            border-color: rgba(158, 47, 52, 0.42);
+            background: var(--arch-red-subtle, rgba(158, 47, 52, 0.08));
         }
 
         .year-card-btn.is-active {
-            background: linear-gradient(135deg, var(--btn-gradient-start, #1A6B3C), var(--btn-gradient-end, #247F4B)) !important;
-            border-color: var(--arch-accent, #1A6B3C) !important;
-            color: var(--btn-text-color, #F8FAFC) !important;
-            box-shadow: var(--elev-hairline, 0 1px 2px rgba(18, 21, 24, 0.04));
+            background: linear-gradient(135deg, var(--btn-gradient-start, #404E3B), var(--btn-gradient-end, #4E5F48)) !important;
+            border-color: var(--arch-accent, #404E3B) !important;
+            color: var(--btn-text-color, #F7F8F6) !important;
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(27, 33, 25, 0.05));
         }
 
         .year-card-yr {
@@ -948,12 +963,12 @@
             bottom: 0;
             left: 0;
             height: 3px;
-            background: var(--arch-accent, #1A6B3C);
+            background: var(--arch-accent-fill, #7B9669);
             transition: width 0.3s ease;
         }
 
         .year-card-btn.is-peak .year-card-bar {
-            background: var(--arch-red, #B4232C);
+            background: var(--arch-red, #9E2F34);
         }
 
         .year-card-btn.is-active .year-card-bar {
@@ -1014,11 +1029,11 @@
         }
 
         .bar-item:hover {
-            background: var(--arch-surface-subtle, #EEF0F3);
+            background: var(--arch-surface-subtle, #E6E6E6);
         }
 
         .bar-item.is-selected {
-            background: var(--arch-blue-subtle, rgba(30, 90, 168, 0.08));
+            background: var(--arch-blue-subtle, rgba(108, 132, 128, 0.14));
             border-bottom-color: transparent;
         }
 
@@ -1030,11 +1045,11 @@
             width: 24px;
             height: 24px;
             border-radius: var(--radius-sm, 6px);
-            background: var(--arch-surface-subtle, #EEF0F3);
-            border: 1px solid var(--arch-border, #E3E6EA);
+            background: var(--arch-surface-subtle, #E6E6E6);
+            border: 1px solid var(--arch-border, #D5D9D2);
             font-size: 0.73rem;
             font-weight: 700;
-            color: var(--arch-ink-muted, #555E68);
+            color: var(--arch-ink-muted, #525C4E);
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -1043,15 +1058,15 @@
         }
 
         .bar-item:nth-child(-n+3) .bar-rank {
-            background: var(--arch-accent-subtle, rgba(26, 107, 60, 0.08));
-            border-color: rgba(26, 107, 60, 0.3);
-            color: var(--arch-accent, #1A6B3C);
+            background: var(--arch-accent-subtle, rgba(186, 200, 177, 0.28));
+            border-color: rgba(64, 78, 59, 0.28);
+            color: var(--arch-accent, #404E3B);
         }
 
         #regionsList .bar-item:nth-child(-n+3) .bar-rank {
-            background: var(--arch-blue-subtle, rgba(30, 90, 168, 0.08));
-            border-color: rgba(30, 90, 168, 0.3);
-            color: var(--arch-blue, #1E5AA8);
+            background: var(--arch-blue-subtle, rgba(108, 132, 128, 0.14));
+            border-color: rgba(108, 132, 128, 0.34);
+            color: var(--arch-blue, #455E5A);
         }
 
         .bar-info {
@@ -1069,7 +1084,7 @@
         .bar-label {
             font-size: 0.88rem;
             font-weight: 600;
-            color: var(--arch-ink, #121518);
+            color: var(--arch-ink, #1B2119);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -1077,7 +1092,7 @@
 
         .bar-track {
             height: 5px;
-            background: var(--arch-surface-subtle, #EEF0F3);
+            background: var(--arch-surface-subtle, #E6E6E6);
             border-radius: var(--radius-pill, 999px);
             margin-top: 0.35rem;
             overflow: hidden;
@@ -1085,32 +1100,32 @@
 
         .bar-fill {
             height: 100%;
-            background: var(--arch-accent, #1A6B3C);
+            background: var(--arch-accent-fill, #7B9669);
             border-radius: var(--radius-pill, 999px);
             transition: width 0.45s ease;
         }
 
         #regionsList .bar-fill {
-            background: var(--arch-blue, #1E5AA8);
+            background: var(--arch-blue-fill, #6C8480);
         }
 
         .bar-value {
             font-size: 0.82rem;
             font-weight: 700;
-            color: var(--arch-accent, #1A6B3C);
+            color: var(--arch-accent, #404E3B);
             white-space: nowrap;
             text-align: right;
             font-variant-numeric: tabular-nums;
         }
 
         #regionsList .bar-value {
-            color: var(--arch-blue, #1E5AA8);
+            color: var(--arch-blue, #455E5A);
         }
 
         .bar-pct {
             font-size: 0.73rem;
             font-weight: 500;
-            color: var(--arch-ink-muted, #555E68);
+            color: var(--arch-ink-muted, #525C4E);
             margin-left: 0.2rem;
         }
 
@@ -1118,10 +1133,10 @@
             width: 100%;
             margin-top: 0.85rem;
             padding: 0.5rem 0.75rem;
-            background: var(--arch-surface-subtle, #EEF0F3);
-            border: 1px solid var(--arch-border, #E3E6EA);
+            background: var(--arch-surface-subtle, #E6E6E6);
+            border: 1px solid var(--arch-border, #D5D9D2);
             border-radius: var(--radius-sm, 6px);
-            color: var(--arch-ink, #121518);
+            color: var(--arch-ink, #1B2119);
             font-size: 0.8rem;
             font-weight: 600;
             cursor: pointer;
@@ -1130,8 +1145,8 @@
         }
 
         .leaderboard-toggle-btn:hover {
-            border-color: var(--arch-accent, #1A6B3C);
-            color: var(--arch-accent, #1A6B3C);
+            border-color: var(--arch-accent, #404E3B);
+            color: var(--arch-accent, #404E3B);
         }
 
         .section-badge-pill {
@@ -2063,9 +2078,9 @@
         window.dispatchEvent(new Event('firebaseReady'));
     </script>
     
-    <script src="js/main.js?v=20261116h"></script>
+    <script src="js/main.js?v=20261116i"></script>
     <script src="js/mobile-menu.js?v=20261020c"></script>
-    <script src="js/statistics.js?v=20261116h"></script>
+    <script src="js/statistics.js?v=20261116i"></script>
     <!-- Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav">
         <div class="bottom-nav-inner">

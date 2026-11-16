@@ -1140,19 +1140,20 @@
         const readVar = (name, fallback) => (cs.getPropertyValue(name) || '').trim() || fallback;
         return {
             isDark,
-            surface: readVar('--arch-surface', isDark ? '#15181D' : '#FFFFFF'),
-            ink: readVar('--arch-ink', isDark ? '#F1F3F5' : '#121518'),
-            inkMuted: readVar('--arch-ink-muted', isDark ? '#98A1AD' : '#555E68'),
-            borderStrong: readVar('--arch-border-strong', isDark ? '#353C47' : '#C8CDD4'),
-            accent: readVar('--arch-accent', isDark ? '#52B77A' : '#1A6B3C'),
-            accentHover: readVar('--arch-accent-hover', isDark ? '#67C68D' : '#155731'),
-            blue: readVar('--arch-blue', isDark ? '#64A2EC' : '#1E5AA8'),
-            red: readVar('--arch-red', isDark ? '#E35D66' : '#B4232C'),
-            accentSoft: isDark ? 'rgba(82, 183, 122, 0.85)' : 'rgba(26, 107, 60, 0.85)',
-            accentDim: isDark ? 'rgba(82, 183, 122, 0.22)' : 'rgba(26, 107, 60, 0.20)',
-            blueAreaTop: isDark ? 'rgba(100, 162, 236, 0.28)' : 'rgba(30, 90, 168, 0.22)',
-            blueAreaBottom: isDark ? 'rgba(100, 162, 236, 0.02)' : 'rgba(30, 90, 168, 0.02)',
-            grid: isDark ? 'rgba(241, 243, 245, 0.08)' : 'rgba(18, 21, 24, 0.08)'
+            surface: readVar('--arch-surface', isDark ? '#171C16' : '#FFFFFF'),
+            ink: readVar('--arch-ink', isDark ? '#EEF1EC' : '#1B2119'),
+            inkMuted: readVar('--arch-ink-muted', isDark ? '#9FA99C' : '#525C4E'),
+            borderStrong: readVar('--arch-border-strong', isDark ? '#3E4B3A' : '#BAC8B1'),
+            accent: readVar('--arch-accent', isDark ? '#A5BC94' : '#404E3B'),
+            accentHover: readVar('--arch-accent-hover', isDark ? '#BAC8B1' : '#2E3A2B'),
+            blue: readVar('--arch-blue', isDark ? '#90ABA7' : '#455E5A'),
+            blueFill: readVar('--arch-blue-fill', '#6C8480'),
+            red: readVar('--arch-red', isDark ? '#DE7A7E' : '#9E2F34'),
+            accentSoft: isDark ? 'rgba(123, 150, 105, 0.88)' : 'rgba(123, 150, 105, 0.90)',
+            accentDim: isDark ? 'rgba(123, 150, 105, 0.24)' : 'rgba(186, 200, 177, 0.55)',
+            blueAreaTop: isDark ? 'rgba(108, 132, 128, 0.34)' : 'rgba(108, 132, 128, 0.26)',
+            blueAreaBottom: isDark ? 'rgba(108, 132, 128, 0.03)' : 'rgba(108, 132, 128, 0.02)',
+            grid: isDark ? 'rgba(238, 241, 236, 0.08)' : 'rgba(27, 33, 25, 0.08)'
         };
     }
 
@@ -1182,7 +1183,7 @@
         const gridColor = pal.grid;
         const textColor = pal.inkMuted;
 
-        // Highlight selected year bar in Deep Crimson
+        // Highlight selected year bar in Deep Brick Crimson
         const bgColors = yearsList.map(y => {
             if (activeStatsFilter.year !== null) {
                 return y === activeStatsFilter.year ? pal.red : pal.accentDim;

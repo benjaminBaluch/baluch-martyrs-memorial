@@ -12,11 +12,11 @@
         particleSize: { min: 0.02, max: 0.08 },
         particleSpeed: { min: 0.002, max: 0.008 },
         colors: [
-            0x52B77A, // Cypress Green (accent color)
-            0xffffff, // White
-            0x64A2EC, // Makran Blue
-            0xe2e8f0, // Slate white
-            0xE35D66  // Deep Crimson accent
+            0x7B9669, // Olive Moss (accent color)
+            0xE6E6E6, // Soft Stone
+            0x6C8480, // Eucalyptus Slate
+            0xBAC8B1, // Pale Sage
+            0xffffff  // Pure White
         ],
         fadeInDuration: 2000,
         mouseInfluence: 0.0003

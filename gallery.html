@@ -26,7 +26,7 @@
     <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
     <link rel="modulepreload" href="js/firebase-config.js?v=20261116d">
     
-    <link rel="stylesheet" href="css/styles.css?v=20261116h">
+    <link rel="stylesheet" href="css/styles.css?v=20261116i">
 
     <style>
         /* ========================================================
@@ -34,9 +34,9 @@
            ======================================================== */
         .gallery-grid .martyr-card {
             background: var(--arch-surface, #FFFFFF);
-            border: 1px solid var(--arch-border, #E3E6EA);
+            border: 1px solid var(--arch-border, #D5D9D2);
             border-radius: var(--radius-sm, 6px);
-            box-shadow: var(--elev-hairline, 0 1px 2px rgba(18, 21, 24, 0.04));
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(27, 33, 25, 0.05));
             transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.2s ease;
             cursor: pointer;
             outline: none;
@@ -52,26 +52,26 @@
 
         .gallery-grid .martyr-card:hover {
             transform: translateY(-2px);
-            box-shadow: var(--elev-hover, 0 8px 20px rgba(18, 21, 24, 0.08));
-            border-color: var(--arch-border-strong, #C8CDD4);
+            box-shadow: var(--elev-hover, 0 8px 20px rgba(27, 33, 25, 0.09));
+            border-color: var(--arch-border-strong, #BAC8B1);
         }
 
         .gallery-grid .martyr-card:focus-visible {
-            box-shadow: 0 0 0 3px var(--arch-blue-subtle, rgba(30, 90, 168, 0.28));
-            border-color: var(--arch-blue, #1E5AA8);
+            box-shadow: 0 0 0 3px var(--arch-accent-subtle, rgba(186, 200, 177, 0.35));
+            border-color: var(--arch-accent, #404E3B);
         }
 
         /* Dark Mode Obsidian Plate */
         html[data-theme="dark"] .gallery-grid .martyr-card,
         [data-theme="dark"] .gallery-grid .martyr-card {
-            background: var(--arch-surface, #15181D) !important;
-            border: 1px solid var(--arch-border, #252A32) !important;
+            background: var(--arch-surface, #171C16) !important;
+            border: 1px solid var(--arch-border, #2B3429) !important;
             box-shadow: var(--elev-hairline) !important;
         }
 
         html[data-theme="dark"] .gallery-grid .martyr-card:hover,
         [data-theme="dark"] .gallery-grid .martyr-card:hover {
-            border-color: var(--arch-border-strong, #353C47) !important;
+            border-color: var(--arch-border-strong, #3E4B3A) !important;
             box-shadow: var(--elev-hover) !important;
             transform: translateY(-2px);
         }
@@ -85,12 +85,12 @@
             gap: 0.5rem;
             width: 100%;
             height: 230px;
-            background: var(--arch-surface-subtle, #EEF0F3);
-            color: var(--arch-ink-muted, #555E68);
+            background: var(--arch-surface-subtle, #E6E6E6);
+            color: var(--arch-ink-muted, #525C4E);
         }
 
         .gallery-grid .placeholder-crest-svg {
-            color: var(--arch-ink-muted, #555E68);
+            color: var(--arch-ink-muted, #525C4E);
             opacity: 0.75;
         }
 
@@ -141,32 +141,32 @@
 
         html[data-theme="dark"] .gallery-grid .martyr-meta,
         [data-theme="dark"] .gallery-grid .martyr-meta {
-            color: var(--arch-ink-muted, #98A1AD) !important;
+            color: var(--arch-ink-muted, #9FA99C) !important;
         }
 
         .gallery-grid .martyr-meta-icon {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            color: var(--arch-accent, #1A6B3C);
+            color: var(--arch-accent, #404E3B);
             flex-shrink: 0;
         }
 
         html[data-theme="dark"] .gallery-grid .martyr-meta-icon,
         [data-theme="dark"] .gallery-grid .martyr-meta-icon {
-            color: var(--arch-accent, #52B77A) !important;
+            color: var(--arch-accent, #A5BC94) !important;
         }
 
-        /* Organization Tag — Makran Cobalt subtle archival tag */
+        /* Organization Tag — Eucalyptus Slate subtle archival tag */
         .martyr-org-pill {
             display: inline-flex;
             align-items: center;
             gap: 0.35rem;
             padding: 0.22rem 0.6rem;
             border-radius: var(--radius-pill, 999px);
-            background: var(--arch-blue-subtle, rgba(30, 90, 168, 0.08));
-            border: 1px solid rgba(30, 90, 168, 0.22);
-            color: var(--arch-blue, #1E5AA8);
+            background: var(--arch-blue-subtle, rgba(108, 132, 128, 0.14));
+            border: 1px solid rgba(108, 132, 128, 0.3);
+            color: var(--arch-blue, #455E5A);
             font-size: 0.74rem;
             font-weight: 600;
             margin-top: 0.55rem;
@@ -176,9 +176,9 @@
         html[data-theme="dark"] .gallery-grid .martyr-org-pill,
         html[data-theme="dark"] .martyr-org-pill,
         [data-theme="dark"] .martyr-org-pill {
-            background: var(--arch-blue-subtle, rgba(100, 162, 236, 0.14)) !important;
-            border-color: rgba(100, 162, 236, 0.32) !important;
-            color: var(--arch-blue, #64A2EC) !important;
+            background: var(--arch-blue-subtle, rgba(108, 132, 128, 0.18)) !important;
+            border-color: rgba(144, 171, 167, 0.35) !important;
+            color: var(--arch-blue, #90ABA7) !important;
         }
 
         /* Card Button (Affordance) */
@@ -189,9 +189,9 @@
             padding: 0.44rem 0.9rem;
             font-size: 0.82rem;
             font-weight: 600;
-            border: 1px solid var(--arch-border-strong, #C8CDD4);
+            border: 1px solid var(--arch-border-strong, #BAC8B1);
             background: transparent;
-            color: var(--arch-ink, #121518);
+            color: var(--arch-ink, #1B2119);
             display: inline-flex;
             align-items: center;
             gap: 0.42rem;
@@ -204,23 +204,23 @@
         }
 
         .gallery-grid .martyr-card:hover .martyr-card-button {
-            background: var(--arch-accent, #1A6B3C);
-            color: #F8FAFC;
-            border-color: var(--arch-accent, #1A6B3C);
+            background: var(--arch-accent, #404E3B);
+            color: #F7F8F6;
+            border-color: var(--arch-accent, #404E3B);
         }
 
         html[data-theme="dark"] .gallery-grid .martyr-card-button,
         [data-theme="dark"] .gallery-grid .martyr-card-button {
             background: transparent !important;
-            border-color: var(--arch-border-strong, #353C47) !important;
-            color: var(--arch-ink, #F1F3F5) !important;
+            border-color: var(--arch-border-strong, #3E4B3A) !important;
+            color: var(--arch-ink, #EEF1EC) !important;
         }
 
         html[data-theme="dark"] .gallery-grid .martyr-card:hover .martyr-card-button,
         [data-theme="dark"] .gallery-grid .martyr-card:hover .martyr-card-button {
-            background: var(--arch-accent, #52B77A) !important;
-            color: #0D0F12 !important;
-            border-color: var(--arch-accent, #52B77A) !important;
+            background: var(--arch-accent, #A5BC94) !important;
+            color: #141912 !important;
+            border-color: var(--arch-accent, #A5BC94) !important;
         }
 
         /* ========================================================
@@ -376,7 +376,7 @@
         .martyr-voice-btn:focus-visible,
         .martyr-header-share-btn:focus-visible,
         .close-martyr-modal:focus-visible {
-            outline: 3px solid #64A2EC;
+            outline: 3px solid #BAC8B1;
             outline-offset: 2px;
         }
 
@@ -725,20 +725,20 @@
         html[data-theme="dark"] .martyr-share-pill-btn:hover,
         [data-theme="dark"] .martyr-share-pill-btn:hover {
             background: rgba(51, 65, 85, 0.95);
-            border-color: rgba(100, 162, 236, 0.55);
+            border-color: rgba(186, 200, 177, 0.6);
         }
 
         html[data-theme="dark"] .martyr-share-pill-btn.martyr-share-native-btn,
         [data-theme="dark"] .martyr-share-pill-btn.martyr-share-native-btn {
-            background: #2c5530;
-            border-color: #3f7a45;
-            color: #ffffff;
+            background: #404E3B;
+            border-color: #7B9669;
+            color: #EEF1EC;
         }
 
         html[data-theme="dark"] .martyr-share-pill-btn.copied,
         [data-theme="dark"] .martyr-share-pill-btn.copied {
-            background: #166534;
-            border-color: #22c55e;
+            background: #3B5237;
+            border-color: #BAC8B1;
             color: #ffffff;
         }
 
@@ -759,7 +759,7 @@
 
         .martyr-share-pill-btn:focus-visible,
         .martyr-share-row-modal .martyr-share-icon:focus-visible {
-            outline: 3px solid #64A2EC;
+            outline: 3px solid #BAC8B1;
             outline-offset: 2px;
         }
 
@@ -772,9 +772,9 @@
             max-width: min(92vw, 440px);
             padding: 0.65rem 1.05rem;
             border-radius: 999px;
-            background: #101A22;
-            color: #f8fafc;
-            border: 1px solid rgba(148, 163, 184, 0.28);
+            background: #1B2319;
+            color: #EEF1EC;
+            border: 1px solid rgba(186, 200, 177, 0.35);
             box-shadow: 0 12px 30px rgba(0, 0, 0, 0.32);
             font-size: 0.88rem;
             font-weight: 600;
@@ -790,9 +790,9 @@
         }
 
         .gallery-toast.warning {
-            background: #7F1D1D;
-            border-color: rgba(227, 93, 102, 0.55);
-            color: #FEE2E2;
+            background: #5C1D20;
+            border-color: rgba(222, 122, 126, 0.55);
+            color: #FDE8E9;
         }
 
         html[data-theme="dark"] .martyr-modal-section-box,
@@ -1347,9 +1347,9 @@
     </script>
     
     <!-- Load main scripts; gallery.js renders immediately from Instant Cache and syncs live with Firebase -->
-    <script src="js/main.js?v=20261116h"></script>
+    <script src="js/main.js?v=20261116i"></script>
     <script src="js/mobile-menu.js?v=20261020c"></script>
-    <script src="js/gallery.js?v=20261116h"></script>
+    <script src="js/gallery.js?v=20261116i"></script>
 
     <!-- Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav">

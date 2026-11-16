@@ -1507,7 +1507,7 @@ function printMartyrProfile(martyr) {
     width: 100%;
     height: 250px;
     border-radius: 10px;
-    border: 3px solid #1A6B3C;
+    border: 3px solid #404E3B;
     object-fit: cover;
     display: block;
     background: #f8fafc;
@@ -1516,7 +1516,7 @@ function printMartyrProfile(martyr) {
     width: 100%;
     height: 250px;
     border-radius: 10px;
-    border: 3px solid #1A6B3C;
+    border: 3px solid #404E3B;
     display: flex;
     align-items: center;
     justify-content: center;
