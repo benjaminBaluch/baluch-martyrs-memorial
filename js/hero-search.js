@@ -331,7 +331,7 @@
             if (matches.length === 0) {
                 resultsList.innerHTML = `
                     <div class="hero-search-no-results">
-                        <div class="hero-search-no-icon">🕊️</div>
+                        <div class="hero-search-no-icon" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></div>
                         <div class="hero-search-no-title">No documented martyrs found matching "${escapeHtml(query)}"</div>
                         <p class="hero-search-no-sub">Try searching by district (e.g. Kohlu, Gwadar, Quetta), martyrdom year, or organization.</p>
                         <div class="hero-search-no-actions">
@@ -375,9 +375,9 @@
                     <div class="hero-search-item-info">
                         <div class="hero-search-item-name">${highlightMatch(m.fullName || 'Unknown Martyr', query)}</div>
                         <div class="hero-search-item-meta">
-                            ${place ? `<span class="hero-search-meta-badge">📍 ${escapeHtml(place)}</span>` : ''}
-                            ${year ? `<span class="hero-search-meta-badge">🕊️ ${escapeHtml(year)}</span>` : ''}
-                            ${org ? `<span class="hero-search-meta-badge org">🏳️ ${escapeHtml(org)}</span>` : ''}
+                            ${place ? `<span class="hero-search-meta-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${escapeHtml(place)}</span>` : ''}
+                            ${year ? `<span class="hero-search-meta-badge"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${escapeHtml(year)}</span>` : ''}
+                            ${org ? `<span class="hero-search-meta-badge org"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> ${escapeHtml(org)}</span>` : ''}
                         </div>
                     </div>
                     <div class="hero-search-item-action">

@@ -202,6 +202,13 @@
 // Theme management
 const THEME_STORAGE_KEY = 'bmm_theme_v1';
 
+function getThemeToggleSvg(mode) {
+    if (mode === 'dark') {
+        return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>';
+    }
+    return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+}
+
 function applyTheme(theme) {
     const root = document.documentElement;
     const mode = theme === 'dark' ? 'dark' : 'light';
@@ -213,14 +220,12 @@ function applyTheme(theme) {
         // Non-critical; safe to ignore
     }
 
-    // Update toggle button labels/icons
+    // Update toggle button monochrome SVG icons and accessible labels
     const toggles = document.querySelectorAll('[data-theme-toggle]');
     toggles.forEach((btn) => {
-        if (mode === 'dark') {
-            btn.textContent = '☀️';
-        } else {
-            btn.textContent = '🌙';
-        }
+        btn.innerHTML = getThemeToggleSvg(mode);
+        btn.setAttribute('aria-pressed', mode === 'dark' ? 'true' : 'false');
+        btn.setAttribute('aria-label', mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
     });
 }
 
@@ -251,7 +256,7 @@ function initTheme() {
             quickBtn.className = 'theme-toggle mobile-theme-quick-btn';
             quickBtn.setAttribute('data-theme-toggle', '');
             quickBtn.setAttribute('aria-label', 'Toggle dark mode');
-            quickBtn.textContent = '🌙';
+            quickBtn.innerHTML = getThemeToggleSvg(initial);
             navContainer.insertBefore(quickBtn, hamburger);
         }
     } catch (e) {
@@ -901,22 +906,16 @@ function createMartyrCard(martyr, list) {
     const cardInner = document.createElement('div');
     cardInner.className = 'martyr-card-inner';
 
-    // Photo wrapper with overlay
+    // Photo wrapper with overlay (keep portraits unobstructed without floating corner badges)
     const photoWrapper = document.createElement('div');
     photoWrapper.className = 'martyr-photo-wrapper';
 
     const photoOverlay = document.createElement('div');
     photoOverlay.className = 'martyr-photo-overlay';
 
-    // Floating year badge if date is recorded
     const rawMartyrdomDate = martyr.martyrdomDate || martyr.dateOfMartyrdom || martyr.martyrdom_date || martyr.martyrdomYear || martyr.year;
     const martyrdomYear = rawMartyrdomDate ? getYearMain(rawMartyrdomDate) : '';
-    if (martyrdomYear) {
-        const yearBadge = document.createElement('span');
-        yearBadge.className = 'martyr-year-badge';
-        yearBadge.textContent = martyrdomYear;
-        photoWrapper.appendChild(yearBadge);
-    }
+    const birthYear = martyr.birthDate ? getYearMain(martyr.birthDate) : '';
 
     const photoSrc = getMartyrPhotoSrcMain(martyr);
     if (photoSrc) {
@@ -971,6 +970,15 @@ function createMartyrCard(martyr, list) {
     // Information section
     const infoDiv = document.createElement('div');
     infoDiv.className = 'martyr-info';
+
+    // Editorial year/archive kicker above name
+    const kicker = document.createElement('div');
+    kicker.className = 'martyr-kicker';
+    const yearSpan = birthYear && martyrdomYear && birthYear !== martyrdomYear
+        ? `${birthYear} \u2014 ${martyrdomYear}`
+        : (martyrdomYear || 'Archived Record');
+    kicker.textContent = yearSpan;
+    infoDiv.appendChild(kicker);
 
     // Martyr Name (Crisp Garamond typography)
     const nameRow = document.createElement('div');
@@ -1160,7 +1168,8 @@ function showMartyrDetails(martyr, list) {
                 </div>
                 <div class="martyr-modal-header-actions">
                     <button class="martyr-voice-btn" type="button" aria-label="Listen to biography">
-                        <span aria-hidden="true">🔊</span> Listen
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                        <span>Listen</span>
                     </button>
                     <button class="martyr-header-share-btn" type="button" aria-label="Share profile" title="Share profile">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
@@ -1177,10 +1186,10 @@ function showMartyrDetails(martyr, list) {
             <div class="martyr-modal-photo-col">
                 ${(() => {
                     const photoSrc = getMartyrPhotoSrcMain(martyr);
-                    const safeId = escapeHTMLMain(martyr.id || '');
-                    return photoSrc ? 
-                        `<img src="${photoSrc}" alt="${escapeHTMLMain(martyr.fullName || 'Martyr photo')}" class="martyr-modal-photo" loading="lazy" onerror="this.onerror=null;if(!${Boolean(martyr.photoRemoved)}&&'${safeId}'&&this.src.includes('/assets/photos/')&&window.resolveMartyrPhoto){window.resolveMartyrPhoto('${safeId}',this,()=>{if(this.parentElement)this.parentElement.innerHTML='<div class=\\'martyr-modal-photo-placeholder\\' aria-label=\\'No photo available\\'>📷</div>';});}else{this.parentElement.innerHTML='<div class=\\'martyr-modal-photo-placeholder\\' aria-label=\\'No photo available\\'>📷</div>';}">` :
-                        '<div class="martyr-modal-photo-placeholder" aria-label="No photo available">📷</div>';
+                    const plaqueHtml = '<div class="martyr-modal-photo-placeholder" aria-label="Portrait unavailable"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span>Portrait Archived</span></div>';
+                    return photoSrc
+                        ? `<img src="${escapeHTMLMain(photoSrc)}" alt="${escapeHTMLMain(martyr.fullName || 'Martyr photo')}" class="martyr-modal-photo" loading="lazy">`
+                        : plaqueHtml;
                 })()}
             </div>
             
@@ -1265,8 +1274,23 @@ function showMartyrDetails(martyr, list) {
     `;
     
     const modalImg = content.querySelector('.martyr-modal-photo');
-    if (modalImg && !martyr.photoRemoved && !martyr.photo && !martyr.photoPath && martyr.photoUpdatedAt && martyr.id && typeof window.resolveMartyrPhoto === 'function') {
-        window.resolveMartyrPhoto(martyr.id, modalImg);
+    if (modalImg) {
+        const showModalPlaque = () => {
+            if (modalImg.parentElement) {
+                modalImg.parentElement.innerHTML = '<div class="martyr-modal-photo-placeholder" aria-label="Portrait unavailable"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span>Portrait Archived</span></div>';
+            }
+        };
+        modalImg.addEventListener('error', () => {
+            const currentSrc = modalImg.getAttribute('src') || '';
+            if (!martyr.photoRemoved && martyr.id && currentSrc.includes('/assets/photos/') && typeof window.resolveMartyrPhoto === 'function') {
+                window.resolveMartyrPhoto(martyr.id, modalImg, showModalPlaque);
+            } else {
+                showModalPlaque();
+            }
+        }, { once: true });
+        if (!martyr.photoRemoved && !martyr.photo && !martyr.photoPath && martyr.photoUpdatedAt && martyr.id && typeof window.resolveMartyrPhoto === 'function') {
+            window.resolveMartyrPhoto(martyr.id, modalImg);
+        }
     }
 
     // Add share row
@@ -1629,10 +1653,13 @@ function toggleMartyrSpeechMain(martyr, buttonEl) {
         return;
     }
 
+    const listenSvgHtml = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg><span>Listen</span>';
+    const stopSvgHtml = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1"></rect></svg><span>Stop</span>';
+
     if (window.speechSynthesis.speaking && currentMartyrUtteranceMain) {
         stopMartyrSpeechMain();
         if (buttonEl) {
-            buttonEl.innerHTML = '🔊 Listen';
+            buttonEl.innerHTML = listenSvgHtml;
         }
         return;
     }
@@ -1653,27 +1680,27 @@ function toggleMartyrSpeechMain(martyr, buttonEl) {
         utterance.onend = function() {
             currentMartyrUtteranceMain = null;
             if (buttonEl) {
-                buttonEl.innerHTML = '🔊 Listen';
+                buttonEl.innerHTML = listenSvgHtml;
             }
         };
 
         utterance.onerror = function() {
             currentMartyrUtteranceMain = null;
             if (buttonEl) {
-                buttonEl.innerHTML = '🔊 Listen';
+                buttonEl.innerHTML = listenSvgHtml;
             }
         };
 
         currentMartyrUtteranceMain = utterance;
         if (buttonEl) {
-            buttonEl.innerHTML = '⏹ Stop';
+            buttonEl.innerHTML = stopSvgHtml;
         }
 
         window.speechSynthesis.speak(utterance);
     } catch (e) {
         console.warn('Failed to start martyr speech:', e);
         if (buttonEl) {
-            buttonEl.innerHTML = '🔊 Listen';
+            buttonEl.innerHTML = listenSvgHtml;
         }
     }
 }
@@ -1866,8 +1893,8 @@ function printMartyrProfile(martyr) {
         ${(() => {
             const photoSrc = getMartyrPhotoSrcMain(martyr);
             return photoSrc ? 
-              `<img src="${safe(photoSrc)}" alt="${safe(martyr.fullName)}" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'photo-placeholder\\'>📸</div>';" />` :
-              '<div class="photo-placeholder">📸</div>';
+              `<img src="${safe(photoSrc)}" alt="${safe(martyr.fullName)}" onerror="this.onerror=null;this.parentElement.innerHTML='<div class=\\'photo-placeholder\\'>NO PORTRAIT</div>';" />` :
+              '<div class="photo-placeholder">NO PORTRAIT</div>';
         })()}
       </div>
       <div class="details-box">
@@ -2159,6 +2186,10 @@ function createAnniversaryCard(martyr, list) {
     const imageDiv = document.createElement('div');
     imageDiv.className = 'martyr-image';
     
+    const renderAnniversaryPlaque = (el) => {
+        el.innerHTML = `<div class="martyr-photo-placeholder" style="height:100%;width:100%;"><svg class="placeholder-crest-svg" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="placeholder-text">Memorial Archive</span></div>`;
+    };
+
     const photoSrc = getMartyrPhotoSrcMain(martyr);
     if (photoSrc) {
         const img = document.createElement('img');
@@ -2170,23 +2201,11 @@ function createAnniversaryCard(martyr, list) {
         img.height = 380;
         img.onerror = () => {
             img.remove();
-            imageDiv.style.background = 'linear-gradient(135deg, #2c5530, #4a7c59)';
-            imageDiv.style.display = 'flex';
-            imageDiv.style.alignItems = 'center';
-            imageDiv.style.justifyContent = 'center';
-            imageDiv.style.color = 'white';
-            imageDiv.style.fontSize = '3rem';
-            imageDiv.innerHTML = '🕊️';
+            renderAnniversaryPlaque(imageDiv);
         };
         imageDiv.appendChild(img);
     } else {
-        imageDiv.style.background = 'linear-gradient(135deg, #2c5530, #4a7c59)';
-        imageDiv.style.display = 'flex';
-        imageDiv.style.alignItems = 'center';
-        imageDiv.style.justifyContent = 'center';
-        imageDiv.style.color = 'white';
-        imageDiv.style.fontSize = '3rem';
-        imageDiv.innerHTML = '🕊️';
+        renderAnniversaryPlaque(imageDiv);
     }
     
     // Info section
@@ -2210,7 +2229,7 @@ function createAnniversaryCard(martyr, list) {
     
     const location = document.createElement('p');
     location.className = 'martyr-location';
-    location.textContent = martyr.martyrdomPlace || 'Unknown location';
+    location.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg><span>${escapeHTMLMain(martyr.martyrdomPlace || 'Unknown location')}</span>`;
     
     const anniversary = document.createElement('p');
     anniversary.className = 'anniversary-date';
@@ -2355,7 +2374,7 @@ function showEmptyAnniversarySlider() {
     slider.innerHTML = `
         <div class="slide active">
             <div class="martyr-card anniversary-card">
-                <div class="martyr-image" style="background: linear-gradient(135deg, #ddd, #aaa); display: flex; align-items: center; justify-content: center; font-size: 3rem;">🕊️</div>
+                <div class="martyr-image"><div class="martyr-photo-placeholder" style="height:100%;width:100%;"><svg class="placeholder-crest-svg" viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg><span class="placeholder-text">Memorial Archive</span></div></div>
                 <div class="martyr-info">
                     <h3>No upcoming anniversaries</h3>
                     <p class="martyr-dates">Add martyrs to see their anniversaries</p>

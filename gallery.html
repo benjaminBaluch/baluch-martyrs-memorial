@@ -26,152 +26,134 @@
     <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
     <link rel="modulepreload" href="js/firebase-config.js?v=20261116d">
     
-    <link rel="stylesheet" href="css/styles.css?v=20261020c">
+    <link rel="stylesheet" href="css/styles.css?v=20261116e">
 
     <style>
         /* ========================================================
-           MODERN ARCHIVAL MARTYR CARDS (Statistics-Matching Palette)
+           ARCHIVAL MUSEUM-PLATE MARTYR CARDS (Light Paper / Dark Obsidian)
            ======================================================== */
         .gallery-grid .martyr-card {
-            background: #ffffff;
-            border: 1px solid rgba(44, 85, 48, 0.12);
-            border-top: 3px solid #16a34a;
-            border-radius: 16px;
-            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
-            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+            background: var(--arch-surface, #FFFFFF);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            border-radius: var(--radius-sm, 6px);
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04));
+            transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.2s ease;
             cursor: pointer;
             outline: none;
             overflow: hidden;
             display: flex;
             flex-direction: column;
+        }
+
+        .gallery-grid .martyr-card:nth-child(n + 9) {
             content-visibility: auto;
-            contain-intrinsic-size: auto 380px;
+            contain-intrinsic-size: auto 360px;
         }
 
         .gallery-grid .martyr-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.09);
-            border-color: rgba(44, 85, 48, 0.35);
+            transform: translateY(-2px);
+            box-shadow: var(--elev-hover, 0 8px 20px rgba(20, 24, 21, 0.08));
+            border-color: var(--arch-border-strong, #C9C2B5);
         }
 
         .gallery-grid .martyr-card:focus-visible {
-            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.35);
+            box-shadow: 0 0 0 3px rgba(184, 149, 53, 0.35);
         }
 
-        /* Dark Mode Matching Statistics (#162234 / #26354d) */
+        /* Dark Mode Obsidian Plate */
         html[data-theme="dark"] .gallery-grid .martyr-card,
         [data-theme="dark"] .gallery-grid .martyr-card {
-            background: #162234 !important;
-            border: 1px solid #26354d !important;
-            border-top: 3px solid #22c55e !important;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
+            background: var(--arch-surface, #151A1E) !important;
+            border: 1px solid var(--arch-border, #252E35) !important;
+            box-shadow: var(--elev-hairline) !important;
         }
 
         html[data-theme="dark"] .gallery-grid .martyr-card:hover,
         [data-theme="dark"] .gallery-grid .martyr-card:hover {
-            border-color: rgba(134, 239, 172, 0.45) !important;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55) !important;
-            transform: translateY(-4px);
+            border-color: var(--arch-border-strong, #36434D) !important;
+            box-shadow: var(--elev-hover) !important;
+            transform: translateY(-2px);
         }
 
-        /* Floating Year Pill */
-        .martyr-year-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            padding: 0.25rem 0.65rem;
-            background: rgba(11, 19, 30, 0.78);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            color: #ffffff;
-            border-radius: 999px;
-            font-size: 0.74rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            z-index: 2;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        /* Archival Missing Photo Placeholder */
+        /* Archival Missing Photo Plaque */
         .gallery-grid .martyr-photo-placeholder {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 0.55rem;
+            gap: 0.5rem;
             width: 100%;
-            height: 220px;
-            background: linear-gradient(135deg, #1b3820 0%, #0e2213 100%);
-            color: rgba(220, 252, 231, 0.85);
+            height: 230px;
+            background: var(--arch-surface-subtle, #F2EFE9);
+            color: var(--arch-ink-muted, #525954);
         }
 
         .gallery-grid .placeholder-crest-svg {
-            color: #4ade80;
-            opacity: 0.9;
+            color: var(--arch-ink-muted, #525954);
+            opacity: 0.75;
         }
 
         .gallery-grid .placeholder-text {
-            font-size: 0.74rem;
+            font-size: 0.68rem;
             font-weight: 600;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
-            color: rgba(240, 253, 244, 0.8);
+            color: var(--arch-ink-muted, #525954);
         }
 
         /* Card Content & Typography */
         .gallery-grid .martyr-info {
-            padding: 1.25rem 1.35rem 1.35rem;
+            padding: 1.1rem 1.2rem 1.2rem;
             display: flex;
             flex-direction: column;
             flex: 1;
         }
 
         .gallery-grid .martyr-name-row {
-            margin-bottom: 0.45rem;
+            margin-bottom: 0.4rem;
         }
 
         .gallery-grid .martyr-name {
             font-family: 'EB Garamond', Georgia, serif;
             font-size: 1.28rem;
-            font-weight: 700;
-            color: var(--primary-color, #2c5530);
-            line-height: 1.25;
+            font-weight: 600;
+            color: var(--arch-ink, #141815);
+            line-height: 1.22;
             margin: 0;
             letter-spacing: -0.01em;
         }
 
         html[data-theme="dark"] .gallery-grid .martyr-name,
         [data-theme="dark"] .gallery-grid .martyr-name {
-            color: #f8fafc !important;
+            color: var(--arch-ink, #F1F4F2) !important;
         }
 
         .gallery-grid .martyr-meta {
-            margin: 0.22rem 0;
-            font-size: 0.88rem;
-            color: #475569;
+            margin: 0.2rem 0;
+            font-size: 0.86rem;
+            color: var(--arch-ink-muted, #525954);
             display: flex;
             align-items: center;
             gap: 0.45rem;
-            line-height: 1.5;
+            line-height: 1.45;
         }
 
         html[data-theme="dark"] .gallery-grid .martyr-meta,
         [data-theme="dark"] .gallery-grid .martyr-meta {
-            color: #cbd5e1 !important;
+            color: var(--arch-ink-muted, #9AA5A0) !important;
         }
 
         .gallery-grid .martyr-meta-icon {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            color: #15803d;
+            color: var(--arch-accent, #1F4224);
             flex-shrink: 0;
         }
 
         html[data-theme="dark"] .gallery-grid .martyr-meta-icon,
         [data-theme="dark"] .gallery-grid .martyr-meta-icon {
-            color: #86efac !important;
+            color: var(--arch-accent, #68A878) !important;
         }
 
         /* Organization Tag */
@@ -179,12 +161,12 @@
             display: inline-flex;
             align-items: center;
             gap: 0.35rem;
-            padding: 0.24rem 0.65rem;
-            border-radius: 6px;
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            color: #166534;
-            font-size: 0.76rem;
+            padding: 0.22rem 0.6rem;
+            border-radius: var(--radius-pill, 999px);
+            background: var(--arch-surface-subtle, #F2EFE9);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            color: var(--arch-accent, #1F4224);
+            font-size: 0.74rem;
             font-weight: 600;
             margin-top: 0.55rem;
             width: fit-content;
@@ -192,26 +174,26 @@
 
         html[data-theme="dark"] .martyr-org-pill,
         [data-theme="dark"] .martyr-org-pill {
-            background: rgba(34, 197, 94, 0.12) !important;
-            border-color: rgba(134, 239, 172, 0.25) !important;
-            color: #86efac !important;
+            background: var(--arch-surface-subtle, #1A2127) !important;
+            border-color: var(--arch-border-strong, #36434D) !important;
+            color: var(--arch-accent, #68A878) !important;
         }
 
         /* Card Button (Affordance) */
         .gallery-grid .martyr-card-button {
-            margin-top: 1rem;
+            margin-top: 0.95rem;
             align-self: flex-start;
-            border-radius: 8px;
-            padding: 0.45rem 0.95rem;
-            font-size: 0.84rem;
+            border-radius: var(--radius-sm, 6px);
+            padding: 0.44rem 0.9rem;
+            font-size: 0.82rem;
             font-weight: 600;
-            border: 1px solid rgba(44, 85, 48, 0.22);
-            background: rgba(44, 85, 48, 0.05);
-            color: var(--primary-color, #2c5530);
+            border: 1px solid var(--arch-border-strong, #C9C2B5);
+            background: transparent;
+            color: var(--arch-ink, #141815);
             display: inline-flex;
             align-items: center;
-            gap: 0.45rem;
-            transition: all 0.2s ease;
+            gap: 0.42rem;
+            transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
             cursor: pointer;
         }
 
@@ -220,23 +202,23 @@
         }
 
         .gallery-grid .martyr-card:hover .martyr-card-button {
-            background: var(--primary-color, #2c5530);
-            color: #ffffff;
-            border-color: var(--primary-color, #2c5530);
+            background: var(--arch-accent, #1F4224);
+            color: #FAF8F4;
+            border-color: var(--arch-accent, #1F4224);
         }
 
         html[data-theme="dark"] .gallery-grid .martyr-card-button,
         [data-theme="dark"] .gallery-grid .martyr-card-button {
-            background: rgba(34, 197, 94, 0.1) !important;
-            border-color: rgba(134, 239, 172, 0.25) !important;
-            color: #86efac !important;
+            background: transparent !important;
+            border-color: var(--arch-border-strong, #36434D) !important;
+            color: var(--arch-ink, #F1F4F2) !important;
         }
 
         html[data-theme="dark"] .gallery-grid .martyr-card:hover .martyr-card-button,
         [data-theme="dark"] .gallery-grid .martyr-card:hover .martyr-card-button {
-            background: #16a34a !important;
-            color: #ffffff !important;
-            border-color: #22c55e !important;
+            background: var(--arch-accent, #68A878) !important;
+            color: #0D1013 !important;
+            border-color: var(--arch-accent, #68A878) !important;
         }
 
         /* ========================================================
@@ -432,29 +414,36 @@
 
         .martyr-modal-photo {
             width: 100%;
-            border-radius: 14px;
+            border-radius: var(--radius-md, 10px);
             object-fit: cover;
-            box-shadow: 0 16px 35px rgba(15, 23, 42, 0.35);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            box-shadow: var(--elev-hairline);
             display: block;
         }
 
         .martyr-modal-photo-placeholder {
             width: 100%;
             height: 300px;
-            border-radius: 14px;
-            background: radial-gradient(circle at top, #f3f4f6, #d1d5db);
+            border-radius: var(--radius-md, 10px);
+            background: var(--arch-surface-subtle, #F2EFE9);
+            border: 1px solid var(--arch-border, #E2DDD3);
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 3.5rem;
-            color: #9ca3af;
-            box-shadow: 0 16px 35px rgba(15, 23, 42, 0.2);
+            gap: 0.55rem;
+            font-size: 0.74rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--arch-ink-muted, #525954);
         }
 
         html[data-theme="dark"] .martyr-modal-photo-placeholder,
         [data-theme="dark"] .martyr-modal-photo-placeholder {
-            background: radial-gradient(circle at top, #1e293b, #0f172a);
-            color: #64748b;
+            background: var(--arch-surface-subtle, #1A2127);
+            border-color: var(--arch-border, #252E35);
+            color: var(--arch-ink-muted, #9AA5A0);
         }
 
         .martyr-modal-details-col {
@@ -926,9 +915,9 @@
             }
 
             .martyr-modal-photo-placeholder {
-                height: 150px !important;
-                font-size: 2.2rem !important;
-                border-radius: 10px !important;
+                height: 155px !important;
+                font-size: 0.72rem !important;
+                border-radius: var(--radius-sm, 6px) !important;
             }
 
             .martyr-modal-details-col {
@@ -1081,7 +1070,7 @@
                     <li><a href="/statistics">Statistics</a></li>
                     <li><a href="/about">About</a></li>
                     <li><a href="/contact">Contact</a></li>
-                    <li><button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle dark mode">🌙</button></li>
+                    <li><button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button></li>
                 </ul>
                 <div class="hamburger">
                     <span></span>
@@ -1247,9 +1236,9 @@
     </script>
     
     <!-- Load main scripts; gallery.js renders immediately from Instant Cache and syncs live with Firebase -->
-    <script src="js/main.js?v=20261116d"></script>
+    <script src="js/main.js?v=20261116e"></script>
     <script src="js/mobile-menu.js?v=20261020c"></script>
-    <script src="js/gallery.js?v=20261116d"></script>
+    <script src="js/gallery.js?v=20261116e"></script>
 
     <!-- Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav">

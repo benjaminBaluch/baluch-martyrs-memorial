@@ -29,7 +29,7 @@
     <link rel="modulepreload" href="js/firebase-config.js?v=20261116d">
 
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="css/styles.css?v=20261020c">
+    <link rel="stylesheet" href="css/styles.css?v=20261116e">
     
     <!-- Three.js for 3D effects -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js" defer></script>
@@ -273,13 +273,12 @@
             top: calc(100% + 8px);
             left: 0;
             right: 0;
-            background: rgba(15, 23, 42, 0.98);
-            border: 1px solid rgba(255, 255, 255, 0.22);
-            border-radius: 20px;
-            box-shadow: 0 28px 70px rgba(0, 0, 0, 0.8), 
-                        0 8px 24px rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
+            background: rgba(15, 20, 17, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: var(--radius-md, 10px);
+            box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
             overflow: hidden;
             z-index: 9999;
             animation: heroDropdownSlide 0.22s cubic-bezier(0.16, 1, 0.3, 1);
@@ -671,54 +670,44 @@
             50%       { transform: translateY(6px); }
         }
 
-        /* Impact Section - Modern Living Memorial Design */
+        /* Impact Section - Archival Living Memorial */
         .impact-section {
             padding: 5rem 0;
-            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f0f9ff 100%);
+            background: var(--arch-paper, #FAF8F4);
+            border-bottom: 1px solid var(--arch-border, #E2DDD3);
             position: relative;
-            overflow: hidden;
-        }
-        .impact-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle at 30% 20%, rgba(44,85,48,0.04) 0%, transparent 50%),
-                       radial-gradient(circle at 70% 80%, rgba(212,175,55,0.04) 0%, transparent 50%);
-            pointer-events: none;
         }
         .section-header {
             text-align: center;
-            margin-bottom: 4rem;
+            margin-bottom: 3.5rem;
             position: relative;
             z-index: 1;
         }
         .section-header h2 {
-            font-size: clamp(1.75rem, 5vw, 2.75rem);
-            font-weight: 800;
-            color: var(--primary-color);
-            margin-bottom: 0.75rem;
-            letter-spacing: -0.02em;
-            line-height: 1.2;
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: clamp(1.85rem, 4.5vw, 2.75rem);
+            font-weight: 600;
+            color: var(--arch-ink, #141815);
+            margin-bottom: 0.65rem;
+            letter-spacing: -0.015em;
+            line-height: 1.18;
         }
         .section-header::after {
             content: '';
             position: absolute;
-            bottom: -1.25rem;
+            bottom: -1rem;
             left: 50%;
             transform: translateX(-50%);
-            width: 100px;
-            height: 4px;
-            background: linear-gradient(90deg, transparent 0%, var(--accent-color) 50%, transparent 100%);
-            border-radius: 2px;
+            width: 56px;
+            height: 2px;
+            background: var(--arch-gold, #B89535);
+            border-radius: 1px;
         }
         .section-subtitle {
-            color: #64748b;
-            font-size: 1.15rem;
-            margin-top: 0.75rem;
-            font-weight: 500;
+            color: var(--arch-ink-muted, #525954);
+            font-size: 1.05rem;
+            margin-top: 0.65rem;
+            font-weight: 400;
             line-height: 1.6;
             max-width: 600px;
             margin-left: auto;
@@ -727,107 +716,80 @@
         .impact-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 3rem;
+            gap: 2.25rem;
             margin-bottom: 2rem;
             position: relative;
             z-index: 1;
-            max-width: 900px;
+            max-width: 880px;
             margin-left: auto;
             margin-right: auto;
         }
         .impact-card {
-            background: linear-gradient(135deg, #ffffff 0%, #fefefe 100%);
-            padding: 2.5rem 2rem;
-            border-radius: 20px;
+            background: var(--arch-surface, #FFFFFF);
+            padding: 2.25rem 2rem;
+            border-radius: var(--radius-sm, 6px);
             text-align: center;
-            box-shadow: 0 4px 16px rgba(15,23,42,0.08), 
-                       0 1px 4px rgba(15,23,42,0.04);
-            border: 1px solid rgba(148,163,184,0.15);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04));
+            border: 1px solid var(--arch-border, #E2DDD3);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
             position: relative;
             overflow: hidden;
         }
-        .impact-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary-color) 0%, var(--accent-color) 100%);
-            opacity: 0;
-            transition: opacity 0.4s ease;
-        }
         .impact-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 40px rgba(15,23,42,0.12), 
-                       0 4px 12px rgba(15,23,42,0.08);
-            border-color: rgba(44,85,48,0.25);
-        }
-        .impact-card:hover::before {
-            opacity: 1;
+            transform: translateY(-2px);
+            box-shadow: var(--elev-hover, 0 8px 20px rgba(20, 24, 21, 0.07));
+            border-color: var(--arch-accent, #1F4224);
         }
         .impact-icon {
-            margin: 0 auto 1.5rem;
+            margin: 0 auto 1.25rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 72px;
-            height: 72px;
-            background: linear-gradient(135deg, rgba(44,85,48,0.08) 0%, rgba(44,85,48,0.04) 100%);
-            border-radius: 20px;
-            border: 1px solid rgba(44,85,48,0.12);
-            color: var(--primary-color);
-            filter: drop-shadow(0 2px 8px rgba(44,85,48,0.12));
+            width: 54px;
+            height: 54px;
+            background: var(--arch-surface-subtle, #F2EFE9);
+            border-radius: var(--radius-sm, 6px);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            color: var(--arch-accent, #1F4224);
         }
         .impact-number {
-            font-size: 3rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, var(--primary-color) 0%, #1a3d20 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 0.5rem;
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 3.1rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            color: var(--arch-accent, #1F4224);
+            margin-bottom: 0.4rem;
             display: block;
             line-height: 1;
             letter-spacing: -0.02em;
         }
         .impact-label {
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: var(--primary-color);
-            margin-bottom: 0.75rem;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--arch-ink, #141815);
+            margin-bottom: 0.55rem;
             letter-spacing: -0.01em;
         }
         .impact-description {
-            font-size: 0.95rem;
-            color: #64748b;
-            line-height: 1.6;
+            font-size: 0.92rem;
+            color: var(--arch-ink-muted, #525954);
+            line-height: 1.55;
             max-width: 90%;
             margin: 0 auto;
         }
 
-        /* Purpose Section - Modern Professional Design */
+        /* Purpose Section - Archival Design */
         .purpose-section {
-            padding: 6rem 0;
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f9fafb 100%);
+            padding: 5.5rem 0;
+            background: var(--arch-surface-subtle, #F2EFE9);
+            border-top: 1px solid var(--arch-border, #E2DDD3);
+            border-bottom: 1px solid var(--arch-border, #E2DDD3);
             position: relative;
-            overflow: hidden;
-        }
-        .purpose-section::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 50%;
-            height: 100%;
-            background: radial-gradient(circle at center, rgba(44,85,48,0.03) 0%, transparent 70%);
-            pointer-events: none;
         }
         .purpose-content {
             display: grid;
             grid-template-columns: 1.1fr 0.9fr;
-            gap: 5rem;
+            gap: 4.5rem;
             align-items: center;
             position: relative;
             z-index: 1;
@@ -836,182 +798,200 @@
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            background: linear-gradient(135deg, var(--accent-color) 0%, #f0c929 100%);
-            color: var(--primary-color);
-            padding: 0.5rem 1.25rem;
-            border-radius: 100px;
-            font-size: 0.875rem;
-            font-weight: 700;
-            margin-bottom: 1.25rem;
+            background: var(--arch-gold-subtle, #F7F2E2);
+            color: var(--arch-accent, #1F4224);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            padding: 0.38rem 0.95rem;
+            border-radius: var(--radius-pill, 999px);
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin-bottom: 1.15rem;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            box-shadow: 0 2px 8px rgba(212,175,55,0.25);
+            letter-spacing: 0.08em;
         }
         .purpose-text .section-header h2 {
-            font-size: 2.5rem;
-            line-height: 1.2;
-            margin-bottom: 1.5rem;
-            color: var(--primary-color);
-            font-weight: 800;
-            letter-spacing: -0.02em;
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 2.35rem;
+            line-height: 1.18;
+            margin-bottom: 1.25rem;
+            color: var(--arch-ink, #141815);
+            font-weight: 600;
+            letter-spacing: -0.015em;
         }
         .section-description {
-            font-size: 1.125rem;
-            line-height: 1.75;
-            color: #475569;
-            margin-bottom: 2.5rem;
-            max-width: 90%;
+            font-size: 1.05rem;
+            line-height: 1.72;
+            color: var(--arch-ink-muted, #525954);
+            margin-bottom: 2.25rem;
+            max-width: 92%;
         }
         .purpose-features {
-            margin-bottom: 2.5rem;
+            margin-bottom: 2.25rem;
             display: grid;
-            gap: 1.75rem;
+            gap: 1.25rem;
         }
         .purpose-feature {
             display: flex;
-            gap: 1.25rem;
+            gap: 1.1rem;
             align-items: flex-start;
-            padding: 1.5rem;
-            background: rgba(255,255,255,0.7);
-            border-radius: 16px;
-            border: 1px solid rgba(148,163,184,0.15);
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
+            padding: 1.25rem 1.35rem;
+            background: var(--arch-surface, #FFFFFF);
+            border-radius: var(--radius-sm, 6px);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
         }
         .purpose-feature:hover {
-            background: rgba(255,255,255,0.95);
-            transform: translateX(8px);
-            box-shadow: 0 8px 24px rgba(44,85,48,0.12);
-            border-color: rgba(44,85,48,0.25);
+            background: var(--arch-surface, #FFFFFF);
+            transform: translateY(-1px);
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04));
+            border-color: var(--arch-accent, #1F4224);
         }
         .purpose-feature-icon {
-            font-size: 2rem;
-            background: linear-gradient(135deg, var(--primary-color) 0%, #1a3d20 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 1.35rem;
+            color: var(--arch-accent, #1F4224);
             flex-shrink: 0;
-            width: 48px;
-            height: 48px;
+            width: 44px;
+            height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 12px;
-            background-color: rgba(44,85,48,0.08);
+            border-radius: var(--radius-sm, 6px);
+            background-color: var(--arch-surface-subtle, #F2EFE9);
+            border: 1px solid var(--arch-border, #E2DDD3);
         }
         .purpose-feature-content h4 {
-            color: var(--primary-color);
-            margin-bottom: 0.5rem;
-            font-size: 1.15rem;
-            font-weight: 700;
+            color: var(--arch-ink, #141815);
+            margin-bottom: 0.4rem;
+            font-size: 1.05rem;
+            font-weight: 600;
             letter-spacing: -0.01em;
         }
         .purpose-feature-content p {
-            color: #64748b;
+            color: var(--arch-ink-muted, #525954);
             line-height: 1.6;
             margin: 0;
-            font-size: 0.975rem;
+            font-size: 0.94rem;
         }
         .memorial-showcase {
             display: grid;
-            gap: 1.75rem;
+            gap: 1.35rem;
         }
         .showcase-card {
-            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-            padding: 2rem;
-            border-radius: 20px;
-            border: 1px solid rgba(148,163,184,0.2);
-            box-shadow: 0 4px 16px rgba(15,23,42,0.08), 
-                       0 1px 4px rgba(15,23,42,0.04);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: var(--arch-surface, #FFFFFF);
+            padding: 1.75rem;
+            border-radius: var(--radius-sm, 6px);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04));
+            transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
             position: relative;
-            overflow: hidden;
-        }
-        .showcase-card::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            background: linear-gradient(180deg, var(--primary-color) 0%, var(--accent-color) 100%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
         }
         .showcase-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 32px rgba(15,23,42,0.12), 
-                       0 4px 8px rgba(15,23,42,0.06);
-            border-color: rgba(44,85,48,0.3);
-        }
-        .showcase-card:hover::before {
-            opacity: 1;
+            transform: translateY(-2px);
+            box-shadow: var(--elev-hover, 0 8px 20px rgba(20, 24, 21, 0.07));
+            border-color: var(--arch-accent, #1F4224);
         }
         .showcase-icon {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 52px;
-            height: 52px;
-            background: linear-gradient(135deg, rgba(44,85,48,0.08) 0%, rgba(44,85,48,0.04) 100%);
-            border-radius: 14px;
-            margin-bottom: 1rem;
-            color: var(--primary-color);
-            border: 1px solid rgba(44,85,48,0.1);
+            width: 46px;
+            height: 46px;
+            background: var(--arch-surface-subtle, #F2EFE9);
+            border-radius: var(--radius-sm, 6px);
+            margin-bottom: 0.9rem;
+            color: var(--arch-accent, #1F4224);
+            border: 1px solid var(--arch-border, #E2DDD3);
         }
         .showcase-title {
-            font-weight: 700;
-            font-size: 1.25rem;
-            color: var(--primary-color);
-            margin-bottom: 0.75rem;
+            font-family: 'EB Garamond', Georgia, serif;
+            font-weight: 600;
+            font-size: 1.32rem;
+            color: var(--arch-ink, #141815);
+            margin-bottom: 0.55rem;
             letter-spacing: -0.01em;
         }
         .showcase-text {
-            color: #64748b;
-            line-height: 1.65;
-            font-size: 0.975rem;
+            color: var(--arch-ink-muted, #525954);
+            line-height: 1.62;
+            font-size: 0.95rem;
         }
 
         /* ========================================================
-           FEATURED MARTYRS (HOMEPAGE) - MATCHING GALLERY DESIGN
+           FEATURED MARTYRS (HOMEPAGE) - ARCHIVAL PLATES
            ======================================================== */
         .featured-martyrs {
             padding: 5rem 0;
-            background: #ffffff;
+            background: var(--arch-paper, #FAF8F4);
             transition: background 0.3s ease;
         }
 
         html[data-theme="dark"] .featured-martyrs,
         [data-theme="dark"] .featured-martyrs {
-            background: #0b1320 !important;
+            background: var(--arch-paper, #0D1013) !important;
         }
 
         html[data-theme="dark"] .featured-martyrs .section-header h2,
-        [data-theme="dark"] .featured-martyrs .section-header h2 {
-            color: #f8fafc !important;
+        [data-theme="dark"] .featured-martyrs .section-header h2,
+        html[data-theme="dark"] .impact-section .section-header h2,
+        [data-theme="dark"] .impact-section .section-header h2,
+        html[data-theme="dark"] .purpose-section .section-header h2,
+        [data-theme="dark"] .purpose-section .section-header h2 {
+            color: var(--arch-ink, #F1F4F2) !important;
         }
 
         html[data-theme="dark"] .featured-martyrs .section-subtitle,
-        [data-theme="dark"] .featured-martyrs .section-subtitle {
-            color: #94a3b8 !important;
+        [data-theme="dark"] .featured-martyrs .section-subtitle,
+        html[data-theme="dark"] .impact-section .section-subtitle,
+        [data-theme="dark"] .impact-section .section-subtitle {
+            color: var(--arch-ink-muted, #9BA3A8) !important;
+        }
+
+        html[data-theme="dark"] .impact-card,
+        [data-theme="dark"] .impact-card,
+        html[data-theme="dark"] .purpose-feature,
+        [data-theme="dark"] .purpose-feature,
+        html[data-theme="dark"] .showcase-card,
+        [data-theme="dark"] .showcase-card {
+            background: var(--arch-surface, #151A1E) !important;
+            border-color: var(--arch-border, #252E35) !important;
+        }
+
+        html[data-theme="dark"] .impact-label,
+        html[data-theme="dark"] .purpose-feature-content h4,
+        html[data-theme="dark"] .showcase-title {
+            color: var(--arch-ink, #F1F4F2) !important;
+        }
+
+        html[data-theme="dark"] .impact-number,
+        html[data-theme="dark"] .section-tag,
+        html[data-theme="dark"] .impact-icon,
+        html[data-theme="dark"] .purpose-feature-icon,
+        html[data-theme="dark"] .showcase-icon {
+            color: var(--arch-accent, #68A878) !important;
+        }
+
+        html[data-theme="dark"] .impact-description,
+        html[data-theme="dark"] .section-description,
+        html[data-theme="dark"] .purpose-feature-content p,
+        html[data-theme="dark"] .showcase-text {
+            color: var(--arch-ink-muted, #9BA3A8) !important;
         }
 
         .featured-martyrs .martyrs-showcase,
         .martyrs-showcase {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 2rem;
+            gap: 1.75rem;
             margin-bottom: 3rem;
         }
 
-        /* Martyr cards matching gallery design */
+        /* Archival Museum Plate Cards */
         .featured-martyrs .martyr-card,
         .martyrs-showcase .martyr-card {
-            background: #ffffff;
-            border: 1px solid rgba(44, 85, 48, 0.12);
-            border-top: 3px solid #16a34a;
-            border-radius: 16px;
-            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+            background: var(--arch-surface, #FFFFFF);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            border-radius: var(--radius-sm, 6px);
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04));
             transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
             cursor: pointer;
             outline: none;
@@ -1023,34 +1003,33 @@
 
         .featured-martyrs .martyr-card:hover,
         .martyrs-showcase .martyr-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.09);
-            border-color: rgba(44, 85, 48, 0.35);
+            transform: translateY(-2px);
+            box-shadow: var(--elev-hover, 0 8px 20px rgba(20, 24, 21, 0.07));
+            border-color: var(--arch-accent, #1F4224);
         }
 
         .featured-martyrs .martyr-card:focus-visible,
         .martyrs-showcase .martyr-card:focus-visible {
-            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.35);
+            outline: 2px solid var(--arch-accent, #1F4224);
+            outline-offset: 2px;
         }
 
-        /* Dark Mode Matching Statistics & Gallery (#162234 / #26354d) */
         html[data-theme="dark"] .featured-martyrs .martyr-card,
         [data-theme="dark"] .featured-martyrs .martyr-card,
         html[data-theme="dark"] .martyrs-showcase .martyr-card,
         [data-theme="dark"] .martyrs-showcase .martyr-card {
-            background: #162234 !important;
-            border: 1px solid #26354d !important;
-            border-top: 3px solid #22c55e !important;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
+            background: var(--arch-surface, #151A1E) !important;
+            border: 1px solid var(--arch-border, #252E35) !important;
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(0, 0, 0, 0.28)) !important;
         }
 
         html[data-theme="dark"] .featured-martyrs .martyr-card:hover,
         [data-theme="dark"] .featured-martyrs .martyr-card:hover,
         html[data-theme="dark"] .martyrs-showcase .martyr-card:hover,
         [data-theme="dark"] .martyrs-showcase .martyr-card:hover {
-            border-color: rgba(134, 239, 172, 0.45) !important;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55) !important;
-            transform: translateY(-4px);
+            border-color: var(--arch-accent, #68A878) !important;
+            box-shadow: var(--elev-hover, 0 10px 26px rgba(0, 0, 0, 0.4)) !important;
+            transform: translateY(-2px);
         }
 
         .featured-martyrs .martyr-card-inner,
@@ -1065,18 +1044,19 @@
         .martyrs-showcase .martyr-photo-wrapper {
             position: relative;
             overflow: hidden;
-            border-radius: 16px 16px 0 0;
-            background: linear-gradient(135deg, #dfe7e9, #cfd9df);
+            border-radius: var(--radius-sm, 6px) var(--radius-sm, 6px) 0 0;
+            background: var(--arch-surface-subtle, #F2EFE9);
+            border-bottom: 1px solid var(--arch-border, #E2DDD3);
         }
 
         .featured-martyrs .martyr-photo-wrapper img,
         .martyrs-showcase .martyr-photo-wrapper img {
             display: block;
             width: 100%;
-            height: 220px;
+            height: 230px;
             object-fit: cover;
-            filter: saturate(1.05);
-            transition: transform 0.4s ease;
+            object-position: 50% 20%;
+            transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         .featured-martyrs .martyr-card:hover .martyr-photo-wrapper img,
@@ -1088,32 +1068,23 @@
         .martyrs-showcase .martyr-photo-overlay {
             position: absolute;
             inset: 0;
-            background: linear-gradient(to bottom, rgba(15, 23, 42, 0.15), rgba(15, 23, 42, 0.02));
-            mix-blend-mode: multiply;
+            background: linear-gradient(to bottom, transparent 60%, rgba(20, 24, 21, 0.08));
             pointer-events: none;
         }
 
-        /* Floating Year Pill */
-        .featured-martyrs .martyr-year-badge,
-        .martyrs-showcase .martyr-year-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            padding: 0.25rem 0.65rem;
-            background: rgba(11, 19, 30, 0.78);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            color: #ffffff;
-            border-radius: 999px;
-            font-size: 0.74rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            z-index: 2;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        /* Typographic Kicker above Name */
+        .featured-martyrs .martyr-kicker,
+        .martyrs-showcase .martyr-kicker {
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--arch-ink-muted, #575C57);
+            margin-bottom: 0.25rem;
+            font-variant-numeric: tabular-nums;
         }
 
-        /* Archival Missing Photo Placeholder */
+        /* Archival Missing Photo Plaque */
         .featured-martyrs .martyr-photo-placeholder,
         .martyrs-showcase .martyr-photo-placeholder {
             display: flex;
@@ -1122,30 +1093,31 @@
             justify-content: center;
             gap: 0.55rem;
             width: 100%;
-            height: 220px;
-            background: linear-gradient(135deg, #1b3820 0%, #0e2213 100%);
-            color: rgba(220, 252, 231, 0.85);
+            height: 230px;
+            background: var(--arch-surface-subtle, #F2EFE9);
+            color: var(--arch-ink-muted, #575C57);
+            border-bottom: 1px solid var(--arch-border, #E2DDD3);
         }
 
         .featured-martyrs .placeholder-crest-svg,
         .martyrs-showcase .placeholder-crest-svg {
-            color: #4ade80;
-            opacity: 0.9;
+            color: var(--arch-accent, #1F4224);
+            opacity: 0.72;
         }
 
         .featured-martyrs .placeholder-text,
         .martyrs-showcase .placeholder-text {
-            font-size: 0.74rem;
+            font-size: 0.7rem;
             font-weight: 600;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.09em;
             text-transform: uppercase;
-            color: rgba(240, 253, 244, 0.8);
+            color: var(--arch-ink-muted, #575C57);
         }
 
         /* Card Content & Typography */
         .featured-martyrs .martyr-info,
         .martyrs-showcase .martyr-info {
-            padding: 1.25rem 1.35rem 1.35rem;
+            padding: 1.2rem 1.35rem 1.35rem;
             display: flex;
             flex-direction: column;
             flex: 1;
@@ -1159,10 +1131,10 @@
         .featured-martyrs .martyr-name,
         .martyrs-showcase .martyr-name {
             font-family: 'EB Garamond', Georgia, serif;
-            font-size: 1.28rem;
-            font-weight: 700;
-            color: var(--primary-color, #2c5530);
-            line-height: 1.25;
+            font-size: 1.32rem;
+            font-weight: 500;
+            color: var(--arch-ink, #141815);
+            line-height: 1.22;
             margin: 0;
             letter-spacing: -0.01em;
         }
@@ -1171,14 +1143,14 @@
         [data-theme="dark"] .featured-martyrs .martyr-name,
         html[data-theme="dark"] .martyrs-showcase .martyr-name,
         [data-theme="dark"] .martyrs-showcase .martyr-name {
-            color: #f8fafc !important;
+            color: var(--arch-ink, #F1F4F2) !important;
         }
 
         .featured-martyrs .martyr-meta,
         .martyrs-showcase .martyr-meta {
             margin: 0.22rem 0;
-            font-size: 0.88rem;
-            color: #475569;
+            font-size: 0.87rem;
+            color: var(--arch-ink-muted, #575C57);
             display: flex;
             align-items: center;
             gap: 0.45rem;
@@ -1189,7 +1161,7 @@
         [data-theme="dark"] .featured-martyrs .martyr-meta,
         html[data-theme="dark"] .martyrs-showcase .martyr-meta,
         [data-theme="dark"] .martyrs-showcase .martyr-meta {
-            color: #cbd5e1 !important;
+            color: var(--arch-ink-muted, #9BA3A8) !important;
         }
 
         .featured-martyrs .martyr-meta-icon,
@@ -1197,7 +1169,7 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            color: #15803d;
+            color: var(--arch-accent, #1F4224);
             flex-shrink: 0;
         }
 
@@ -1205,7 +1177,7 @@
         [data-theme="dark"] .featured-martyrs .martyr-meta-icon,
         html[data-theme="dark"] .martyrs-showcase .martyr-meta-icon,
         [data-theme="dark"] .martyrs-showcase .martyr-meta-icon {
-            color: #86efac !important;
+            color: var(--arch-accent, #68A878) !important;
         }
 
         /* Organization Tag */
@@ -1215,11 +1187,11 @@
             align-items: center;
             gap: 0.35rem;
             padding: 0.24rem 0.65rem;
-            border-radius: 6px;
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            color: #166534;
-            font-size: 0.76rem;
+            border-radius: var(--radius-pill, 999px);
+            background: var(--arch-surface-subtle, #F2EFE9);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            color: var(--arch-accent, #1F4224);
+            font-size: 0.74rem;
             font-weight: 600;
             margin-top: 0.55rem;
             width: fit-content;
@@ -1229,9 +1201,9 @@
         [data-theme="dark"] .featured-martyrs .martyr-org-pill,
         html[data-theme="dark"] .martyrs-showcase .martyr-org-pill,
         [data-theme="dark"] .martyrs-showcase .martyr-org-pill {
-            background: rgba(34, 197, 94, 0.12) !important;
-            border-color: rgba(134, 239, 172, 0.25) !important;
-            color: #86efac !important;
+            background: var(--arch-surface-subtle, #1A2127) !important;
+            border-color: var(--arch-border-strong, #36434D) !important;
+            color: var(--arch-accent, #68A878) !important;
         }
 
         /* Card Button (Affordance) */
@@ -1239,17 +1211,17 @@
         .martyrs-showcase .martyr-card-button {
             margin-top: 1rem;
             align-self: flex-start;
-            border-radius: 8px;
+            border-radius: var(--radius-sm, 6px);
             padding: 0.45rem 0.95rem;
             font-size: 0.84rem;
             font-weight: 600;
-            border: 1px solid rgba(44, 85, 48, 0.22);
-            background: rgba(44, 85, 48, 0.05);
-            color: var(--primary-color, #2c5530);
+            border: 1px solid var(--arch-border-strong, #C9C2B5);
+            background: var(--arch-surface-subtle, #F2EFE9);
+            color: var(--arch-ink, #141815);
             display: inline-flex;
             align-items: center;
             gap: 0.45rem;
-            transition: all 0.2s ease;
+            transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
             cursor: pointer;
         }
 
@@ -1260,57 +1232,60 @@
 
         .featured-martyrs .martyr-card:hover .martyr-card-button,
         .martyrs-showcase .martyr-card:hover .martyr-card-button {
-            background: var(--primary-color, #2c5530);
+            background: var(--arch-accent, #1F4224);
             color: #ffffff;
-            border-color: var(--primary-color, #2c5530);
+            border-color: var(--arch-accent, #1F4224);
         }
 
         html[data-theme="dark"] .featured-martyrs .martyr-card-button,
         [data-theme="dark"] .featured-martyrs .martyr-card-button,
         html[data-theme="dark"] .martyrs-showcase .martyr-card-button,
         [data-theme="dark"] .martyrs-showcase .martyr-card-button {
-            background: rgba(34, 197, 94, 0.1) !important;
-            border-color: rgba(134, 239, 172, 0.25) !important;
-            color: #86efac !important;
+            background: var(--arch-surface-subtle, #1A2127) !important;
+            border-color: var(--arch-border-strong, #36434D) !important;
+            color: var(--arch-ink, #F1F4F2) !important;
         }
 
         html[data-theme="dark"] .featured-martyrs .martyr-card:hover .martyr-card-button,
         [data-theme="dark"] .featured-martyrs .martyr-card:hover .martyr-card-button,
         html[data-theme="dark"] .martyrs-showcase .martyr-card:hover .martyr-card-button,
         [data-theme="dark"] .martyrs-showcase .martyr-card:hover .martyr-card-button {
-            background: #16a34a !important;
-            color: #ffffff !important;
-            border-color: #22c55e !important;
+            background: var(--arch-accent, #68A878) !important;
+            color: #0D1013 !important;
+            border-color: var(--arch-accent, #68A878) !important;
         }
         .featured-martyrs .placeholder {
             grid-column: 1 / -1;
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            background: var(--arch-surface-subtle, #F2EFE9);
             text-align: center;
-            padding: 4rem 2rem;
-            border-radius: 16px;
-            border: 2px dashed #ccc;
+            padding: 3.5rem 2rem;
+            border-radius: var(--radius-sm, 6px);
+            border: 1px dashed var(--arch-border-strong, #C9C2B5);
         }
         .featured-martyrs .placeholder .martyr-image {
-            width: 120px;
-            height: 120px;
-            margin: 0 auto 2rem;
+            width: 88px;
+            height: 88px;
+            margin: 0 auto 1.5rem;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent-color), #f0c929);
+            background: var(--arch-surface, #FFFFFF);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            color: var(--arch-accent, #1F4224);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 3rem;
+            font-size: 2rem;
         }
         .featured-martyrs .placeholder h3 {
+            font-family: 'EB Garamond', Georgia, serif;
             font-size: 1.5rem;
-            color: var(--primary-color);
-            margin-bottom: 1rem;
+            color: var(--arch-ink, #141815);
+            margin-bottom: 0.75rem;
         }
         .featured-martyrs .placeholder p {
-            font-size: 1.1rem;
-            color: #666;
-            margin-bottom: 2rem;
-            max-width: 400px;
+            font-size: 1rem;
+            color: var(--arch-ink-muted, #575C57);
+            margin-bottom: 1.75rem;
+            max-width: 420px;
             margin-left: auto;
             margin-right: auto;
         }
@@ -1328,14 +1303,7 @@
                 padding: 1.1rem 1.2rem 1.2rem;
             }
         }
-        /* Respectful Themed Loading Spinner & Pulse */
-        @keyframes memorialSpin {
-            to { transform: rotate(360deg); }
-        }
-        @keyframes memorialPulse {
-            0%, 100% { transform: scale(1); opacity: 0.9; }
-            50% { transform: scale(1.08); opacity: 1; filter: drop-shadow(0 4px 12px rgba(44, 85, 48, 0.35)); }
-        }
+        /* Calm Archival Skeleton & Fade-in */
         @keyframes memorialFadeIn {
             from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
@@ -1348,81 +1316,55 @@
             }
         }
         .memorial-loading-card {
-            min-height: 250px;
+            min-height: 300px;
             display: flex !important;
             flex-direction: column !important;
-            align-items: center !important;
+            align-items: stretch !important;
             justify-content: center !important;
-            text-align: center !important;
-            padding: 2.75rem 1.25rem !important;
-            background: #ffffff !important;
-            border-radius: 18px !important;
-            border: 1px solid rgba(44, 85, 48, 0.1) !important;
-            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08) !important;
+            padding: 1.75rem !important;
+            background: var(--arch-surface, #FFFFFF) !important;
+            border-radius: var(--radius-sm, 6px) !important;
+            border: 1px solid var(--arch-border, #E2DDD3) !important;
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04)) !important;
             width: 100% !important;
-            max-width: 480px !important;
             margin: 0 auto !important;
             box-sizing: border-box !important;
         }
         html[data-theme="dark"] .memorial-loading-card {
-            background: linear-gradient(135deg, #0f1419 0%, #0a0f15 100%) !important;
-            border-color: rgba(74, 222, 128, 0.15) !important;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45) !important;
+            background: var(--arch-surface, #151A1E) !important;
+            border-color: var(--arch-border, #252E35) !important;
         }
-        .memorial-loading-inner {
-            display: flex;
-            flex-direction: column;
+        .anniversary-skeleton-grid {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 1.75rem;
             align-items: center;
-            justify-content: center;
             width: 100%;
         }
-        .memorial-pulse-emblem {
-            font-size: 2.6rem;
-            line-height: 1;
-            margin-bottom: 0.75rem;
-            animation: memorialPulse 2.4s ease-in-out infinite;
-            user-select: none;
-            filter: drop-shadow(0 2px 6px rgba(44, 85, 48, 0.2));
+        .anniversary-skeleton-portrait {
+            width: 100%;
+            height: 220px;
+            border-radius: var(--radius-sm, 6px);
         }
-        .memorial-spinner-wrap {
+        .anniversary-skeleton-lines {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 0.85rem;
+            flex-direction: column;
+            gap: 0.85rem;
         }
-        .memorial-spinner {
-            width: 28px;
-            height: 28px;
-            border: 2.5px solid rgba(44, 85, 48, 0.14);
-            border-top-color: #2c5530;
-            border-radius: 50%;
-            animation: memorialSpin 0.85s linear infinite;
-        }
-        html[data-theme="dark"] .memorial-spinner {
-            border-color: rgba(134, 239, 172, 0.18);
-            border-top-color: #4ade80;
-        }
-        .memorial-loading-title {
-            margin: 0 0 0.25rem 0;
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: #1e4024;
-            letter-spacing: 0.01em;
-            line-height: 1.3;
-        }
-        html[data-theme="dark"] .memorial-loading-title {
-            color: #86efac;
-        }
-        .memorial-loading-subtitle {
-            margin: 0;
-            font-size: 0.88rem;
-            font-weight: 500;
-            color: #64748b;
-            letter-spacing: 0.01em;
-            line-height: 1.3;
-        }
-        html[data-theme="dark"] .memorial-loading-subtitle {
-            color: #94a3b8;
+        @media (max-width: 768px) {
+            .anniversary-skeleton-grid {
+                grid-template-columns: 1fr;
+                justify-items: center;
+                gap: 1rem;
+            }
+            .anniversary-skeleton-portrait {
+                width: 140px;
+                height: 155px;
+            }
+            .anniversary-skeleton-lines {
+                width: 100%;
+                align-items: center;
+            }
         }
         /* Smooth fade-in transition when real card loads */
         .slide.active .anniversary-card {
@@ -1528,7 +1470,7 @@
             }
             .impact-card {
                 padding: 1rem 0.85rem;
-                border-radius: 12px;
+                border-radius: var(--radius-sm, 6px);
             }
             .impact-icon {
                 font-size: 1.75rem;
@@ -1565,10 +1507,10 @@
             }
             .purpose-feature {
                 padding: 0.95rem 1rem;
-                border-radius: 12px;
+                border-radius: var(--radius-sm, 6px);
             }
             .purpose-feature:hover {
-                transform: translateX(4px);
+                transform: translateY(-1px);
             }
             .purpose-feature-icon {
                 width: 36px;
@@ -1585,7 +1527,7 @@
             }
             .showcase-card {
                 padding: 1.25rem;
-                border-radius: 14px;
+                border-radius: var(--radius-sm, 6px);
             }
             .action-grid {
                 grid-template-columns: 1fr;
@@ -1670,23 +1612,17 @@
                 font-size: 0.925rem;
             }
         }
-        /* Anniversary Slider Improvements - Modern Mobile-First Design */
+        /* Anniversary Slider - Archival Plate Layout */
         .anniversaries {
             padding: 5rem 0;
-            background: linear-gradient(165deg, #f0f9ff 0%, #e0f2fe 25%, #f9fafb 50%, #fef3c7 75%, #fef9e7 100%);
+            background: var(--arch-surface-subtle, #F2EFE9);
+            border-top: 1px solid var(--arch-border, #E2DDD3);
+            border-bottom: 1px solid var(--arch-border, #E2DDD3);
             position: relative;
             overflow: hidden;
         }
         .anniversaries::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle at 20% 50%, rgba(212,175,55,0.08) 0%, transparent 50%),
-                        radial-gradient(circle at 80% 80%, rgba(44,85,48,0.06) 0%, transparent 50%);
-            pointer-events: none;
+            content: none;
         }
         .anniversaries .container {
             max-width: 1100px;
@@ -1695,38 +1631,34 @@
         }
         .anniversaries h2 {
             text-align: center;
-            font-size: 2.5rem;
+            font-size: 2.35rem;
             margin-bottom: 0.75rem;
-            color: var(--primary-color);
-            font-weight: 800;
+            color: var(--arch-ink, #141815);
+            font-weight: 600;
             letter-spacing: -0.02em;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.06);
         }
         .anniversaries .section-subtitle {
             text-align: center;
             max-width: 580px;
             margin: 0 auto 3rem;
-            font-size: 1.1rem;
-            color: #64748b;
+            font-size: 1.05rem;
+            color: var(--arch-ink-muted, #525954);
             line-height: 1.6;
-            font-weight: 500;
+            font-weight: 400;
         }
         .slider-container {
             position: relative;
             max-width: 1000px;
             margin: 0 auto;
             overflow: hidden;
-            border-radius: 24px;
-            box-shadow: 0 20px 60px rgba(15,23,42,0.15), 0 8px 16px rgba(15,23,42,0.08);
-            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-            border: 1px solid rgba(148,163,184,0.2);
-            transform: translateZ(0);
-            will-change: transform;
-            transition: box-shadow 0.3s ease, transform 0.3s ease;
+            border-radius: var(--radius-md, 10px);
+            box-shadow: var(--elev-hairline);
+            background: var(--arch-surface, #FFFFFF);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            transition: box-shadow 0.25s ease;
         }
         .slider-container:hover {
-            box-shadow: 0 24px 70px rgba(15,23,42,0.2), 0 10px 20px rgba(15,23,42,0.1);
-            transform: translateY(-2px);
+            box-shadow: var(--elev-hover);
         }
         .slider {
             display: flex;
@@ -1748,10 +1680,9 @@
             gap: 0;
             height: 380px;
             background: transparent;
-            border-radius: 24px;
+            border-radius: var(--radius-md, 10px);
             overflow: hidden;
             margin: 0;
-            /* Prevent conflicts with global .anniversary-card styles in css/styles.css */
             padding: 0;
             min-height: 0;
             box-sizing: border-box;
@@ -1762,7 +1693,8 @@
             margin: 0;
             border-radius: 0;
             box-shadow: none;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            background: var(--arch-surface-subtle, #F2EFE9);
+            border-right: 1px solid var(--arch-border, #E2DDD3);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1774,118 +1706,94 @@
             content: '';
             position: absolute;
             inset: 1.5rem;
-            border: 3px solid rgba(44,85,48,0.15);
-            border-radius: 8px;
+            border: 1px solid var(--arch-border-strong, #C9C2B5);
+            border-radius: var(--radius-sm, 6px);
             pointer-events: none;
             z-index: 2;
         }
         .anniversary-card .martyr-image::after {
-            content: '';
-            position: absolute;
-            inset: 1.5rem;
-            background: linear-gradient(135deg, rgba(44,85,48,0.03) 0%, rgba(26,61,32,0.05) 100%);
-            border-radius: 8px;
-            pointer-events: none;
-            z-index: 1;
+            content: none;
         }
         .anniversary-card .martyr-image img {
             width: calc(100% - 3rem);
             height: calc(100% - 3rem);
             object-fit: cover;
-            object-position: center center;
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15), 
-                       0 1px 3px rgba(0,0,0,0.1),
-                       inset 0 0 0 1px rgba(255,255,255,0.5);
+            object-position: 50% 20%;
+            border-radius: var(--radius-sm, 6px);
+            box-shadow: var(--elev-hairline);
             position: relative;
             z-index: 3;
-            transition: transform 0.4s ease, box-shadow 0.4s ease;
+            transition: transform 0.35s ease;
         }
         .anniversary-card:hover .martyr-image img {
             transform: scale(1.03);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.2), 
-                       0 2px 6px rgba(0,0,0,0.15),
-                       inset 0 0 0 1px rgba(255,255,255,0.6);
         }
         .anniversary-card .martyr-info {
-            padding: 2.5rem;
+            padding: 2.25rem;
             display: flex;
             flex-direction: column;
             justify-content: center;
-            background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+            background: var(--arch-surface, #FFFFFF);
             position: relative;
         }
         .anniversary-card .martyr-info::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 4px;
-            background: linear-gradient(180deg, var(--accent-color) 0%, transparent 100%);
+            content: none;
         }
         .anniversary-card .martyr-info h3 {
             font-size: 1.75rem;
-            color: var(--primary-color);
-            margin-bottom: 0.5rem;
-            font-weight: 800;
+            color: var(--arch-ink, #141815);
+            margin-bottom: 0.45rem;
+            font-weight: 600;
             letter-spacing: -0.01em;
             line-height: 1.2;
-            /* Prevent long names from clipping on narrow screens */
             overflow-wrap: anywhere;
             word-break: break-word;
         }
         .anniversary-card .martyr-dates {
-            font-size: 1.1rem;
-            color: #475569;
-            margin-bottom: 0.35rem;
-            font-weight: 700;
+            font-size: 1rem;
+            color: var(--arch-ink-muted, #525954);
+            margin-bottom: 0.3rem;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
             letter-spacing: -0.01em;
         }
         .anniversary-card .martyr-location {
-            color: #64748b;
-            margin-bottom: 1rem;
-            font-size: 0.98rem;
+            color: var(--arch-ink-muted, #525954);
+            margin-bottom: 0.9rem;
+            font-size: 0.95rem;
             font-weight: 500;
             display: flex;
             align-items: center;
-            gap: 0.3rem;
+            gap: 0.4rem;
         }
         .anniversary-card .martyr-location::before {
-            content: '📍';
-            font-size: 0.9rem;
+            content: none;
         }
         .anniversary-card .anniversary-date {
-            background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-            color: #92400e;
-            padding: 0.6rem 1.3rem;
-            border-radius: 100px;
+            background: var(--arch-gold-subtle, #F7F2E2);
+            color: #7A5C12;
+            padding: 0.45rem 1rem;
+            border-radius: var(--radius-pill, 999px);
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            font-size: 0.92rem;
-            font-weight: 700;
-            margin-bottom: 1.2rem;
-            border: 1.5px solid rgba(212,175,55,0.4);
-            box-shadow: 0 2px 8px rgba(212,175,55,0.15);
-            transition: all 0.2s ease;
-        }
-        .anniversary-card .anniversary-date:hover {
-            box-shadow: 0 4px 12px rgba(212,175,55,0.25);
-            transform: translateY(-1px);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 1.1rem;
+            border: 1px solid rgba(184, 149, 53, 0.35);
+            width: fit-content;
         }
         .anniversary-card .anniversary-date strong {
             text-transform: uppercase;
             letter-spacing: 0.06em;
-            font-size: 0.82rem;
+            font-size: 0.78rem;
         }
         .anniversary-card .martyr-bio {
             line-height: 1.65;
-            color: #475569;
-            margin-bottom: 1.2rem;
-            font-size: 0.98rem;
-            font-style: normal; /* override global italic */
-            /* Clamp to keep the card height consistent */
+            color: var(--arch-ink-muted, #525954);
+            margin-bottom: 1.15rem;
+            font-size: 0.96rem;
+            font-style: normal;
             display: -webkit-box;
             -webkit-box-orient: vertical;
             -webkit-line-clamp: 3;
@@ -1986,8 +1894,8 @@
 
             /* Container */
             .slider-container {
-                border-radius: 14px;
-                box-shadow: 0 6px 20px rgba(15,23,42,0.06);
+                border-radius: var(--radius-sm, 6px);
+                box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04));
                 margin: 0 auto;
                 max-width: 460px;
             }
@@ -1999,34 +1907,29 @@
                 height: auto;
                 max-height: none;
                 padding: 1.1rem 1rem 1.35rem;
-                border-radius: 14px;
+                border-radius: var(--radius-sm, 6px);
             }
             
-            /* Image - reduced height with professional frame */
+            /* Image - reduced height with face-safe archival framing */
             .anniversary-card .martyr-image {
                 height: 155px;
                 width: 140px;
                 margin: 0 auto 1rem auto;
-                padding: 0.4rem;
-                border-radius: 12px;
-                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                padding: 0.35rem;
+                border-radius: var(--radius-sm, 6px);
+                background: var(--arch-surface-subtle, #F2EFE9);
+                border: 1px solid var(--arch-border, #E2DDD3);
             }
-            .anniversary-card .martyr-image::before {
-                inset: 0.4rem;
-                border: 1.5px solid rgba(44,85,48,0.12);
-                border-radius: 8px;
-            }
+            .anniversary-card .martyr-image::before,
             .anniversary-card .martyr-image::after {
-                inset: 0.4rem;
-                background: linear-gradient(135deg, rgba(44,85,48,0.02) 0%, rgba(26,61,32,0.04) 100%);
-                border-radius: 8px;
+                display: none;
             }
             .anniversary-card .martyr-image img {
                 width: 100%;
                 height: 100%;
                 object-fit: cover;
-                border-radius: 8px;
-                box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+                object-position: 50% 20%;
+                border-radius: 4px;
             }
             .anniversary-card:hover .martyr-image img {
                 transform: none;
@@ -2204,14 +2107,14 @@
         }
 
         .martyr-modal-dialog {
-            background: #ffffff;
-            color: #111827;
+            background: var(--arch-surface, #FFFFFF);
+            color: var(--arch-ink, #141815);
             max-width: 960px;
             width: 100%;
             max-height: 90vh;
-            border-radius: 18px;
-            border: 1px solid rgba(148, 163, 184, 0.3);
-            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.45);
+            border-radius: var(--radius-md, 10px);
+            border: 1px solid var(--arch-border, #E2DDD3);
+            box-shadow: 0 20px 48px rgba(20, 24, 21, 0.28);
             position: relative;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
@@ -2233,10 +2136,10 @@
 
         html[data-theme="dark"] .martyr-modal-dialog,
         [data-theme="dark"] .martyr-modal-dialog {
-            background: #162234 !important;
-            color: #f8fafc !important;
-            border: 1px solid rgba(148, 163, 184, 0.22) !important;
-            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7) !important;
+            background: var(--arch-surface, #151A1E) !important;
+            color: var(--arch-ink, #F1F4F2) !important;
+            border: 1px solid var(--arch-border, #252E35) !important;
+            box-shadow: 0 24px 56px rgba(0, 0, 0, 0.65) !important;
         }
 
         .martyr-modal-sheet-handle {
@@ -2248,16 +2151,16 @@
             top: 0;
             z-index: 30;
             padding: 1.15rem 1.6rem;
-            background: linear-gradient(135deg, #0f172a, #1e293b);
-            border-bottom: 1px solid rgba(148, 163, 184, 0.25);
-            color: #f9fafb;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            background: #141815;
+            border-bottom: 1px solid var(--arch-border, #252E35);
+            color: #F1F4F2;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.14);
         }
 
         html[data-theme="dark"] .martyr-modal-header,
         [data-theme="dark"] .martyr-modal-header {
-            background: linear-gradient(135deg, #0b1320, #162438);
-            border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+            background: #0D1013;
+            border-bottom: 1px solid var(--arch-border, #252E35);
         }
 
         .martyr-modal-header-inner {
@@ -2351,29 +2254,39 @@
 
         .martyr-modal-photo {
             width: 100%;
-            border-radius: 14px;
+            border-radius: var(--radius-sm, 6px);
             object-fit: cover;
-            box-shadow: 0 16px 35px rgba(15, 23, 42, 0.35);
+            object-position: 50% 20%;
+            border: 1px solid var(--arch-border, #E2DDD3);
+            box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.04));
             display: block;
         }
 
         .martyr-modal-photo-placeholder {
             width: 100%;
             height: 300px;
-            border-radius: 14px;
-            background: radial-gradient(circle at top, #f3f4f6, #d1d5db);
+            border-radius: var(--radius-sm, 6px);
+            background: var(--arch-surface-subtle, #F2EFE9);
+            border: 1px solid var(--arch-border, #E2DDD3);
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 3.5rem;
-            color: #9ca3af;
-            box-shadow: 0 16px 35px rgba(15, 23, 42, 0.2);
+            gap: 0.65rem;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: var(--arch-ink-muted, #575C57);
+            text-align: center;
+            padding: 1rem;
         }
 
         html[data-theme="dark"] .martyr-modal-photo-placeholder,
         [data-theme="dark"] .martyr-modal-photo-placeholder {
-            background: radial-gradient(circle at top, #1e293b, #0f172a);
-            color: #64748b;
+            background: var(--arch-surface-subtle, #1C2328);
+            border-color: var(--arch-border, #252E35);
+            color: var(--arch-ink-muted, #9BA3A8);
         }
 
         .martyr-modal-details-col {
@@ -2631,14 +2544,14 @@
                 max-height: 215px !important;
                 object-fit: contain !important;
                 margin: 0 auto;
-                border-radius: 10px !important;
-                box-shadow: 0 6px 20px rgba(15, 23, 42, 0.22) !important;
+                border-radius: var(--radius-sm, 6px) !important;
+                box-shadow: var(--elev-hairline, 0 1px 2px rgba(20, 24, 21, 0.08)) !important;
             }
 
             .martyr-modal-photo-placeholder {
                 height: 150px !important;
-                font-size: 2.2rem !important;
-                border-radius: 10px !important;
+                font-size: 0.72rem !important;
+                border-radius: var(--radius-sm, 6px) !important;
             }
 
             .martyr-modal-details-col {
@@ -2739,7 +2652,7 @@
                     <li><a href="/statistics">Statistics</a></li>
                     <li><a href="/about">About</a></li>
                     <li><a href="/contact">Contact</a></li>
-                    <li><button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle dark mode">🌙</button></li>
+                    <li><button type="button" class="theme-toggle" data-theme-toggle aria-label="Toggle dark mode"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></button></li>
                 </ul>
                 <div class="hamburger">
                     <span></span>
@@ -2828,7 +2741,7 @@
                 </div>
                 <div class="hero-live-count">
                     <span class="hlc-dot"></span>
-                    Honoring <strong id="heroMartyrCount">1,467</strong> martyrs
+                    Honoring <strong id="heroMartyrCount" style="font-variant-numeric: tabular-nums;">—</strong> martyrs
                 </div>
             </div>
         </div>
@@ -2917,7 +2830,7 @@
                         <div class="impact-icon" aria-hidden="true">
                             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14"/><path d="M8 21v-5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v5"/><path d="M3 7l9-4 9 4"/></svg>
                         </div>
-                        <div class="impact-number" id="totalMartyrsCount">1,467</div>
+                        <div class="impact-number" id="totalMartyrsCount">—</div>
                         <div class="impact-label">Martyrs Honored</div>
                         <div class="impact-description">Martyrs whose sacrifices are preserved for eternity</div>
                     </div>
@@ -2925,7 +2838,7 @@
                         <div class="impact-icon" aria-hidden="true">
                             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
                         </div>
-                        <div class="impact-number" id="totalStoriesCount">1,354</div>
+                        <div class="impact-number" id="totalStoriesCount">—</div>
                         <div class="impact-label">Stories Documented</div>
                         <div class="impact-description">Biographical accounts that inspire generations</div>
                     </div>
@@ -2941,16 +2854,18 @@
                 
                 <div class="slider-container">
                     <div class="slider" id="anniversary-slider">
-                        <!-- Respectful Themed Loading Spinner & Pulse -->
+                        <!-- Calm Archival Wireframe Skeleton -->
                         <div class="slide active">
-                            <div class="martyr-card anniversary-card memorial-loading-card" aria-busy="true" aria-label="Loading memorial data">
-                                <div class="memorial-loading-inner">
-                                    <div class="memorial-pulse-emblem" aria-hidden="true">🕊️</div>
-                                    <div class="memorial-spinner-wrap" aria-hidden="true">
-                                        <div class="memorial-spinner"></div>
+                            <div class="martyr-card anniversary-card memorial-loading-card" aria-busy="true" aria-label="Loading memorial anniversaries">
+                                <div class="anniversary-skeleton-grid">
+                                    <div class="anniversary-skeleton-portrait shimmer"></div>
+                                    <div class="anniversary-skeleton-lines">
+                                        <div class="skeleton-line dates shimmer" style="width: 38%;"></div>
+                                        <div class="skeleton-line title shimmer" style="width: 72%;"></div>
+                                        <div class="skeleton-line location shimmer" style="width: 55%;"></div>
+                                        <div class="skeleton-line location shimmer" style="width: 85%;"></div>
+                                        <div class="skeleton-btn shimmer"></div>
                                     </div>
-                                    <p class="memorial-loading-title">Honoring Our Martyrs</p>
-                                    <p class="memorial-loading-subtitle">Loading memorial data...</p>
                                 </div>
                             </div>
                         </div>
@@ -3078,7 +2993,7 @@
                     </div>
                 </div>
                 <div class="section-footer">
-                    <a href="/gallery" class="btn btn-outline">🏛️ View Complete Memorial Gallery</a>
+                    <a href="/gallery" class="btn btn-outline"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px;margin-right:0.45rem;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>View Complete Memorial Gallery</a>
                 </div>
             </div>
         </section>
@@ -3230,10 +3145,10 @@
             window.addEventListener('firebaseReady', updateHomepageStats);
         }
     </script>
-    <script src="js/main.js?v=20261116d"></script>
+    <script src="js/main.js?v=20261116e"></script>
     <script src="js/hero-3d.js"></script>
     <script src="js/mobile-menu.js"></script>
-    <script src="js/hero-search.js?v=20261116d"></script>
+    <script src="js/hero-search.js?v=20261116e"></script>
 
     <!-- Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav">

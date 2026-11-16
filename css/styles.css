@@ -99,29 +99,47 @@ html[data-theme="dark"] .back-to-top:hover {
 }
 
 :root {
-    --primary-color: #2c5530;
-    --secondary-color: #d4af37;
-    --dark-color: #1a1a1a;
-    --light-color: #f5f5f5;
-    --text-color: #333;
-    --border-color: #ddd;
-    --shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    --transition: all 0.3s ease;
+    color-scheme: light dark;
+    --arch-paper: #FAF8F4;
+    --arch-surface: #FFFFFF;
+    --arch-surface-subtle: #F2EFE9;
+    --arch-ink: #141815;
+    --arch-ink-muted: #525954;
+    --arch-border: #E2DDD3;
+    --arch-border-strong: #C9C2B5;
+    --arch-accent: #1F4224;
+    --arch-accent-hover: #2A5630;
+    --arch-gold: #B89535;
+    --arch-gold-subtle: #F7F2E2;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-pill: 999px;
+    --elev-hairline: 0 1px 2px rgba(20, 24, 21, 0.04);
+    --elev-hover: 0 8px 20px rgba(20, 24, 21, 0.08);
+
+    --primary-color: var(--arch-accent);
+    --secondary-color: var(--arch-gold);
+    --dark-color: var(--arch-ink);
+    --light-color: var(--arch-paper);
+    --text-color: var(--arch-ink);
+    --border-color: var(--arch-border);
+    --shadow: var(--elev-hairline);
+    --transition: all 0.22s ease;
 
     /* Button design tokens */
-    --btn-gradient-start: #2f4f30;
-    --btn-gradient-end: #3f7042;
-    --btn-gradient-hover-start: #3a5f38;
-    --btn-gradient-hover-end: #4b8250;
-    --btn-text-color: #f8faf5;
+    --btn-gradient-start: #1F4224;
+    --btn-gradient-end: #2A5630;
+    --btn-gradient-hover-start: #2A5630;
+    --btn-gradient-hover-end: #34693B;
+    --btn-text-color: #FAF8F4;
     --btn-border-color: rgba(255, 255, 255, 0.14);
-    --btn-shadow-soft: 0 12px 25px rgba(44, 85, 48, 0.25);
-    --btn-shadow-strong: 0 18px 35px rgba(44, 85, 48, 0.35);
-    --btn-secondary-gradient-start: #f4d68a;
-    --btn-secondary-gradient-end: #d4af37;
-    --btn-secondary-text: #1f1504;
-    --btn-outline-border: rgba(44, 85, 48, 0.45);
-    
+    --btn-shadow-soft: 0 4px 14px rgba(20, 24, 21, 0.14);
+    --btn-shadow-strong: 0 8px 20px rgba(20, 24, 21, 0.2);
+    --btn-secondary-gradient-start: #E8D59B;
+    --btn-secondary-gradient-end: #C9A84C;
+    --btn-secondary-text: #141815;
+    --btn-outline-border: var(--arch-border-strong);
+
     /* Baluch Flag Colors */
     --baluch-blue: #0066CC;
     --baluch-red: #DC143C;
@@ -136,7 +154,7 @@ html[data-theme="dark"] .back-to-top:hover {
 }
 
 .btn:focus-visible {
-    outline: 3px solid rgba(212, 175, 55, 0.35);
+    outline: 3px solid rgba(184, 149, 53, 0.4);
     outline-offset: 3px;
 }
 
@@ -151,28 +169,42 @@ html[data-theme="dark"] .back-to-top:hover {
 /* Dark theme overrides */
 html[data-theme="dark"] {
     color-scheme: dark;
-    --light-color: #020617;
-    --dark-color: #f9fafb;
-    --text-color: #e5e7eb;
-    --border-color: #1f2937;
-    --shadow: 0 24px 65px rgba(0, 0, 0, 0.9);
-    --btn-gradient-start: #1d3b26;
-    --btn-gradient-end: #3a6f47;
-    --btn-gradient-hover-start: #2c5233;
-    --btn-gradient-hover-end: #4f8c5b;
-    --btn-text-color: #f0fdf4;
-    --btn-border-color: rgba(134, 239, 172, 0.35);
-    --btn-shadow-soft: 0 18px 40px rgba(2, 6, 23, 0.7);
-    --btn-shadow-strong: 0 24px 55px rgba(2, 6, 23, 0.85);
-    --btn-secondary-gradient-start: rgba(31, 41, 55, 0.95);
-    --btn-secondary-gradient-end: rgba(15, 23, 42, 0.95);
-    --btn-secondary-text: #f8fafc;
-    --btn-outline-border: rgba(148, 210, 189, 0.45);
+    --arch-paper: #0D1013;
+    --arch-surface: #151A1E;
+    --arch-surface-subtle: #1A2127;
+    --arch-ink: #F1F4F2;
+    --arch-ink-muted: #9AA5A0;
+    --arch-border: #252E35;
+    --arch-border-strong: #36434D;
+    --arch-accent: #68A878;
+    --arch-accent-hover: #7DBD8D;
+    --arch-gold: #D4B45A;
+    --arch-gold-subtle: rgba(212, 180, 90, 0.12);
+    --elev-hairline: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --elev-hover: 0 10px 24px rgba(0, 0, 0, 0.45);
+
+    --light-color: var(--arch-paper);
+    --dark-color: var(--arch-ink);
+    --text-color: var(--arch-ink);
+    --border-color: var(--arch-border);
+    --shadow: var(--elev-hairline);
+    --btn-gradient-start: #23472B;
+    --btn-gradient-end: #2F5C39;
+    --btn-gradient-hover-start: #2D5736;
+    --btn-gradient-hover-end: #3A6F46;
+    --btn-text-color: #F1F4F2;
+    --btn-border-color: var(--arch-border-strong);
+    --btn-shadow-soft: 0 8px 20px rgba(0, 0, 0, 0.45);
+    --btn-shadow-strong: 0 12px 26px rgba(0, 0, 0, 0.55);
+    --btn-secondary-gradient-start: #252E35;
+    --btn-secondary-gradient-end: #1A2127;
+    --btn-secondary-text: #F1F4F2;
+    --btn-outline-border: var(--arch-border-strong);
 }
 
 html[data-theme="dark"] body {
-    background-color: var(--light-color);
-    color: var(--text-color);
+    background-color: var(--arch-paper);
+    color: var(--arch-ink);
 }
 
 /* Dark mode surfaces: sections */
@@ -184,7 +216,7 @@ html[data-theme="dark"] .confirmation-page,
 html[data-theme="dark"] .impact-section,
 html[data-theme="dark"] .purpose-section,
 html[data-theme="dark"] .featured-martyrs {
-    background: #020617;
+    background: var(--arch-paper);
 }
 
 /* Cards / panels */
@@ -251,141 +283,141 @@ html[data-theme="dark"] .site-footer {
    COMPREHENSIVE DARK MODE STYLES - ALL PAGES
    ============================================ */
 
-/* Section backgrounds with gradients */
+/* Section backgrounds - cohesive archival obsidian in dark mode */
 html[data-theme="dark"] .anniversaries {
-    background: linear-gradient(165deg, #0a1628 0%, #0c1e33 25%, #0a1420 50%, #1a1404 75%, #1c1805 100%);
+    background: var(--arch-surface-subtle);
+    border-top: 1px solid var(--arch-border);
+    border-bottom: 1px solid var(--arch-border);
 }
 
-html[data-theme="dark"] .anniversaries::before {
-    background: radial-gradient(circle at 20% 50%, rgba(44,85,48,0.15) 0%, transparent 50%),
-               radial-gradient(circle at 80% 80%, rgba(212,175,55,0.12) 0%, transparent 50%);
-}
-
-html[data-theme="dark"] .purpose-section::before {
-    background: radial-gradient(circle at center, rgba(44,85,48,0.08) 0%, transparent 70%);
-}
-
+html[data-theme="dark"] .anniversaries::before,
+html[data-theme="dark"] .purpose-section::before,
 html[data-theme="dark"] .impact-section::before {
-    background: radial-gradient(circle at 30% 20%, rgba(44,85,48,0.08) 0%, transparent 50%),
-               radial-gradient(circle at 70% 80%, rgba(212,175,55,0.08) 0%, transparent 50%);
+    background: none;
 }
 
 /* Anniversary slider dark mode */
 html[data-theme="dark"] .anniversary-card .martyr-info {
-    background: linear-gradient(135deg, #0f1419 0%, #0a0f15 100%);
+    background: var(--arch-surface);
 }
 
 html[data-theme="dark"] .anniversary-card .martyr-image {
-    background: linear-gradient(135deg, #1a2028 0%, #151b22 100%);
+    background: var(--arch-surface-subtle);
 }
 
 html[data-theme="dark"] .anniversary-card .martyr-info h3,
 html[data-theme="dark"] .anniversary-card .martyr-dates,
 html[data-theme="dark"] .anniversary-card .martyr-location,
 html[data-theme="dark"] .anniversary-card .martyr-bio {
-    color: var(--text-color);
+    color: var(--arch-ink);
+}
+
+html[data-theme="dark"] .anniversary-card .martyr-dates,
+html[data-theme="dark"] .anniversary-card .martyr-location {
+    color: var(--arch-ink-muted);
 }
 
 html[data-theme="dark"] .anniversary-card .anniversary-date {
-    background: linear-gradient(135deg, #2a2410 0%, #3a3016 100%);
-    border-color: rgba(212,175,55,0.3);
-    box-shadow: 0 2px 8px rgba(212,175,55,0.1);
+    background: var(--arch-gold-subtle);
+    color: var(--arch-gold);
+    border-color: rgba(212, 180, 90, 0.35);
+    box-shadow: none;
 }
 
 /* Slider controls */
 html[data-theme="dark"] .slider-btn {
-    background: rgba(15,23,42,0.95);
-    border-color: rgba(148,163,184,0.4);
-    color: var(--text-color);
+    background: var(--arch-surface);
+    border-color: var(--arch-border-strong);
+    color: var(--arch-ink);
 }
 
 html[data-theme="dark"] .slider-btn:hover {
-    background: rgba(30,41,59,0.98);
-    border-color: var(--primary-color);
+    background: var(--arch-surface-subtle);
+    border-color: var(--arch-accent);
 }
 
 html[data-theme="dark"] .dot {
-    background: rgba(148,163,184,0.3);
-    border-color: rgba(148,163,184,0.2);
+    background: rgba(154, 165, 160, 0.35);
+    border-color: transparent;
 }
 
 html[data-theme="dark"] .dot.active {
-    background: var(--primary-color);
-    border-color: rgba(44,85,48,0.4);
+    background: var(--arch-accent);
+    border-color: var(--arch-accent);
 }
 
 /* Impact cards dark mode */
 html[data-theme="dark"] .impact-card {
-    background: linear-gradient(135deg, #0f1419 0%, #0a0f15 100%);
-    border-color: rgba(148,163,184,0.2);
+    background: var(--arch-surface);
+    border-color: var(--arch-border);
+    box-shadow: var(--elev-hairline);
 }
 
 html[data-theme="dark"] .impact-card::before {
-    background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    background: var(--arch-accent);
 }
 
 html[data-theme="dark"] .impact-label {
-    color: #86efac;
+    color: var(--arch-accent);
 }
 
 /* Purpose feature cards */
 html[data-theme="dark"] .purpose-feature {
-    background: rgba(15,23,42,0.6);
-    border-color: rgba(148,163,184,0.2);
+    background: var(--arch-surface);
+    border-color: var(--arch-border);
 }
 
 html[data-theme="dark"] .purpose-feature:hover {
-    background: rgba(15,23,42,0.85);
-    border-color: rgba(44,85,48,0.3);
+    background: var(--arch-surface-subtle);
+    border-color: var(--arch-border-strong);
 }
 
 html[data-theme="dark"] .purpose-feature-icon {
-    background-color: rgba(44,85,48,0.15);
+    background-color: var(--arch-surface-subtle);
 }
 
 /* Showcase cards */
 html[data-theme="dark"] .showcase-card {
-    background: linear-gradient(135deg, #0f1419 0%, #0a0f15 100%);
-    border-color: rgba(148,163,184,0.2);
+    background: var(--arch-surface);
+    border-color: var(--arch-border);
+    box-shadow: var(--elev-hairline);
 }
 
 html[data-theme="dark"] .showcase-card:hover {
-    border-color: rgba(44,85,48,0.3);
+    border-color: var(--arch-border-strong);
 }
 
 /* Featured martyrs cards */
 html[data-theme="dark"] .featured-martyrs .martyr-card {
-    background: linear-gradient(145deg, #0f172a 0%, #0b1120 100%);
-    border: none;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 
-                0 25px 55px rgba(2, 6, 23, 0.75);
+    background: var(--arch-surface);
+    border: 1px solid var(--arch-border);
+    box-shadow: var(--elev-hairline);
 }
 
 html[data-theme="dark"] .featured-martyrs .martyr-card:hover {
-    box-shadow: inset 0 0 0 1px rgba(148, 210, 189, 0.2), 
-                0 35px 70px rgba(2, 6, 23, 0.85);
+    border-color: var(--arch-border-strong);
+    box-shadow: var(--elev-hover);
 }
 
 html[data-theme="dark"] .featured-martyrs .placeholder {
-    background: linear-gradient(135deg, #0f1419, #0c1116);
-    border-color: rgba(148,163,184,0.3);
+    background: var(--arch-surface);
+    border-color: var(--arch-border-strong);
 }
 
 /* Gallery page dark mode */
 html[data-theme="dark"] .gallery-grid .martyr-card {
-    background: linear-gradient(145deg, #0f172a 0%, #0a1220 100%);
-    border: none;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 
-                0 25px 55px rgba(2, 6, 23, 0.75);
+    background: var(--arch-surface);
+    border: 1px solid var(--arch-border);
+    box-shadow: var(--elev-hairline);
 }
 
 html[data-theme="dark"] .gallery-grid .martyr-card:hover {
-    box-shadow: inset 0 0 0 1px rgba(148, 210, 189, 0.2), 
-                0 35px 70px rgba(2, 6, 23, 0.85);
+    border-color: var(--arch-border-strong);
+    box-shadow: var(--elev-hover);
 }
 
 html[data-theme="dark"] .martyr-image {
-    background: linear-gradient(135deg, #1a2028, #151b22);
+    background: var(--arch-surface-subtle);
 }
 
 html[data-theme="dark"] .martyr-detail-list,
@@ -1155,31 +1187,28 @@ section {
     gap: 2rem;
 }
 
-/* Featured Martyrs cards - matching gallery design */
+/* Featured & Gallery Museum-Plate Martyr Cards */
 .martyr-card {
     position: relative;
-    background: #ffffff;
-    border-radius: 20px;
-    border: none;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8), 
-                0 8px 30px rgba(15, 23, 42, 0.04), 
-                0 24px 60px rgba(15, 23, 42, 0.08);
+    background: var(--arch-surface);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--arch-border);
+    box-shadow: var(--elev-hairline);
     overflow: hidden;
-    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.2s ease;
 }
 
 .martyr-card:hover {
-    transform: translateY(-8px);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.95), 
-                0 12px 40px rgba(15, 23, 42, 0.06), 
-                0 32px 80px rgba(15, 23, 42, 0.12);
+    transform: translateY(-2px);
+    box-shadow: var(--elev-hover);
+    border-color: var(--arch-border-strong);
 }
 
 .martyr-card.placeholder {
     padding: 2rem;
     text-align: center;
-    background: var(--light-color);
-    border: 2px dashed rgba(44, 85, 48, 0.2);
+    background: var(--arch-surface-subtle);
+    border: 1px dashed var(--arch-border-strong);
 }
 
 .martyr-card-inner {
@@ -1191,20 +1220,22 @@ section {
 .martyr-photo-wrapper {
     position: relative;
     overflow: hidden;
-    border-radius: 20px 20px 0 0;
-    background: linear-gradient(135deg, #dfe7e9, #cfd9df);
+    border-radius: 0;
+    background: var(--arch-surface-subtle);
+    border-bottom: 1px solid var(--arch-border);
 }
 
 .martyr-photo-wrapper img {
     display: block;
     width: 100%;
-    height: 220px;
+    height: 230px;
     object-fit: cover;
-    transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    object-position: 50% 20%;
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .martyr-card:hover .martyr-photo-wrapper img {
-    transform: scale(1.04);
+    transform: scale(1.03);
 }
 
 .martyr-photo-placeholder {
@@ -1212,29 +1243,45 @@ section {
     align-items: center;
     justify-content: center;
     width: 100%;
-    height: 220px;
-    font-size: 2.5rem;
-    color: #9ca3af;
+    height: 230px;
+    font-size: 0.78rem;
+    color: var(--arch-ink-muted);
+    background: var(--arch-surface-subtle);
 }
 
 .martyr-photo-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to bottom, rgba(15, 23, 42, 0.18), rgba(15, 23, 42, 0.02));
-    mix-blend-mode: multiply;
+    background: linear-gradient(to bottom, transparent 60%, rgba(20, 24, 21, 0.08) 100%);
     pointer-events: none;
 }
 
 .martyr-image {
     width: 100%;
-    height: 220px;
-    background: linear-gradient(135deg, #dfe7e9, #cfd9df);
+    height: 230px;
+    background: var(--arch-surface-subtle);
     object-fit: cover;
+    object-position: 50% 20%;
     display: block;
 }
 
 .martyr-info {
-    padding: 1.25rem 1.4rem 1.3rem;
+    padding: 1.15rem 1.25rem 1.25rem;
+}
+
+.martyr-kicker {
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+    color: var(--arch-ink-muted);
+    margin: 0 0 0.28rem 0;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .martyr-name-row {
@@ -3057,8 +3104,8 @@ html[data-theme="dark"] .no-results-clear-btn:hover {
 .gallery-grid .martyr-photo-wrapper {
     position: relative;
     overflow: hidden;
-    border-radius: 20px 20px 0 0;
-    background: linear-gradient(135deg, #dfe7e9, #cfd9df);
+    border-radius: 0;
+    background: var(--arch-surface-subtle);
 }
 
 .gallery-grid .martyr-photo-wrapper img {
@@ -3351,20 +3398,15 @@ html[data-theme="dark"] .no-results-clear-btn:hover {
 /* Anniversary Slider Styles */
 .anniversaries {
     padding: 4rem 0;
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    background: var(--arch-surface-subtle);
+    border-top: 1px solid var(--arch-border);
+    border-bottom: 1px solid var(--arch-border);
     position: relative;
     overflow: hidden;
 }
 
 .anniversaries::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -50%;
-    width: 200%;
-    height: 100%;
-    background: linear-gradient(45deg, transparent 30%, rgba(212, 175, 55, 0.1) 50%, transparent 70%);
-    animation: shimmer 6s infinite;
+    content: none;
 }
 
 @keyframes shimmer {
@@ -3383,7 +3425,7 @@ html[data-theme="dark"] .no-results-clear-btn:hover {
 
 .section-subtitle {
     text-align: center;
-    color: #666;
+    color: var(--arch-ink-muted);
     font-size: 1.1rem;
     margin-bottom: 3rem;
     position: relative;
@@ -3395,9 +3437,10 @@ html[data-theme="dark"] .no-results-clear-btn:hover {
     max-width: 900px;
     margin: 0 auto;
     overflow: hidden;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    background: white;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--arch-border);
+    box-shadow: var(--elev-hairline);
+    background: var(--arch-surface);
     z-index: 1;
 }
 
@@ -3469,29 +3512,29 @@ html[data-theme="dark"] .no-results-clear-btn:hover {
 }
 
 .anniversary-card .martyr-location {
-    font-size: 1.1rem;
-    color: #777;
+    font-size: 1.05rem;
+    color: var(--arch-ink-muted);
     margin-bottom: 1rem;
     display: flex;
     align-items: center;
+    gap: 0.45rem;
 }
 
 .anniversary-card .martyr-location::before {
-    content: '📍';
-    margin-right: 0.5rem;
-    font-size: 1rem;
+    content: none;
 }
 
 .anniversary-date {
-    color: var(--secondary-color);
-    font-weight: bold;
-    font-size: 1.3rem;
+    color: #7A5C12;
+    font-weight: 700;
+    font-size: 0.92rem;
     margin-bottom: 1rem;
-    padding: 0.5rem 1rem;
-    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
-    border-radius: 25px;
-    display: inline-block;
-    border: 2px solid var(--secondary-color);
+    padding: 0.45rem 0.95rem;
+    background: var(--arch-gold-subtle);
+    border-radius: var(--radius-pill);
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(184, 149, 53, 0.4);
 }
 
 .martyr-bio {
@@ -4804,29 +4847,37 @@ html[data-theme="dark"] .martyr-modal-header,
 
 .martyr-modal-photo {
     width: 100%;
-    border-radius: 14px;
+    border-radius: var(--radius-md);
     object-fit: cover;
-    box-shadow: 0 16px 35px rgba(15, 23, 42, 0.35);
+    box-shadow: var(--elev-hairline);
+    border: 1px solid var(--arch-border);
     display: block;
 }
 
 .martyr-modal-photo-placeholder {
     width: 100%;
     height: 300px;
-    border-radius: 14px;
-    background: radial-gradient(circle at top, #f3f4f6, #d1d5db);
+    border-radius: var(--radius-md);
+    background: var(--arch-surface-subtle);
+    border: 1px solid var(--arch-border);
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    font-size: 3.5rem;
-    color: #9ca3af;
-    box-shadow: 0 16px 35px rgba(15, 23, 42, 0.2);
+    gap: 0.55rem;
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--arch-ink-muted);
+    box-shadow: none;
 }
 
 html[data-theme="dark"] .martyr-modal-photo-placeholder,
 [data-theme="dark"] .martyr-modal-photo-placeholder {
-    background: radial-gradient(circle at top, #1e293b, #0f172a);
-    color: #64748b;
+    background: var(--arch-surface-subtle);
+    border-color: var(--arch-border);
+    color: var(--arch-ink-muted);
 }
 
 .martyr-modal-details-col {
@@ -5645,18 +5696,18 @@ html[data-theme="dark"] .modal-submission {
 
 /* Professional Skeleton Loader */
 .skeleton-card {
-    border: 1px solid rgba(148, 163, 184, 0.2);
-    border-radius: 12px;
-    background: var(--bg-card, #ffffff);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--arch-border);
+    border-radius: var(--radius-sm);
+    background: var(--arch-surface);
+    box-shadow: var(--elev-hairline);
     overflow: hidden;
     display: flex;
     flex-direction: column;
 }
 
 html[data-theme="dark"] .skeleton-card {
-    background: rgba(30, 41, 59, 0.8);
-    border-color: rgba(148, 163, 184, 0.1);
+    background: var(--arch-surface);
+    border-color: var(--arch-border);
 }
 
 .skeleton-img {
@@ -5857,15 +5908,22 @@ html[data-theme="dark"] .shimmer {
     .gallery-grid .martyr-card,
     .featured-martyrs .martyr-card,
     .martyrs-showcase .martyr-card {
-        border-radius: 12px !important;
-        box-shadow: 0 3px 12px rgba(15, 23, 42, 0.06) !important;
-        contain-intrinsic-size: auto 270px !important;
+        border-radius: var(--radius-sm, 6px) !important;
+        box-shadow: var(--elev-hairline) !important;
+        contain-intrinsic-size: auto 265px !important;
     }
 
     .gallery-grid .martyr-photo-wrapper,
     .featured-martyrs .martyr-photo-wrapper,
     .martyrs-showcase .martyr-photo-wrapper {
-        border-radius: 12px 12px 0 0 !important;
+        border-radius: 0 !important;
+    }
+
+    .gallery-grid .martyr-kicker,
+    .featured-martyrs .martyr-kicker,
+    .martyrs-showcase .martyr-kicker {
+        font-size: 0.62rem !important;
+        margin-bottom: 0.16rem !important;
     }
 
     .gallery-grid .martyr-photo-wrapper img,
@@ -6288,15 +6346,20 @@ html[data-theme="dark"] .bottom-nav-item.active {
 
     .martyr-modal-photo-placeholder {
         width: 100% !important;
-        height: 250px !important;
-        border-radius: 8px !important;
-        border: 3px solid #d4af37 !important;
+        height: 240px !important;
+        border-radius: var(--radius-sm, 6px) !important;
+        border: 1px solid var(--arch-border, #E2DDD3) !important;
         display: flex !important;
+        flex-direction: column !important;
         align-items: center !important;
         justify-content: center !important;
-        background: #f1f5f9 !important;
-        font-size: 50px !important;
-        color: #94a3b8 !important;
+        gap: 0.5rem !important;
+        background: var(--arch-surface-subtle, #F2EFE9) !important;
+        font-size: 0.72rem !important;
+        font-weight: 600 !important;
+        letter-spacing: 0.08em !important;
+        text-transform: uppercase !important;
+        color: var(--arch-ink-muted, #525954) !important;
     }
 
     .martyr-modal-details-col {
