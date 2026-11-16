@@ -3,7 +3,7 @@
 // Deduplicates via SHA-256 content hash, enforces strict image validation & size caps,
 // and gracefully reports { r2Available: false } when R2 bindings are not yet attached.
 
-import { verifyToken } from './admin-login.js';
+import { authorizeAdmin, JSON_HEADERS, jsonResponse as json } from './_admin-auth.js';
 import { getActiveMediaShard, resolveR2BucketForShard } from './_edge-store.js';
 
 const MAX_UPLOAD_BYTES = 1500 * 1024; // 1.5 MB ceiling per portrait
@@ -15,22 +15,6 @@ const MIME_TO_EXT = {
     'image/webp': 'webp',
     'image/gif': 'gif'
 };
-
-const JSON_HEADERS = {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Cache-Control': 'no-store',
-    'X-Content-Type-Options': 'nosniff'
-};
-
-function json(body, status = 200) {
-    return new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
-}
-
-function extractAdminToken(request) {
-    const auth = request.headers.get('Authorization') || request.headers.get('authorization') || '';
-    if (auth.startsWith('Bearer ')) return auth.slice(7).trim();
-    return (request.headers.get('X-Admin-Token') || request.headers.get('x-admin-token') || '').trim();
-}
 
 function decodeBase64ToBytes(dataUriOrBase64) {
     const str = String(dataUriOrBase64 || '').trim();
@@ -71,15 +55,13 @@ export async function onRequest({ request, env }) {
         return json({ success: false, error: 'Method not allowed' }, 405);
     }
 
-    const secret = env?.JWT_SECRET;
-    const expectedUsername = env?.ADMIN_USERNAME || 'admin';
-    if (!secret) {
-        return json({ success: false, error: 'Server JWT_SECRET not configured' }, 500);
-    }
-    const token = extractAdminToken(request);
-    const decoded = await verifyToken(token, secret, expectedUsername);
-    if (!decoded) {
-        return json({ success: false, error: 'Admin authentication required for media uploads' }, 401);
+    const auth = await authorizeAdmin(request, env, {
+        missingSecretError: 'Server JWT_SECRET not configured',
+        missingTokenError: 'Admin authentication required for media uploads',
+        invalidTokenError: 'Admin authentication required for media uploads'
+    });
+    if (!auth.ok) {
+        return json({ success: false, error: auth.error }, auth.status);
     }
 
     const activeShard = getActiveMediaShard(env);
@@ -144,7 +126,7 @@ export async function onRequest({ request, env }) {
             },
             customMetadata: {
                 martyrId: String(body?.martyrId || '').slice(0, 128),
-                uploadedBy: String(decoded.username || 'admin').slice(0, 64),
+                uploadedBy: String(auth.decoded?.username || 'admin').slice(0, 64),
                 uploadedAt: new Date().toISOString()
             }
         });

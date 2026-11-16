@@ -9,6 +9,7 @@ import { onRequest as contactHandler } from '../functions/api/contact.js';
 import { onRequest as edgeArchive } from '../functions/api/edge-archive.js';
 import { onRequest as getMartyrs } from '../functions/api/get-martyrs.js';
 import { onRequest as mediaUpload } from '../functions/api/media-upload.js';
+import { onRequest as pendingSubmissions } from '../functions/api/pending-submissions.js';
 import { onRequest as verifyTurnstile } from '../functions/api/verify-turnstile.js';
 import { resolveR2BucketForShard, rowToMartyr } from '../functions/api/_edge-store.js';
 
@@ -20,6 +21,7 @@ const routes = {
     '/api/edge-archive': edgeArchive,
     '/api/get-martyrs': getMartyrs,
     '/api/media-upload': mediaUpload,
+    '/api/pending-submissions': pendingSubmissions,
     '/api/verify-turnstile': verifyTurnstile
 };
 

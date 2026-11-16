@@ -51,3 +51,16 @@ CREATE TABLE IF NOT EXISTS archive_meta (
     value TEXT NOT NULL,
     updated_at_ms INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS pending_martyrs (
+    id TEXT PRIMARY KEY,
+    firestore_id TEXT NOT NULL DEFAULT '',
+    payload_json TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    source TEXT NOT NULL DEFAULT 'web-submit',
+    submitted_at_ms INTEGER NOT NULL DEFAULT 0,
+    updated_at_ms INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_pending_status_submitted
+    ON pending_martyrs (status, submitted_at_ms DESC);

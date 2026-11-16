@@ -1207,9 +1207,121 @@ function buildAdminMartyrUpdatePayload(updatedData, targetStatus = null) {
 
 function getAdminJwtToken() {
     try {
+        const direct = sessionStorage.getItem('adminToken') || localStorage.getItem('adminToken');
+        if (direct) return direct;
+        const sessRaw = sessionStorage.getItem('baluch_admin_session') || localStorage.getItem('baluch_admin_session');
+        if (sessRaw) {
+            const parsed = JSON.parse(sessRaw);
+            if (parsed?.token) return String(parsed.token);
+        }
         return sessionStorage.getItem('bmm_admin_token') || '';
     } catch {
         return '';
+    }
+}
+
+function isFirestoreQuotaOrUnavailableError(err) {
+    if (!err) return false;
+    const code = String(err.code || '').toLowerCase();
+    const msg = String(err.message || err || '').toLowerCase();
+    return (
+        code.includes('resource-exhausted') ||
+        code.includes('unavailable') ||
+        code.includes('deadline-exceeded') ||
+        code.includes('aborted') ||
+        code.includes('internal') ||
+        msg.includes('quota') ||
+        msg.includes('resource_exhausted') ||
+        msg.includes('resource exhausted') ||
+        msg.includes('429') ||
+        msg.includes('timed out') ||
+        msg.includes('timeout') ||
+        msg.includes('network') ||
+        msg.includes('failed to fetch')
+    );
+}
+
+function withTimeout(promise, ms = 10000, label = 'Operation') {
+    let timer = null;
+    const timeoutPromise = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+            const err = new Error(`${label} timed out after ${ms}ms`);
+            err.code = 'deadline-exceeded';
+            reject(err);
+        }, ms);
+    });
+    return Promise.race([promise, timeoutPromise]).finally(() => {
+        if (timer) clearTimeout(timer);
+    });
+}
+
+function generateEdgeFallbackId() {
+    try {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            return `edge_${crypto.randomUUID().replace(/-/g, '').slice(0, 20)}`;
+        }
+    } catch (_) {}
+    return `edge_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function stripInternalMetaFields(obj) {
+    if (!obj || typeof obj !== 'object') return obj;
+    delete obj.id;
+    delete obj.d1PendingId;
+    delete obj.firestoreId;
+    delete obj.source;
+    delete obj._fromD1;
+    delete obj.submittedAt;
+    return obj;
+}
+
+function toJsonDateString(val) {
+    if (val === null || val === undefined || val === '') return '';
+    if (typeof val === 'string') return val.trim();
+    if (val instanceof Date && !isNaN(val.getTime())) return val.toISOString().slice(0, 10);
+    if (typeof val === 'object') {
+        if (typeof val.toDate === 'function') {
+            try { return val.toDate().toISOString().slice(0, 10); } catch (_) {}
+        }
+        if (typeof val.seconds === 'number') {
+            return new Date(val.seconds * 1000).toISOString().slice(0, 10);
+        }
+    }
+    return '';
+}
+
+function serializePendingForD1(raw) {
+    if (!raw || typeof raw !== 'object') return {};
+    const copy = { ...raw };
+    stripInternalMetaFields(copy);
+    if ('birthDate' in copy) copy.birthDate = toJsonDateString(copy.birthDate);
+    if ('martyrdomDate' in copy) copy.martyrdomDate = toJsonDateString(copy.martyrdomDate);
+    return copy;
+}
+
+async function pendingApiFetch(path, options = {}, includeAdminAuth = false) {
+    try {
+        const headers = { ...(options.headers || {}) };
+        if (options.body && !headers['Content-Type']) {
+            headers['Content-Type'] = 'application/json';
+        }
+        if (includeAdminAuth) {
+            const token = getAdminJwtToken();
+            if (!token) {
+                return { ok: false, status: 401, data: null, error: 'Missing admin session token' };
+            }
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        const resp = await fetch(path, { ...options, headers, cache: 'no-store' });
+        const data = await resp.json().catch(() => null);
+        return {
+            ok: resp.ok && (data ? data.success !== false : true),
+            status: resp.status,
+            data,
+            error: data?.error || (resp.ok ? '' : `HTTP ${resp.status}`)
+        };
+    } catch (err) {
+        return { ok: false, status: 0, data: null, error: err?.message || 'Network request failed' };
     }
 }
 
@@ -1279,31 +1391,72 @@ function isRulePermissionDeniedError(err) {
 
 // Database helper functions
 export const firebaseDB = {
-    // Add new pending martyr
+    // Add new pending martyr (writes to Firestore with durable Cloudflare D1 + R2 fallback/mirror)
     async addPendingMartyr(martyrData) {
         try {
-            // Sanitize and validate all fields before saving to Firestore
+            // Sanitize and validate all fields before saving
             const processedData = sanitizeMartyrPayload(martyrData);
+            stripInternalMetaFields(processedData);
             if (!processedData.fullName || processedData.fullName.length < 2) {
                 throw new Error('Martyr full name is required.');
             }
-            
+
+            const jsonBackupPayload = serializePendingForD1(processedData);
+
             if (processedData.birthDate && typeof processedData.birthDate === 'string') {
                 processedData.birthDate = Timestamp.fromDate(new Date(processedData.birthDate));
             }
             if (processedData.martyrdomDate && typeof processedData.martyrdomDate === 'string') {
                 processedData.martyrdomDate = Timestamp.fromDate(new Date(processedData.martyrdomDate));
             }
-            
-            const docRef = await addDoc(collection(db, 'pendingMartyrs'), {
-                ...processedData,
-                status: 'pending',
-                submittedAt: serverTimestamp(),
-                id: Date.now().toString() // Temporary ID for backward compatibility
+
+            let firestoreErr = null;
+            try {
+                const docRef = await withTimeout(
+                    addDoc(collection(db, 'pendingMartyrs'), {
+                        ...processedData,
+                        status: 'pending',
+                        submittedAt: serverTimestamp(),
+                        id: Date.now().toString()
+                    }),
+                    10000,
+                    'Firestore pending submission'
+                );
+
+                // Best-effort mirror to Cloudflare D1 so admin always has full queue visibility
+                await pendingApiFetch('/api/pending-submissions', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        ...jsonBackupPayload,
+                        firestoreId: docRef.id,
+                        submittedAt: new Date().toISOString()
+                    })
+                }).catch(() => {});
+
+                console.log('Pending martyr added with ID: ', docRef.id);
+                return { success: true, id: docRef.id, source: 'firestore' };
+            } catch (err) {
+                firestoreErr = err;
+                console.warn('⚠️ Firestore addPendingMartyr unavailable, activating D1 fallback:', err?.code || err?.message);
+            }
+
+            const d1Res = await pendingApiFetch('/api/pending-submissions', {
+                method: 'POST',
+                body: JSON.stringify({
+                    ...jsonBackupPayload,
+                    submittedAt: new Date().toISOString()
+                })
             });
-            
-            console.log('Pending martyr added with ID: ', docRef.id);
-            return { success: true, id: docRef.id };
+
+            if (d1Res.ok && d1Res.data?.id) {
+                console.log('Pending martyr captured via Cloudflare D1 fallback with ID:', d1Res.data.id);
+                return { success: true, id: d1Res.data.id, source: 'd1-fallback' };
+            }
+
+            return {
+                success: false,
+                error: d1Res.error || firestoreErr?.message || 'Unable to submit martyr profile.'
+            };
         } catch (error) {
             console.error('Error adding pending martyr: ', error);
             return { success: false, error: error.message };
@@ -1440,7 +1593,7 @@ export const firebaseDB = {
         return loaderPromise;
     },
 
-    // Fetch single full document (including submitter fields & photo) for admin editing
+    // Fetch single full document (including submitter fields & photo) with D1/Edge fallback
     async getMartyrById(collectionName, docId) {
         try {
             if (collectionName !== 'martyrs' && collectionName !== 'pendingMartyrs') {
@@ -1454,11 +1607,36 @@ export const firebaseDB = {
             } else {
                 await ensureFirebaseAuthReady();
             }
-            const snap = await getDoc(doc(db, collectionName, docId));
-            if (!snap.exists()) {
-                return { success: false, error: 'Profile document not found in Firestore.' };
+
+            const isEdgeOnlyApproved = collectionName === 'martyrs' && docId.startsWith('edge_');
+            const isD1OnlyPending = collectionName === 'pendingMartyrs' && docId.startsWith('d1p_');
+
+            if (!isEdgeOnlyApproved && !isD1OnlyPending) {
+                try {
+                    const snap = await withTimeout(getDoc(doc(db, collectionName, docId)), 8000, 'Firestore single doc read');
+                    if (snap.exists()) {
+                        return { success: true, data: { id: snap.id, ...snap.data() } };
+                    }
+                } catch (fsErr) {
+                    if (!isFirestoreQuotaOrUnavailableError(fsErr)) {
+                        throw fsErr;
+                    }
+                }
             }
-            return { success: true, data: { id: snap.id, ...snap.data() } };
+
+            if (collectionName === 'pendingMartyrs') {
+                const d1Pending = await pendingApiFetch('/api/pending-submissions', { method: 'GET' }, true);
+                if (d1Pending.ok && Array.isArray(d1Pending.data?.data)) {
+                    const match = d1Pending.data.data.find(m => m && (m.id === docId || m.d1PendingId === docId || m.firestoreId === docId));
+                    if (match) return { success: true, data: match, source: 'd1' };
+                }
+            } else {
+                const cached = memoryCache || (await readMartyrsFromIDB()) || (await readMartyrsFromEdgeArchive(false));
+                const match = Array.isArray(cached?.data) ? cached.data.find(m => m && m.id === docId) : null;
+                if (match) return { success: true, data: match, source: 'edge' };
+            }
+
+            return { success: false, error: 'Profile document not found in Firestore or Edge D1.' };
         } catch (error) {
             console.error('❌ Error fetching martyr document:', error);
             return { success: false, error: error.message };
@@ -1483,7 +1661,7 @@ export const firebaseDB = {
         }
     },
 
-    // Update a pending martyr submission (admin function)
+    // Update a pending martyr submission (Firestore + Cloudflare D1 sync/fallback)
     async updatePendingMartyr(martyrId, updatedData) {
         try {
             await requireActiveAdminSession('updatePendingMartyr');
@@ -1491,8 +1669,33 @@ export const firebaseDB = {
                 throw new Error('Valid pending submission ID is required.');
             }
             console.log(`✏️ Updating pending martyr: ${martyrId}`);
+            const jsonUpdates = serializePendingForD1(sanitizeMartyrPayload(updatedData));
             const { processedData } = buildAdminMartyrUpdatePayload(updatedData, 'pending');
-            await updateDoc(doc(db, 'pendingMartyrs', martyrId), processedData);
+            stripInternalMetaFields(processedData);
+
+            let fsUpdated = false;
+            let fsErr = null;
+            if (!martyrId.startsWith('d1p_')) {
+                try {
+                    await withTimeout(updateDoc(doc(db, 'pendingMartyrs', martyrId), processedData), 10000, 'Firestore pending update');
+                    fsUpdated = true;
+                } catch (err) {
+                    fsErr = err;
+                    if (!isFirestoreQuotaOrUnavailableError(err) && !String(err?.code || '').includes('not-found')) {
+                        throw err;
+                    }
+                }
+            }
+
+            const d1Res = await pendingApiFetch('/api/pending-submissions', {
+                method: 'PATCH',
+                body: JSON.stringify({ id: martyrId, updates: jsonUpdates })
+            }, true);
+
+            if (!fsUpdated && !d1Res.ok) {
+                throw new Error(d1Res.error || fsErr?.message || 'Failed to update pending submission.');
+            }
+
             console.log(`✅ Pending martyr updated: ${martyrId}`);
             return { success: true, id: martyrId };
         } catch (error) {
@@ -1501,41 +1704,78 @@ export const firebaseDB = {
         }
     },
 
-    // Get all pending martyrs (admin only) - simplified
+    // Get all pending martyrs (merges Firestore + Cloudflare D1 fallback queue seamlessly)
     async getPendingMartyrs() {
         try {
             await ensureFirebaseAuthReady();
-            console.log('🔍 Fetching pending martyrs from Firebase...');
-            
-            // Simple query without orderBy to avoid index issues
-            const pendingCollection = collection(db, 'pendingMartyrs');
-            const querySnapshot = await getDocs(pendingCollection);
-            const pendingMartyrs = [];
-            
-            querySnapshot.forEach((doc) => {
-                pendingMartyrs.push({
-                    id: doc.id,
-                    ...doc.data()
+            console.log('🔍 Fetching pending martyrs from Firebase + D1 Edge...');
+
+            const [fsSettled, d1Settled] = await Promise.allSettled([
+                withTimeout(getDocs(collection(db, 'pendingMartyrs')), 8000, 'Firestore pending fetch'),
+                pendingApiFetch('/api/pending-submissions', { method: 'GET' }, true)
+            ]);
+
+            const fsOk = fsSettled.status === 'fulfilled';
+            const d1Ok = d1Settled.status === 'fulfilled' && d1Settled.value?.ok && Array.isArray(d1Settled.value?.data?.data);
+
+            const byId = new Map();
+            if (fsOk) {
+                fsSettled.value.forEach((docSnap) => {
+                    byId.set(docSnap.id, {
+                        ...docSnap.data(),
+                        id: docSnap.id,
+                        source: 'firestore'
+                    });
                 });
-            });
-            
-            console.log(`✅ Found ${pendingMartyrs.length} pending martyrs in Firebase`);
-            return { success: true, data: pendingMartyrs };
+            }
+
+            if (d1Ok) {
+                for (const d1Item of d1Settled.value.data.data) {
+                    if (!d1Item || typeof d1Item !== 'object') continue;
+                    const canonicalId = d1Item.firestoreId || d1Item.id;
+                    if (!canonicalId) continue;
+                    if (byId.has(canonicalId)) {
+                        const existing = byId.get(canonicalId);
+                        if (!existing.photo && d1Item.photo) {
+                            existing.photo = d1Item.photo;
+                        }
+                        existing.d1PendingId = d1Item.d1PendingId || d1Item.id;
+                    } else {
+                        byId.set(canonicalId, {
+                            ...d1Item,
+                            id: canonicalId
+                        });
+                    }
+                }
+            }
+
+            if (!fsOk && !d1Ok) {
+                const err = fsSettled.status === 'rejected'
+                    ? fsSettled.reason
+                    : new Error(d1Settled.value?.error || 'Unable to load pending submissions');
+                throw err;
+            }
+
+            const pendingMartyrs = Array.from(byId.values());
+            console.log(`✅ Found ${pendingMartyrs.length} pending martyrs (fsOk=${fsOk}, d1Ok=${d1Ok})`);
+            return {
+                success: true,
+                data: pendingMartyrs,
+                source: fsOk && d1Ok ? 'firestore+d1' : (fsOk ? 'firestore' : 'd1')
+            };
         } catch (error) {
             console.error('❌ Error getting pending martyrs: ', error);
-            console.error('Error details:', {
-                code: error.code,
-                message: error.message
-            });
             return { success: false, error: error.message, details: error };
         }
     },
 
-    // Approve pending martyr (atomic writeBatch + optional R2 photo offload + write-through Edge sync)
+    // Approve pending martyr (atomic Firestore batch + R2 photo offload + D1 fallback & cleanup)
     async approveMartyr(martyrId, martyrData) {
         try {
             await requireActiveAdminSession('approveMartyr');
             const sanitizedMartyr = sanitizeMartyrPayload(martyrData);
+            stripInternalMetaFields(sanitizedMartyr);
+
             if ('birthDate' in sanitizedMartyr) {
                 sanitizedMartyr.birthDate = toFirestoreDateOrEmpty(sanitizedMartyr.birthDate);
             }
@@ -1548,14 +1788,12 @@ export const firebaseDB = {
                     ? sanitizedMartyr.photo
                     : '';
 
-            // Add to approved martyrs collection
             const approvedData = {
                 ...sanitizedMartyr,
                 status: 'approved',
                 approvedAt: serverTimestamp(),
                 updatedAt: serverTimestamp()
             };
-            delete approvedData.id; // Remove old ID field
 
             if (approvedData.photoRemoved) {
                 approvedData.photo = '';
@@ -1581,23 +1819,34 @@ export const firebaseDB = {
                 approvedData.photoUpdatedAt = serverTimestamp();
             }
 
+            const isD1OnlyPending = typeof martyrId === 'string' && martyrId.startsWith('d1p_');
             const newMartyrRef = doc(collection(db, 'martyrs'));
-            const pendingRef = doc(db, 'pendingMartyrs', martyrId);
+            const pendingRef = doc(db, 'pendingMartyrs', String(martyrId || ''));
+            let finalApprovedId = newMartyrRef.id;
+            let usedEdgeFallback = false;
+
+            const writeToFirestore = async (payload) => {
+                if (isD1OnlyPending) {
+                    await withTimeout(setDoc(newMartyrRef, payload), 10000, 'Firestore approve setDoc');
+                    return;
+                }
+                const batch = writeBatch(db);
+                batch.set(newMartyrRef, payload);
+                batch.delete(pendingRef);
+                await withTimeout(batch.commit(), 10000, 'Firestore approve batch');
+            };
 
             try {
-                const batch = writeBatch(db);
-                batch.set(newMartyrRef, approvedData);
-                batch.delete(pendingRef);
-                await batch.commit();
+                await writeToFirestore(approvedData);
             } catch (batchErr) {
                 if (isRulePermissionDeniedError(batchErr) && ('photoPath' in approvedData || 'photoHash' in approvedData || 'photoShard' in approvedData)) {
-                    // Graceful compatibility if new firestore.rules have not been published yet
                     const compatApproved = stripExtendedRuleFields(approvedData);
                     if (inlinePhotoOriginal) compatApproved.photo = inlinePhotoOriginal;
-                    const retryBatch = writeBatch(db);
-                    retryBatch.set(newMartyrRef, compatApproved);
-                    retryBatch.delete(pendingRef);
-                    await retryBatch.commit();
+                    await writeToFirestore(compatApproved);
+                } else if (isFirestoreQuotaOrUnavailableError(batchErr)) {
+                    console.warn('⚠️ Firestore approve quota/network fallback -> publishing directly to Edge D1:', batchErr.code || batchErr.message);
+                    finalApprovedId = generateEdgeFallbackId();
+                    usedEdgeFallback = true;
                 } else {
                     throw batchErr;
                 }
@@ -1607,9 +1856,9 @@ export const firebaseDB = {
                 ? ''
                 : (approvedData.photoPath || approvedData.photo || '');
             if (approvedData.photoRemoved) {
-                photoMemoryCache.set(newMartyrRef.id, '');
+                photoMemoryCache.set(finalApprovedId, '');
             } else if (resolvedDisplayPhoto) {
-                photoMemoryCache.set(newMartyrRef.id, resolvedDisplayPhoto);
+                photoMemoryCache.set(finalApprovedId, resolvedDisplayPhoto);
             }
 
             const nowTs = Timestamp.now();
@@ -1620,7 +1869,7 @@ export const firebaseDB = {
                 photo: resolvedDisplayPhoto,
                 photoRemoved: Boolean(approvedData.photoRemoved),
                 hasPhoto: Boolean(approvedData.hasPhoto ?? !approvedData.photoRemoved),
-                id: newMartyrRef.id,
+                id: finalApprovedId,
                 status: 'approved',
                 approvedAt: nowTs,
                 updatedAt: nowTs,
@@ -1629,7 +1878,7 @@ export const firebaseDB = {
 
             // Write-through to Cloudflare D1 + purge Edge Cache immediately
             const { photo: _omitInlineB64, ...edgeBase } = newMartyrObj;
-            await pushEdgeSync('upsert', {
+            const edgeSyncRes = await pushEdgeSync('upsert', {
                 martyr: {
                     ...edgeBase,
                     photoPath: approvedData.photoPath || '',
@@ -1638,11 +1887,23 @@ export const firebaseDB = {
                 }
             });
 
+            if (usedEdgeFallback && !edgeSyncRes?.success) {
+                throw new Error(edgeSyncRes?.error || 'Failed to publish profile to Cloudflare D1 while Firebase quota is exhausted.');
+            }
+
+            // Always remove approved item from D1 pending queue so it does not reappear in moderation
+            if (martyrId) {
+                const encodedId = encodeURIComponent(String(martyrId));
+                await pendingApiFetch(`/api/pending-submissions?id=${encodedId}&firestoreId=${encodedId}`, {
+                    method: 'DELETE'
+                }, true).catch(() => {});
+            }
+
             // Update local archive cache directly so the newly approved martyr appears immediately
             try {
                 const existing = memoryCache || (await readMartyrsFromIDB()) || (await readMartyrsFromSeed());
                 if (existing && Array.isArray(existing.data) && existing.data.length > 0) {
-                    const merged = existing.data.filter(m => m && m.id !== newMartyrRef.id);
+                    const merged = existing.data.filter(m => m && m.id !== finalApprovedId);
                     merged.push(newMartyrObj);
                     merged.sort((a, b) => {
                         const idA = String(a?.id || '');
@@ -1659,19 +1920,46 @@ export const firebaseDB = {
                 await clearMartyrsCache();
             }
 
-            console.log('Martyr approved with ID: ', newMartyrRef.id);
-            return { success: true, id: newMartyrRef.id, photoPath: approvedData.photoPath || '' };
+            console.log('Martyr approved with ID: ', finalApprovedId);
+            return {
+                success: true,
+                id: finalApprovedId,
+                photoPath: approvedData.photoPath || '',
+                source: usedEdgeFallback ? 'edge-d1' : 'firestore'
+            };
         } catch (error) {
             console.error('Error approving martyr: ', error);
             return { success: false, error: error.message };
         }
     },
 
-    // Reject pending martyr (delete from pending)
+    // Reject pending martyr (delete from both Firestore & D1 pending queue)
     async rejectMartyr(martyrId) {
         try {
             await requireActiveAdminSession('rejectMartyr');
-            await deleteDoc(doc(db, 'pendingMartyrs', martyrId));
+            let fsDeleted = false;
+            let fsErr = null;
+            if (martyrId && !String(martyrId).startsWith('d1p_')) {
+                try {
+                    await withTimeout(deleteDoc(doc(db, 'pendingMartyrs', String(martyrId))), 10000, 'Firestore reject delete');
+                    fsDeleted = true;
+                } catch (err) {
+                    fsErr = err;
+                    if (!isFirestoreQuotaOrUnavailableError(err) && !String(err?.code || '').includes('not-found')) {
+                        throw err;
+                    }
+                }
+            }
+
+            const encodedId = encodeURIComponent(String(martyrId || ''));
+            const d1Res = await pendingApiFetch(`/api/pending-submissions?id=${encodedId}&firestoreId=${encodedId}`, {
+                method: 'DELETE'
+            }, true);
+
+            if (!fsDeleted && !d1Res.ok) {
+                throw new Error(d1Res.error || fsErr?.message || 'Failed to reject pending submission.');
+            }
+
             console.log('Martyr rejected and deleted: ', martyrId);
             return { success: true };
         } catch (error) {
@@ -1744,6 +2032,7 @@ export const firebaseDB = {
             console.log(`✏️ Updating approved martyr: ${martyrId}`);
 
             const { processedData, photoChanged, isPhotoRemoved } = buildAdminMartyrUpdatePayload(updatedData);
+            stripInternalMetaFields(processedData);
             const inlinePhotoOriginal =
                 typeof processedData.photo === 'string' && processedData.photo.startsWith('data:image/')
                     ? processedData.photo
@@ -1759,17 +2048,24 @@ export const firebaseDB = {
                 }
             }
 
-            // Update the Firestore document
-            const martyrRef = doc(db, 'martyrs', martyrId);
-            try {
-                await updateDoc(martyrRef, processedData);
-            } catch (updateErr) {
-                if (isRulePermissionDeniedError(updateErr) && ('photoPath' in processedData || 'photoHash' in processedData || 'photoShard' in processedData)) {
-                    const compatUpdate = stripExtendedRuleFields(processedData);
-                    if (!isPhotoRemoved && inlinePhotoOriginal) compatUpdate.photo = inlinePhotoOriginal;
-                    await updateDoc(martyrRef, compatUpdate);
-                } else {
-                    throw updateErr;
+            // Update the Firestore document (with quota/Edge-ID fallback)
+            const isEdgeOnlyId = String(martyrId || '').startsWith('edge_');
+            let usedEdgeFallback = isEdgeOnlyId;
+            if (!isEdgeOnlyId) {
+                const martyrRef = doc(db, 'martyrs', martyrId);
+                try {
+                    await withTimeout(updateDoc(martyrRef, processedData), 10000, 'Firestore approved update');
+                } catch (updateErr) {
+                    if (isRulePermissionDeniedError(updateErr) && ('photoPath' in processedData || 'photoHash' in processedData || 'photoShard' in processedData)) {
+                        const compatUpdate = stripExtendedRuleFields(processedData);
+                        if (!isPhotoRemoved && inlinePhotoOriginal) compatUpdate.photo = inlinePhotoOriginal;
+                        await withTimeout(updateDoc(martyrRef, compatUpdate), 10000, 'Firestore approved compat update');
+                    } else if (isFirestoreQuotaOrUnavailableError(updateErr)) {
+                        console.warn('⚠️ Firestore updateApprovedMartyr quota/network fallback -> updating Edge D1 directly:', updateErr.code || updateErr.message);
+                        usedEdgeFallback = true;
+                    } else {
+                        throw updateErr;
+                    }
                 }
             }
 
@@ -1783,10 +2079,10 @@ export const firebaseDB = {
             // Update local archive cache directly & write-through to Cloudflare D1
             let edgeUpdatedRecord = null;
             try {
-                const existing = memoryCache || (await readMartyrsFromIDB()) || (await readMartyrsFromSeed());
+                const existing = memoryCache || (await readMartyrsFromIDB()) || (await readMartyrsFromEdgeArchive(false)) || (await readMartyrsFromSeed());
                 const nowTs = Timestamp.now();
                 const { submitterEmail, submitterPhone, submitterRelation, ...cachePatch } = sanitizeMartyrPayload(updatedData);
-                delete cachePatch.id;
+                stripInternalMetaFields(cachePatch);
                 if ('birthDate' in processedData) cachePatch.birthDate = processedData.birthDate;
                 if ('martyrdomDate' in processedData) cachePatch.martyrdomDate = processedData.martyrdomDate;
                 if (photoChanged) {
@@ -1828,22 +2124,27 @@ export const firebaseDB = {
                 await clearMartyrsCache();
             }
 
+            let edgeSyncRes = null;
             if (edgeUpdatedRecord) {
                 const { photo: _omitInlineB64, ...edgeBase } = edgeUpdatedRecord;
-                await pushEdgeSync('upsert', { martyr: edgeBase });
+                edgeSyncRes = await pushEdgeSync('upsert', { martyr: edgeBase });
             } else {
-                await pushEdgeSync('reconcile_bulk', {});
+                edgeSyncRes = await pushEdgeSync('reconcile_bulk', {});
+            }
+
+            if (usedEdgeFallback && !edgeSyncRes?.success) {
+                throw new Error(edgeSyncRes?.error || 'Failed to persist edit to Cloudflare D1 while Firebase quota is exhausted.');
             }
 
             console.log(`✅ Approved martyr updated: ${martyrId}`);
-            return { success: true, id: martyrId, photoPath: processedData.photoPath || '' };
+            return { success: true, id: martyrId, photoPath: processedData.photoPath || '', source: usedEdgeFallback ? 'edge-d1' : 'firestore' };
         } catch (error) {
             console.error('❌ Error updating approved martyr: ', error);
             return { success: false, error: error.message };
         }
     },
 
-    // Delete an approved martyr (row-level soft-delete tombstone with deleteDoc fallback + Edge sync)
+    // Delete an approved martyr (row-level soft-delete tombstone with deleteDoc & D1 fallback)
     async deleteApprovedMartyr(martyrId) {
         try {
             await requireActiveAdminSession('deleteApprovedMartyr');
@@ -1852,38 +2153,48 @@ export const firebaseDB = {
             }
             console.log(`🗑️ Soft-deleting (tombstone) approved martyr: ${martyrId}`);
 
-            const martyrRef = doc(db, 'martyrs', martyrId);
-            const tombstonePatch = {
-                status: 'deleted',
-                deletedAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
-                biography: '',
-                familyDetails: '',
-                photo: '',
-                photoPath: '',
-                photoHash: '',
-                photoShard: '',
-                photoRemoved: true,
-                hasPhoto: false,
-                submitterName: '',
-                submitterEmail: '',
-                submitterPhone: '',
-                submitterRelation: ''
-            };
+            const isEdgeOnlyId = String(martyrId).startsWith('edge_');
+            let usedEdgeFallback = isEdgeOnlyId;
 
-            try {
-                await updateDoc(martyrRef, tombstonePatch);
-            } catch (tombErr) {
-                if (isRulePermissionDeniedError(tombErr)) {
-                    // Backward compatibility if updated tombstone firestore.rules aren't published yet
-                    await deleteDoc(martyrRef);
-                } else {
-                    throw tombErr;
+            if (!isEdgeOnlyId) {
+                const martyrRef = doc(db, 'martyrs', martyrId);
+                const tombstonePatch = {
+                    status: 'deleted',
+                    deletedAt: serverTimestamp(),
+                    updatedAt: serverTimestamp(),
+                    biography: '',
+                    familyDetails: '',
+                    photo: '',
+                    photoPath: '',
+                    photoHash: '',
+                    photoShard: '',
+                    photoRemoved: true,
+                    hasPhoto: false,
+                    submitterName: '',
+                    submitterEmail: '',
+                    submitterPhone: '',
+                    submitterRelation: ''
+                };
+
+                try {
+                    await withTimeout(updateDoc(martyrRef, tombstonePatch), 10000, 'Firestore tombstone update');
+                } catch (tombErr) {
+                    if (isRulePermissionDeniedError(tombErr)) {
+                        await withTimeout(deleteDoc(martyrRef), 10000, 'Firestore hard delete');
+                    } else if (isFirestoreQuotaOrUnavailableError(tombErr)) {
+                        console.warn('⚠️ Firestore deleteApprovedMartyr quota/network fallback -> tombstoning Edge D1 directly:', tombErr.code || tombErr.message);
+                        usedEdgeFallback = true;
+                    } else {
+                        throw tombErr;
+                    }
                 }
             }
 
             photoMemoryCache.set(martyrId, '');
-            await pushEdgeSync('tombstone', { id: martyrId });
+            const edgeSyncRes = await pushEdgeSync('tombstone', { id: martyrId });
+            if (usedEdgeFallback && !edgeSyncRes?.success) {
+                throw new Error(edgeSyncRes?.error || 'Failed to tombstone profile in Cloudflare D1 while Firebase quota is exhausted.');
+            }
 
             try {
                 const existing = memoryCache || (await readMartyrsFromIDB()) || (await readMartyrsFromSeed());
@@ -1906,21 +2217,38 @@ export const firebaseDB = {
         }
     },
     
-    // Clear all pending martyrs (admin function)
+    // Clear all pending martyrs (Firestore + D1 pending queue)
     async clearAllPendingMartyrs() {
         try {
             await requireActiveAdminSession('clearAllPendingMartyrs');
-            const pendingCollection = collection(db, 'pendingMartyrs');
-            const querySnapshot = await getDocs(pendingCollection);
-            
-            const deletePromises = [];
-            querySnapshot.forEach((docSnapshot) => {
-                deletePromises.push(deleteDoc(docSnapshot.ref));
-            });
-            
-            await Promise.all(deletePromises);
-            console.log(`Cleared ${deletePromises.length} pending martyrs from Firebase`);
-            return { success: true, deletedCount: deletePromises.length };
+            let fsCleared = 0;
+            let fsOk = false;
+            try {
+                const pendingCollection = collection(db, 'pendingMartyrs');
+                const querySnapshot = await withTimeout(getDocs(pendingCollection), 8000, 'Firestore clearPending list');
+                const deletePromises = [];
+                querySnapshot.forEach((docSnapshot) => {
+                    deletePromises.push(deleteDoc(docSnapshot.ref));
+                });
+                await withTimeout(Promise.all(deletePromises), 12000, 'Firestore clearPending delete');
+                fsCleared = deletePromises.length;
+                fsOk = true;
+            } catch (err) {
+                if (!isFirestoreQuotaOrUnavailableError(err)) {
+                    throw err;
+                }
+                console.warn('⚠️ Firestore clearAllPendingMartyrs quota fallback -> clearing D1 pending queue');
+            }
+
+            const d1Res = await pendingApiFetch('/api/pending-submissions?all=1', { method: 'DELETE' }, true);
+            const d1Cleared = Number(d1Res?.data?.cleared || 0);
+            if (!fsOk && !d1Res.ok) {
+                throw new Error(d1Res.error || 'Failed to clear pending submissions.');
+            }
+
+            const totalCleared = Math.max(fsCleared, d1Cleared);
+            console.log(`Cleared ${totalCleared} pending martyrs (fs=${fsCleared}, d1=${d1Cleared})`);
+            return { success: true, deletedCount: totalCleared };
         } catch (error) {
             console.error('Error clearing all pending martyrs: ', error);
             return { success: false, error: error.message };
@@ -1999,52 +2327,6 @@ export const firebaseDB = {
             console.error('❌ Error cleaning up seeded historical martyrs:', error);
             return { success: false, error: error.message };
         }
-    }
-};
-
-// Backward compatibility with localStorage (fallback)
-export const storageHelper = {
-    // Migrate existing localStorage data to Firebase
-    async migrateFromLocalStorage() {
-        try {
-            // Migrate approved martyrs
-            const existingMartyrs = localStorage.getItem('martyrsData');
-            if (existingMartyrs) {
-                const martyrsData = JSON.parse(existingMartyrs);
-                const approvedMartyrs = martyrsData.filter(m => !m.status || m.status === 'approved');
-                
-                for (const martyr of approvedMartyrs) {
-                    await addDoc(collection(db, 'martyrs'), {
-                        ...martyr,
-                        status: 'approved',
-                        migratedAt: serverTimestamp()
-                    });
-                }
-                
-                console.log(`Migrated ${approvedMartyrs.length} approved martyrs`);
-            }
-            
-            // Migrate pending martyrs
-            const existingPending = localStorage.getItem('pendingMartyrs');
-            if (existingPending) {
-                const pendingData = JSON.parse(existingPending);
-                
-                for (const martyr of pendingData) {
-                    await addDoc(collection(db, 'pendingMartyrs'), {
-                        ...martyr,
-                        status: 'pending',
-                        migratedAt: serverTimestamp()
-                    });
-                }
-                
-                console.log(`Migrated ${pendingData.length} pending martyrs`);
-            }
-            
-            return { success: true };
-        } catch (error) {
-            console.error('Migration error: ', error);
-            return { success: false, error: error.message };
-        }
     },
 
     // Query live Cloudflare D1 + R2 shard readiness (used in Admin System panel)
@@ -2086,14 +2368,22 @@ export const storageHelper = {
                 return { success: false, error: statusBefore.error || 'Edge sync API unreachable.' };
             }
 
-            notify({ stage: 'fetch', current: 0, total: 1, message: 'Fetching approved profiles from Firestore...' });
-            const liveRes = await fetchApprovedMartyrsFromFirestore(null, {
-                includeSubmitterFields: false,
-                skipIDBWrite: true
-            });
-            const records = Array.isArray(liveRes?.data) && liveRes.data.length > 0
-                ? liveRes.data
-                : ((await this.getApprovedMartyrs(false))?.data || []);
+            notify({ stage: 'fetch', current: 0, total: 1, message: 'Fetching approved profiles from Firestore / Edge...' });
+            let liveRes = null;
+            try {
+                liveRes = await fetchApprovedMartyrsFromFirestore(null, {
+                    includeSubmitterFields: false,
+                    skipIDBWrite: true
+                });
+            } catch (fsFetchErr) {
+                console.warn('⚠️ Sync Edge Firestore read fell back to Edge/Cache:', fsFetchErr?.code || fsFetchErr?.message);
+            }
+
+            let records = Array.isArray(liveRes?.data) && liveRes.data.length > 0 ? liveRes.data : [];
+            if (records.length === 0) {
+                const fallbackRes = await this.getApprovedMartyrs({ forceRefresh: false });
+                records = Array.isArray(fallbackRes?.data) ? fallbackRes.data : [];
+            }
 
             if (records.length === 0) {
                 return { success: false, error: 'No approved martyr profiles found to sync.' };
@@ -2156,17 +2446,19 @@ export const storageHelper = {
                                 m.photo = up.photoPath;
                                 photoMemoryCache.set(m.id, up.photoPath);
                                 r2Uploaded++;
-                                try {
-                                    await updateDoc(doc(db, 'martyrs', m.id), {
-                                        photoPath: up.photoPath,
-                                        photoHash: up.photoHash,
-                                        photoShard: up.photoShard,
-                                        photo: up.photoPath,
-                                        hasPhoto: true,
-                                        updatedAt: serverTimestamp()
-                                    });
-                                } catch (_) {
-                                    // Keep going cleanly even if extended firestore.rules aren't pasted yet
+                                if (!String(m.id).startsWith('edge_')) {
+                                    try {
+                                        await updateDoc(doc(db, 'martyrs', m.id), {
+                                            photoPath: up.photoPath,
+                                            photoHash: up.photoHash,
+                                            photoShard: up.photoShard,
+                                            photo: up.photoPath,
+                                            hasPhoto: true,
+                                            updatedAt: serverTimestamp()
+                                        });
+                                    } catch (_) {
+                                        // Keep going cleanly even if extended firestore.rules aren't pasted or quota is exhausted
+                                    }
                                 }
                             } else {
                                 r2Failed++;
@@ -2237,17 +2529,6 @@ export const storageHelper = {
         }
     },
 
-    // Fallback to localStorage if Firebase is not available
-    getLocalMartyrs() {
-        const savedMartyrs = localStorage.getItem('martyrsData');
-        return savedMartyrs ? JSON.parse(savedMartyrs) : [];
-    },
-
-    getLocalPending() {
-        const savedPending = localStorage.getItem('pendingMartyrs');
-        return savedPending ? JSON.parse(savedPending) : [];
-    },
-
     signInAdmin: signInAdminFirebase,
     signOutAdmin: signOutAdminFirebase,
     async getFirebaseAuthAdmin() {
@@ -2260,6 +2541,63 @@ export const storageHelper = {
             };
         }
         return { signedIn: false, email: null, uid: null };
+    }
+};
+
+// Backward compatibility with localStorage (fallback)
+export const storageHelper = {
+    // Migrate existing localStorage data to Firebase
+    async migrateFromLocalStorage() {
+        try {
+            // Migrate approved martyrs
+            const existingMartyrs = localStorage.getItem('martyrsData');
+            if (existingMartyrs) {
+                const martyrsData = JSON.parse(existingMartyrs);
+                const approvedMartyrs = martyrsData.filter(m => !m.status || m.status === 'approved');
+                
+                for (const martyr of approvedMartyrs) {
+                    await addDoc(collection(db, 'martyrs'), {
+                        ...martyr,
+                        status: 'approved',
+                        migratedAt: serverTimestamp()
+                    });
+                }
+                
+                console.log(`Migrated ${approvedMartyrs.length} approved martyrs`);
+            }
+            
+            // Migrate pending martyrs
+            const existingPending = localStorage.getItem('pendingMartyrs');
+            if (existingPending) {
+                const pendingData = JSON.parse(existingPending);
+                
+                for (const martyr of pendingData) {
+                    await addDoc(collection(db, 'pendingMartyrs'), {
+                        ...martyr,
+                        status: 'pending',
+                        migratedAt: serverTimestamp()
+                    });
+                }
+                
+                console.log(`Migrated ${pendingData.length} pending martyrs`);
+            }
+            
+            return { success: true };
+        } catch (error) {
+            console.error('Migration error: ', error);
+            return { success: false, error: error.message };
+        }
+    },
+
+    // Fallback to localStorage if Firebase is not available
+    getLocalMartyrs() {
+        const savedMartyrs = localStorage.getItem('martyrsData');
+        return savedMartyrs ? JSON.parse(savedMartyrs) : [];
+    },
+
+    getLocalPending() {
+        const savedPending = localStorage.getItem('pendingMartyrs');
+        return savedPending ? JSON.parse(savedPending) : [];
     }
 };
 

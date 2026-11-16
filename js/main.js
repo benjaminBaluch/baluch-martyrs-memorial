@@ -471,7 +471,7 @@ window.bmmInstantCache = {
 
 // Initialize Firebase if not already available
 if (!window.firebaseDB) {
-    import('./firebase-config.js?v=20261116a').then(async (module) => {
+    import('./firebase-config.js?v=20261116c').then(async (module) => {
         window.firebaseDB = module.firebaseDB;
         console.log('🔥 Firebase loaded globally from main.js');
         

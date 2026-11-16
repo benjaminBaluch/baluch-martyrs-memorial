@@ -2,7 +2,7 @@
 // Authenticated write-through sync & status endpoint for Cloudflare D1 + R2.
 // Protected strictly by HMAC-SHA256 Admin JWT (fail-closed).
 
-import { verifyToken } from './admin-login.js';
+import { authorizeAdmin, JSON_HEADERS, jsonResponse as json } from './_admin-auth.js';
 import {
     bumpArchiveVersion,
     ensureEdgeSchema,
@@ -14,39 +14,6 @@ import {
     resolveR2BucketForShard,
     upsertMartyrsBatchToD1
 } from './_edge-store.js';
-
-const JSON_HEADERS = {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Cache-Control': 'no-store',
-    'X-Content-Type-Options': 'nosniff'
-};
-
-function json(body, status = 200) {
-    return new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
-}
-
-function extractAdminToken(request) {
-    const auth = request.headers.get('Authorization') || request.headers.get('authorization') || '';
-    if (auth.startsWith('Bearer ')) return auth.slice(7).trim();
-    return (request.headers.get('X-Admin-Token') || request.headers.get('x-admin-token') || '').trim();
-}
-
-async function authorizeAdmin(request, env) {
-    const secret = env?.JWT_SECRET;
-    const expectedUsername = env?.ADMIN_USERNAME || 'admin';
-    if (!secret) {
-        return { ok: false, status: 500, error: 'Server JWT_SECRET is not configured.' };
-    }
-    const token = extractAdminToken(request);
-    if (!token) {
-        return { ok: false, status: 401, error: 'Missing admin authentication token.' };
-    }
-    const decoded = await verifyToken(token, secret, expectedUsername);
-    if (!decoded) {
-        return { ok: false, status: 401, error: 'Invalid or expired admin token.' };
-    }
-    return { ok: true, admin: decoded };
-}
 
 export async function onRequest({ request, env }) {
     if (request.method === 'OPTIONS') {

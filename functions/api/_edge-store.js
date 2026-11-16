@@ -47,7 +47,17 @@ const SCHEMA_STATEMENTS = [
     `CREATE INDEX IF NOT EXISTS idx_martyrs_updated ON martyrs (updated_at_ms ASC, id ASC)`,
     `CREATE INDEX IF NOT EXISTS idx_martyrs_slug ON martyrs (slug)`,
     `CREATE INDEX IF NOT EXISTS idx_martyrs_name_lower ON martyrs (LOWER(full_name))`,
-    `CREATE TABLE IF NOT EXISTS archive_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at_ms INTEGER NOT NULL)`
+    `CREATE TABLE IF NOT EXISTS archive_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at_ms INTEGER NOT NULL)`,
+    `CREATE TABLE IF NOT EXISTS pending_martyrs (
+        id TEXT PRIMARY KEY,
+        firestore_id TEXT NOT NULL DEFAULT '',
+        payload_json TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        source TEXT NOT NULL DEFAULT 'web-submit',
+        submitted_at_ms INTEGER NOT NULL DEFAULT 0,
+        updated_at_ms INTEGER NOT NULL DEFAULT 0
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_pending_status_submitted ON pending_martyrs (status, submitted_at_ms DESC)`
 ];
 
 const UPSERT_SQL = `INSERT INTO martyrs (
@@ -652,7 +662,12 @@ export async function reconcileD1WithFirestoreIfStale(origin, env, maxStaleMs = 
 
         // Self-heal ANY row-count drift against Firestore (additions, missed deltas, OR deletions),
         // matching either curTotal (with tombstones) or curApproved (legacy hard-deletes) at steady state.
-        if (curTotal === 0 || (fsTotal !== null && fsTotal !== curTotal && fsTotal !== curApproved)) {
+        // Guard full-collection scans with last_full_reconcile_ms cooldown so count drift never exhausts Spark quota.
+        const fullMeta = await getArchiveMeta(db, 'last_full_reconcile_ms');
+        const lastFullMs = fullMeta ? Number(fullMeta.value) : 0;
+        const fullCooldownMs = maxStaleMs === 0 ? 30000 : 900000;
+        if (curTotal === 0 || (fsTotal !== null && fsTotal !== curTotal && fsTotal !== curApproved && (nowMs - lastFullMs >= fullCooldownMs))) {
+            await setArchiveMeta(db, 'last_full_reconcile_ms', String(nowMs), nowMs);
             const [liveDocs, d1RowsRes] = await Promise.all([
                 fetchAllFirestorePublicMartyrs(env),
                 db.prepare('SELECT id, updated_at_ms, status, photo_path FROM martyrs').all()
@@ -685,7 +700,7 @@ export async function reconcileD1WithFirestoreIfStale(origin, env, maxStaleMs = 
 
                 const staleIds = [];
                 for (const [id, row] of d1ById.entries()) {
-                    if (row.status !== 'deleted' && !liveIds.has(id)) {
+                    if (row.status !== 'deleted' && !liveIds.has(id) && !String(id).startsWith('edge_')) {
                         staleIds.push(id);
                     }
                 }

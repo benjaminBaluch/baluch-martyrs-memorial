@@ -3,6 +3,11 @@
 // Import authentication module
 import { adminAuth } from './auth.js';
 import { escapeHTML, sanitizeInput, checkRateLimit, logSecurityEvent } from './security.js';
+import { firebaseDB as directFirebaseDB } from './firebase-config.js?v=20261116c';
+
+if (typeof window !== 'undefined' && (!window.firebaseDB || typeof window.firebaseDB.syncAllToEdgeArchive !== 'function')) {
+    window.firebaseDB = directFirebaseDB;
+}
 
 // Use auth.js module for authentication validation
 function validateAdminAuth(actionName = 'admin action') {
@@ -652,11 +657,9 @@ document.addEventListener('DOMContentLoaded', function() {
 async function attemptFirebaseReconnection() {
     console.log('🔄 Attempting Firebase reconnection...');
     try {
-        // Try to reimport Firebase module
-        const firebaseModule = await import('./firebase-config.js?v=20261116b');
-        window.firebaseDB = firebaseModule.firebaseDB;
+        const firebaseModule = await import('./firebase-config.js?v=20261116c');
+        window.firebaseDB = firebaseModule.firebaseDB || directFirebaseDB;
         
-        // Test the connection
         if (window.firebaseDB && typeof window.firebaseDB.testConnection === 'function') {
             const testResult = await window.firebaseDB.testConnection();
             if (testResult.success) {
@@ -675,15 +678,25 @@ async function attemptFirebaseReconnection() {
 // Make Firebase reconnection globally available
 window.attemptFirebaseReconnection = attemptFirebaseReconnection;
 
+let adminPanelInitialized = false;
+
 // Initialize admin panel once Firebase is ready
 function initializeAdminPanel() {
     try {
+        if (adminPanelInitialized) {
+            return;
+        }
         console.log('🔥 Firebase available, initializing admin panel...');
         
         // Validate admin authentication before proceeding
         if (!validateAdminAuth('initialize admin panel')) {
             console.log('❌ Admin panel initialization blocked - authentication failed');
             return; // Stop execution if not authenticated
+        }
+
+        adminPanelInitialized = true;
+        if (!window.firebaseDB || typeof window.firebaseDB.syncAllToEdgeArchive !== 'function') {
+            window.firebaseDB = directFirebaseDB;
         }
         
         // Debug Firebase availability
@@ -796,8 +809,12 @@ async function ensureEdgeSyncFirebaseDB() {
     if (window.firebaseDB && typeof window.firebaseDB.syncAllToEdgeArchive === 'function' && typeof window.firebaseDB.getEdgeArchiveStatus === 'function') {
         return window.firebaseDB;
     }
+    if (directFirebaseDB && typeof directFirebaseDB.syncAllToEdgeArchive === 'function' && typeof directFirebaseDB.getEdgeArchiveStatus === 'function') {
+        window.firebaseDB = directFirebaseDB;
+        return window.firebaseDB;
+    }
     try {
-        const mod = await import('./firebase-config.js?v=20261116b&ts=' + Date.now());
+        const mod = await import('./firebase-config.js?v=20261116c&ts=' + Date.now());
         if (mod?.firebaseDB) {
             window.firebaseDB = mod.firebaseDB;
             return window.firebaseDB;
@@ -805,7 +822,7 @@ async function ensureEdgeSyncFirebaseDB() {
     } catch (err) {
         console.warn('Edge module reload skipped:', err?.message || err);
     }
-    return window.firebaseDB || null;
+    return window.firebaseDB || directFirebaseDB || null;
 }
 
 async function refreshEdgeArchiveBanner() {
@@ -815,13 +832,18 @@ async function refreshEdgeArchiveBanner() {
     const db = await ensureEdgeSyncFirebaseDB();
     if (!banner || !textEl || !db?.getEdgeArchiveStatus) return;
 
-    const status = await window.firebaseDB.getEdgeArchiveStatus();
+    const status = await db.getEdgeArchiveStatus();
+    banner.style.display = 'flex';
     if (!status || !status.success) {
-        banner.style.display = 'none';
+        if (pillEl) {
+            pillEl.textContent = 'Edge Status Warning';
+            pillEl.style.background = 'rgba(245, 158, 11, 0.14)';
+            pillEl.style.color = '#92400e';
+        }
+        textEl.textContent = status?.error || 'Could not verify Cloudflare D1 / R2 status.';
         return;
     }
 
-    banner.style.display = 'flex';
     const d1Label = status.d1Bound
         ? `D1 Edge DB: Active (${status.d1ApprovedCount || 0} profiles)`
         : 'D1 Edge DB: Pending binding';
@@ -861,7 +883,7 @@ async function handleSyncEdgeArchive() {
     if (textEl) textEl.textContent = 'Checking Cloudflare D1 + R2 readiness and reading Firestore...';
 
     try {
-        const res = await window.firebaseDB.syncAllToEdgeArchive((progress) => {
+        const res = await db.syncAllToEdgeArchive((progress) => {
             if (textEl && progress?.message) {
                 textEl.textContent = progress.message;
             }
