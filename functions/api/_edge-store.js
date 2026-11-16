@@ -484,7 +484,7 @@ export async function loadBundledSeedPayload(origin, env) {
 
 export async function upsertMartyrsBatchToD1(db, martyrs) {
     if (!db || !Array.isArray(martyrs) || martyrs.length === 0) return 0;
-    const CHUNK = 50;
+    const CHUNK = 200;
     let written = 0;
     for (let i = 0; i < martyrs.length; i += CHUNK) {
         const slice = martyrs.slice(i, i + CHUNK);
@@ -506,8 +506,12 @@ export async function ensureD1Seeded(origin, env) {
     if (!db) return false;
     await ensureEdgeSchema(db);
 
-    const existingCountRow = await db.prepare('SELECT COUNT(*) AS cnt FROM martyrs').first();
-    if (existingCountRow && Number(existingCountRow.cnt) > 0) {
+    const [existingCountRow, seedDoneMeta] = await Promise.all([
+        db.prepare('SELECT COUNT(*) AS cnt FROM martyrs').first(),
+        getArchiveMeta(db, 'seed_completed_v2')
+    ]);
+    const existingCount = Number(existingCountRow?.cnt || 0);
+    if (existingCount > 0 && seedDoneMeta && String(seedDoneMeta.value || '').startsWith('done:')) {
         return true;
     }
 
@@ -519,11 +523,27 @@ export async function ensureD1Seeded(origin, env) {
         try {
             const seed = await loadBundledSeedPayload(origin, env);
             let maxWatermark = 0;
+            let expectedSeedCount = 0;
+
             if (seed && seed.data.length > 0) {
-                await upsertMartyrsBatchToD1(db, seed.data);
+                expectedSeedCount = seed.data.length;
                 maxWatermark = Math.max(seed.maxUpdatedMs || 0, seed.maxApprovedMs || 0, seed.syncedAt || 0);
-            } else {
+
+                if (existingCount > 0) {
+                    // Recover cleanly from any partial seed without overwriting newer rows already in D1
+                    const existingRows = await db.prepare('SELECT id FROM martyrs').all();
+                    const existingIds = new Set((existingRows?.results || []).map((r) => r.id));
+                    const missingSeed = seed.data.filter((item) => item && item.id && !existingIds.has(item.id));
+                    if (missingSeed.length > 0) {
+                        await upsertMartyrsBatchToD1(db, missingSeed);
+                        await purgeEdgeCaches(origin);
+                    }
+                } else {
+                    await upsertMartyrsBatchToD1(db, seed.data);
+                }
+            } else if (existingCount === 0) {
                 const liveAll = await fetchAllFirestorePublicMartyrs(env);
+                expectedSeedCount = liveAll.length;
                 await upsertMartyrsBatchToD1(db, liveAll);
                 for (const m of liveAll) {
                     if (m.updatedAtMs > maxWatermark) maxWatermark = m.updatedAtMs;
@@ -538,7 +558,12 @@ export async function ensureD1Seeded(origin, env) {
                 }
             }
 
+            const postCountRow = await db.prepare('SELECT COUNT(*) AS cnt FROM martyrs').first();
+            const postCount = Number(postCountRow?.cnt || 0);
             const nowMs = Date.now();
+            if (expectedSeedCount > 0 && postCount >= expectedSeedCount) {
+                await setArchiveMeta(db, 'seed_completed_v2', `done:${expectedSeedCount}`, nowMs);
+            }
             await setArchiveMeta(db, 'last_firestore_sync_ms', String(nowMs), nowMs);
             await bumpArchiveVersion(db, nowMs);
             return true;
@@ -560,7 +585,7 @@ export async function reconcileD1WithFirestoreIfStale(origin, env, maxStaleMs = 
     const lastSyncMs = metaSync ? Number(metaSync.value) : 0;
     const nowMs = Date.now();
 
-    if (nowMs - lastSyncMs < maxStaleMs) {
+    if (maxStaleMs > 0 && nowMs - lastSyncMs < maxStaleMs) {
         return { synced: false, skipped: true };
     }
 
@@ -568,9 +593,12 @@ export async function reconcileD1WithFirestoreIfStale(origin, env, maxStaleMs = 
     await setArchiveMeta(db, 'last_firestore_sync_ms', String(nowMs), nowMs);
 
     try {
-        const maxRow = await db.prepare('SELECT MAX(updated_at_ms) AS max_upd, COUNT(*) AS d1_total FROM martyrs').first();
+        const maxRow = await db.prepare(
+            "SELECT MAX(updated_at_ms) AS max_upd, COUNT(*) AS d1_total, SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS d1_approved FROM martyrs"
+        ).first();
         const maxUpdatedMs = Number(maxRow?.max_upd || 0);
         const d1Total = Number(maxRow?.d1_total || 0);
+        const d1Approved = Number(maxRow?.d1_approved || 0);
 
         const [delta, fsTotal] = await Promise.all([
             maxUpdatedMs > 0 ? fetchFirestoreDeltaSince(env, maxUpdatedMs - 120000) : Promise.resolve([]),
@@ -582,37 +610,71 @@ export async function reconcileD1WithFirestoreIfStale(origin, env, maxStaleMs = 
             changed += await upsertMartyrsBatchToD1(db, delta);
         }
 
-        // Handle legacy hard-deletions if Firestore doc count dropped below D1 total rows
-        if (fsTotal !== null && fsTotal < d1Total) {
-            const liveDocs = await fetchAllFirestorePublicMartyrs(env);
-            const liveIds = new Set(liveDocs.map((d) => d.id));
-            const allD1IdsRes = await db.prepare("SELECT id FROM martyrs WHERE status != 'deleted'").all();
-            const staleDeletes = [];
-            for (const row of allD1IdsRes?.results || []) {
-                if (!liveIds.has(row.id)) {
-                    staleDeletes.push(
-                        db.prepare(
-                            "UPDATE martyrs SET status = 'deleted', biography = '', family_details = '', photo_path = '', photo_hash = '', photo_shard = '', photo_removed = 1, has_photo = 0, updated_at_ms = ?, deleted_at_json = ? WHERE id = ?"
-                        ).bind(nowMs, JSON.stringify(new Date(nowMs).toISOString()), row.id)
-                    );
+        const postDeltaRow = changed > 0
+            ? await db.prepare("SELECT COUNT(*) AS d1_total, SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS d1_approved FROM martyrs").first()
+            : null;
+        const curTotal = postDeltaRow ? Number(postDeltaRow.d1_total || 0) : d1Total;
+        const curApproved = postDeltaRow ? Number(postDeltaRow.d1_approved || 0) : d1Approved;
+
+        // Self-heal ANY row-count drift against Firestore (additions, missed deltas, OR deletions),
+        // matching either curTotal (with tombstones) or curApproved (legacy hard-deletes) at steady state.
+        if (curTotal === 0 || (fsTotal !== null && fsTotal !== curTotal && fsTotal !== curApproved)) {
+            const [liveDocs, d1RowsRes] = await Promise.all([
+                fetchAllFirestorePublicMartyrs(env),
+                db.prepare('SELECT id, updated_at_ms, status, photo_path FROM martyrs').all()
+            ]);
+
+            if (Array.isArray(liveDocs) && liveDocs.length > 0) {
+                const d1ById = new Map();
+                for (const row of d1RowsRes?.results || []) {
+                    d1ById.set(row.id, row);
                 }
-            }
-            if (staleDeletes.length > 0) {
-                for (let i = 0; i < staleDeletes.length; i += 50) {
-                    await db.batch(staleDeletes.slice(i, i + 50));
+
+                const liveIds = new Set();
+                const toUpsert = [];
+                for (const doc of liveDocs) {
+                    liveIds.add(doc.id);
+                    const existing = d1ById.get(doc.id);
+                    if (
+                        !existing ||
+                        existing.status !== doc.status ||
+                        doc.updatedAtMs > Number(existing.updated_at_ms || 0) ||
+                        (doc.photoPath && !existing.photo_path)
+                    ) {
+                        toUpsert.push(doc);
+                    }
                 }
-                changed += staleDeletes.length;
-            }
-            if (liveDocs.length > 0) {
-                await upsertMartyrsBatchToD1(db, liveDocs);
+
+                if (toUpsert.length > 0) {
+                    changed += await upsertMartyrsBatchToD1(db, toUpsert);
+                }
+
+                const staleDeletes = [];
+                for (const [id, row] of d1ById.entries()) {
+                    if (row.status !== 'deleted' && !liveIds.has(id)) {
+                        staleDeletes.push(
+                            db.prepare(
+                                "UPDATE martyrs SET status = 'deleted', biography = '', family_details = '', photo_path = '', photo_hash = '', photo_shard = '', photo_removed = 1, has_photo = 0, updated_at_ms = ?, deleted_at_json = ? WHERE id = ?"
+                            ).bind(nowMs, JSON.stringify(new Date(nowMs).toISOString()), id)
+                        );
+                    }
+                }
+                if (staleDeletes.length > 0) {
+                    for (let i = 0; i < staleDeletes.length; i += 200) {
+                        await db.batch(staleDeletes.slice(i, i + 200));
+                    }
+                    changed += staleDeletes.length;
+                }
             }
         }
 
         if (changed > 0) {
             await bumpArchiveVersion(db, nowMs);
+            await purgeEdgeCaches(origin);
         }
         return { synced: true, changed };
-    } catch {
+    } catch (err) {
+        console.error('reconcileD1WithFirestoreIfStale error:', err?.message || err);
         return { synced: false, error: true };
     }
 }

@@ -53,12 +53,14 @@ async function handleD1Archive(request, url, env, ctx) {
     const lite = mode === 'lite' || url.searchParams.get('lite') === '1';
 
     // Run non-blocking background staleness reconciliation at most once per 60s
+    // (or synchronously with a 5s cooldown when caller explicitly requests ?fresh=1)
     if (!url.searchParams.has('noReconcile')) {
-        const reconcilePromise = reconcileD1WithFirestoreIfStale(url.origin, env, 60000);
-        if (ctx && typeof ctx.waitUntil === 'function') {
-            ctx.waitUntil(reconcilePromise);
-        } else {
+        const forceFresh = url.searchParams.has('fresh');
+        const reconcilePromise = reconcileD1WithFirestoreIfStale(url.origin, env, forceFresh ? 5000 : 60000);
+        if (forceFresh || !ctx || typeof ctx.waitUntil !== 'function') {
             await reconcilePromise;
+        } else {
+            ctx.waitUntil(reconcilePromise);
         }
     }
 
