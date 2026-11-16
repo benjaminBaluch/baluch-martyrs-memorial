@@ -3484,7 +3484,7 @@
     </script>
     
     <!-- Firebase Config Script -->
-    <script type="module" src="js/firebase-config.js?v=20261116a"></script>
+    <script type="module" src="js/firebase-config.js?v=20261116b"></script>
     
     <!-- Authentication Script -->
     <script type="module" src="js/auth.js?v=20261104f"></script>
@@ -3659,7 +3659,7 @@ Please refresh the page or try again later.
                     // Try to reload Firebase if it's not available
                     console.log('🔄 Attempting to reload Firebase...');
                     try {
-                        const reloadModule = await import('./js/firebase-config.js?reload=' + Date.now());
+                        const reloadModule = await import('./js/firebase-config.js?v=20261116b&reload=' + Date.now());
                         window.firebaseDB = reloadModule.firebaseDB;
                         console.log('✅ Firebase reloaded successfully');
                     } catch (reloadError) {
@@ -3713,13 +3713,16 @@ Please refresh the page or try again later.
         // Test Firebase and dispatch ready event
         let firebaseWorking = await testFirebaseConnection();
         
-        // If Firebase failed, try to reinitialize
-        if (!firebaseWorking) {
+        // If Firebase failed, only reinitialize when the Edge/Firebase module itself is missing or incomplete
+        // (avoids overwriting fresh window.firebaseDB during transient Firestore quota/network errors)
+        if (!firebaseWorking && (!window.firebaseDB || typeof window.firebaseDB.syncAllToEdgeArchive !== 'function')) {
             console.log('♾️ Attempting Firebase reinitialization...');
             try {
-                // Try to reimport Firebase
-                const { firebaseDB: newFirebaseDB } = await import('./js/firebase-config.js');
-                window.firebaseDB = newFirebaseDB;
+                // Try to reimport versioned Firebase module
+                const { firebaseDB: newFirebaseDB } = await import('./js/firebase-config.js?v=20261116b');
+                if (newFirebaseDB) {
+                    window.firebaseDB = newFirebaseDB;
+                }
                 console.log('🔄 Firebase reinitialized, testing again...');
                 firebaseWorking = await testFirebaseConnection();
             } catch (error) {
@@ -3905,6 +3908,6 @@ Please refresh the page or try again later.
         }
     </script>
     <script src="js/mobile-menu.js?v=20261008h"></script>
-    <script type="module" src="js/admin.js?v=20261116a"></script>
+    <script type="module" src="js/admin.js?v=20261116b"></script>
 </body>
 </html>

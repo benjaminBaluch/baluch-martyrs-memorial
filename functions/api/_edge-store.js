@@ -501,17 +501,39 @@ export async function upsertMartyrsBatchToD1(db, martyrs) {
     return written;
 }
 
+const TOMBSTONE_SQL = "UPDATE martyrs SET status = 'deleted', biography = '', family_details = '', photo_path = '', photo_hash = '', photo_shard = '', photo_removed = 1, has_photo = 0, updated_at_ms = ?, deleted_at_json = ? WHERE id = ? AND status != 'deleted'";
+const RETIRED_SEED_IDS = ['JUqFchSZj7wX4oJP6PRh', 'N17u7tpTxoUME6tmuXmI'];
+
+async function tombstoneMartyrIdsInD1(db, ids, nowMs = Date.now()) {
+    if (!db || !Array.isArray(ids) || ids.length === 0) return 0;
+    const deletedAtJson = JSON.stringify(new Date(nowMs).toISOString());
+    const stmts = ids.map((id) => db.prepare(TOMBSTONE_SQL).bind(nowMs, deletedAtJson, String(id)));
+    let modified = 0;
+    for (let i = 0; i < stmts.length; i += 200) {
+        const results = await db.batch(stmts.slice(i, i + 200));
+        if (Array.isArray(results)) {
+            for (const res of results) {
+                modified += Number(res?.meta?.changes || 0);
+            }
+        }
+    }
+    return modified;
+}
+
 export async function ensureD1Seeded(origin, env) {
     const db = env?.ARCHIVE_DB;
     if (!db) return false;
     await ensureEdgeSchema(db);
 
-    const [existingCountRow, seedDoneMeta] = await Promise.all([
+    const [existingCountRow, seedDoneMeta, pruneDoneMeta] = await Promise.all([
         db.prepare('SELECT COUNT(*) AS cnt FROM martyrs').first(),
-        getArchiveMeta(db, 'seed_completed_v2')
+        getArchiveMeta(db, 'seed_completed_v2'),
+        getArchiveMeta(db, 'seed_pruned_deleted_v1')
     ]);
     const existingCount = Number(existingCountRow?.cnt || 0);
-    if (existingCount > 0 && seedDoneMeta && String(seedDoneMeta.value || '').startsWith('done:')) {
+    const seedAlreadyDone = existingCount > 0 && seedDoneMeta && String(seedDoneMeta.value || '').startsWith('done:');
+    const pruneAlreadyDone = pruneDoneMeta && pruneDoneMeta.value === 'done';
+    if (seedAlreadyDone && pruneAlreadyDone) {
         return true;
     }
 
@@ -521,50 +543,62 @@ export async function ensureD1Seeded(origin, env) {
 
     const seedTask = (async () => {
         try {
-            const seed = await loadBundledSeedPayload(origin, env);
             let maxWatermark = 0;
             let expectedSeedCount = 0;
 
-            if (seed && seed.data.length > 0) {
-                expectedSeedCount = seed.data.length;
-                maxWatermark = Math.max(seed.maxUpdatedMs || 0, seed.maxApprovedMs || 0, seed.syncedAt || 0);
+            if (!seedAlreadyDone) {
+                const seed = await loadBundledSeedPayload(origin, env);
 
-                if (existingCount > 0) {
-                    // Recover cleanly from any partial seed without overwriting newer rows already in D1
-                    const existingRows = await db.prepare('SELECT id FROM martyrs').all();
-                    const existingIds = new Set((existingRows?.results || []).map((r) => r.id));
-                    const missingSeed = seed.data.filter((item) => item && item.id && !existingIds.has(item.id));
-                    if (missingSeed.length > 0) {
-                        await upsertMartyrsBatchToD1(db, missingSeed);
-                        await purgeEdgeCaches(origin);
+                if (seed && seed.data.length > 0) {
+                    expectedSeedCount = seed.data.length;
+                    maxWatermark = Math.max(seed.maxUpdatedMs || 0, seed.maxApprovedMs || 0, seed.syncedAt || 0);
+
+                    if (existingCount > 0) {
+                        // Recover cleanly from any partial seed without overwriting newer rows already in D1
+                        const existingRows = await db.prepare('SELECT id FROM martyrs').all();
+                        const existingIds = new Set((existingRows?.results || []).map((r) => r.id));
+                        const missingSeed = seed.data.filter((item) => item && item.id && !existingIds.has(item.id));
+                        if (missingSeed.length > 0) {
+                            await upsertMartyrsBatchToD1(db, missingSeed);
+                            await purgeEdgeCaches(origin);
+                        }
+                    } else {
+                        await upsertMartyrsBatchToD1(db, seed.data);
                     }
-                } else {
-                    await upsertMartyrsBatchToD1(db, seed.data);
+                } else if (existingCount === 0) {
+                    const liveAll = await fetchAllFirestorePublicMartyrs(env);
+                    expectedSeedCount = liveAll.length;
+                    await upsertMartyrsBatchToD1(db, liveAll);
+                    for (const m of liveAll) {
+                        if (m.updatedAtMs > maxWatermark) maxWatermark = m.updatedAtMs;
+                    }
                 }
-            } else if (existingCount === 0) {
-                const liveAll = await fetchAllFirestorePublicMartyrs(env);
-                expectedSeedCount = liveAll.length;
-                await upsertMartyrsBatchToD1(db, liveAll);
-                for (const m of liveAll) {
-                    if (m.updatedAtMs > maxWatermark) maxWatermark = m.updatedAtMs;
+
+                // Reconcile any newly added/edited Firestore docs newer than seed
+                if (maxWatermark > 0) {
+                    const delta = await fetchFirestoreDeltaSince(env, maxWatermark - 120000).catch(() => []);
+                    if (delta.length > 0) {
+                        await upsertMartyrsBatchToD1(db, delta);
+                    }
                 }
             }
 
-            // Reconcile any newly added/edited Firestore docs newer than seed
-            if (maxWatermark > 0) {
-                const delta = await fetchFirestoreDeltaSince(env, maxWatermark - 120000).catch(() => []);
-                if (delta.length > 0) {
-                    await upsertMartyrsBatchToD1(db, delta);
-                }
-            }
-
-            const postCountRow = await db.prepare('SELECT COUNT(*) AS cnt FROM martyrs').first();
-            const postCount = Number(postCountRow?.cnt || 0);
             const nowMs = Date.now();
-            if (expectedSeedCount > 0 && postCount >= expectedSeedCount) {
-                await setArchiveMeta(db, 'seed_completed_v2', `done:${expectedSeedCount}`, nowMs);
+            if (!seedAlreadyDone) {
+                const postCountRow = await db.prepare('SELECT COUNT(*) AS cnt FROM martyrs').first();
+                const postCount = Number(postCountRow?.cnt || 0);
+                if (expectedSeedCount > 0 && postCount >= expectedSeedCount) {
+                    await setArchiveMeta(db, 'seed_completed_v2', `done:${expectedSeedCount}`, nowMs);
+                }
+                await setArchiveMeta(db, 'last_firestore_sync_ms', String(nowMs), nowMs);
             }
-            await setArchiveMeta(db, 'last_firestore_sync_ms', String(nowMs), nowMs);
+
+            if (!pruneAlreadyDone) {
+                await tombstoneMartyrIdsInD1(db, RETIRED_SEED_IDS, nowMs);
+                await setArchiveMeta(db, 'seed_pruned_deleted_v1', 'done', nowMs);
+                await purgeEdgeCaches(origin);
+            }
+
             await bumpArchiveVersion(db, nowMs);
             return true;
         } finally {
@@ -649,21 +683,15 @@ export async function reconcileD1WithFirestoreIfStale(origin, env, maxStaleMs = 
                     changed += await upsertMartyrsBatchToD1(db, toUpsert);
                 }
 
-                const staleDeletes = [];
+                const staleIds = [];
                 for (const [id, row] of d1ById.entries()) {
                     if (row.status !== 'deleted' && !liveIds.has(id)) {
-                        staleDeletes.push(
-                            db.prepare(
-                                "UPDATE martyrs SET status = 'deleted', biography = '', family_details = '', photo_path = '', photo_hash = '', photo_shard = '', photo_removed = 1, has_photo = 0, updated_at_ms = ?, deleted_at_json = ? WHERE id = ?"
-                            ).bind(nowMs, JSON.stringify(new Date(nowMs).toISOString()), id)
-                        );
+                        staleIds.push(id);
                     }
                 }
-                if (staleDeletes.length > 0) {
-                    for (let i = 0; i < staleDeletes.length; i += 200) {
-                        await db.batch(staleDeletes.slice(i, i + 200));
-                    }
-                    changed += staleDeletes.length;
+                if (staleIds.length > 0) {
+                    await tombstoneMartyrIdsInD1(db, staleIds, nowMs);
+                    changed += staleIds.length;
                 }
             }
         }

@@ -653,7 +653,7 @@ async function attemptFirebaseReconnection() {
     console.log('🔄 Attempting Firebase reconnection...');
     try {
         // Try to reimport Firebase module
-        const firebaseModule = await import('./firebase-config.js?v=20261116a');
+        const firebaseModule = await import('./firebase-config.js?v=20261116b');
         window.firebaseDB = firebaseModule.firebaseDB;
         
         // Test the connection
@@ -792,11 +792,28 @@ function initializeAdminControls() {
     initApprovedSearch();
 }
 
+async function ensureEdgeSyncFirebaseDB() {
+    if (window.firebaseDB && typeof window.firebaseDB.syncAllToEdgeArchive === 'function' && typeof window.firebaseDB.getEdgeArchiveStatus === 'function') {
+        return window.firebaseDB;
+    }
+    try {
+        const mod = await import('./firebase-config.js?v=20261116b&ts=' + Date.now());
+        if (mod?.firebaseDB) {
+            window.firebaseDB = mod.firebaseDB;
+            return window.firebaseDB;
+        }
+    } catch (err) {
+        console.warn('Edge module reload skipped:', err?.message || err);
+    }
+    return window.firebaseDB || null;
+}
+
 async function refreshEdgeArchiveBanner() {
     const banner = document.getElementById('edgeInfraBanner');
     const textEl = document.getElementById('edgeInfraBannerText');
     const pillEl = document.getElementById('edgeInfraPill');
-    if (!banner || !textEl || !window.firebaseDB?.getEdgeArchiveStatus) return;
+    const db = await ensureEdgeSyncFirebaseDB();
+    if (!banner || !textEl || !db?.getEdgeArchiveStatus) return;
 
     const status = await window.firebaseDB.getEdgeArchiveStatus();
     if (!status || !status.success) {
@@ -828,7 +845,8 @@ async function handleSyncEdgeArchive() {
     const syncBtn = document.getElementById('syncEdgeArchiveBtn');
     const textEl = document.getElementById('edgeInfraBannerText');
     const banner = document.getElementById('edgeInfraBanner');
-    if (!window.firebaseDB?.syncAllToEdgeArchive) {
+    const db = await ensureEdgeSyncFirebaseDB();
+    if (!db?.syncAllToEdgeArchive) {
         showAdminToast('Edge sync function unavailable.', 'error');
         return;
     }
