@@ -4,6 +4,7 @@
 
 import { authorizeAdmin, JSON_HEADERS, jsonResponse as json } from './_admin-auth.js';
 import {
+    backfillMissingR2PhotosToD1,
     bumpArchiveVersion,
     ensureEdgeSchema,
     getActiveMediaShard,
@@ -35,6 +36,7 @@ export async function onRequest({ request, env }) {
         let d1ApprovedCount = 0;
         let d1DeletedCount = 0;
         let d1MediaPathCount = 0;
+        let d1MissingR2Count = 0;
         let archiveVersion = '';
         let lastSyncMs = 0;
 
@@ -42,7 +44,7 @@ export async function onRequest({ request, env }) {
             await ensureEdgeSchema(db);
             const [counts, metaVer, metaSync] = await Promise.all([
                 db.prepare(
-                    "SELECT SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved_cnt, SUM(CASE WHEN status = 'deleted' THEN 1 ELSE 0 END) AS deleted_cnt, SUM(CASE WHEN status = 'approved' AND photo_path LIKE '/media/%' THEN 1 ELSE 0 END) AS media_cnt FROM martyrs"
+                    "SELECT SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) AS approved_cnt, SUM(CASE WHEN status = 'deleted' THEN 1 ELSE 0 END) AS deleted_cnt, SUM(CASE WHEN status = 'approved' AND photo_path LIKE '/media/%' THEN 1 ELSE 0 END) AS media_cnt, SUM(CASE WHEN status = 'approved' AND photo_removed = 0 AND has_photo = 1 AND (photo_path IS NULL OR photo_path = '') THEN 1 ELSE 0 END) AS missing_r2_cnt FROM martyrs"
                 ).first(),
                 getArchiveMeta(db, 'archive_version'),
                 getArchiveMeta(db, 'last_firestore_sync_ms')
@@ -50,6 +52,7 @@ export async function onRequest({ request, env }) {
             d1ApprovedCount = Number(counts?.approved_cnt || 0);
             d1DeletedCount = Number(counts?.deleted_cnt || 0);
             d1MediaPathCount = Number(counts?.media_cnt || 0);
+            d1MissingR2Count = Number(counts?.missing_r2_cnt || 0);
             archiveVersion = metaVer?.value || '';
             lastSyncMs = metaSync ? Number(metaSync.value) : 0;
         }
@@ -63,6 +66,7 @@ export async function onRequest({ request, env }) {
             d1ApprovedCount,
             d1DeletedCount,
             d1MediaPathCount,
+            d1MissingR2Count,
             archiveVersion,
             lastSyncMs
         });
@@ -156,6 +160,18 @@ export async function onRequest({ request, env }) {
             action: 'reconcile_bulk',
             d1Synced: Boolean(db),
             written
+        });
+    }
+
+    if (action === 'backfill_r2') {
+        const res = await backfillMissingR2PhotosToD1(url.origin, env, {
+            batchLimit: Math.max(1, Math.min(100, Number(payload?.limit || 60))),
+            cooldownMs: 0
+        });
+        return json({
+            success: true,
+            action: 'backfill_r2',
+            ...res
         });
     }
 

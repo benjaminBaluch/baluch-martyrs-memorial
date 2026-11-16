@@ -2155,8 +2155,17 @@
                 }
             };
 
-            img.onerror = () => {
+            let triedResolve = Boolean(martyr.photoPath || martyr.photo || martyr.photoUpdatedAt);
+            img.onerror = async () => {
                 if (done) return;
+                if (!triedResolve && martyr.id && typeof window.resolveMartyrPhoto === 'function') {
+                    triedResolve = true;
+                    const resolved = await window.resolveMartyrPhoto(martyr.id).catch(() => null);
+                    if (!done && resolved && typeof resolved === 'string' && resolved.trim()) {
+                        img.src = resolved.trim();
+                        return;
+                    }
+                }
                 done = true;
                 clearTimeout(timer);
                 cleanup();

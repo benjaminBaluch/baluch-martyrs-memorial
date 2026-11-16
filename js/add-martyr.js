@@ -14,7 +14,7 @@ let existingMartyrs = []; // Cache of approved martyrs for duplicate detection
 async function loadFirebaseModules() {
     try {
         console.log('🌍 Attempting to load Firebase modules...');
-        const firebaseModule = await import('./firebase-config.js?v=20261116c');
+        const firebaseModule = await import('./firebase-config.js?v=20261116d');
         firebaseDB = firebaseModule.firebaseDB;
         storageHelper = firebaseModule.storageHelper;
         firebaseAvailable = true;

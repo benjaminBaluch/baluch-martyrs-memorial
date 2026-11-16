@@ -4,48 +4,13 @@
 // and gracefully reports { r2Available: false } when R2 bindings are not yet attached.
 
 import { authorizeAdmin, JSON_HEADERS, jsonResponse as json } from './_admin-auth.js';
-import { getActiveMediaShard, resolveR2BucketForShard } from './_edge-store.js';
-
-const MAX_UPLOAD_BYTES = 1500 * 1024; // 1.5 MB ceiling per portrait
-
-const MIME_TO_EXT = {
-    'image/jpeg': 'jpg',
-    'image/jpg': 'jpg',
-    'image/png': 'png',
-    'image/webp': 'webp',
-    'image/gif': 'gif'
-};
-
-function decodeBase64ToBytes(dataUriOrBase64) {
-    const str = String(dataUriOrBase64 || '').trim();
-    let mimeType = 'image/jpeg';
-    let b64 = str;
-
-    const match = str.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/s);
-    if (match) {
-        mimeType = match[1].toLowerCase();
-        b64 = match[2].replace(/\s+/g, '');
-    } else {
-        b64 = b64.replace(/\s+/g, '');
-    }
-
-    const ext = MIME_TO_EXT[mimeType];
-    if (!ext) {
-        throw new Error(`Unsupported image MIME type: ${mimeType}`);
-    }
-
-    const binary = atob(b64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i);
-    }
-    return { bytes, mimeType: mimeType === 'image/jpg' ? 'image/jpeg' : mimeType, ext };
-}
-
-async function sha256HexBytes(bytes) {
-    const digest = await crypto.subtle.digest('SHA-256', bytes);
-    return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
-}
+import {
+    decodeBase64ToBytes,
+    getActiveMediaShard,
+    MAX_UPLOAD_BYTES,
+    resolveR2BucketForShard,
+    storeImageBytesToActiveR2
+} from './_media-helper.js';
 
 export async function onRequest({ request, env }) {
     if (request.method === 'OPTIONS') {
@@ -103,42 +68,37 @@ export async function onRequest({ request, env }) {
         return json({ success: false, error: err.message }, 400);
     }
 
-    if (parsed.bytes.byteLength === 0) {
-        return json({ success: false, error: 'Image cannot be empty' }, 400);
+    let result;
+    try {
+        result = await storeImageBytesToActiveR2(env, {
+            bytes: parsed.bytes,
+            mimeType: parsed.mimeType,
+            ext: parsed.ext,
+            martyrId: body?.martyrId,
+            uploadedBy: auth.decoded?.username || 'admin'
+        });
+    } catch (err) {
+        const msg = String(err?.message || 'Upload failed');
+        const status = msg.includes('exceeds 1.5 MB limit') ? 413 : 400;
+        return json({ success: false, error: msg }, status);
     }
-    if (parsed.bytes.byteLength > MAX_UPLOAD_BYTES) {
+
+    if (!result.r2Available) {
         return json({
             success: false,
-            error: `Image size (${Math.round(parsed.bytes.byteLength / 1024)} KB) exceeds 1.5 MB limit`
-        }, 413);
-    }
-
-    const hash = await sha256HexBytes(parsed.bytes);
-    const objectKey = `${hash}.${parsed.ext}`;
-
-    // Content-addressed deduplication: avoid redundant R2 Class A PUT if hash already exists
-    const existing = await bucket.head(objectKey);
-    if (!existing) {
-        await bucket.put(objectKey, parsed.bytes, {
-            httpMetadata: {
-                contentType: parsed.mimeType,
-                cacheControl: 'public, max-age=31536000, immutable'
-            },
-            customMetadata: {
-                martyrId: String(body?.martyrId || '').slice(0, 128),
-                uploadedBy: String(auth.decoded?.username || 'admin').slice(0, 64),
-                uploadedAt: new Date().toISOString()
-            }
-        });
+            r2Available: false,
+            fallback: 'inline',
+            error: 'R2 media bucket is not bound yet'
+        }, 200);
     }
 
     return json({
         success: true,
         r2Available: true,
-        deduplicated: Boolean(existing),
-        photoPath: `/media/${activeShard}/${objectKey}`,
-        photoHash: hash,
-        photoShard: activeShard,
-        sizeBytes: parsed.bytes.byteLength
+        deduplicated: result.deduplicated,
+        photoPath: result.photoPath,
+        photoHash: result.photoHash,
+        photoShard: result.photoShard,
+        sizeBytes: result.sizeBytes
     }, 200);
 }

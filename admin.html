@@ -3484,7 +3484,7 @@
     </script>
     
     <!-- Firebase Config Script -->
-    <script type="module" src="js/firebase-config.js?v=20261116c"></script>
+    <script type="module" src="js/firebase-config.js?v=20261116d"></script>
     
     <!-- Authentication Script -->
     <script type="module" src="js/auth.js?v=20261104f"></script>
@@ -3659,7 +3659,7 @@ Please refresh the page or try again later.
                     // Try to reload Firebase if it's not available
                     console.log('🔄 Attempting to reload Firebase...');
                     try {
-                        const reloadModule = await import('./js/firebase-config.js?v=20261116c&reload=' + Date.now());
+                        const reloadModule = await import('./js/firebase-config.js?v=20261116d&reload=' + Date.now());
                         window.firebaseDB = reloadModule.firebaseDB;
                         console.log('✅ Firebase reloaded successfully');
                     } catch (reloadError) {
@@ -3719,7 +3719,7 @@ Please refresh the page or try again later.
             console.log('♾️ Attempting Firebase reinitialization...');
             try {
                 // Try to reimport versioned Firebase module
-                const { firebaseDB: newFirebaseDB } = await import('./js/firebase-config.js?v=20261116c');
+                const { firebaseDB: newFirebaseDB } = await import('./js/firebase-config.js?v=20261116d');
                 if (newFirebaseDB) {
                     window.firebaseDB = newFirebaseDB;
                 }
@@ -3908,6 +3908,6 @@ Please refresh the page or try again later.
         }
     </script>
     <script src="js/mobile-menu.js?v=20261008h"></script>
-    <script type="module" src="js/admin.js?v=20261116c"></script>
+    <script type="module" src="js/admin.js?v=20261116d"></script>
 </body>
 </html>

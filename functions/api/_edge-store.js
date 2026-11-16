@@ -2,6 +2,16 @@
 // Supports Cloudflare D1 (ARCHIVE_DB) + R2 Shards (MEDIA_S1, MEDIA_S2, ...) with
 // graceful Edge-Cache + Seed + Firestore Delta fallback before D1/R2 are bound.
 
+import {
+    decodeBase64ToBytes,
+    getActiveMediaShard,
+    MIME_TO_EXT,
+    resolveR2BucketForShard,
+    storeImageBytesToActiveR2
+} from './_media-helper.js';
+
+export { getActiveMediaShard, resolveR2BucketForShard };
+
 export const FIRESTORE_PROJECT_ID = 'baluch-martyrs-memorial';
 export const FIRESTORE_DEFAULT_API_KEY = 'AIzaSyBW2JKt68kGKE-CMvKQUUj33ToZ8M-kGII';
 
@@ -715,11 +725,209 @@ export async function reconcileD1WithFirestoreIfStale(origin, env, maxStaleMs = 
             await bumpArchiveVersion(db, nowMs);
             await purgeEdgeCaches(origin);
         }
+
+        // Gradually self-migrate any post-seed inline Firestore portraits into R2 without manual sync
+        await backfillMissingR2PhotosToD1(origin, env, {
+            batchLimit: 12,
+            cooldownMs: maxStaleMs === 0 ? 15000 : 120000
+        }).catch(() => null);
+
         return { synced: true, changed };
     } catch (err) {
         console.error('reconcileD1WithFirestoreIfStale error:', err?.message || err);
         return { synced: false, error: true };
     }
+}
+
+function isSupportedExternalPhotoPath(val) {
+    if (typeof val !== 'string') return false;
+    const trimmed = val.trim();
+    return Boolean(
+        trimmed &&
+        (/^\/media\/[A-Za-z0-9_-]{1,16}\/[A-Za-z0-9._-]{1,160}$/i.test(trimmed) ||
+         /^\/assets\/photos\/[A-Za-z0-9._-]+$/i.test(trimmed) ||
+         /^https:\/\//i.test(trimmed))
+    );
+}
+
+/**
+ * Self-heal missing R2 portrait paths in D1 by pulling static assets (0 Firestore reads)
+ * or inline Base64 portraits from Firestore REST into R2. Aborts immediately on HTTP 429.
+ */
+export async function backfillMissingR2PhotosToD1(origin, env, options = {}) {
+    const db = env?.ARCHIVE_DB;
+    const activeShard = getActiveMediaShard(env);
+    if (!db || !activeShard) {
+        return { uploaded: 0, updated: 0, remaining: 0, quotaBlocked: false, skipped: true };
+    }
+
+    await ensureEdgeSchema(db);
+    const batchLimit = Math.max(1, Math.min(100, Number(options.batchLimit || 15)));
+    const cooldownMs = options.cooldownMs === undefined ? 120000 : Number(options.cooldownMs);
+    const nowMs = Date.now();
+
+    if (cooldownMs > 0) {
+        const [lastMeta, blockedMeta] = await Promise.all([
+            getArchiveMeta(db, 'last_r2_backfill_ms'),
+            getArchiveMeta(db, 'r2_backfill_blocked_until_ms')
+        ]);
+        const blockedUntil = blockedMeta ? Number(blockedMeta.value) : 0;
+        const lastRunMs = lastMeta ? Number(lastMeta.value) : 0;
+        if (blockedUntil > nowMs) {
+            return { uploaded: 0, updated: 0, quotaBlocked: true, skipped: true };
+        }
+        if (lastRunMs > 0 && (nowMs - lastRunMs) < cooldownMs) {
+            return { uploaded: 0, updated: 0, quotaBlocked: false, skipped: true };
+        }
+    }
+
+    await setArchiveMeta(db, 'last_r2_backfill_ms', String(nowMs), nowMs);
+
+    const countRow = await db.prepare(
+        "SELECT COUNT(*) AS cnt FROM martyrs WHERE status = 'approved' AND photo_removed = 0 AND has_photo = 1 AND (photo_path IS NULL OR photo_path = '')"
+    ).first();
+    const initialMissing = Number(countRow?.cnt || 0);
+    if (initialMissing === 0) {
+        return { uploaded: 0, updated: 0, remaining: 0, quotaBlocked: false };
+    }
+
+    const rowsRes = await db.prepare(
+        "SELECT id FROM martyrs WHERE status = 'approved' AND photo_removed = 0 AND has_photo = 1 AND (photo_path IS NULL OR photo_path = '') ORDER BY updated_at_ms DESC LIMIT ?"
+    ).bind(batchLimit).all();
+
+    const rows = rowsRes?.results || [];
+    const { projectId, apiKey } = getFirestoreCredentials(env);
+    let uploaded = 0;
+    let updated = 0;
+    let quotaBlocked = false;
+
+    for (const row of rows) {
+        const id = String(row?.id || '').trim();
+        if (!id) continue;
+
+        try {
+            // 1. Check bundled static /assets/photos/<id>.jpg first (0 Firestore reads)
+            if (origin && env?.ASSETS) {
+                try {
+                    const assetUrl = new URL(`/assets/photos/${encodeURIComponent(id)}.jpg`, origin).toString();
+                    const assetRes = await env.ASSETS.fetch(new Request(assetUrl));
+                    if (assetRes.ok) {
+                        const rawCtype = (assetRes.headers.get('content-type') || 'image/jpeg').split(';')[0].trim().toLowerCase();
+                        const ext = MIME_TO_EXT[rawCtype];
+                        if (ext) {
+                            const bytes = new Uint8Array(await assetRes.arrayBuffer());
+                            const stored = await storeImageBytesToActiveR2(env, {
+                                bytes,
+                                mimeType: rawCtype === 'image/jpg' ? 'image/jpeg' : rawCtype,
+                                ext,
+                                martyrId: id,
+                                uploadedBy: 'edge-auto-backfill'
+                            });
+                            if (stored.r2Available && stored.photoPath) {
+                                await db.prepare(
+                                    'UPDATE martyrs SET photo_path = ?, photo_hash = ?, photo_shard = ?, has_photo = 1 WHERE id = ?'
+                                ).bind(stored.photoPath, stored.photoHash, stored.photoShard, id).run();
+                                uploaded++;
+                                continue;
+                            }
+                        }
+                    }
+                } catch (_) {
+                    // Fall through cleanly to Firestore single-doc check
+                }
+            }
+
+            if (id.startsWith('edge_')) {
+                // Edge-only fallback records with empty photo_path have no inline Firestore image
+                await db.prepare('UPDATE martyrs SET has_photo = 0 WHERE id = ?').bind(id).run();
+                updated++;
+                continue;
+            }
+
+            // 2. Fetch inline Base64 portrait from Firestore single doc (exact minimal field mask)
+            const fsUrl = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)/documents/martyrs/${encodeURIComponent(id)}?mask.fieldPaths=photo&mask.fieldPaths=photoPath&mask.fieldPaths=photoRemoved&key=${encodeURIComponent(apiKey)}`;
+            const fsRes = await fetch(fsUrl, { headers: { Accept: 'application/json' } });
+
+            if (fsRes.status === 429 || fsRes.status >= 500) {
+                quotaBlocked = true;
+                await setArchiveMeta(db, 'r2_backfill_blocked_until_ms', String(nowMs + 900000), nowMs);
+                break;
+            }
+
+            if (fsRes.status === 404) {
+                await db.prepare('UPDATE martyrs SET has_photo = 0 WHERE id = ?').bind(id).run();
+                updated++;
+                continue;
+            }
+
+            if (!fsRes.ok) continue;
+
+            const docJson = await fsRes.json();
+            const isRemoved = Boolean(docJson?.fields?.photoRemoved?.booleanValue);
+            const rawPath = (docJson?.fields?.photoPath?.stringValue || '').trim();
+            const rawPhoto = (docJson?.fields?.photo?.stringValue || '').trim();
+
+            if (isRemoved) {
+                await db.prepare(
+                    "UPDATE martyrs SET photo_removed = 1, has_photo = 0, photo_path = '', photo_hash = '', photo_shard = '' WHERE id = ?"
+                ).bind(id).run();
+                updated++;
+                continue;
+            }
+
+            if (isSupportedExternalPhotoPath(rawPath)) {
+                await db.prepare('UPDATE martyrs SET photo_path = ?, has_photo = 1 WHERE id = ?').bind(rawPath, id).run();
+                updated++;
+                continue;
+            }
+
+            if (rawPhoto.startsWith('data:image/')) {
+                const parsed = decodeBase64ToBytes(rawPhoto);
+                const stored = await storeImageBytesToActiveR2(env, {
+                    bytes: parsed.bytes,
+                    mimeType: parsed.mimeType,
+                    ext: parsed.ext,
+                    martyrId: id,
+                    uploadedBy: 'edge-auto-backfill'
+                });
+                if (stored.r2Available && stored.photoPath) {
+                    await db.prepare(
+                        'UPDATE martyrs SET photo_path = ?, photo_hash = ?, photo_shard = ?, has_photo = 1 WHERE id = ?'
+                    ).bind(stored.photoPath, stored.photoHash, stored.photoShard, id).run();
+                    uploaded++;
+                }
+                continue;
+            }
+
+            if (isSupportedExternalPhotoPath(rawPhoto)) {
+                await db.prepare('UPDATE martyrs SET photo_path = ?, has_photo = 1 WHERE id = ?').bind(rawPhoto, id).run();
+                updated++;
+                continue;
+            }
+
+            // Document genuinely has no photo in Firestore
+            await db.prepare('UPDATE martyrs SET has_photo = 0 WHERE id = ?').bind(id).run();
+            updated++;
+        } catch (itemErr) {
+            console.warn(`R2 backfill warning for ${id}:`, itemErr?.message || itemErr);
+        }
+    }
+
+    if (!quotaBlocked) {
+        await setArchiveMeta(db, 'r2_backfill_blocked_until_ms', '0', nowMs);
+    }
+
+    const postRow = await db.prepare(
+        "SELECT COUNT(*) AS cnt FROM martyrs WHERE status = 'approved' AND photo_removed = 0 AND has_photo = 1 AND (photo_path IS NULL OR photo_path = '')"
+    ).first();
+    const remaining = Number(postRow?.cnt || 0);
+
+    if (uploaded > 0 || updated > 0) {
+        await bumpArchiveVersion(db, nowMs);
+        await purgeEdgeCaches(origin);
+    }
+
+    return { uploaded, updated, remaining, quotaBlocked };
 }
 
 export async function purgeEdgeCaches(origin, extraPaths = []) {
@@ -743,23 +951,4 @@ export async function purgeEdgeCaches(origin, extraPaths = []) {
             }
         })
     );
-}
-
-export function resolveR2BucketForShard(env, shard) {
-    const clean = String(shard || '').trim().toLowerCase();
-    if (!clean || !env) return null;
-    if (clean === 's1' || clean === '1') return env.MEDIA_S1 || null;
-    if (clean === 's2' || clean === '2') return env.MEDIA_S2 || null;
-    if (clean === 's3' || clean === '3') return env.MEDIA_S3 || null;
-    const key = `MEDIA_${clean.toUpperCase()}`;
-    return env[key] || null;
-}
-
-export function getActiveMediaShard(env) {
-    const preferred = String(env?.ACTIVE_MEDIA_SHARD || 's1').trim().toLowerCase();
-    if (resolveR2BucketForShard(env, preferred)) return preferred;
-    for (const candidate of ['s1', 's2', 's3']) {
-        if (resolveR2BucketForShard(env, candidate)) return candidate;
-    }
-    return '';
 }

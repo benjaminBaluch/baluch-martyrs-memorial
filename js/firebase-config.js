@@ -93,6 +93,7 @@ let inFlightApprovedPromise = null;
 let backgroundSyncPromise = null;
 const photoMemoryCache = new Map(); // docId -> base64 string or ''
 const photoFetchInFlight = new Map(); // docId -> Promise<string>
+let firestorePhotoQuotaCooldownUntil = 0;
 
 function parseFirestoreRestValue(value) {
     if (!value || typeof value !== 'object') return null;
@@ -153,14 +154,27 @@ export async function resolveMartyrPhoto(martyrId, imgElement = null, onNoPhotoF
         return cachedPhoto || '';
     }
 
+    if (!force && Date.now() < firestorePhotoQuotaCooldownUntil) {
+        if (typeof onNoPhotoFallback === 'function') onNoPhotoFallback();
+        return '';
+    }
+
     let fetchPromise = !force ? photoFetchInFlight.get(martyrId) : null;
     if (!fetchPromise) {
         fetchPromise = (async () => {
             try {
                 const url = `https://firestore.googleapis.com/v1/projects/${firebaseConfig.projectId}/databases/(default)/documents/martyrs/${encodeURIComponent(martyrId)}?mask.fieldPaths=photo&mask.fieldPaths=photoPath&mask.fieldPaths=photoRemoved&key=${firebaseConfig.apiKey}`;
                 const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
-                if (!res.ok) {
+                if (res.status === 429 || res.status >= 500) {
+                    // Never poison cache on temporary Spark quota / server errors
+                    firestorePhotoQuotaCooldownUntil = Date.now() + 5 * 60 * 1000;
+                    return '';
+                }
+                if (res.status === 404) {
                     photoMemoryCache.set(martyrId, '');
+                    return '';
+                }
+                if (!res.ok) {
                     return '';
                 }
                 const docJson = await res.json();
@@ -2392,89 +2406,125 @@ export const firebaseDB = {
             let r2Uploaded = 0;
             let r2Skipped = 0;
             let r2Failed = 0;
+            let r2QuotaBlocked = 0;
 
             if (statusBefore.r2Bound) {
-                const candidates = records.filter((m) => (
-                    m && m.id && !m.photoRemoved &&
+                let candidates = records.filter((m) => (
+                    m && m.id && !m.photoRemoved && m.hasPhoto !== false &&
                     (!m.photoPath || !String(m.photoPath).startsWith('/media/'))
                 ));
 
-                const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = () => resolve(String(reader.result || ''));
-                    reader.onerror = () => reject(reader.error || new Error('FileReader failed'));
-                    reader.readAsDataURL(blob);
-                });
-
-                const CONCURRENCY = 4;
-                for (let idx = 0; idx < candidates.length; idx += CONCURRENCY) {
-                    const slice = candidates.slice(idx, idx + CONCURRENCY);
-                    await Promise.all(slice.map(async (m) => {
-                        try {
-                            let dataUri = '';
-                            if (typeof m.photo === 'string' && m.photo.startsWith('data:image/')) {
-                                dataUri = m.photo;
-                            } else {
-                                try {
-                                    const assetResp = await fetch(`/assets/photos/${encodeURIComponent(m.id)}.jpg`, { cache: 'default' });
-                                    if (assetResp.ok) {
-                                        const ctype = (assetResp.headers.get('content-type') || '').toLowerCase();
-                                        if (ctype.startsWith('image/')) {
-                                            dataUri = await blobToDataUrl(await assetResp.blob());
-                                        }
-                                    }
-                                } catch (_) {}
-                                if (!dataUri) {
-                                    const resolved = await resolveMartyrPhoto(m.id, null, null, { force: true });
-                                    if (typeof resolved === 'string' && resolved.startsWith('data:image/')) {
-                                        dataUri = resolved;
-                                    }
-                                }
-                            }
-
-                            if (!dataUri) {
-                                r2Skipped++;
-                                return;
-                            }
-
-                            const up = await uploadAdminPhotoToR2(dataUri);
-                            if (up.uploaded && up.photoPath) {
-                                m.photoPath = up.photoPath;
-                                m.photoHash = up.photoHash;
-                                m.photoShard = up.photoShard;
-                                m.hasPhoto = true;
-                                m.photo = up.photoPath;
-                                photoMemoryCache.set(m.id, up.photoPath);
-                                r2Uploaded++;
-                                if (!String(m.id).startsWith('edge_')) {
-                                    try {
-                                        await updateDoc(doc(db, 'martyrs', m.id), {
-                                            photoPath: up.photoPath,
-                                            photoHash: up.photoHash,
-                                            photoShard: up.photoShard,
-                                            photo: up.photoPath,
-                                            hasPhoto: true,
-                                            updatedAt: serverTimestamp()
-                                        });
-                                    } catch (_) {
-                                        // Keep going cleanly even if extended firestore.rules aren't pasted or quota is exhausted
-                                    }
-                                }
-                            } else {
-                                r2Failed++;
-                            }
-                        } catch (_) {
-                            r2Failed++;
-                        }
-                    }));
-
-                    const doneCount = Math.min(candidates.length, idx + CONCURRENCY);
+                if (candidates.length > 0 && statusBefore.d1Bound) {
                     notify({
                         stage: 'r2',
-                        current: doneCount,
+                        current: 0,
                         total: candidates.length,
-                        message: `Uploading portraits to R2 Photo Shelf (${doneCount}/${candidates.length})...`
+                        message: `Backfilling ${candidates.length} missing portraits on Cloudflare Edge -> R2...`
                     });
+                    const serverBackfill = await pushEdgeSync('backfill_r2', { limit: Math.min(100, candidates.length + 10) });
+                    if (serverBackfill?.uploaded > 0 || serverBackfill?.updated > 0) {
+                        r2Uploaded += Number(serverBackfill.uploaded || 0);
+                        const refreshedEdge = await readMartyrsFromEdgeArchive(true).catch(() => null);
+                        if (Array.isArray(refreshedEdge?.data) && refreshedEdge.data.length > 0) {
+                            records = refreshedEdge.data;
+                            candidates = records.filter((m) => (
+                                m && m.id && !m.photoRemoved && m.hasPhoto !== false &&
+                                (!m.photoPath || !String(m.photoPath).startsWith('/media/'))
+                            ));
+                        }
+                    }
+                    if (serverBackfill?.quotaBlocked) {
+                        r2QuotaBlocked = Number(serverBackfill.remaining ?? candidates.length);
+                    }
+                }
+
+                if (candidates.length > 0 && r2QuotaBlocked === 0) {
+                    const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(String(reader.result || ''));
+                        reader.onerror = () => reject(reader.error || new Error('FileReader failed'));
+                        reader.readAsDataURL(blob);
+                    });
+
+                    firestorePhotoQuotaCooldownUntil = 0;
+                    const CONCURRENCY = 4;
+                    for (let idx = 0; idx < candidates.length; idx += CONCURRENCY) {
+                        if (Date.now() < firestorePhotoQuotaCooldownUntil) {
+                            r2QuotaBlocked = candidates.length - idx;
+                            break;
+                        }
+                        const slice = candidates.slice(idx, idx + CONCURRENCY);
+                        await Promise.all(slice.map(async (m) => {
+                            try {
+                                let dataUri = '';
+                                if (typeof m.photo === 'string' && m.photo.startsWith('data:image/')) {
+                                    dataUri = m.photo;
+                                } else {
+                                    try {
+                                        const assetResp = await fetch(`/assets/photos/${encodeURIComponent(m.id)}.jpg`, { cache: 'default' });
+                                        if (assetResp.ok) {
+                                            const ctype = (assetResp.headers.get('content-type') || '').toLowerCase();
+                                            if (ctype.startsWith('image/')) {
+                                                dataUri = await blobToDataUrl(await assetResp.blob());
+                                            }
+                                        }
+                                    } catch (_) {}
+                                    if (!dataUri) {
+                                        const resolved = await resolveMartyrPhoto(m.id, null, null, { force: true });
+                                        if (typeof resolved === 'string' && resolved.startsWith('data:image/')) {
+                                            dataUri = resolved;
+                                        }
+                                    }
+                                }
+
+                                if (!dataUri) {
+                                    if (Date.now() < firestorePhotoQuotaCooldownUntil) {
+                                        r2QuotaBlocked++;
+                                    } else {
+                                        r2Skipped++;
+                                    }
+                                    return;
+                                }
+
+                                const up = await uploadAdminPhotoToR2(dataUri);
+                                if (up.uploaded && up.photoPath) {
+                                    m.photoPath = up.photoPath;
+                                    m.photoHash = up.photoHash;
+                                    m.photoShard = up.photoShard;
+                                    m.hasPhoto = true;
+                                    m.photo = up.photoPath;
+                                    photoMemoryCache.set(m.id, up.photoPath);
+                                    r2Uploaded++;
+                                    if (!String(m.id).startsWith('edge_')) {
+                                        try {
+                                            await updateDoc(doc(db, 'martyrs', m.id), {
+                                                photoPath: up.photoPath,
+                                                photoHash: up.photoHash,
+                                                photoShard: up.photoShard,
+                                                photo: up.photoPath,
+                                                hasPhoto: true,
+                                                updatedAt: serverTimestamp()
+                                            });
+                                        } catch (_) {
+                                            // Keep going cleanly even if extended firestore.rules aren't pasted or quota is exhausted
+                                        }
+                                    }
+                                } else {
+                                    r2Failed++;
+                                }
+                            } catch (_) {
+                                r2Failed++;
+                            }
+                        }));
+
+                        const doneCount = Math.min(candidates.length, idx + CONCURRENCY);
+                        notify({
+                            stage: 'r2',
+                            current: doneCount,
+                            total: candidates.length,
+                            message: `Uploading portraits to R2 Photo Shelf (${doneCount}/${candidates.length})...`
+                        });
+                    }
                 }
             }
 
@@ -2521,6 +2571,8 @@ export const firebaseDB = {
                 r2Uploaded,
                 r2Skipped,
                 r2Failed,
+                r2QuotaBlocked,
+                d1MissingR2Count: Number(statusAfter?.d1MissingR2Count || 0),
                 statusAfter
             };
         } catch (error) {

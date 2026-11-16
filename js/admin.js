@@ -3,7 +3,7 @@
 // Import authentication module
 import { adminAuth } from './auth.js';
 import { escapeHTML, sanitizeInput, checkRateLimit, logSecurityEvent } from './security.js';
-import { firebaseDB as directFirebaseDB } from './firebase-config.js?v=20261116c';
+import { firebaseDB as directFirebaseDB } from './firebase-config.js?v=20261116d';
 
 if (typeof window !== 'undefined' && (!window.firebaseDB || typeof window.firebaseDB.syncAllToEdgeArchive !== 'function')) {
     window.firebaseDB = directFirebaseDB;
@@ -657,7 +657,7 @@ document.addEventListener('DOMContentLoaded', function() {
 async function attemptFirebaseReconnection() {
     console.log('🔄 Attempting Firebase reconnection...');
     try {
-        const firebaseModule = await import('./firebase-config.js?v=20261116c');
+        const firebaseModule = await import('./firebase-config.js?v=20261116d');
         window.firebaseDB = firebaseModule.firebaseDB || directFirebaseDB;
         
         if (window.firebaseDB && typeof window.firebaseDB.testConnection === 'function') {
@@ -814,7 +814,7 @@ async function ensureEdgeSyncFirebaseDB() {
         return window.firebaseDB;
     }
     try {
-        const mod = await import('./firebase-config.js?v=20261116c&ts=' + Date.now());
+        const mod = await import('./firebase-config.js?v=20261116d&ts=' + Date.now());
         if (mod?.firebaseDB) {
             window.firebaseDB = mod.firebaseDB;
             return window.firebaseDB;
@@ -844,21 +844,27 @@ async function refreshEdgeArchiveBanner() {
         return;
     }
 
+    const missingR2 = Number(status.d1MissingR2Count || 0);
     const d1Label = status.d1Bound
         ? `D1 Edge DB: Active (${status.d1ApprovedCount || 0} profiles)`
         : 'D1 Edge DB: Pending binding';
     const r2Label = status.r2Bound
-        ? `R2 Photo Shelf: Active (${status.activeMediaShard || 's1'}, ${status.d1MediaPathCount || 0} portraits)`
+        ? (missingR2 > 0
+            ? `R2 Photo Shelf: ${status.d1MediaPathCount || 0} portraits synced • ${missingR2} waiting on Firebase quota`
+            : `R2 Photo Shelf: Active (${status.activeMediaShard || 's1'}, ${status.d1MediaPathCount || 0} portraits)`)
         : 'R2 Photo Shelf: Pending binding';
 
     if (pillEl) {
-        pillEl.textContent = (status.d1Bound && status.r2Bound)
+        const fullySynced = status.d1Bound && status.r2Bound && missingR2 === 0;
+        pillEl.textContent = fullySynced
             ? '9.5/10 Edge Active'
-            : (status.d1Bound || status.r2Bound ? 'Partial Edge' : 'Setup Ready');
-        pillEl.style.background = (status.d1Bound && status.r2Bound)
+            : (status.d1Bound && status.r2Bound && missingR2 > 0
+                ? 'Partial R2 Sync'
+                : (status.d1Bound || status.r2Bound ? 'Partial Edge' : 'Setup Ready'));
+        pillEl.style.background = fullySynced
             ? 'rgba(16, 185, 129, 0.14)'
             : 'rgba(245, 158, 11, 0.14)';
-        pillEl.style.color = (status.d1Bound && status.r2Bound) ? '#047857' : '#92400e';
+        pillEl.style.color = fullySynced ? '#047857' : '#92400e';
     }
     textEl.textContent = `${d1Label} • ${r2Label}`;
 }
@@ -895,8 +901,16 @@ async function handleSyncEdgeArchive() {
         }
         await refreshEdgeArchiveBanner();
         await loadApprovedMartyrs();
-        const summary = `Synced ${res.totalRecords} records${res.d1Bound ? ` (D1: ${res.d1Written})` : ''}${res.r2Bound ? ` • Uploaded ${res.r2Uploaded} portraits to R2` : ''}`;
-        showAdminToast(summary, 'success');
+        const pendingQuotaPhotos = Number(res.d1MissingR2Count || res.r2QuotaBlocked || 0);
+        if (pendingQuotaPhotos > 0) {
+            showAdminToast(
+                `D1 synced ${res.totalRecords} records (${res.r2Uploaded} uploaded to R2). ${pendingQuotaPhotos} portraits are waiting for Firebase Spark daily quota reset (429) and will upload automatically once quota resets.`,
+                'warning'
+            );
+        } else {
+            const summary = `Synced ${res.totalRecords} records${res.d1Bound ? ` (D1: ${res.d1Written})` : ''}${res.r2Bound ? ` • Uploaded ${res.r2Uploaded} portraits to R2` : ''}`;
+            showAdminToast(summary, 'success');
+        }
     } catch (err) {
         showAdminToast(err?.message || 'Edge sync failed.', 'error');
     } finally {
